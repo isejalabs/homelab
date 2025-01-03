@@ -29,20 +29,20 @@ terraform {
 }
 
 locals {
-  env          = "${include.envcommon.locals.env}"
-  root_path    = "${dirname(find_in_parent_folders())}"
-  storage_vmid = 9813
-  vlan_id      = 108
-  ctrl_cpu     = 2
+  env            = "${include.envcommon.locals.env}"
+  root_path      = "${dirname(find_in_parent_folders())}"
+  storage_vmid   = 9813
+  vlan_id        = 108
+  ctrl_cpu       = 2
   ctrl_disk_size = 10
-  ctrl_ram     = 3072
-  work_cpu     = 2
+  ctrl_ram       = 3072
+  work_cpu       = 2
   work_disk_size = 10
-  work_ram     = 3072
-  cpu_type     = "x86-64-v2-AES"
-  domain       = "test.iseja.net"
-  datastore_id = "local-enc"
-  cilium_path  = "k8s/core/network/cilium"
+  work_ram       = 3072
+  cpu_type       = "x86-64-v2-AES"
+  domain         = "test.iseja.net"
+  datastore_id   = "local-enc"
+  cilium_path    = "k8s/core/network/cilium"
 }
 
 inputs = {
@@ -108,7 +108,6 @@ inputs = {
       cpu_type      = "custom-x86-64-v2-AES-AVX"
       datastore_id  = "${local.datastore_id}"
       disk_size     = "${local.work_disk_size}"
-      # ram_dedicated = "${local.work_ram}"
       ram_dedicated = 5120
       vlan_id       = "${local.vlan_id}"
       # update        = true
@@ -127,7 +126,7 @@ inputs = {
     }
   }
 
-  cilium_values  = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
 
   volumes = {
     pv-mongodb = {
