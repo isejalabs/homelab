@@ -3,6 +3,3 @@ kind: Kustomization
 
 resources:
   - ns.yaml
-  # - svc.yaml
-  # - deployment.yaml
-  # - http-route.yaml

@@ -14,4 +14,5 @@ helmCharts:
     version: 1.6.0
     releaseName: checkmk-kube-agent
     namespace: checkmk-agent
-    valuesFile: values.yaml
+    # no values.yaml as defaults are good (ingress disabled in favor of GW API http-route)
+    # valuesFile: values.yaml
