@@ -8,7 +8,7 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - "dev-cmk-ingress.dev.iseja.net"
+    - "dev-cmk-k8s-cluster-collector.dev.iseja.net"
   rules:
     - matches:
         - path:
