@@ -2,8 +2,6 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 replacements:
-  - path: repl/httproute-prefix-backendRefs.yaml
   - path: repl/httproute-prefix-domain.yaml
   - path: repl/ingress-prefix-domain.yaml
-  - path: repl/tlsroute-prefix-backendRefs.yaml
   - path: repl/tlsroute-prefix-domain.yaml
