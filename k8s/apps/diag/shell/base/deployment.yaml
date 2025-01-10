@@ -1,0 +1,41 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: shell
+  namespace: diag
+  labels:
+    app: shell
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: shell
+  template:
+    metadata:
+      namespace: diag
+      labels:
+        app: shell
+    spec:
+      # securityContext:
+      #   runAsNonRoot: true
+      #   runAsUser: 999
+      #   runAsGroup: 999
+      #   fsGroup: 999
+      #   fsGroupChangePolicy: OnRootMismatch
+      #   seccompProfile:
+      #     type: RuntimeDefault
+      containers:
+        - name: debian
+          image: debian:bullseye
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          resources:
+            requests:
+              cpu: 50m
+              memory: 12Mi
+            limits:
+              cpu: 1000m
+              memory: 128Mi

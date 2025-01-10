@@ -1,0 +1,65 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ssh
+  namespace: ssh
+  labels:
+    app: ssh
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ssh
+  template:
+    metadata:
+      namespace: ssh
+      labels:
+        app: ssh
+    spec:
+      securityContext:
+        runAsNonRoot: false
+        # runAsNonRoot: true
+        # runAsUser: 999
+        # runAsGroup: 999
+        # fsGroup: 999
+        # fsGroupChangePolicy: OnRootMismatch
+        # seccompProfile:
+        #   type: RuntimeDefault
+      containers:
+        - name: ssh
+          image: lscr.io/linuxserver/openssh-server:9.7_p1-r4-ls179
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   readOnlyRootFilesystem: true
+          #   capabilities:
+          #     drop: [ "ALL" ]
+          ports:
+            - name: ssh
+              containerPort: 2222
+          env:
+            - name: PUID
+              value: "999"
+            - name: PGID
+              value: "999"
+            - name: TZ
+              value: Europe/Berlin
+            - name: PUBLIC_KEY
+              value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC5Ccs6NeGOiFe+JVXmhGDNoo1tHeWZnZbTXIU4GHq9g sebi@mbp-2021 #optional
+            # - name: PUBLIC_KEY_FILE
+            #   value: assets/authorized_keys #optional
+          resources:
+            requests:
+              cpu: 50m
+              memory: 12Mi
+            limits:
+              cpu: 1000m
+              memory: 256Mi
+          volumeMounts:
+            - name: ssh-install-packages-script
+              mountPath: /custom-cont-init.d/install-packages.sh
+              subPath: install-packages.sh
+              readOnly: true
+      volumes:
+        - name: ssh-install-packages-script
+          configMap:
+            name: ssh-install-packages-script
