@@ -8,12 +8,8 @@ spec:
     - name: internal
       namespace: gateway
   hostnames:
-    - "dev-hubble.dev.iseja.net"
+    - "hubble.example.com"
   rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
+    - backendRefs:
         - name: hubble-ui
           port: 80
