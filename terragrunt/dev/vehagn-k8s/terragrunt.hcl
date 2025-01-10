@@ -25,7 +25,7 @@ terraform {
   # see e.g. issue #2 (https://github.com/sebiklamar/homelab/pull/2)
   # source = "${include.envcommon.locals.base_source_url}?ref=v0.0.3" # renovate: github-releases=sebiklamar/terraform-modules
   # using hard-coded URL instead of envcommon instead
-  source = "git::git@github.com:sebiklamar/terraform-modules.git//modules/vehagn-k8s?ref=HEAD"
+  source = "git::git@github.com:sebiklamar/terraform-modules.git//modules/vehagn-k8s?ref=vehagn-k8s-v1.0.0"
 }
 
 locals {
@@ -57,7 +57,7 @@ inputs = {
 
   cluster = {
     # ToDo resolve redudundant implementation
-    talos_version   = "v1.8.3"
+    talos_version   = "v1.8.4"
     name            = "${local.env}-vehagn-tg"
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.8.131"
