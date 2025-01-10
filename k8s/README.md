@@ -56,11 +56,15 @@ If not all applications are needed, use the following `kustomize build` commands
 kustomize build --enable-helm k8s/core/network/cilium/envs/dev | kubectl apply -f -
 ````
 
+#### Checks
+
 Check for cilium being deployed successfully:
 
 ```sh
 cilium status --wait
-````
+```
+
+#### Configuration
 
 Print out configuration:
 
