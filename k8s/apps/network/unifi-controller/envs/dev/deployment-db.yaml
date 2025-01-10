@@ -1,0 +1,35 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: unifi
+  labels:
+    app: mongodb
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodb
+          image: docker.io/mongo:7.0@sha256:725b4cfe87014950ce9b423ac0a03035f6014a33475030403a3e583eb1485045
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-sealed
+                  key: root_user
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-sealed
+                  key: root_pass
+            - name: MONGO_USER
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-sealed
+                  key: mongo_user
+            - name: MONGO_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret-sealed
+                  key: mongo_pass

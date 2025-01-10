@@ -37,9 +37,15 @@ spec:
             - name: TZ
               value: Europe/Berlin
             - name: MONGO_USER
-              value: unifiuser
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: mongo_user
             - name: MONGO_PASS
-              value: unifipass
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: mongo_pass
             - name: MONGO_HOST
               value: mongodb
             - name: MONGO_PORT

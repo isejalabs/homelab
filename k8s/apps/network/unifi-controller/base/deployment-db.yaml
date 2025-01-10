@@ -49,13 +49,25 @@ spec:
             - name: MONGO_AUTHSOURCE
               value: admin
             - name: MONGO_INITDB_ROOT_USERNAME
-              value: rootuser
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: root_user
             - name: MONGO_INITDB_ROOT_PASSWORD
-              value: rootpass
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: root_pass
             - name: MONGO_USER
-              value: unifiuser
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: mongo_user
             - name: MONGO_PASS
-              value: unifipass
+              valueFrom:
+                secretKeyRef:
+                  name: db-secret
+                  key: mongo_pass
             - name: MONGO_DBNAME
               value: unifidb
           resources:
