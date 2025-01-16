@@ -23,7 +23,7 @@ include "envcommon" {
 terraform {
   # comment regex overrides terragrunt nonSemVer matching, replacing s/talos-proxmox-v0.0.1/v0.0.3
   # see e.g. issue #2 (https://github.com/sebiklamar/homelab/pull/2)
-  # source = "${include.envcommon.locals.base_source_url}?ref=v0.0.3" # renovate: github-releases=sebiklamar/terraform-modules
+  # source = "${include.envcommon.locals.base_source_url}?ref=v2.0.1" # renovate: github-releases=sebiklamar/terraform-modules
   # using hard-coded URL instead of envcommon instead
   source = "git::git@github.com:sebiklamar/terraform-modules.git//modules/vehagn-k8s?ref=vehagn-k8s-v2.0.0"
 }
