@@ -1,0 +1,26 @@
+---
+apiVersion: cilium.io/v2alpha1
+kind: CiliumBGPClusterConfig
+metadata:
+  name: cilium-bgp
+spec:
+  nodeSelector: 
+    # disable BGP on control plane nodes
+    matchExpressions:
+      - key: node-role.kubernetes.io/control-plane
+        operator: DoesNotExist
+
+  bgpInstances:
+  - name: "instance-64528"
+    localASN: 64528 # Use your cluster's ASN here!
+    peers:
+    - name: "peer-64520-gw2"
+      peerASN: 64520
+      peerAddress: 10.7.8.2
+      peerConfigRef:
+        name: "cilium-peer"
+    - name: "peer-64520-gw3"
+      peerASN: 64520
+      peerAddress: 10.7.8.3
+      peerConfigRef:
+        name: "cilium-peer"

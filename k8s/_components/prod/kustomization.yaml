@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - cluster-param.yaml
+
+components:
+  - ../base                             # configures domain replacements already
+  # do not prefix domain
+  # - ../../_transformers/prefix-domain   # prefix domain 

@@ -1,0 +1,13 @@
+## enable BGP
+# URL: https://docs.cilium.io/en/stable/network/bgp-control-plane/bgp-control-plane/#installation
+bgpControlPlane:
+  enabled: true
+## enable egress gateway 
+# URL: https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/
+egressGateway:
+  enabled: true
+bpf:
+  masquerade: true
+# egress gateway not compatible with CiliumEndpointSlice
+# URL: https://github.com/cilium/cilium/issues/24833
+enableCiliumEndpointSlice: false

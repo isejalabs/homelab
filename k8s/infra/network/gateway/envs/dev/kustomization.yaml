@@ -1,10 +1,6 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-# DISABLED: do not prefix name nor do other env.-specific transformations
-# components:
-#   - ../../../../../_components/dev
-
 resources:
   - ../../base
   - gw-external.yaml

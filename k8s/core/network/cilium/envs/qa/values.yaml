@@ -4,7 +4,7 @@ cluster:
 
 kubeProxyReplacement: true
 
- # Talos specific
+# Talos specific
 k8sServiceHost: localhost
 k8sServicePort: 7445
 securityContext:
@@ -75,14 +75,6 @@ hubble:
   ui:
     enabled: true
     rollOutPods: true
-
-ingressController:
-  enabled: false
-  default: true
-  loadbalancerMode: shared
-  service:
-    annotations:
-      io.cilium/lb-ipam-ips: 192.168.1.223
 
 # mTLS
 authentication:

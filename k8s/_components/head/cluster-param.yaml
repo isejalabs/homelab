@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cluster-param
+  annotations:
+    config.kubernetes.io/local-config: "true"
+data:
+  CLUSTER_ENVIRONMENT: src
+  CLUSTER_NAME: head-vehagn-tg
+  DOMAIN_BASE: head.iseja
+  DOMAIN_TLD: net

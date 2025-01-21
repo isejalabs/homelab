@@ -1,8 +1,8 @@
 apiVersion: cilium.io/v2alpha1
 kind: CiliumLoadBalancerIPPool
 metadata:
-  name: local-pool
+  name: bgp-pool
 spec:
   blocks:
-    - start: 10.7.8.31
-      stop: 10.7.8.39
+    - start: 10.8.9.10
+      stop: 10.8.9.250
