@@ -21,11 +21,8 @@ include "envcommon" {
 # Configure the version of the module to use in this environment. This allows you to promote new versions one
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
-  # comment regex overrides terragrunt nonSemVer matching, replacing s/talos-proxmox-v0.0.1/v0.0.3
-  # see e.g. issue #2 (https://github.com/sebiklamar/homelab/pull/2)
-  # source = "${include.envcommon.locals.base_source_url}?ref=v0.0.3" # renovate: github-releases=sebiklamar/terraform-modules
-  # using hard-coded URL instead of envcommon instead
-  source = "git::git@github.com:sebiklamar/terraform-modules.git//modules/vehagn-k8s?ref=vehagn-k8s-v2.0.0"
+  # using hard-coded URL instead of envcommon instead, so renevate can deal with it
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.0.0"
 }
 
 locals {
