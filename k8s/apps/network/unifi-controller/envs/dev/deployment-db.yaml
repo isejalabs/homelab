@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: docker.io/mongo:7.0@sha256:725b4cfe87014950ce9b423ac0a03035f6014a33475030403a3e583eb1485045
+          image: docker.io/mongo:7.0@sha256:3e276088d4fd4ceb2ade3665e1e8a1c6ace695735e01facf86b72256356659ac
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
