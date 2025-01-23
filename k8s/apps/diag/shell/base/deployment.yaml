@@ -26,7 +26,7 @@ spec:
       #     type: RuntimeDefault
       containers:
         - name: debian
-          image: debian:bullseye@sha256:e5bfb7364038fd100c2faebdd674145bd1bc758a57f3c67023cced99d0eff0f7
+          image: debian:bookworm@sha256:321341744acb788e251ebd374aecc1a42d60ce65da7bd4ee9207ff6be6686a62
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
