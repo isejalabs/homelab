@@ -45,7 +45,7 @@ The `core` set covers depencencies necessary even for `infra` components, e.g.
 Use the set for deploying all applications in the `core` category. 
 
 ```sh
-kustomize build --enable-helm k8s/core/envs/dev | kubectl apply -f -
+kustomize build --enable-helm k8s/core/_envs/dev | kubectl apply -f -
 ```
 
 If not all applications are needed, use the following `kustomize build` commands instead.
@@ -150,7 +150,7 @@ k get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
 Use the set for deploying all applications in the `infra` category. 
 
 ```sh
-kustomize build --enable-helm k8s/infra/envs/dev | kubectl apply -f -
+kustomize build --enable-helm k8s/infra/_envs/dev | kubectl apply -f -
 ```
 
 If not all applications are needed, use the following `kustomize build` commands instead.
