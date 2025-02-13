@@ -11,7 +11,7 @@ spec:
     spec:
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:8.6.9@sha256:f8403a6813b9e0e68fcf622a7f00dbdbd772dfd6a11277fedcb54b816e0eb801
+          image: lscr.io/linuxserver/unifi-network-application:9.0.114@sha256:1fb43625e37e6d618f1c0d9cbea2fa3fa05a608a7c5379078773a72fe1bbb839
           env:
             - name: MONGO_USER
               valueFrom:
