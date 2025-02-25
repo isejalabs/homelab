@@ -75,7 +75,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve4"
       machine_type  = "controlplane"
       ip            = "10.7.8.122"
       vm_id         = 7008122
@@ -87,7 +87,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve3"
       machine_type  = "controlplane"
       ip            = "10.7.8.123"
       vm_id         = 7008123
@@ -99,7 +99,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-01.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve1"
       machine_type  = "worker"
       ip            = "10.7.8.124"
       vm_id         = 7008124
@@ -112,7 +112,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve4"
       machine_type  = "worker"
       ip            = "10.7.8.125"
       vm_id         = 7008125
@@ -129,7 +129,7 @@ inputs = {
 
   volumes = {
     pv-mongodb = {
-      node    = "pve5"
+      node    = "pve4"
       size    = "500M"
       vmid    = "${local.storage_vmid}"
       storage = "${local.datastore_id}"

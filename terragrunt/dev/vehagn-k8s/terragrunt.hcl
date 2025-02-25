@@ -63,7 +63,7 @@ inputs = {
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve1"
       machine_type  = "controlplane"
       ip            = "10.7.8.131"
       vm_id         = 7008131
@@ -75,7 +75,7 @@ inputs = {
       # update        = true
     }
     # "${local.env}-ctrl-02.${local.domain}" = {
-    #   host_node     = "pve2"
+    #   host_node     = "pve4"
     #   machine_type  = "controlplane"
     #   ip            = "10.7.8.132"
     #   vm_id         = 7008132
@@ -86,7 +86,7 @@ inputs = {
     #   # update        = true
     # }
     # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve2"
+    #   host_node     = "pve3"
     #   machine_type  = "controlplane"
     #   ip            = "10.7.8.133"
     #   vm_id         = 7008133
@@ -97,7 +97,7 @@ inputs = {
     #   # update        = true
     # }
     "${local.env}-work-01.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve1"
       machine_type  = "worker"
       ip            = "10.7.8.134"
       vm_id         = 7008134
@@ -110,11 +110,12 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve4"
       machine_type  = "worker"
       ip            = "10.7.8.135"
       vm_id         = 7008135
       cpu           = "${local.work_cpu}"
+      cpu_type      = "custom-x86-64-v2-AES-AVX"
       datastore_id  = "${local.datastore_id}"
       disk_size     = "${local.work_disk_size}"
       ram_dedicated = "${local.work_ram}"
@@ -127,7 +128,7 @@ inputs = {
 
   volumes = {
     pv-mongodb = {
-      node    = "pve5"
+      node    = "pve4"
       size    = "500M"
       vmid    = "${local.storage_vmid}"
       storage = "${local.datastore_id}"

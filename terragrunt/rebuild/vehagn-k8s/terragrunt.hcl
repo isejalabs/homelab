@@ -63,7 +63,7 @@ inputs = {
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve1"
       machine_type  = "controlplane"
       ip            = "10.7.8.171"
       vm_id         = 7008171
@@ -75,7 +75,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve4"
       machine_type  = "controlplane"
       ip            = "10.7.8.172"
       vm_id         = 7008172
@@ -86,7 +86,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve3"
       machine_type  = "controlplane"
       ip            = "10.7.8.173"
       vm_id         = 7008173
@@ -110,7 +110,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve4"
       machine_type  = "worker"
       ip            = "10.7.8.175"
       vm_id         = 7008175

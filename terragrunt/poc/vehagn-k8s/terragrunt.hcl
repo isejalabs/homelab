@@ -63,7 +63,7 @@ inputs = {
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve1"
       machine_type  = "controlplane"
       ip            = "10.7.8.161"
       vm_id         = 7008161
@@ -86,7 +86,7 @@ inputs = {
     #   # update        = true
     # }
     # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve2"
+    #   host_node     = "pve3"
     #   machine_type  = "controlplane"
     #   ip            = "10.7.8.163"
     #   vm_id         = 7008163
@@ -97,7 +97,7 @@ inputs = {
     #   # update        = true
     # }
     # "${local.env}-work-01.${local.domain}" = {
-    #   host_node     = "pve4"
+    #   host_node     = "pve1"
     #   machine_type  = "worker"
     #   ip            = "10.7.8.164"
     #   vm_id         = 7008164
@@ -110,7 +110,7 @@ inputs = {
     #   # update        = true
     # }
     "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve2"
+      host_node     = "pve4"
       machine_type  = "worker"
       ip            = "10.7.8.165"
       vm_id         = 7008165
@@ -127,7 +127,7 @@ inputs = {
 
   volumes = {
   #   pv-test = {
-  #     node    = "pve2"
+  #     node    = "pve4"
   #     size    = "100M"
   #     vmid    = "${local.storage_vmid}"
   #     storage = "${local.datastore_id}"
