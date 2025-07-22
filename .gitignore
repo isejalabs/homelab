@@ -33,3 +33,6 @@ override.tf.json
 output*
 *.cert
 *.key
+
+# IDE
+*.code-workspace
