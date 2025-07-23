@@ -6,6 +6,5 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   CLUSTER_ENVIRONMENT: qa
-  CLUSTER_NAME: qa-vehagn-tg
   DOMAIN_BASE: qa.iseja
   DOMAIN_TLD: net

@@ -6,6 +6,5 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   CLUSTER_ENVIRONMENT: poc
-  CLUSTER_NAME: cluster01
   DOMAIN_BASE: sub.domain.example
   DOMAIN_TLD: com

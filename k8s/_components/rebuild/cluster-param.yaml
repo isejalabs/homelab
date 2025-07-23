@@ -6,6 +6,5 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   CLUSTER_ENVIRONMENT: rebuild
-  CLUSTER_NAME: rebuild-vehagn-tg
   DOMAIN_BASE: rebuild.iseja
   DOMAIN_TLD: net

@@ -6,6 +6,5 @@ metadata:
     config.kubernetes.io/local-config: "true"
 data:
   CLUSTER_ENVIRONMENT: prod
-  CLUSTER_NAME: prod-vehagn-tg
   DOMAIN_BASE: prod.iseja
   DOMAIN_TLD: net
