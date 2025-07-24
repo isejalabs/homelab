@@ -13,7 +13,7 @@ locals {
   env = local.environment_vars.locals.env
 
   # Expose the base source URL so different versions of the module can be deployed in different environments.
-  base_source_url = "git::git@github.com:sebiklamar/terraform-modules.git//modules/vms"
+  base_source_url = "git::git@github.com:isejalabs/terraform-modules.git//modules/vms"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
