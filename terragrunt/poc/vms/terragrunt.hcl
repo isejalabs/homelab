@@ -25,22 +25,5 @@ terraform {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Local configuration, overriding common parameters for this environment
+# We don't need to override any of the common parameters for this environment, so we don't specify any inputs.
 # ---------------------------------------------------------------------------------------------------------------------
-
-remote_state {
-  backend = "s3"
-  # disable_init   = true
-  generate = {
-    path      = "backend.tf"
-    if_exists = "overwrite_terragrunt"
-  }
-
-  config = {
-    bucket         = "poc4-443370678269"
-    key            = "man-poc/vms/tofu.tfstate"
-    region         = "eu-central-1"
-    encrypt        = true
-    dynamodb_table = "poc4-open-tofu-remote-backend"
-  }
-}
