@@ -1,3 +1,3 @@
 locals {
-    env = "head"
+  env = "head"
 }

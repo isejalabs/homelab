@@ -1,3 +1,3 @@
 locals {
-    env = "prod"
+  env = "prod"
 }

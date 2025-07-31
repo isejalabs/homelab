@@ -1,3 +1,3 @@
 locals {
-    env = "poc"
+  env = "poc"
 }

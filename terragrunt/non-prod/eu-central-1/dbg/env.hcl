@@ -1,3 +1,3 @@
 locals {
-    env = "dbg"
+  env = "dbg"
 }

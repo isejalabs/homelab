@@ -1,3 +1,3 @@
 locals {
-    env = "qa"
+  env = "qa"
 }

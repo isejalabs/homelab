@@ -15,7 +15,7 @@ include "root" {
 # Include the envcommon configuration for the component. The envcommon configuration contains settings that are common
 # for the component across all environments.
 include "envcommon" {
-  path   = "${dirname(find_in_parent_folders("root.hcl"))}/_envcommon/vms.hcl"
+  path = "${dirname(find_in_parent_folders("root.hcl"))}/_envcommon/vms.hcl"
   # We want to reference the variables from the included config in this configuration, so we expose it.
   expose = true
 }
