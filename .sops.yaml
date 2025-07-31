@@ -6,5 +6,7 @@ creation_rules:
     encrypted_regex: "((?i)(^trusted|^secrets|^trustdinfo|^cluster|.[pP]assword|crt|key|^data$|^stringData))"
   - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
     path_regex: (tofu|terraform|terragrunt)/.*\.auto\.tfvars(\.json)?
+  - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
+    path_regex: .*-secrets\.ya?ml
   # - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
   #   encrypted_comment_regex: "sops:encrypt"
