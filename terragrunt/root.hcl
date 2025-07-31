@@ -5,13 +5,9 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 locals {
-  # Automatically load account-level variables
-  account_vars = read_terragrunt_config(find_in_parent_folders("account.hcl"))
-
-  # Automatically load region-level variables
-  region_vars = read_terragrunt_config(find_in_parent_folders("region.hcl"))
-
-  # Automatically load environment-level variables
+  # Automatically load account-, region- and environment-level variables
+  account_vars     = read_terragrunt_config(find_in_parent_folders("account.hcl"))
+  region_vars      = read_terragrunt_config(find_in_parent_folders("region.hcl"))
   environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
 
   # Extract the variables we need for easy access
@@ -40,6 +36,9 @@ remote_state {
 
 # Configure root level variables that all resources can inherit. This is especially helpful with multi-account configs
 # where terraform_remote_state data sources are placed directly into the modules.
+#
+# You can reference these variables in child modules using:
+#   include.root.inputs.<variable_name>
 inputs = merge(
   local.account_vars.locals,
   local.region_vars.locals,

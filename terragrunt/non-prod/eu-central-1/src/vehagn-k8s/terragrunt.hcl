@@ -8,6 +8,8 @@
 # components and environments, such as how to configure remote state.
 include "root" {
   path = find_in_parent_folders("root.hcl")
+  # We want to reference the variables from the included config in this configuration, so we expose it.
+  expose = true
 }
 
 # Include the envcommon configuration for the component. The envcommon configuration contains settings that are common
@@ -21,13 +23,13 @@ include "envcommon" {
 # Configure the version of the module to use in this environment. This allows you to promote new versions one
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
-  # using hard-coded URL instead of envcommon instead, so renevate can deal with it
+  # using hard-coded URL instead of envcommon variable, so renovate can deal with it
   # source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=HEAD"
   source = "../../../../terraform-proxmox-talos"
 }
 
 locals {
-  env            = "${include.envcommon.locals.env}"
+  env            = include.root.inputs.env
   root_path      = "${dirname(find_in_parent_folders("root.hcl"))}"
   storage_vmid   = 9815
   vlan_id        = 108
@@ -37,10 +39,10 @@ locals {
   work_cpu       = 2
   work_disk_size = 10
   work_ram       = 3072
-  cpu_type       = "x86-64-v2-AES"
   domain         = "test.iseja.net"
-  datastore_id   = "local-enc"
-  cilium_path    = "k8s/core/network/cilium"
+  cpu_type       = include.envcommon.locals.cpu_type
+  datastore_id   = include.envcommon.locals.datastore_id
+  cilium_path    = include.envcommon.locals.cilium_path
 }
 
 inputs = {

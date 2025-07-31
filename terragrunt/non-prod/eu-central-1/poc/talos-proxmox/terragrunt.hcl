@@ -8,6 +8,8 @@
 # components and environments, such as how to configure remote state.
 include "root" {
   path = find_in_parent_folders("root.hcl")
+  # We want to reference the variables from the included config in this configuration, so we expose it.
+  expose = true
 }
 
 # Include the envcommon configuration for the component. The envcommon configuration contains settings that are common
@@ -29,7 +31,7 @@ terraform {
 }
 
 locals {
-  env      = "${include.envcommon.locals.env}"
+  env      = include.root.inputs.env
   vlan_id  = 104
   ctrl_cpu = 2
   ctrl_ram = 3072
