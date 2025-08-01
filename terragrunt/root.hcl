@@ -62,6 +62,11 @@ remote_state {
   config = {
     path = "${path_relative_to_include()}/terraform.tfstate"
   }
+  encryption = {
+    key_provider = "pbkdf2"
+    # passphrase   = inputs.passphrase != "" ? inputs.passphrase : get_env("PBKDF2_PASSPHRASE", "SUPERSECRETPASSPHRASE")
+    passphrase = local.secret_vars.state_encryption_passphrase
+  }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
