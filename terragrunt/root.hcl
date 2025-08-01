@@ -50,21 +50,29 @@ locals {
   account_name = local.account_vars.locals.account_name
   account_id   = local.account_vars.locals.aws_account_id
   aws_region   = local.region_vars.locals.aws_region
+
+  # Define some root-level variables used by the remote state configuration and AWS IAM role setup
+  project_name        = "homelab"
+  remote_state_bucket = "${get_env("TG_BUCKET_PREFIX", "")}${local.account_name}-${local.project_name}-tf-state-${local.aws_region}-${local.account_id}"
 }
 
+# Configure Terragrunt to automatically store tfstate files in an S3 bucket
 remote_state {
-  backend = "local"
+  backend = "s3"
   generate = {
     path      = "backend.tf"
     if_exists = "overwrite_terragrunt"
   }
 
   config = {
-    path = "${path_relative_to_include()}/terraform.tfstate"
+    key          = "${path_relative_to_include()}/tf.tfstate"
+    bucket       = local.remote_state_bucket
+    region       = local.aws_region
+    encrypt      = true
+    use_lockfile = true
   }
   encryption = {
     key_provider = "pbkdf2"
-    # passphrase   = inputs.passphrase != "" ? inputs.passphrase : get_env("PBKDF2_PASSPHRASE", "SUPERSECRETPASSPHRASE")
     passphrase = local.secret_vars.state_encryption_passphrase
   }
 }
