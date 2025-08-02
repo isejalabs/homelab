@@ -47,13 +47,20 @@ locals {
   )
 
   # Extract some variables we need for easy access here
-  account_name = local.account_vars.locals.account_name
-  account_id   = local.account_vars.locals.aws_account_id
-  aws_region   = local.region_vars.locals.aws_region
+  account_name   = local.account_vars.locals.account_name
+  aws_account_id = local.account_vars.locals.aws_account_id
+  aws_region     = local.region_vars.locals.aws_region
+  env            = local.environment_vars.locals.env
 
   # Define some root-level variables used by the remote state configuration and AWS IAM role setup
-  project_name        = "homelab"
-  remote_state_bucket = "${get_env("TG_BUCKET_PREFIX", "")}${local.account_name}-${local.project_name}-tf-state-${local.aws_region}-${local.account_id}"
+  project_name                 = "homelab"
+  # Define the base name for the resources, which will be used to create unique names for the S3 bucket and DynamoDB table
+  # We will use it here and in the role setup module
+  resource_basename            = "${get_env("TG_BUCKET_PREFIX", "")}${local.account_name}-${local.project_name}-${local.aws_region}"
+  remote_state_bucket_basename = "${local.resource_basename}-tf-state"
+  # append the account ID to the bucket name to ensure uniqueness across accounts
+  remote_state_bucket         = "${local.remote_state_bucket_basename}-${local.aws_account_id}"
+  remote_state_dynamodb_table = "${local.resource_basename}-tf-state-lock"
 }
 
 # Configure Terragrunt to automatically store tfstate files in an S3 bucket
@@ -69,11 +76,13 @@ remote_state {
     bucket       = local.remote_state_bucket
     region       = local.aws_region
     encrypt      = true
+    # The DynamoDB table could be used for state locking, but we use S3 native locking instead
+    # dynamodb_table = local.remote_state_dynamodb_table
     use_lockfile = true
   }
   encryption = {
     key_provider = "pbkdf2"
-    passphrase = local.secret_vars.state_encryption_passphrase
+    passphrase   = local.secret_vars.state_encryption_passphrase
   }
 }
 
