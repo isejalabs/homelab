@@ -22,7 +22,9 @@ locals {
   ### Common variables for the component across all environments
 
   # Expose the base source URL so different versions of the module can be deployed in different environments.
-  base_source_url = "git::git@github.com:cisagov/terraform-state-read-role-tf-module.git"
+  # base_source_url = "git::git@github.com:cisagov/terraform-state-read-role-tf-module.git"
+  # Pin module version to a specific tag to ensure consistency across environments (and to ease renovate's job).
+  base_source_url = "git::git@github.com:cisagov/terraform-state-read-role-tf-module.git?ref=v1.0.0"
 
   # Set some values common accross all environments
   role_basename = "RW-Role"
