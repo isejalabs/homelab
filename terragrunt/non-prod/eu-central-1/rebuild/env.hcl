@@ -1,3 +1,3 @@
 locals {
-  env = "rebuild"
+  env = "re"
 }
