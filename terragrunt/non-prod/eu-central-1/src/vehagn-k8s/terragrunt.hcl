@@ -29,20 +29,25 @@ terraform {
 }
 
 locals {
+  # Reuse the common variables from the root configuration
   env            = include.root.inputs.env
   root_path      = "${dirname(find_in_parent_folders("root.hcl"))}"
-  storage_vmid   = 9815
-  vlan_id        = 108
-  ctrl_cpu       = 2
-  ctrl_disk_size = 10
-  ctrl_ram       = 3072
-  work_cpu       = 2
-  work_disk_size = 10
-  work_ram       = 3072
-  domain         = "test.iseja.net"
-  cpu_type       = include.envcommon.locals.cpu_type
-  datastore_id   = include.envcommon.locals.datastore_id
+
+  # Reuse the common variables from the envcommon configuration
   cilium_path    = include.envcommon.locals.cilium_path
+  cpu_type       = include.envcommon.locals.cpu_type
+  ctrl_cpu       = include.envcommon.locals.ctrl_cpu
+  ctrl_disk_size = include.envcommon.locals.ctrl_disk_size
+  ctrl_ram       = include.envcommon.locals.ctrl_ram
+  datastore_id   = include.envcommon.locals.datastore_id
+  domain         = include.envcommon.locals.domain
+  vlan_id        = include.envcommon.locals.vlan_id
+  work_cpu       = include.envcommon.locals.work_cpu
+  work_disk_size = include.envcommon.locals.work_disk_size
+  work_ram       = include.envcommon.locals.work_ram
+  
+  # Set some values specific to this environment
+  storage_vmid   = 9815
 }
 
 inputs = {
@@ -108,7 +113,7 @@ inputs = {
       cpu_type      = "custom-x86-64-v2-AES-AVX"
       datastore_id  = "${local.datastore_id}"
       disk_size     = "${local.work_disk_size}"
-      ram_dedicated = 5120
+      ram_dedicated = "${local.work_ram}"
       vlan_id       = "${local.vlan_id}"
       # update        = true
     }

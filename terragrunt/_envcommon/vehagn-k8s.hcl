@@ -32,9 +32,17 @@ locals {
   base_source_url = "git::git@github.com:isejalabs/terraform-proxmox-talos.git"
 
   # Set some values common accross all environments
-  cpu_type     = "x86-64-v2-AES"
-  datastore_id = "local-enc"
-  cilium_path  = "k8s/core/network/cilium"
+  cilium_path    = "k8s/core/network/cilium"
+  cpu_type       = "x86-64-v2-AES"
+  ctrl_cpu       = 2
+  ctrl_disk_size = 10
+  ctrl_ram       = 3072
+  datastore_id   = "local-enc"
+  domain         = "test.iseja.net"
+  vlan_id        = 108
+  work_cpu       = 2
+  work_disk_size = 10
+  work_ram       = 3072
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
