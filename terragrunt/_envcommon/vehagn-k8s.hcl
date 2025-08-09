@@ -33,7 +33,7 @@ locals {
 
   # Set some values common accross all environments
   cilium_path    = "k8s/core/network/cilium"
-  cpu_type       = "x86-64-v2-AES"
+  cpu_type       = "custom-x86-64-v2-AES-AVX"
   ctrl_cpu       = 2
   ctrl_disk_size = 10
   ctrl_ram       = 3072
