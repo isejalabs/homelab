@@ -81,28 +81,28 @@ inputs = {
       vlan_id       = "${local.vlan_id}"
       # update        = true
     }
-    "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.112"
-      vm_id         = 7008112
-      cpu           = "${local.ctrl_cpu}"
-      datastore_id  = "${local.datastore_id}"
-      ram_dedicated = "${local.ctrl_ram}"
-      vlan_id       = "${local.vlan_id}"
-      # update        = true
-    }
-    "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve3"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.113"
-      vm_id         = 7008113
-      cpu           = "${local.ctrl_cpu}"
-      datastore_id  = "${local.datastore_id}"
-      ram_dedicated = "${local.ctrl_ram}"
-      vlan_id       = "${local.vlan_id}"
-      # update        = true
-    }
+    # "${local.env}-ctrl-02.${local.domain}" = {
+    #   host_node     = "pve4"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.112"
+    #   vm_id         = 7008112
+    #   cpu           = "${local.ctrl_cpu}"
+    #   datastore_id  = "${local.datastore_id}"
+    #   ram_dedicated = "${local.ctrl_ram}"
+    #   vlan_id       = "${local.vlan_id}"
+    #   # update        = true
+    # }
+    # "${local.env}-ctrl-03.${local.domain}" = {
+    #   host_node     = "pve3"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.113"
+    #   vm_id         = 7008113
+    #   cpu           = "${local.ctrl_cpu}"
+    #   datastore_id  = "${local.datastore_id}"
+    #   ram_dedicated = "${local.ctrl_ram}"
+    #   vlan_id       = "${local.vlan_id}"
+    #   # update        = true
+    # }
     # "${local.env}-work-01.${local.domain}" = {
     #   host_node     = "pve1"
     #   machine_type  = "worker"
