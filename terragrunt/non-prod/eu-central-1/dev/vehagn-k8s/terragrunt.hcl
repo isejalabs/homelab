@@ -112,7 +112,7 @@ inputs = {
       cpu_type      = "${local.cpu_type}"
       datastore_id  = "${local.datastore_id}"
       disk_size     = "${local.work_disk_size}"
-      ram_dedicated = 5120
+      ram_dedicated = "${local.work_ram}"
       vlan_id       = "${local.vlan_id}"
       # update        = true
     }
