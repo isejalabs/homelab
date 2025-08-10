@@ -122,6 +122,7 @@ inputs = {
       ip            = "10.7.8.175"
       vm_id         = 7008175
       cpu           = "${local.work_cpu}"
+      cpu_type      = "${local.cpu_type}"
       datastore_id  = "${local.datastore_id}"
       disk_size     = "${local.work_disk_size}"
       ram_dedicated = "${local.work_ram}"
