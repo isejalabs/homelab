@@ -21,6 +21,8 @@ override.tf
 override.tf.json
 *_override.tf
 *_override.tf.json
+output*/
+output.workaround
 
 # Terragrunt
 .terragrunt-cache
@@ -30,6 +32,8 @@ override.tf.json
 *.raw
 
 # Misc
-output*
 *.cert
 *.key
+
+# IDE
+*.code-workspace

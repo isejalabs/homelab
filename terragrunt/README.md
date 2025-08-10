@@ -1,5 +1,5 @@
 ```shell
-cd terragrunt/<env>/vehagn-k8s
+cd terragrunt/<account>/<region>/<env>/vehagn-k8s
 
 sops -d credentials.provider.auto.tfvars.sops.json > credentials.provider.auto.tfvars.json
 
