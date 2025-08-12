@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.0.1"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.1.0"
 }
 
 locals {
@@ -54,14 +54,14 @@ inputs = {
   env = "${local.env}"
 
   image = {
-    version        = "v1.8.4"
-    update_version = "v1.8.4" # renovate: github-releases=siderolabs/talos
+    version        = "v1.10.6"
+    update_version = "v1.10.6" # renovate: github-releases=siderolabs/talos
     schematic      = file("assets/talos/schematic.yaml")
   }
 
   cluster = {
     # ToDo resolve redudundant implementation
-    talos_version   = "v1.8.4"
+    talos_version   = "v1.10.6"
     name            = "${local.env}-vehagn-tg"
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.8.171"
