@@ -36,7 +36,7 @@ locals {
   cpu_type       = "custom-x86-64-v2-AES-AVX"
   ctrl_cpu       = 2
   ctrl_disk_size = 10
-  ctrl_ram       = 3072
+  ctrl_ram       = 2048
   datastore_id   = "local-enc"
   domain         = "test.iseja.net"
   vlan_id        = 108
