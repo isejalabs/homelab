@@ -5,6 +5,7 @@ provider "registry.opentofu.org/bpg/proxmox" {
   version     = "0.81.0"
   constraints = ">= 0.66.1, 0.81.0"
   hashes = [
+    "h1:7UFdTwY2mo034bhUEaW/femfDRYyhfYgSb9sDlrVczI=",
     "h1:er9KqSaA3qAsxUNl6lRQFccz2mLYZoXOnZnE9DYaKXI=",
     "zh:0112509b8b5215bec18de5da5d1b9e363e5174daae2b27d7d5f6711ff2039bcf",
     "zh:150804842c6e23fd4b582ceaeefa3820dd256ceab5d594b585facdc5eeeed537",
@@ -29,6 +30,7 @@ provider "registry.opentofu.org/hashicorp/kubernetes" {
   constraints = ">= 2.31.0, >= 2.32.0, 2.38.0"
   hashes = [
     "h1:ems+O2dA7atxMWpbtqIrsH7Oa+u+ERWSfpMaFnZPbh0=",
+    "h1:nY7J9jFXcsRINog0KYagiWZw1GVYF9D2JmtIB7Wnrao=",
     "zh:1096b41c4e5b2ee6c1980916fb9a8579bc1892071396f7a9432be058aabf3cbc",
     "zh:2959fde9ae3d1deb5e317df0d7b02ea4977951ee6b9c4beb083c148ca8f3681c",
     "zh:5082f98fcb3389c73339365f7df39fc6912bf2bd1a46d5f97778f441a67fd337",
@@ -45,6 +47,7 @@ provider "registry.opentofu.org/hashicorp/local" {
   version = "2.5.3"
   hashes = [
     "h1:31Clmfoe7hzkcdgwuhUuGuPGfeG2Ksk+YWcJgzBTN7M=",
+    "h1:mC9+u1eaUILTjxey6Ivyf/3djm//RNNze9kBVX/trng=",
     "zh:32e1d4b0595cea6cda4ca256195c162772ddff25594ab4008731a2ec7be230bf",
     "zh:48c390af0c87df994ec9796f04ec2582bcac581fb81ed6bb58e0671da1c17991",
     "zh:4be7289c969218a57b40902e2f359914f8d35a7f97b439140cb711aa21e494bd",
@@ -63,6 +66,7 @@ provider "registry.opentofu.org/mastercard/restapi" {
   constraints = ">= 1.12.0, >= 1.19.1, 1.20.0"
   hashes = [
     "h1:NDgmXCDpGksOYqP+iStlyA384/WMIvyU+QOYn65g798=",
+    "h1:mYyaOCD0iu+7i3OQPudY39PHh3Qxe3nkIJefVWWPEXw=",
     "zh:1c3e89cf19118fc07d7b04257251fc9897e722c16e0a0df7b07fcd261f8c12e7",
     "zh:59fa61b12b201d1e9aa20d81f4b9280c901f7b921fa6eaa5d4dffb7bf61cbf1c",
     "zh:67817734d9eb2bb24e543fd45e71369ca5d363a4b0710bdf28936968cd79fe80",
@@ -86,6 +90,7 @@ provider "registry.opentofu.org/siderolabs/talos" {
   constraints = ">= 0.6.0, 0.8.1"
   hashes = [
     "h1:fWms1ojEGxaCDSQ5ezjO2MdpVx0cEIAKNCmkB2vKuUw=",
+    "h1:rhNnAJ4MLaKZ5hNbdFzUJYxEFg0Es5+jg+WlzQ1D/g4=",
     "zh:02aeea4001ea216d37fd948e0760971f2525d31609d75dd1a7871f483e43260d",
     "zh:0bd6d2f9b6daf9cec0e20d1e22cad635983b5c071c106a3bec51be283c9fa254",
     "zh:0fa82a384b25a58b65523e0ea4768fa1212b1f5cfc0c9379d31162454fedcc9d",
