@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+  - ip-pool-bgp.yaml
+  - bgp-cluster-config.yaml
+
+helmCharts:
+  - name: cilium
+    repo: https://helm.cilium.io
+    version: 1.18.1
+    releaseName: "cilium"
+    includeCRDs: true
+    namespace: kube-system
+    valuesFile: values.yaml
+    # valuesMerge: merge
+    additionalValuesFiles:
+      - additional-values.yaml

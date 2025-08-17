@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.0.1"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.1.0"
 }
 
 locals {
@@ -39,14 +39,14 @@ locals {
   ctrl_disk_size = include.envcommon.locals.ctrl_disk_size
   ctrl_ram       = include.envcommon.locals.ctrl_ram
   datastore_id   = include.envcommon.locals.datastore_id
-  vlan_id        = include.envcommon.locals.vlan_id
+  domain         = include.envcommon.locals.domain
+  vlan_id        = 104
   work_cpu       = include.envcommon.locals.work_cpu
   work_disk_size = include.envcommon.locals.work_disk_size
   work_ram       = include.envcommon.locals.work_ram
 
   # Set some values specific to this environment
   storage_vmid   = 9816
-  domain         = "poc.iseja.net"
 }
 
 inputs = {
@@ -54,25 +54,25 @@ inputs = {
   env = "${local.env}"
 
   image = {
-    version        = "v1.8.4"
-    update_version = "v1.8.4" # renovate: github-releases=siderolabs/talos
+    version        = "v1.10.6"
+    update_version = "v1.10.6" # renovate: github-releases=siderolabs/talos
     schematic      = file("assets/talos/schematic.yaml")
   }
 
   cluster = {
     # ToDo resolve redudundant implementation
-    talos_version   = "v1.8.4"
+    talos_version   = "v1.10.6"
     name            = "${local.env}-vehagn-tg"
     proxmox_cluster = "iseja-lab"
-    endpoint        = "10.7.8.161"
-    gateway         = "10.7.8.1"
+    endpoint        = "10.7.4.111"
+    gateway         = "10.7.4.1"
   }
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
       host_node     = "pve1"
       machine_type  = "controlplane"
-      ip            = "10.7.8.161"
+      ip            = "10.7.4.111"
       vm_id         = 7008161
       cpu           = "${local.ctrl_cpu}"
       datastore_id  = "${local.datastore_id}"
@@ -81,45 +81,45 @@ inputs = {
       vlan_id       = "${local.vlan_id}"
       # update        = true
     }
-    # "${local.env}-ctrl-02.${local.domain}" = {
-    #   host_node     = "pve4"
-    #   machine_type  = "controlplane"
-    #   ip            = "10.7.8.162"
-    #   vm_id         = 7008162
-    #   cpu           = "${local.ctrl_cpu}"
-    #   datastore_id  = "${local.datastore_id}"
-    #   ram_dedicated = "${local.ctrl_ram}"
-    #   vlan_id       = "${local.vlan_id}"
-    #   # update        = true
-    # }
-    # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve3"
-    #   machine_type  = "controlplane"
-    #   ip            = "10.7.8.163"
-    #   vm_id         = 7008163
-    #   cpu           = "${local.ctrl_cpu}"
-    #   datastore_id  = "${local.datastore_id}"
-    #   ram_dedicated = "${local.ctrl_ram}"
-    #   vlan_id       = "${local.vlan_id}"
-    #   # update        = true
-    # }
-    # "${local.env}-work-01.${local.domain}" = {
-    #   host_node     = "pve1"
-    #   machine_type  = "worker"
-    #   ip            = "10.7.8.164"
-    #   vm_id         = 7008164
-    #   cpu           = "${local.work_cpu}"
-    #   cpu_type      = "${local.cpu_type}"
-    #   datastore_id  = "${local.datastore_id}"
-    #   disk_size     = "${local.work_disk_size}"
-    #   ram_dedicated = "${local.work_ram}"
-    #   vlan_id       = "${local.vlan_id}"
-    #   # update        = true
-    # }
+    "${local.env}-ctrl-02.${local.domain}" = {
+      host_node     = "pve4"
+      machine_type  = "controlplane"
+      ip            = "10.7.4.112"
+      vm_id         = 7008162
+      cpu           = "${local.ctrl_cpu}"
+      datastore_id  = "${local.datastore_id}"
+      ram_dedicated = "${local.ctrl_ram}"
+      vlan_id       = "${local.vlan_id}"
+      # update        = true
+    }
+    "${local.env}-ctrl-03.${local.domain}" = {
+      host_node     = "pve3"
+      machine_type  = "controlplane"
+      ip            = "10.7.4.113"
+      vm_id         = 7008163
+      cpu           = "${local.ctrl_cpu}"
+      datastore_id  = "${local.datastore_id}"
+      ram_dedicated = "${local.ctrl_ram}"
+      vlan_id       = "${local.vlan_id}"
+      # update        = true
+    }
+    "${local.env}-work-01.${local.domain}" = {
+      host_node     = "pve1"
+      machine_type  = "worker"
+      ip            = "10.7.4.114"
+      vm_id         = 7008164
+      cpu           = "${local.work_cpu}"
+      cpu_type      = "${local.cpu_type}"
+      datastore_id  = "${local.datastore_id}"
+      disk_size     = "${local.work_disk_size}"
+      ram_dedicated = "${local.work_ram}"
+      vlan_id       = "${local.vlan_id}"
+      # update        = true
+    }
     "${local.env}-work-02.${local.domain}" = {
       host_node     = "pve4"
       machine_type  = "worker"
-      ip            = "10.7.8.165"
+      ip            = "10.7.4.115"
       vm_id         = 7008165
       cpu           = "${local.work_cpu}"
       cpu_type      = "${local.cpu_type}"
@@ -131,15 +131,15 @@ inputs = {
     }
   }
 
-  # cilium_values  = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
 
   volumes = {
-    #   pv-test = {
-    #     node    = "pve4"
-    #     size    = "100M"
-    #     vmid    = "${local.storage_vmid}"
-    #     storage = "${local.datastore_id}"
-    #   }
+    pv-mongodb = {
+      node    = "pve4"
+      size    = "500M"
+      vmid    = "${local.storage_vmid}"
+      storage = "${local.datastore_id}"
+    }
   }
 
 }
