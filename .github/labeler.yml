@@ -1,46 +1,46 @@
 # vim:sw=2:ts=2:expandtab:ai
 ---
 # Environment
-"env: base":
+"env:base":
   - changed-files:
       - any-glob-to-any-file:
         - "k8s/**/base/**"
-"env: head":
+"env:head":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/head/**"
         - "terragrunt/*/*/head/**"
-"env: qa":
+"env:qa":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/qa/**"
         - "terragrunt/*/*/qa/**"
-"env: dev":
+"env:dev":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/dev/**"
         - "terragrunt/*/*/dev/**"
-"env: src":
+"env:src":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/src/**"
         - "terragrunt/*/*/src/**"
-"env: poc":
+"env:poc":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/poc/**"
         - "terragrunt/*/*/poc/**"
-"env: rebuild":
+"env:rebuild":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/rebuild/**"
         - "terragrunt/*/*/rebuild/**"
-"env: prod":
+"env:prod":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/prod/**"
         - "terragrunt/*/*/prod/**"
-"env: debug":
+"env:debug":
   - changed-files:
       - any-glob-to-any-file: 
         - "k8s/**/envs/debug/**"
