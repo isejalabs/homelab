@@ -26,7 +26,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: whoami
-          image: ghcr.io/traefik/whoami:v1.10@sha256:1699d99cb4b9acc17f74ca670b3d8d0b7ba27c948b3445f0593b58ebece92f04
+          image: ghcr.io/traefik/whoami:v1.11@sha256:200689790a0a0ea48ca45992e0450bc26ccab5307375b41c84dfc4f2475937ab
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
