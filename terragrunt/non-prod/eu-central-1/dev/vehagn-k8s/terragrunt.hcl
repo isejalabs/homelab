@@ -54,14 +54,14 @@ inputs = {
   env = "${local.env}"
 
   image = {
-    version        = "v1.8.4"
+    version        = "v1.10.6"
     update_version = "v1.10.6" # renovate: github-releases=siderolabs/talos
     schematic      = file("assets/talos/schematic.yaml")
   }
 
   cluster = {
     # ToDo resolve redudundant implementation
-    talos_version   = "v1.8.4"
+    talos_version   = "v1.10.6"
     name            = "${local.env}-vehagn-tg"
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.8.131"
