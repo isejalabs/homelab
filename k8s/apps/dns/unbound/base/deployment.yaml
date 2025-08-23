@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unbound
+  namespace: unbound
+spec:
+  selector:
+    matchLabels:
+      app: unbound
+  template:
+    metadata:
+      labels:
+        app: unbound
+    spec:
+      #securityContext:
+      #  seccompProfile:
+      #    type: RuntimeDefault
+      containers:
+        - name: unbound
+          image: docker.io/madnuttah/unbound:1.24.0-1
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   readOnlyRootFilesystem: false
+          ports:
+            - name: dns-tcp
+              containerPort: 5335
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 5335
+              protocol: UDP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          # startupProbe:
+          #   exec:
+          #     command: [ 'drill', '@127.0.0.1', '-p', '5335', '.' ]
+          #   initialDelaySeconds: 10
+          #   failureThreshold: 3
+          #   timeoutSeconds: 5
+          volumeMounts:
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/logging-default.conf
+              subPath: logging-default.conf
+      volumes:
+        - name: logging-conf
+          configMap:
+            name: unbound-conf
+            items:
+              - key: logging-default.conf
+                path: logging-default.conf
