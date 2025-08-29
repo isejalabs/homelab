@@ -11,7 +11,7 @@ resources:
 helmCharts:
   - name: checkmk
     repo: https://checkmk.github.io/checkmk_kube_agent
-    version: 1.6.0
+    version: 1.7.0
     releaseName: checkmk-kube-agent
     namespace: checkmk-agent
     # no values.yaml as defaults are good (ingress disabled in favor of GW API http-route)
