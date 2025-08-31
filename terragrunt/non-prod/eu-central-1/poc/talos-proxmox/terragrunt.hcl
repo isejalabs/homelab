@@ -25,7 +25,7 @@ include "envcommon" {
 terraform {
   # comment regex overrides terragrunt nonSemVer matching, replacing s/talos-proxmox-v0.0.1/v0.0.3
   # ToDo see #2
-  # source = "${include.envcommon.locals.base_source_url}?ref=v0.0.3" # renovate: github-releases=sebiklamar/terraform-modules
+  # source = "${include.envcommon.locals.base_source_url}?ref=v4.0.0" # renovate: github-releases=sebiklamar/terraform-modules
   # using hard-coded URL instead of envcommon due to #2
   source = "git::git@github.com:sebiklamar/terraform-modules.git//modules/talos-proxmox?ref=talos-proxmox-v0.0.2"
 }
