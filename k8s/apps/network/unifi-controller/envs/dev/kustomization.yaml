@@ -6,7 +6,6 @@ components:
 
 resources:
   - ../../base
-  - db-secret.sealed.yaml
 
 patches:
   - path: deployment-db.yaml

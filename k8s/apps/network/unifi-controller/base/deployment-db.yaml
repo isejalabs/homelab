@@ -51,22 +51,22 @@ spec:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: root_user
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: root_pass
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: mongo_user
             - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: mongo_pass
             - name: MONGO_DBNAME
               value: unifidb
