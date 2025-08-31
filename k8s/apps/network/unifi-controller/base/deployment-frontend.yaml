@@ -39,12 +39,12 @@ spec:
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: mongo_user
             - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  name: db-secret
+                  name: db-secret-sealed
                   key: mongo_pass
             - name: MONGO_HOST
               value: mongodb

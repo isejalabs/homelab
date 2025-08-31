@@ -10,6 +10,7 @@ resources:
   - deployment-frontend.yaml
   - svc-db.yaml
   - svc-frontend.yaml
+  - db-secret.sealed.yaml
 
 configMapGenerator:
   - name: mongodb-init
