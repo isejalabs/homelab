@@ -11,7 +11,8 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: docker.io/mongo:7.0@sha256:54c57094b11170abc3d9a827be75226da9606ab23485b96563e6cc31ee962781
+          # track version in this environment explicitly
+          image: docker.io/mongo:8.0
           env:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:

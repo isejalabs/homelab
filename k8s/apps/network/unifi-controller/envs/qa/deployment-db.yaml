@@ -2,14 +2,14 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: unifi-controller
+  name: mongodb
   namespace: unifi
   labels:
-    app: unifi-controller
+    app: mongodb
 spec:
   template:
     spec:
       containers:
-        - name: unifi-network-application
+        - name: mongodb
           # track version in this environment explicitly
-          image: lscr.io/linuxserver/unifi-network-application:9.3.45
+          image: docker.io/mongo:8.0
