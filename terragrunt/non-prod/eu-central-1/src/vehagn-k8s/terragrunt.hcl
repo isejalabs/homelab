@@ -49,6 +49,7 @@ locals {
   
   # Set some values specific to this environment
   storage_vmid   = 9815
+  on_boot        = false
 }
 
 inputs = {
@@ -68,6 +69,7 @@ inputs = {
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.8.151"
     gateway         = "10.7.8.1"
+    on_boot         = "${local.on_boot}"
   }
 
   nodes = {

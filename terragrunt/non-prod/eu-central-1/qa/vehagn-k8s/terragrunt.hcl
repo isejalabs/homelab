@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v2.1.0"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v4.0.0"
 }
 
 locals {
@@ -48,6 +48,7 @@ locals {
   
   # Set some values specific to this environment
   storage_vmid   = 9812
+  on_boot        = true
 }
 
 inputs = {
@@ -67,6 +68,7 @@ inputs = {
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.8.121"
     gateway         = "10.7.8.1"
+    on_boot         = "${local.on_boot}"
   }
 
   nodes = {
