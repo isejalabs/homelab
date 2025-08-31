@@ -30,6 +30,7 @@ terraform {
 locals {
   # Reuse the common variables from the root configuration
   env            = include.root.inputs.env
+  projectname    = include.root.locals.project_name
   root_path      = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
@@ -62,7 +63,7 @@ inputs = {
   cluster = {
     # ToDo resolve redudundant implementation
     talos_version   = "v1.10.6"
-    name            = "${local.env}-vehagn-tg"
+    name            = "${local.env}-${local.projectname}"
     proxmox_cluster = "iseja-lab"
     endpoint        = "10.7.4.111"
     gateway         = "10.7.4.1"
