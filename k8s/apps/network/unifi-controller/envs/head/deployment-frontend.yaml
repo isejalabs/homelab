@@ -1,0 +1,14 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-controller
+  namespace: unifi
+  labels:
+    app: unifi-controller
+spec:
+  template:
+    spec:
+      containers:
+        - name: unifi-network-application
+          image: ghcr.io/linuxserver/unifi-controller:latest
