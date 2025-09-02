@@ -142,7 +142,7 @@ inputs = {
     pv-mongodb = {
       node    = "pve4"
       # needs to have 500M free space on-top of actual usage, cf. #241
-      size    = "800M"
+      size    = "1024M"
       vmid    = "${local.storage_vmid}"
       storage = "${local.datastore_id}"
     }
