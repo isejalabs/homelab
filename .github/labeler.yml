@@ -43,5 +43,5 @@
 "env:debug":
   - changed-files:
       - any-glob-to-any-file: 
-        - "k8s/**/envs/debug/**"
-        - "terragrunt/*/*/debug/**"
+        - "k8s/**/envs/dbg/**"
+        - "terragrunt/*/*/dbg/**"
