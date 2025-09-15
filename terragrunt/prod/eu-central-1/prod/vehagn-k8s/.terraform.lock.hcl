@@ -6,6 +6,7 @@ provider "registry.opentofu.org/bpg/proxmox" {
   constraints = ">= 0.66.1, 0.82.0"
   hashes = [
     "h1:UFDICKyanuw/qi9ByZMkZvRgoeyrJRGC7h5yjHg6A1s=",
+    "h1:WfCTUa809Fx2MyVx+XDWS3U+R//wynE/x7B9lvCd+/k=",
     "zh:08f574096a0d743878bb8bc03ca6bab215b57cda931afd196ccdb620be208487",
     "zh:25d945f573d556ecd6e2cd389a8c10fbcc772637efb228e2540ca2300aad5525",
     "zh:4d53c5a8b6482e3c39f2a4084c73fe218585a7837748c60ddc3e59e46f544c2b",
@@ -28,6 +29,7 @@ provider "registry.opentofu.org/hashicorp/http" {
   version     = "3.5.0"
   constraints = ">= 3.4.5"
   hashes = [
+    "h1:eClUBisXme48lqiUl3U2+H2a2mzDawS9biqfkd9synw=",
     "h1:yvwvVZ0vdbsTUMru+7Cr0On1FVgDJHAaC6TNvy/OWzM=",
     "zh:0a2b33494eec6a91a183629cf217e073be063624c5d3f70870456ddb478308e9",
     "zh:180f40124fa01b98b3d2f79128646b151818e09d6a1a9ca08e0b032a0b1e9cb1",
@@ -46,6 +48,7 @@ provider "registry.opentofu.org/hashicorp/kubernetes" {
   version     = "2.38.0"
   constraints = ">= 2.31.0, >= 2.32.0, 2.38.0"
   hashes = [
+    "h1:ems+O2dA7atxMWpbtqIrsH7Oa+u+ERWSfpMaFnZPbh0=",
     "h1:nY7J9jFXcsRINog0KYagiWZw1GVYF9D2JmtIB7Wnrao=",
     "zh:1096b41c4e5b2ee6c1980916fb9a8579bc1892071396f7a9432be058aabf3cbc",
     "zh:2959fde9ae3d1deb5e317df0d7b02ea4977951ee6b9c4beb083c148ca8f3681c",
@@ -105,6 +108,7 @@ provider "registry.opentofu.org/siderolabs/talos" {
   version     = "0.8.1"
   constraints = ">= 0.6.0, 0.8.1"
   hashes = [
+    "h1:fWms1ojEGxaCDSQ5ezjO2MdpVx0cEIAKNCmkB2vKuUw=",
     "h1:rhNnAJ4MLaKZ5hNbdFzUJYxEFg0Es5+jg+WlzQ1D/g4=",
     "zh:02aeea4001ea216d37fd948e0760971f2525d31609d75dd1a7871f483e43260d",
     "zh:0bd6d2f9b6daf9cec0e20d1e22cad635983b5c071c106a3bec51be283c9fa254",
