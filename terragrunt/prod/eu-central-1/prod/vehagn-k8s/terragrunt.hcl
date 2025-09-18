@@ -43,7 +43,7 @@ locals {
   vlan_id        = include.envcommon.locals.vlan_id
   work_cpu       = include.envcommon.locals.work_cpu
   work_disk_size = include.envcommon.locals.work_disk_size
-  work_ram       = include.envcommon.locals.work_ram
+  work_ram       = 4096
 
   # Set some values specific to this environment
   domain         = "home.iseja.net"
