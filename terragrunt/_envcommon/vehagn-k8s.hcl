@@ -43,6 +43,11 @@ locals {
   work_cpu       = 2
   work_disk_size = 10
   work_ram       = 2048
+
+  # volumes
+  # needs to have 500M free space on-top of actual usage, cf. #241
+  pv-mongodb_size = "1024M"
+  pv-unifi_size   = "50M"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

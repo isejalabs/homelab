@@ -139,10 +139,15 @@ inputs = {
   cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
 
   volumes = {
-    pv-mongodb = {
+     pv-mongodb = {
       node    = "pve4"
-      # needs to have 500M free space on-top of actual usage, cf. #241
-      size    = "1024M"
+      size    = include.envcommon.locals.pv-mongodb_size
+      vmid    = "${local.storage_vmid}"
+      storage = "${local.datastore_id}"
+    }
+    pv-unifi = {
+      node    = "pve4"
+      size    = include.envcommon.locals.pv-unifi_size
       vmid    = "${local.storage_vmid}"
       storage = "${local.datastore_id}"
     }

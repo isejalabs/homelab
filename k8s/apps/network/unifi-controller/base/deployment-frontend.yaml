@@ -94,5 +94,12 @@ spec:
             - name: unifi-disc
               containerPort: 10001
               protocol: UDP
+          volumeMounts:
+            - name: unifi-controller-data
+              mountPath: /config
+      volumes:
+        - name: unifi-controller-data
+          persistentVolumeClaim:
+            claimName: unifi-controller-data
 #    volumes:
 #      - /srv/docker-compose/hosts/unifi/data:/config

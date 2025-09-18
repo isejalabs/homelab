@@ -4,6 +4,7 @@ kind: Kustomization
 resources:
   - ns.yaml
   - pvc-db.yaml
+  - pvc-frontend.yaml
   # using .yaml.example extension for circumventing unencrypted secret pre-commit check
   - db-secret.unencrypted.yaml.example
   - deployment-db.yaml
