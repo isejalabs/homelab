@@ -8,6 +8,7 @@ configMapGenerator:
       - config/AdGuardHome.yaml
 
 resources:
+  - ns.yaml
   - svc.yaml
   - secret-users.yaml
   - deployment.yaml

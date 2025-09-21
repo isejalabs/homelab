@@ -35,3 +35,13 @@ terragrunt state rm 'module.sealed_secrets.kubernetes_secret.sealed-secrets-key'
 terragrunt state rm 'module.talos.proxmox_virtual_environment_vm.this["src-work-02.test.iseja.net"]'
 terragrunt state rm 'module.talos.proxmox_virtual_environment_vm.this["src-ctrl-01.test.iseja.net"]'
 ```
+
+## Proxmox VMs
+
+### Snapshot
+
+j=700813; for i in {5..1}; do echo -n "processing VM $j$i "; qm snapshot $j$i wip --vmstate 1; echo "done"; done
+
+### Stop
+
+

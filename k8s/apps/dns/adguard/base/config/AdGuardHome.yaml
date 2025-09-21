@@ -14,23 +14,27 @@ dns:
     - 0.0.0.0
   port: 53
   anonymize_client_ip: false
-  ratelimit: 500
+  ratelimit: 0
   ratelimit_subnet_len_ipv4: 24
   ratelimit_subnet_len_ipv6: 56
-  ratelimit_whitelist: [ ]
+  ratelimit_whitelist: []
   refuse_any: true
   upstream_dns:
-    - 10.96.0.11
+    - https://dns10.quad9.net/dns-query
+    - '[/iseja.net/]10.7.2.10 10.7.2.12 127.0.0.1:53530'
+    - '[/10.in-addr.arpa/]10.7.2.10 10.7.2.12 127.0.0.1:53530'
+    - '[/d.f.ip6.arpa/]10.7.2.10 10.7.2.12 127.0.0.1:53530'
   upstream_dns_file: ""
   bootstrap_dns:
-    - 10.96.0.11
-  fallback_dns:
-    - 1.1.1.1
-    - 9.9.9.9
-  upstream_mode: parallel
+    - 9.9.9.10
+    - 149.112.112.10
+    - 2620:fe::10
+    - 2620:fe::fe:10
+  fallback_dns: []
+  upstream_mode: load_balance
   fastest_timeout: 1s
-  allowed_clients: [ ]
-  disallowed_clients: [ ]
+  allowed_clients: []
+  disallowed_clients: []
   blocked_hosts:
     - version.bind
     - id.server
@@ -38,11 +42,11 @@ dns:
   trusted_proxies:
     - 127.0.0.0/8
     - ::1/128
-  cache_size: 4194304
+  cache_size: 41943044
   cache_ttl_min: 0
   cache_ttl_max: 0
   cache_optimistic: false
-  bogus_nxdomain: [ ]
+  bogus_nxdomain: []
   aaaa_disabled: false
   enable_dnssec: false
   edns_client_subnet:
@@ -51,21 +55,22 @@ dns:
     use_custom: false
   max_goroutines: 300
   handle_ddr: true
-  ipset: [ ]
+  ipset: []
   ipset_file: ""
   bootstrap_prefer_ipv6: false
   upstream_timeout: 10s
-  private_networks: [ ]
+  private_networks: []
   use_private_ptr_resolvers: true
-  local_ptr_upstreams: [ ]
+  local_ptr_upstreams:
+    - 10.7.2.10
+    - 10.7.2.12
+    - 127.0.0.1:53530
   use_dns64: false
-  dns64_prefixes: [ ]
+  dns64_prefixes: []
   serve_http3: false
   use_http3_upstreams: false
   serve_plain_dns: true
   hostsfile_enabled: true
-  pending_requests:
-    enabled: true
 tls:
   enabled: false
   server_name: ""
@@ -83,14 +88,14 @@ tls:
   strict_sni_check: false
 querylog:
   dir_path: ""
-  ignored: [ ]
-  interval: 2160h
+  ignored: []
+  interval: 168h
   size_memory: 1000
   enabled: true
   file_enabled: true
 statistics:
   dir_path: ""
-  ignored: [ ]
+  ignored: []
   interval: 24h
   enabled: true
 filters:
@@ -98,14 +103,24 @@ filters:
     url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
     name: AdGuard DNS filter
     id: 1
-  - enabled: false
+  - enabled: true
     url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
     name: AdAway Default Blocklist
     id: 2
-whitelist_filters: [ ]
-user_rules:
-  - '@@||sdk.iad-01.braze.com^$important'
-  - '@@||www.merchant-center-analytics.goog^$important'
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_33.txt
+    name: Steven Black's List
+    id: 1715425588
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_23.txt
+    name: WindowsSpyBlocker - Hosts spy rules
+    id: 1715425589
+  - enabled: true
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
+    name: HaGeZi's Ultimate Blocklist
+    id: 1715425590
+whitelist_filters: []
+user_rules: []
 dhcp:
   enabled: false
   interface_name: ""
@@ -117,7 +132,7 @@ dhcp:
     range_end: ""
     lease_duration: 86400
     icmp_timeout_msec: 1000
-    options: [ ]
+    options: []
   dhcpv6:
     range_start: ""
     lease_duration: 86400
@@ -128,8 +143,8 @@ filtering:
   blocking_ipv6: ""
   blocked_services:
     schedule:
-      time_zone: UTC
-    ids: [ ]
+      time_zone: Local
+    ids: []
   protection_disabled_until: null
   safe_search:
     enabled: false
@@ -143,24 +158,18 @@ filtering:
   blocking_mode: default
   parental_block_host: family-block.dns.adguard.com
   safebrowsing_block_host: standard-block.dns.adguard.com
-  rewrites:
-    - domain: '*.stonegarden.dev'
-      answer: 192.168.1.220
-    - domain: stonegarden.dev
-      answer: 192.168.1.220
-    - domain: coturn.stonegarden.dev
-      answer: 192.168.1.226
+  rewrites: []
   safe_fs_patterns:
-    - /opt/adguardhome/work/data/userfilters/*
+    - /usr/local/AdGuardHome/data/userfilters/*
   safebrowsing_cache_size: 1048576
   safesearch_cache_size: 1048576
   parental_cache_size: 1048576
   cache_time: 30
   filters_update_interval: 24
-  blocked_response_ttl: 10
+  blocked_response_ttl: 3600
   filtering_enabled: true
   parental_enabled: false
-  safebrowsing_enabled: false
+  safebrowsing_enabled: true
   protection_enabled: true
 clients:
   runtime_sources:
@@ -168,8 +177,8 @@ clients:
     arp: true
     rdns: true
     dhcp: true
-    hosts: true
-  persistent: [ ]
+    hosts: false
+  persistent: []
 log:
   enabled: true
   file: ""
