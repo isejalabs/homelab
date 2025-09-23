@@ -134,6 +134,19 @@ inputs = {
       vlan_id       = "${local.vlan_id}"
       # update        = true
     }
+    "${local.env}-work-03.${local.domain}" = {
+      host_node     = "pve3"
+      machine_type  = "worker"
+      ip            = "10.7.8.126"
+      vm_id         = 7008126
+      cpu           = "${local.work_cpu}"
+      cpu_type      = "${local.cpu_type}"
+      datastore_id  = "${local.datastore_id}"
+      disk_size     = "${local.work_disk_size}"
+      ram_dedicated = "${local.work_ram}"
+      vlan_id       = "${local.vlan_id}"
+      # update        = true
+    }
   }
 
   cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
