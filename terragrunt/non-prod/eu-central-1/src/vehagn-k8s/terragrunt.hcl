@@ -58,16 +58,16 @@ inputs = {
   env = "${local.env}"
 
   image = {
-    version        = "v1.10.7"
-    update_version = "v1.10.7" # renovate: github-releases=siderolabs/talos
+    version        = "v1.11.2"
+    update_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
   cluster = {
-    talos_machine_config_version = "v1.10.7"
+    talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
     name            = "${local.env}-${local.projectname}"
     gateway_api_version = local.gateway_api_version
-    kubernetes_version = "v1.33.0" # renovate: github-releases=kubernetes/kubernetes
+    kubernetes_version = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
     kubelet             = <<-EOT
       registerWithFQDN: true
     EOT
