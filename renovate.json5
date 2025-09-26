@@ -45,13 +45,4 @@
       ],
     },
   ],
-  packageRules: [
-    {
-      matchPackageNames: [
-        'docker.io/mongo',
-      ],
-      allowedVersions: '<=7',
-      description: 'keep mongodb at v7 due to unifi-network-controller',
-    },
-  ],
 }
