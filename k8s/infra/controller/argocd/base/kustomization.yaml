@@ -9,6 +9,10 @@ kind: Kustomization
 resources:
   - ns.yaml
   - http-route.yaml
+  # This is the root application that manages our AppProjects and ApplicationSets.
+  # By including it here, the ArgoCD installation will immediately start managing
+  # the rest of the applications in the repository.
+  - root.yaml
 
 helmCharts:
   - name: argo-cd
