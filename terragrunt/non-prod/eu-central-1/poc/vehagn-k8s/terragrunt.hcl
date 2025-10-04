@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v4.0.0"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v5.0.0"
 }
 
 locals {
@@ -49,6 +49,7 @@ locals {
   # Set some values specific to this environment
   storage_vmid   = 9816
   on_boot        = false
+  gateway_api_version = "v1.2.1" # renovate: github-releases=kubernetes-sigs/gateway-api
 }
 
 inputs = {
@@ -58,7 +59,7 @@ inputs = {
   image = {
     version        = "v1.10.7"
     update_version = "v1.10.7" # renovate: github-releases=siderolabs/talos
-    schematic      = file("assets/talos/schematic.yaml")
+    schematic_path = "assets/talos/schematic.yaml"
   }
 
   cluster = {
