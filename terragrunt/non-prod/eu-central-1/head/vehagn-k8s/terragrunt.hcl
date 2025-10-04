@@ -49,6 +49,7 @@ locals {
   # Set some values specific to this environment
   storage_vmid   = 9811
   on_boot        = false
+  gateway_api_version = "v1.2.1" # renovate: github-releases=kubernetes-sigs/gateway-api
 }
 
 inputs = {
@@ -58,15 +59,26 @@ inputs = {
   image = {
     version        = "v1.10.7"
     update_version = "v1.10.7" # renovate: github-releases=siderolabs/talos
-    schematic      = file("assets/talos/schematic.yaml")
+    schematic_path = "assets/talos/schematic.yaml"
   }
 
   cluster = {
-    # ToDo resolve redudundant implementation
-    talos_version   = "v1.10.7"
+    talos_machine_config_version = "v1.10.7"
     name            = "${local.env}-${local.projectname}"
+    gateway_api_version = local.gateway_api_version
+    kubernetes_version = "v1.33.0" # renovate: github-releases=kubernetes/kubernetes
+    kubelet             = <<-EOT
+      registerWithFQDN: true
+    EOT
+    machine_features             = <<-EOT
+      # https://www.talos.dev/v1.8/kubernetes-guides/network/deploying-cilium/#known-issues
+      hostDNS:
+        forwardKubeDNSToHost: false
+    EOT
     proxmox_cluster = "iseja-lab"
-    endpoint        = "10.7.8.111"
+    extra_manifests = [
+      "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
+    ]
     gateway         = "10.7.8.1"
     on_boot         = "${local.on_boot}"
   }
