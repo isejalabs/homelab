@@ -59,7 +59,7 @@ inputs = {
 
   image = {
     version        = "v1.10.7"
-    update_version = "v1.10.7" # renovate: github-releases=siderolabs/talos
+    update_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
