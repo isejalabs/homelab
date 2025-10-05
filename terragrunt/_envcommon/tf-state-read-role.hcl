@@ -39,7 +39,7 @@ inputs = {
   # `account_id` optional per module documentation, but we need to set it, otherwise the module will not work 
   # and ignore `iam_usernames`
   account_ids = [local.aws_account_id]
-  
+
   # not possible to use relative path here with targetting the parent directory (without <component> name)
   # terraform_state_path       = "${path_relative_to_include()}/../*/tf.tfstate"
   # ... hence we compile the path manually

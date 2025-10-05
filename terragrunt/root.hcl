@@ -53,7 +53,7 @@ locals {
   env            = local.environment_vars.locals.env
 
   # Define some root-level variables used by the remote state configuration and AWS IAM role setup
-  project_name                 = "homelab"
+  project_name = "homelab"
   # Define the base name for the resources, which will be used to create unique names for the S3 bucket and DynamoDB table
   # We will use it here and in the role setup module
   resource_basename            = "${get_env("TG_BUCKET_PREFIX", "")}${local.account_name}-${local.project_name}-${local.aws_region}"
@@ -72,10 +72,10 @@ remote_state {
   }
 
   config = {
-    key          = "${path_relative_to_include()}/tf.tfstate"
-    bucket       = local.remote_state_bucket
-    region       = local.aws_region
-    encrypt      = true
+    key     = "${path_relative_to_include()}/tf.tfstate"
+    bucket  = local.remote_state_bucket
+    region  = local.aws_region
+    encrypt = true
     # The DynamoDB table could be used for state locking, but we use S3 native locking instead
     # dynamodb_table = local.remote_state_dynamodb_table
     use_lockfile = true

@@ -29,9 +29,9 @@ terraform {
 
 locals {
   # Reuse the common variables from the root configuration
-  env            = include.root.inputs.env
-  projectname    = include.root.locals.project_name
-  root_path      = "${dirname(find_in_parent_folders("root.hcl"))}"
+  env         = include.root.inputs.env
+  projectname = include.root.locals.project_name
+  root_path   = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
   cilium_path    = include.envcommon.locals.cilium_path
@@ -45,10 +45,10 @@ locals {
   work_cpu       = include.envcommon.locals.work_cpu
   work_disk_size = include.envcommon.locals.work_disk_size
   work_ram       = include.envcommon.locals.work_ram
-  
+
   # Set some values specific to this environment
-  storage_vmid   = 9817
-  on_boot        = false
+  storage_vmid        = 9817
+  on_boot             = false
   gateway_api_version = "v1.2.1" # renovate: github-releases=kubernetes-sigs/gateway-api
 }
 
@@ -63,11 +63,13 @@ inputs = {
   }
 
   cluster = {
-    talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
-    name            = "${local.env}-${local.projectname}"
-    gateway_api_version = local.gateway_api_version
-    kubernetes_version = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
-    kubelet             = <<-EOT
+    extra_manifests = [
+      "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
+    ]
+    gateway                      = "10.7.8.1"
+    gateway_api_version          = local.gateway_api_version
+    kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
+    kubelet                      = <<-EOT
       registerWithFQDN: true
     EOT
     machine_features             = <<-EOT
@@ -75,12 +77,10 @@ inputs = {
       hostDNS:
         forwardKubeDNSToHost: false
     EOT
-    proxmox_cluster = "iseja-lab"
-    extra_manifests = [
-      "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
-    ]
-    gateway         = "10.7.8.1"
-    on_boot         = "${local.on_boot}"
+    name                         = "${local.env}-${local.projectname}"
+    on_boot                      = "${local.on_boot}"
+    proxmox_cluster              = "iseja-lab"
+    talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
   }
 
   nodes = {

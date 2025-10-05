@@ -57,6 +57,6 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
-  proxmox = local.secret_vars.proxmox
+  proxmox           = local.secret_vars.proxmox
   proxmox_api_token = local.secret_vars.proxmox_api_token
 }

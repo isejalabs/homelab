@@ -45,7 +45,7 @@ inputs = {
   # array of allowed AWS userids that can assume the role
   # iam_usernames = ["foo", "bar"]
   iam_usernames = local.iam_usernames
-  
+
   role_name = "${local.env}-${local.bucket_name}-${local.role_basename}"
 
   # get the same bucket name as used in the root remote state setup
