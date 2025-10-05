@@ -22,7 +22,7 @@ spec:
       revisionHistoryLimit: 3
       source:
         repoURL: https://github.com/isejalabs/homelab.git
-        targetRevision: feat/argocd/conf
+        targetRevision: HEAD
         path: "{{.path.path}}"
       destination:
         server: https://kubernetes.default.svc
