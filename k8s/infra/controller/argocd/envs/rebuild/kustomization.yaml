@@ -6,3 +6,6 @@ resources:
 
 components:
   - ../../../../../_components/rebuild
+
+patches:
+  - path: root.yaml

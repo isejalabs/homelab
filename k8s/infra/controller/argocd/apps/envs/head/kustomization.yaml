@@ -5,7 +5,7 @@ resources:
   - ../../base
 
 components:
-  - ../../../../../_components/qa
+  - ../../../../../../_components/head
 
 patches:
-  - path: root.yaml
+  - path: apps-appset.yaml

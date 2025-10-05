@@ -6,3 +6,6 @@ resources:
 
 components:
   - ../../../../../_components/head
+
+patches:
+  - path: root.yaml

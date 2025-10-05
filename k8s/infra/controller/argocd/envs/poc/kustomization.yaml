@@ -6,3 +6,6 @@ resources:
 
 components:
   - ../../../../../_components/poc
+
+patches:
+  - path: root.yaml

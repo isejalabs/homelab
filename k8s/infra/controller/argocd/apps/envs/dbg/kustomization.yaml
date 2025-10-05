@@ -5,7 +5,7 @@ resources:
   - ../../base
 
 components:
-  - ../../../../../_components/qa
+  - ../../../../../../_components/dbg
 
 patches:
-  - path: root.yaml
+  - path: apps-appset.yaml

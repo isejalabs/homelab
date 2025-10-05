@@ -1,0 +1,12 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: apps
+  namespace: argocd
+spec:
+  generators:
+    - git:
+        repoURL: https://github.com/isejalabs/homelab.git
+        revision: HEAD
+        directories:
+          - path: k8s/apps/*/*/envs/head

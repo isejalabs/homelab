@@ -11,7 +11,7 @@ spec:
         repoURL: https://github.com/isejalabs/homelab.git
         revision: HEAD
         directories:
-          - path: k8s/apps/*/*/envs/dev
+          - path: k8s/apps/*/*/base
   template:
     metadata:
       name: "app-{{index .path.segments 3}}"
