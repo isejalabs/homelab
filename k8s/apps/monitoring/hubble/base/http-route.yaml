@@ -5,11 +5,16 @@ metadata:
   namespace: kube-system
 spec:
   parentRefs:
-    - name: internal
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: internal
       namespace: gateway
   hostnames:
     - "hubble.example.com"
   rules:
     - backendRefs:
-        - name: hubble-ui
+        - group: ""
+          kind: Service
+          name: hubble-ui
           port: 80
+          weight: 1

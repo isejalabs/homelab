@@ -5,7 +5,9 @@ metadata:
   namespace: dns
 spec:
   parentRefs:
-    - name: internal
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: internal
       namespace: gateway
   hostnames:
     - "adguard.example.com"
@@ -15,5 +17,8 @@ spec:
             type: PathPrefix
             value: /
       backendRefs:
-        - name: adguard
+        - group: ""
+          kind: Service
+          name: adguard
           port: 3000
+          weight: 1
