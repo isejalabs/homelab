@@ -49,7 +49,7 @@ locals {
   domain              = "home.iseja.net"
   storage_vmid        = 9818
   on_boot             = true
-  gateway_api_version = "v1.2.1" # renovate: github-releases=kubernetes-sigs/gateway-api
+  gateway_api_version = "v1.4.0" # renovate: github-releases=kubernetes-sigs/gateway-api
 }
 
 inputs = {
