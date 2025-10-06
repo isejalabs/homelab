@@ -12,7 +12,11 @@ spec:
   hostnames:
     - "hubble.example.com"
   rules:
-    - backendRefs:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
         - group: ""
           kind: Service
           name: hubble-ui
