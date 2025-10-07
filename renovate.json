@@ -27,20 +27,20 @@
       "matchStrings": [
         "(?<currentValue>[\\w+\\.\\-]*)['\",;]*\\s*#\\s?renovate: (?<datasource>\\S+)=(?<depName>\\S+)\\s?(registry=(?<registryUrl>\\S+))?\\s?(versioning=(?<versioning>\\S+))?"
       ]
-    }
-  ],
-  "regexManagers": [
+    },
     {
-      "fileMatch": "kustomization.yaml",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)kustomization\\.ya?ml$/"],
       "matchStrings": [
-        "https://github.com/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/"
+        "https://github\\.com/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/"
       ],
       "datasourceTemplate": "github-releases"
     },
     {
-      "fileMatch": "kustomization.yaml",
+      "customType": "regex",
+      "managerFilePatterns": ["/(^|/)kustomization\\.ya?ml$/"],
       "matchStrings": [
-        "https://raw.githubusercontent.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/"
+        "https://raw\\.githubusercontent\\.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/"
       ],
       "datasourceTemplate": "github-tags"
     }
