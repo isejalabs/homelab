@@ -49,7 +49,7 @@ locals {
   # Set some values specific to this environment
   storage_vmid        = 9811
   on_boot             = false
-  gateway_api_version = "v1.2.1" # renovate: github-releases=kubernetes-sigs/gateway-api
+  gateway_api_version = include.envcommon.locals.gateway_api_version
 }
 
 inputs = {

@@ -44,6 +44,9 @@ locals {
   work_disk_size = 10
   work_ram       = 2048
 
+  gateway_api_version = "v1.4.0" # renovate: github-releases=kubernetes-sigs/gateway-api
+
+
   # volumes
   # needs to have 500M free space on-top of actual usage, cf. #241
   pv-mongodb_size = "1024M"
