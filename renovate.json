@@ -1,18 +1,34 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:best-practices", ":disableRateLimiting"],
-  "assignees": ["sebiklamar"],
-  "ignorePaths": ["_attic/**"],
+  "extends": [
+    "config:best-practices",
+    ":disableRateLimiting"
+  ],
+  "assignees": [
+    "sebiklamar"
+  ],
+  "ignorePaths": [
+    "_attic/**"
+  ],
   "terragrunt": {
     "versioning": "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$"
   },
   "additionalBranchPrefix": "{{packageFileDir}}/",
-  "prBodyColumns": ["Package", "Package file", "Update", "Change"],
+  "prBodyColumns": [
+    "Package",
+    "Package file",
+    "Update",
+    "Change"
+  ],
   "kustomize": {
-    "managerFilePatterns": ["/(^|/)kustomization\\.ya?ml(\\.j2)?$/"]
+    "managerFilePatterns": [
+      "/(^|/)kustomization\\.ya?ml(\\.j2)?$/"
+    ]
   },
   "kubernetes": {
-    "managerFilePatterns": ["/(^|/)k8s/.+\\.yaml$/"]
+    "managerFilePatterns": [
+      "/(^|/)k8s/.+\\.yaml$/"
+    ]
   },
   "customManagers": [
     {
@@ -27,22 +43,6 @@
       "matchStrings": [
         "(?<currentValue>[\\w+\\.\\-]*)['\",;]*\\s*#\\s?renovate: (?<datasource>\\S+)=(?<depName>\\S+)\\s?(registry=(?<registryUrl>\\S+))?\\s?(versioning=(?<versioning>\\S+))?"
       ]
-    }
-  ],
-  "regexManagers": [
-    {
-      "fileMatch": "kustomization.yaml",
-      "matchStrings": [
-        "https://github.com/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/"
-      ],
-      "datasourceTemplate": "github-releases"
-    },
-    {
-      "fileMatch": "kustomization.yaml",
-      "matchStrings": [
-        "https://raw.githubusercontent.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/"
-      ],
-      "datasourceTemplate": "github-tags"
     }
   ]
 }
