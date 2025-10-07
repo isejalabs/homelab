@@ -8,9 +8,6 @@
   },
   "additionalBranchPrefix": "{{packageFileDir}}/",
   "prBodyColumns": ["Package", "Package file", "Update", "Change"],
-  "kustomize": {
-    "managerFilePatterns": ["/(^|/)kustomization\\.ya?ml(\\.j2)?$/"]
-  },
   "kubernetes": {
     "managerFilePatterns": ["/(^|/)k8s/.+\\.yaml$/"]
   },
