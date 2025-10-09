@@ -20,7 +20,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: copy-base-config
-          image: busybox
+          image: busybox@sha256:d82f458899c9696cb26a7c02d5568f81c8c8223f8661bb2a7988b269c8b9051e
           command: [ "cp", "/tmp/AdGuardHome.yaml", "/opt/adguardhome/conf/AdGuardHome.yaml" ]
           securityContext:
             allowPrivilegeEscalation: false
@@ -49,7 +49,7 @@ spec:
         #       mountPath: /opt/adguardhome/conf
       containers:
         - name: adguard
-          image: docker.io/adguard/adguardhome:v0.107.67
+          image: docker.io/adguard/adguardhome:v0.107.67@sha256:927dc14b3e3cbd359e84658914590270a77d54446a6565e9498bef3444c286a4
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
