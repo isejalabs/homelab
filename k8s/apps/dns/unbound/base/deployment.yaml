@@ -45,6 +45,9 @@ spec:
             - name: unbound-conf
               mountPath: /usr/local/unbound/conf.d/logging-default.conf
               subPath: logging-default.conf
+            - name: iseja-zone
+              mountPath: /usr/local/unbound/zones.d/iseja.conf
+              subPath: unbound-iseja.conf
       volumes:
         - name: logging-conf
           configMap:
@@ -52,3 +55,7 @@ spec:
             items:
               - key: logging-default.conf
                 path: logging-default.conf
+        - name: iseja-zone
+          configMap:
+            name: unbound-zones
+            items: [ { key: unbound-iseja.conf, path: unbound-iseja.conf } ]

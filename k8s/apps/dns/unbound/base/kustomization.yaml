@@ -8,6 +8,10 @@ configMapGenerator:
     namespace: unbound
     files:
       - config/conf.d/logging-default.conf
+  - name: unbound-zones
+    namespace: unbound
+    files:
+      - config/zones.d/unbound-iseja.conf
 
 resources:
   - ns.yaml
