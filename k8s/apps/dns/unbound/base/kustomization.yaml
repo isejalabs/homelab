@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: unbound
+
+configMapGenerator:
+  - name: unbound-conf
+    namespace: unbound
+    files:
+      - config/conf.d/access-control.conf
+      - config/conf.d/logging-default.conf
+      - config/conf.d/logging-verbose.conf
+      - config/conf.d/rootless.conf
+      - config/unbound.conf
+  - name: unbound-zones
+    namespace: unbound
+    files:
+      - config/zones.d/unbound-iseja.conf
+
+resources:
+  - ns.yaml
+  - deployment.yaml
+  - svc.yaml

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: unbound
+  namespace: unbound
+  annotations:
+    io.cilium/lb-ipam-ips: 192.168.8.11
+spec:
+  type: LoadBalancer
+  ports:
+    - name: dns-tcp
+      port: 53
+      targetPort: dns-tcp
+      protocol: TCP
+    - name: dns-udp
+      port: 53
+      targetPort: dns-udp
+      protocol: UDP
+  selector:
+    app: unbound

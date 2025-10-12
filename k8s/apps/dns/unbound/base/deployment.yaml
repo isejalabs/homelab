@@ -1,0 +1,91 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unbound
+  namespace: unbound
+spec:
+  selector:
+    matchLabels:
+      app: unbound
+  template:
+    metadata:
+      labels:
+        app: unbound
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # _unbound user
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: unbound
+          image: docker.io/madnuttah/unbound:1.24.0-1
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          env:
+            - name: DISABLE_SET_PERMS
+              value: "true"
+          ports:
+            - name: dns-tcp
+              containerPort: 5335
+              protocol: TCP
+            - name: dns-udp
+              containerPort: 5335
+              protocol: UDP
+          resources:
+            requests:
+              cpu: 10m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 128Mi
+          startupProbe:
+            exec:
+              command: [ 'drill', '-p', '5335', '@127.0.0.1', '.' ]
+            initialDelaySeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
+          volumeMounts:
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/access-control.conf
+              subPath: access-control.conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/logging-default.conf
+              subPath: logging-default.conf
+            # - name: unbound-conf
+            #   mountPath: /usr/local/unbound/conf.d/logging-verbose.conf
+            #   subPath: logging-verbose.conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/rootless.conf
+              subPath: rootless.conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/unbound.conf
+              subPath: unbound.conf
+            - name: iseja-zone
+              mountPath: /usr/local/unbound/zones.d/iseja.conf
+              subPath: unbound-iseja.conf
+      volumes:
+        - name: unbound-conf
+          configMap:
+            name: unbound-conf
+            items:
+              - key: access-control.conf
+                path: access-control.conf
+              - key: logging-default.conf
+                path: logging-default.conf
+              - key: logging-verbose.conf
+                path: logging-verbose.conf
+              - key: rootless.conf
+                path: rootless.conf
+              - key: unbound.conf
+                path: unbound.conf
+        - name: iseja-zone
+          configMap:
+            name: unbound-zones
+            items: [{key: unbound-iseja.conf, path: unbound-iseja.conf}]
