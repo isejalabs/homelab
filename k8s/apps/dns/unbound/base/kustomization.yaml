@@ -7,7 +7,9 @@ configMapGenerator:
   - name: unbound-conf
     namespace: unbound
     files:
+      - config/conf.d/access-control.conf
       - config/conf.d/logging-default.conf
+      - config/unbound.conf
   - name: unbound-zones
     namespace: unbound
     files:
