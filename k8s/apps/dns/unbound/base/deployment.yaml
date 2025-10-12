@@ -12,15 +12,22 @@ spec:
       labels:
         app: unbound
     spec:
-      #securityContext:
-      #  seccompProfile:
-      #    type: RuntimeDefault
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000 # _unbound user
+        runAsGroup: 1000
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        seccompProfile:
+          type: RuntimeDefault
       containers:
         - name: unbound
           image: docker.io/madnuttah/unbound:1.24.0-1
-          # securityContext:
-          #   allowPrivilegeEscalation: false
-          #   readOnlyRootFilesystem: false
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           env:
             - name: DISABLE_SET_PERMS
               value: "true"
