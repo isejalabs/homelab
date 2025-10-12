@@ -48,6 +48,9 @@ spec:
             - name: unbound-conf
               mountPath: /usr/local/unbound/conf.d/logging-default.conf
               subPath: logging-default.conf
+            # - name: unbound-conf
+            #   mountPath: /usr/local/unbound/conf.d/logging-verbose.conf
+            #   subPath: logging-verbose.conf
             - name: unbound-conf
               mountPath: /usr/local/unbound/unbound.conf
               subPath: unbound.conf
@@ -63,6 +66,8 @@ spec:
                 path: access-control.conf
               - key: logging-default.conf
                 path: logging-default.conf
+              - key: logging-verbose.conf
+                path: logging-verbose.conf
               - key: unbound.conf
                 path: unbound.conf
         - name: iseja-zone
