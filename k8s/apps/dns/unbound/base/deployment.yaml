@@ -35,12 +35,12 @@ spec:
             limits:
               cpu: 500m
               memory: 128Mi
-          # startupProbe:
-          #   exec:
-          #     command: [ 'drill', '@127.0.0.1', '-p', '5335', '.' ]
-          #   initialDelaySeconds: 10
-          #   failureThreshold: 3
-          #   timeoutSeconds: 5
+          startupProbe:
+            exec:
+              command: [ 'drill', '-p', '5335', '@127.0.0.1', '.' ]
+            initialDelaySeconds: 10
+            failureThreshold: 3
+            timeoutSeconds: 5
           volumeMounts:
             - name: unbound-conf
               mountPath: /usr/local/unbound/conf.d/access-control.conf
