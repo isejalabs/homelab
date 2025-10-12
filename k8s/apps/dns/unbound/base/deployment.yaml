@@ -21,6 +21,9 @@ spec:
           # securityContext:
           #   allowPrivilegeEscalation: false
           #   readOnlyRootFilesystem: false
+          env:
+            - name: DISABLE_SET_PERMS
+              value: "true"
           ports:
             - name: dns-tcp
               containerPort: 5335
@@ -52,6 +55,9 @@ spec:
             #   mountPath: /usr/local/unbound/conf.d/logging-verbose.conf
             #   subPath: logging-verbose.conf
             - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/rootless.conf
+              subPath: rootless.conf
+            - name: unbound-conf
               mountPath: /usr/local/unbound/unbound.conf
               subPath: unbound.conf
             - name: iseja-zone
@@ -68,6 +74,8 @@ spec:
                 path: logging-default.conf
               - key: logging-verbose.conf
                 path: logging-verbose.conf
+              - key: rootless.conf
+                path: rootless.conf
               - key: unbound.conf
                 path: unbound.conf
         - name: iseja-zone
