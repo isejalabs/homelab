@@ -8,6 +8,8 @@ configMapGenerator:
     namespace: unbound
     literals:
       - TZ="Europe/Berlin"
+      - EXTENDED_HEALTHCHECK="true"
+      - EXTENDED_HEALTHCHECK_DOMAIN="."
   - name: unbound-conf
     namespace: unbound
     files:

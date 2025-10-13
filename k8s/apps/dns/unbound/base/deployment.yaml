@@ -50,7 +50,7 @@ spec:
               memory: 128Mi
           startupProbe:
             exec:
-              command: [ 'drill', '-p', '5335', '@127.0.0.1', '.' ]
+              command: [ '/usr/local/unbound/sbin/healthcheck.sh' ]
             initialDelaySeconds: 10
             failureThreshold: 3
             timeoutSeconds: 5
