@@ -48,12 +48,9 @@ spec:
             limits:
               cpu: 500m
               memory: 128Mi
-          startupProbe:
+          livenessProbe:
             exec:
               command: [ '/usr/local/unbound/sbin/healthcheck.sh' ]
-            initialDelaySeconds: 10
-            failureThreshold: 3
-            timeoutSeconds: 5
           volumeMounts:
             - name: unbound-conf
               mountPath: /usr/local/unbound/conf.d/access-control.conf
