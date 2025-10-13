@@ -4,6 +4,10 @@ kind: Kustomization
 namespace: unbound
 
 configMapGenerator:
+  - name: unbound-env
+    namespace: unbound
+    literals:
+      - TZ="Europe/Berlin"
   - name: unbound-conf
     namespace: unbound
     files:

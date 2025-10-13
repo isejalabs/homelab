@@ -31,6 +31,9 @@ spec:
           env:
             - name: DISABLE_SET_PERMS
               value: "true"
+          envFrom:
+            - configMapRef:
+                name: unbound-env
           ports:
             - name: dns-tcp
               containerPort: 5335
