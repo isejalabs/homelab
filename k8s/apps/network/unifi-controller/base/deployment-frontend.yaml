@@ -11,6 +11,8 @@ spec:
   selector:
     matchLabels:
       app: unifi-controller
+  strategy:
+    type: Recreate
   template:
     metadata:
       namespace: unifi
