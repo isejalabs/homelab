@@ -8,6 +8,5 @@ resources:
 
 configMapGenerator:
   - name: ssh-install-packages-script
-    namespace: ssh
     files:
       - assets/custom-cont-init.d/install-packages.sh

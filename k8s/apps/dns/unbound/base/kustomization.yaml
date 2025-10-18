@@ -5,13 +5,11 @@ namespace: unbound
 
 configMapGenerator:
   - name: unbound-env
-    namespace: unbound
     literals:
       - TZ="Europe/Berlin"
       - EXTENDED_HEALTHCHECK="true"
       - EXTENDED_HEALTHCHECK_DOMAIN="."
   - name: unbound-conf
-    namespace: unbound
     files:
       - config/conf.d/access-control.conf
       - config/conf.d/logging-default.conf
@@ -19,7 +17,6 @@ configMapGenerator:
       - config/conf.d/rootless.conf
       - config/unbound.conf
   - name: unbound-zones
-    namespace: unbound
     files:
       - config/zones.d/unbound-iseja.conf
 

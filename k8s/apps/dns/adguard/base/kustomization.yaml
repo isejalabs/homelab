@@ -1,9 +1,10 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: adguard
+
 configMapGenerator:
   - name: adguard-config
-    namespace: dns
     files:
       - config/AdGuardHome.yaml
 
