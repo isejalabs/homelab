@@ -2,7 +2,7 @@
 # URL: https://docs.cilium.io/en/stable/network/bgp-control-plane/bgp-control-plane/#installation
 bgpControlPlane:
   enabled: true
-## enable egress gateway 
+## enable egress gateway
 # URL: https://docs.cilium.io/en/stable/network/egress-gateway/egress-gateway/
 egressGateway:
   enabled: true

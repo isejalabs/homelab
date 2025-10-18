@@ -9,7 +9,6 @@
 > <br>
 > In the following the command `k` is aliased for `kubectl` (`alias k=kubectl`)
 
-
 ## Preliminary Checks
 
 Check cluster is reachable and you can authenticate.
@@ -42,7 +41,7 @@ The `core` set covers depencencies necessary even for `infra` components, e.g.
 
 ### Set
 
-Use the set for deploying all applications in the `core` category. 
+Use the set for deploying all applications in the `core` category.
 
 ```sh
 kustomize build --enable-helm k8s/core/_envs/dev | kubectl apply -f -
@@ -54,7 +53,7 @@ If not all applications are needed, use the following `kustomize build` commands
 
 ```sh
 kustomize build --enable-helm k8s/core/network/cilium/envs/dev | kubectl apply -f -
-````
+```
 
 #### Checks
 
@@ -94,6 +93,7 @@ Check whether Sealed Secrets Controller is working (you need to have `kubeseal` 
 ```sh
 echo -n mytestsecret | kubectl create secret generic mysecretname --dry-run=client --from-file=mykey=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n mynamespace
 ```
+
 ```yaml
 ---
 apiVersion: bitnami.com/v1alpha1
@@ -147,7 +147,7 @@ k get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
 
 ### Set
 
-Use the set for deploying all applications in the `infra` category. 
+Use the set for deploying all applications in the `infra` category.
 
 ```sh
 kustomize build --enable-helm k8s/infra/_envs/dev | kubectl apply -f -
@@ -171,7 +171,7 @@ k get secrets -n cert-manager cloudflare-api-token -o json | jq -r '.data."api-t
 kustomize build --enable-helm infra/storage/proxmox-csi | kubectl apply -f -
 ```
 
-> **TODO**: Command does not provide output initially.  Maybe only after first app deployment?
+> **TODO**: Command does not provide output initially. Maybe only after first app deployment?
 
 Check for Proxmox CSI being connected with Proxmox server properly:
 

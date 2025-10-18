@@ -24,7 +24,7 @@ locals {
   environment_secret_vars = try(yamldecode(sops_decrypt_file(find_in_parent_folders("env-secrets.sops.yaml"))), {})
   local_secret_vars       = try(yamldecode(sops_decrypt_file("local-secrets.sops.yaml")), {})
 
-  # Merge all variables into a single map. This allows us to access all variabled in one place.  
+  # Merge all variables into a single map. This allows us to access all variabled in one place.
   # A variable defined in a lower level will override a value defined in a higher level due to the merge function
   # (e.g. env-level variables will override region-level variables, which will override account-level variables).
   # This allows you to define global variables that apply to all environments, and then override them in specific

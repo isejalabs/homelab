@@ -36,7 +36,7 @@ locals {
 # environments.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  # `account_id` optional per module documentation, but we need to set it, otherwise the module will not work 
+  # `account_id` optional per module documentation, but we need to set it, otherwise the module will not work
   # and ignore `iam_usernames`
   account_ids = [local.aws_account_id]
 
