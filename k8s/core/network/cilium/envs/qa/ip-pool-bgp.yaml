@@ -4,5 +4,5 @@ metadata:
   name: bgp-pool
 spec:
   blocks:
-    - start: 10.8.2.10
+    - start: 10.8.2.8
       stop: 10.8.2.250

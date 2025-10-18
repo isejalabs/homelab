@@ -4,4 +4,4 @@ metadata:
   name: unbound
   namespace: unbound
   annotations:
-    io.cilium/lb-ipam-ips: 10.8.2.11
+    io.cilium/lb-ipam-ips: 10.8.2.11, 10.8.2.8
