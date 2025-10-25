@@ -8,6 +8,7 @@ metadata:
     io.cilium/lb-ipam-ips: 192.168.8.22
 spec:
   type: LoadBalancer
+  externalTrafficPolicy: Local
   selector:
     app: ssh
   ports:
