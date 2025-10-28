@@ -1,0 +1,20 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: tls-passthrough
+  namespace: gateway
+spec:
+  gatewayClassName: cilium
+  infrastructure:
+    annotations:
+      io.cilium/lb-ipam-ips: 10.8.6.82
+  listeners:
+    - protocol: TLS
+      port: 443
+      name: unifi
+      hostname: "poc-unifi.poc.iseja.net"
+      tls:
+        mode: Passthrough
+      allowedRoutes:
+        namespaces:
+          from: All

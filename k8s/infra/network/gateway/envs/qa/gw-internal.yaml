@@ -8,26 +8,3 @@ spec:
   infrastructure:
     annotations:
       io.cilium/lb-ipam-ips: 10.8.2.80
-  listeners:
-    - protocol: HTTPS
-      port: 443
-      name: https-gateway
-      hostname: "*.qa.iseja.net"
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: cert
-      allowedRoutes:
-        namespaces:
-          from: All
-    - protocol: HTTPS
-      port: 443
-      name: https-domain-gateway
-      hostname: qa.iseja.net
-      tls:
-        certificateRefs:
-          - kind: Secret
-            name: cert
-      allowedRoutes:
-        namespaces:
-          from: All
