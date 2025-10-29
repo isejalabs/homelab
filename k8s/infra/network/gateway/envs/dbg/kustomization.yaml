@@ -8,6 +8,5 @@ resources:
   - ../../base
 
 patches:
-  - path: cert.yaml
   - path: gw-external.yaml
   - path: gw-internal.yaml
