@@ -5,8 +5,8 @@ metadata:
   namespace: gateway
 spec:
   dnsNames:
+    # rewrite by kustomize set up for wildcard domain only
     - "*.example.com"
-    - example.com
   issuerRef:
     group: cert-manager.io
     kind: ClusterIssuer

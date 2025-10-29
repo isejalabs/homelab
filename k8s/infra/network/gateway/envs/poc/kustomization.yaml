@@ -9,6 +9,5 @@ resources:
   # - gw-tls-passthrough.yaml
 
 patches:
-  - path: cert.yaml
   - path: gw-external.yaml
   - path: gw-internal.yaml
