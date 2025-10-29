@@ -70,9 +70,10 @@ inputs = {
     gateway_api_version          = local.gateway_api_version
     kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
-      extraArgs:
-        # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
-        rotate-server-certificates: true
+      # disable rotate-server-certificates for test environments to avoid cert issues upon cluster rebuilds
+      # extraArgs:
+      #   # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
+      #   rotate-server-certificates: true
       registerWithFQDN: true
     EOT
     machine_features             = <<-EOT
