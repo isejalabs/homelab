@@ -4,4 +4,5 @@ kind: Kustomization
 resources:
   - ../../network/cert-manager/envs/poc
   - ../../network/gateway/envs/poc
+  - ../../network/gateway-redirect/envs/poc
   - ../../storage/proxmox-csi/envs/poc

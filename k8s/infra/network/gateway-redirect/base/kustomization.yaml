@@ -1,0 +1,8 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# have a separate kustomization without domain/hostname rewrites
+# hence no components or transformers here
+
+resources:
+  - http-route-redirect.yaml
