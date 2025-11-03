@@ -49,7 +49,7 @@ spec:
               mountPath: /opt/adguardhome/conf
       containers:
         - name: adguard
-          image: docker.io/adguard/adguardhome:v0.107.67
+          image: docker.io/adguard/adguardhome:v0.107.69@sha256:8a4107ec812023842ccab9e04600c5d39d3be6b15e907c34a36339c184c8fccf
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
