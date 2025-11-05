@@ -3,7 +3,7 @@
   extends: [
     ":disableRateLimiting",
     "config:best-practices",
-    "github>isejalabs/homelab//.github/renovate/version-scheme",
+    "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
   assignees: ["sebiklamar"],
   ignorePaths: ["_attic/**"],
