@@ -19,5 +19,11 @@
       ],
       versioning: "regex:^RELEASE\\.(?<major>\\d{4})-(?<minor>\\d{2})-(?<patch>\\d{2})T\\d{2}-\\d{2}-\\d{2}Z$",
     },
+    {
+      description: "configure version scheme for openssh images",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["lscr.io/linuxserver/openssh-server"],
+      versioning: "regex:^(?<major>\\d+)\\.(?<minor>\\d+)_p(?<patch>\\d+)-r(?<build>\\d)-ls(?<revision>.+)$",
+    },
   ],
 }
