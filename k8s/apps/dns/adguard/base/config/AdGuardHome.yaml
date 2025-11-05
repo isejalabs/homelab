@@ -119,7 +119,8 @@ filters:
     name: HaGeZi's Ultimate Blocklist
     id: 1715425590
 whitelist_filters: []
-user_rules: []
+user_rules:
+  - '@@||o427061.ingest.sentry.io^$client=''10.7.9.165'''
 dhcp:
   enabled: false
   interface_name: ""
