@@ -19,6 +19,8 @@ spec:
       labels:
         app: unifi-controller
     spec:
+      nodeSelector:
+        topology.kubernetes.io/zone: pve4
       securityContext:
         runAsNonRoot: false
         # runAsNonRoot: true
