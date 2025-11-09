@@ -16,6 +16,8 @@ spec:
       labels:
         app: ssh
     spec:
+      nodeSelector:
+        topology.kubernetes.io/zone: pve4
       securityContext:
         runAsNonRoot: false
         # runAsNonRoot: true
@@ -63,3 +65,6 @@ spec:
         - name: ssh-install-packages-script
           configMap:
             name: ssh-install-packages-script
+        - name: ssh-data
+          persistentVolumeClaim:
+            claimName: test-data
