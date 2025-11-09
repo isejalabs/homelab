@@ -50,7 +50,7 @@ locals {
   # volumes
   # needs to have 500M free space on-top of actual usage, cf. #241
   pv-mongodb_size = "1024M"
-  pv-unifi_size   = "50M"
+  pv-unifi_size   = "500M"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
