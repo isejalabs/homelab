@@ -85,6 +85,7 @@ provider "registry.opentofu.org/mastercard/restapi" {
   constraints = ">= 2.0.1, 2.0.1"
   hashes = [
     "h1:7FUxUCoE8HbfJCy99dYykFV1uYjRm0QrbeiMpsB2tSw=",
+    "h1:B9x7Fql5sPqIHYSjEvQRXGOcOIUhvjV6RHKfPBUvSK8=",
     "zh:09438372b8569003dabaf2fc3a98591bb9ec2505a599a37383e908432be8bed7",
     "zh:0f6008de6fdbc92ee2408a34c485bf4de4bf8f46b80f9c54947c9ab89a195704",
     "zh:1c3e89cf19118fc07d7b04257251fc9897e722c16e0a0df7b07fcd261f8c12e7",
@@ -108,6 +109,7 @@ provider "registry.opentofu.org/siderolabs/talos" {
   constraints = ">= 0.6.0, 0.9.0"
   hashes = [
     "h1:50TaymX/KnjXcURmpKsVd7JUyLRrMDNXMHFgqzSe88U=",
+    "h1:srV7rO0fGWWGUzYH0W7oIr2XHWCqL+LX83fOt3nQPa0=",
     "zh:0fa82a384b25a58b65523e0ea4768fa1212b1f5cfc0c9379d31162454fedcc9d",
     "zh:249ab08b810bb96ef7c35354a12622907df7cbda59c83ff314ee85e8b851128d",
     "zh:4f284c21f0cb4b7012fdb231ebba4803e5c389f7ea380fb5958ebfa6b822d055",
