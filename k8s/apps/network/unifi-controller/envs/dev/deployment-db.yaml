@@ -12,5 +12,5 @@ spec:
       containers:
         - name: mongodb
           # track version in this environment explicitly
-          image: docker.io/mongo:8.0@sha256:ea783d8ac4dcac9f8a7ff236b26a52e36649fc1bdd1778ffb44ba5e4de776cda
+          image: docker.io/mongo:8.0@sha256:9d78d4705c620fefcdb1a2c5ccd44fcc551548a9a11cb5f0a39ef6cd74c5306c
 
