@@ -57,8 +57,8 @@ inputs = {
   env = "${local.env}"
 
   image = {
-    version        = "v1.11.2"
-    update_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
+    version        = "v1.11.5"
+    update_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
@@ -83,7 +83,7 @@ inputs = {
     name                         = "${local.env}-${local.projectname}"
     on_boot                      = "${local.on_boot}"
     proxmox_cluster              = "iseja-lab"
-    talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
+    talos_machine_config_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
   }
 
   nodes = {
