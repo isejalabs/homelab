@@ -10,7 +10,7 @@ spec:
       name: internal
       namespace: gateway
   hostnames:
-    - "dev-cmk-k8s-cluster-collector.dev.iseja.net"
+    - "cmk-k8s-cluster-collector.example.com"
   rules:
     - matches:
         - path:

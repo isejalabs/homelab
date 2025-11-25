@@ -1,0 +1,22 @@
+nodeCollector:
+  tolerations:
+    - operator: "Exists"
+      effect: "NoSchedule"
+
+  cadvisor:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 70Mi
+
+  containerMetricsCollector:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 70Mi
+
+  machineSectionsCollector:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 20Mi

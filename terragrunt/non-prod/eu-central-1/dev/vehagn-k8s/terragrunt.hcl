@@ -38,7 +38,7 @@ locals {
   cpu_type       = include.envcommon.locals.cpu_type
   ctrl_cpu       = include.envcommon.locals.ctrl_cpu
   ctrl_disk_size = include.envcommon.locals.ctrl_disk_size
-  ctrl_ram       = include.envcommon.locals.ctrl_ram
+  ctrl_ram       = 2960
   datastore_id   = include.envcommon.locals.datastore_id
   domain         = include.envcommon.locals.domain
   vlan_id        = include.envcommon.locals.vlan_id
