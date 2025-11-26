@@ -1,0 +1,10 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: checkmk
+name: checkmk
+repo: https://checkmk.github.io/checkmk_kube_agent
+version: 1.7.0
+releaseName: checkmk-kube-agent
+namespace: checkmk-agent
+valuesFile: values.yaml
