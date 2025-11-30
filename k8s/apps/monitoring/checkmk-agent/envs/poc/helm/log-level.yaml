@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: checkmk
+valuesInline:
+  clusterCollector:
+    # can be: "debug", "info", "warning" (default), "critical"
+    logLevel: info
