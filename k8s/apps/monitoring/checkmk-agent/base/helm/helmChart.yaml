@@ -1,0 +1,36 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: checkmk
+name: checkmk
+namespace: checkmk-agent
+repo: https://checkmk.github.io/checkmk_kube_agent
+releaseName: checkmk-kube-agent
+version: 1.7.0
+## do not use valuesFile as it's not inherited in overlays
+# valuesFile: values.yaml
+## only inline values are inherited in overlays
+valuesInline:
+  nodeCollector:
+    # collect metrics also on control plane nodes
+    tolerations:
+      - operator: "Exists"
+        effect: "NoSchedule"
+
+    cadvisor:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 70Mi
+
+    containerMetricsCollector:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 70Mi
+
+    machineSectionsCollector:
+      resources:
+        requests:
+          cpu: 50m
+          memory: 20Mi

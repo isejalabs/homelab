@@ -2,7 +2,6 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
   name: cmk-ingress
-  namespace: checkmk-agent
 spec:
   parentRefs:
     - group: gateway.networking.k8s.io
@@ -10,7 +9,7 @@ spec:
       name: internal
       namespace: gateway
   hostnames:
-    - "dev-cmk-k8s-cluster-collector.dev.iseja.net"
+    - "cmk-k8s-cluster-collector.example.com"
   rules:
     - matches:
         - path:

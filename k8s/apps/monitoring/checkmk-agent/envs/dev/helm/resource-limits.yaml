@@ -1,0 +1,23 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: checkmk
+valuesInline:
+  nodeCollector:
+    cadvisor:
+      resources:
+        requests:
+          cpu: 53m
+          memory: 73Mi
+
+    containerMetricsCollector:
+      resources:
+        requests:
+          cpu: 53m
+          memory: 73Mi
+
+    machineSectionsCollector:
+      resources:
+        requests:
+          cpu: 53m
+          memory: 23Mi
