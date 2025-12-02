@@ -2,7 +2,7 @@ apiVersion: builtin
 kind: HelmChartInflationGenerator
 metadata:
   name: checkmk
-version: 1.6.0    # renovate: github-releases=checkmk/checkmk_kube_agent 
+version: 1.8.0    # renovate: github-releases=checkmk/checkmk_kube_agent 
 valuesInline:
   image:
     # Overrides the image tag whose default is the chart appVersion.
