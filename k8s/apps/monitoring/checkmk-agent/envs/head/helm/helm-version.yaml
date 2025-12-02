@@ -2,4 +2,4 @@ apiVersion: builtin
 kind: HelmChartInflationGenerator
 metadata:
   name: checkmk
-version: 1.7.0    # renovate: github-releases=checkmk/checkmk_kube_agent 
+version: 1.8.0    # renovate: github-releases=checkmk/checkmk_kube_agent 
