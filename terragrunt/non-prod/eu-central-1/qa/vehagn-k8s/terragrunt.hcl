@@ -48,7 +48,7 @@ locals {
 
   # Set some values specific to this environment
   storage_vmid        = 9812
-  on_boot             = true
+  on_boot             = false
   gateway_api_version = include.envcommon.locals.gateway_api_version
 }
 
