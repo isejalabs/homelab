@@ -11,6 +11,15 @@ version: 1.7.0    # renovate: github-releases=checkmk/checkmk_kube_agent
 # valuesFile: values.yaml
 ## only inline values are inherited in overlays
 valuesInline:
+  clusterCollector:
+    resources:
+      limits:
+        cpu: 100m
+        memory: 100Mi
+      requests:
+        cpu: 30m
+        memory: 70Mi
+
   nodeCollector:
     # collect metrics also on control plane nodes
     tolerations:
@@ -20,17 +29,17 @@ valuesInline:
     cadvisor:
       resources:
         requests:
-          cpu: 50m
-          memory: 70Mi
+          cpu: 15m
+          memory: 40Mi
 
     containerMetricsCollector:
       resources:
         requests:
-          cpu: 50m
-          memory: 70Mi
+          cpu: 15m
+          memory: 40Mi
 
     machineSectionsCollector:
       resources:
         requests:
-          cpu: 50m
-          memory: 20Mi
+          cpu: 30m
+          memory: 25Mi
