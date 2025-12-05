@@ -61,10 +61,10 @@ spec:
           resources:
             requests:
               cpu: 50m
-              memory: 500Mi
+              memory: 50Mi
             limits:
-              cpu: 1000m
-              memory: 1000Mi
+              cpu: 100m
+              memory: 100Mi
           ports:
             # required
             - name: web-admin
