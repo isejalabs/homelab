@@ -38,6 +38,7 @@ locals {
   ctrl_disk_size = 10
   ctrl_ram       = 2304
   datastore_id   = "local-enc"
+  dns            = [ "10.8.8.8", "10.9.9.9"]
   domain         = "test.iseja.net"
   vlan_id        = 108
   work_cpu       = 2
