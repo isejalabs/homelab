@@ -8,4 +8,5 @@ components:
   - ../../../../../_components/prod
 
 patches:
+  - path: deployment.yaml
   - path: svc.yaml
