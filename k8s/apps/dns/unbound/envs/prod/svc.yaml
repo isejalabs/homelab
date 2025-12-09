@@ -3,4 +3,4 @@ kind: Service
 metadata:
   name: unbound
   annotations:
-    io.cilium/lb-ipam-ips: 10.8.8.8, 10.8.8.9
+    io.cilium/lb-ipam-ips: 10.8.8.8, 10.8.8.11
