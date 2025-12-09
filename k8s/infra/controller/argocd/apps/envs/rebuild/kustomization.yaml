@@ -4,8 +4,5 @@ kind: Kustomization
 resources:
   - ../../base
 
-components:
-  - ../../../../../../_components/rebuild
-
 patches:
   - path: apps-appset.yaml
