@@ -63,8 +63,8 @@ spec:
               cpu: 50m
               memory: 500Mi
             limits:
-              cpu: 100m
-              memory: 700Mi
+              cpu: 1000m
+              memory: 1000Mi
           ports:
             # required
             - name: web-admin
