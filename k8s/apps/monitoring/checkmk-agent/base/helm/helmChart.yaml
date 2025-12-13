@@ -13,12 +13,12 @@ version: 1.8.0    # renovate: github-releases=checkmk/checkmk_kube_agent
 valuesInline:
   clusterCollector:
     resources:
-      limits:
-        cpu: 100m
-        memory: 100Mi
       requests:
         cpu: 30m
         memory: 70Mi
+      limits:
+        cpu: 100m
+        memory: 120Mi
 
   nodeCollector:
     # collect metrics also on control plane nodes
@@ -31,15 +31,24 @@ valuesInline:
         requests:
           cpu: 15m
           memory: 40Mi
+        limits:
+          cpu: 100m
+          memory: 50Mi
 
     containerMetricsCollector:
       resources:
         requests:
           cpu: 15m
           memory: 40Mi
+        limits:
+          cpu: 100m
+          memory: 50Mi
 
     machineSectionsCollector:
       resources:
         requests:
           cpu: 30m
           memory: 25Mi
+        limits:
+          cpu: 100m
+          memory: 30Mi
