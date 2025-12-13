@@ -1,8 +1,3 @@
-# Global settings for the Argo CD chart
-global:
-  # Ingress is disabled; external access is managed via HTTPRoute
-  ingress:
-    enabled: false
 # ConfigMaps and feature flags
 configs:
   params:
@@ -13,11 +8,9 @@ configs:
   cm:
     # Enable Helm support in Kustomize builds
     kustomize.buildOptions: "--enable-helm"
+
 # Argo CD server settings
 server:
-  # We are not using the chart's built-in ingress
-  ingress:
-    enabled: false
   resources:
     requests:
       cpu: 250m
@@ -25,9 +18,9 @@ server:
     limits:
       cpu: 1000m
       memory: 1Gi
+
 # ApplicationSet controller settings
 applicationSet:
-  enabled: true
   resources:
     requests:
       cpu: 250m
@@ -35,17 +28,7 @@ applicationSet:
     limits:
       cpu: 1000m
       memory: 1Gi
-# High Availability setup
-ha:
-  enabled: true
-  redis:
-    resources:
-      requests:
-        cpu: 100m
-        memory: 128Mi
-      limits:
-        cpu: 500m
-        memory: 512Mi
+
 # Argo CD controller settings
 controller:
   resources:
@@ -55,6 +38,7 @@ controller:
     limits:
       cpu: 2000m
       memory: 2Gi
+      
 # Argo CD repo-server settings
 repoServer:
   resources:
@@ -64,12 +48,11 @@ repoServer:
     limits:
       cpu: 2000m
       memory: 2Gi
+
 # Dex is disabled; external authentication (e.g. SSO) is used
 dex:
   enabled: false
-metrics:
-  enabled: true
-  serviceMonitor:
-    enabled: true
+
+# Notifications maybe later
 notifications:
   enabled: false
