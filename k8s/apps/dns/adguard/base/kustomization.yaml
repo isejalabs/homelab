@@ -11,6 +11,7 @@ configMapGenerator:
 resources:
   - ns.yaml
   - svc.yaml
+  - svc-gw.yaml
   - secret-users.yaml
   - deployment.yaml
   - http-route.yaml
