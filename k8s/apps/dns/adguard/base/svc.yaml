@@ -9,9 +9,6 @@ spec:
   type: LoadBalancer
   externalTrafficPolicy: Local
   ports:
-    - name: http
-      protocol: TCP
-      port: 3000
     - name: dns-tcp
       port: 53
       protocol: TCP

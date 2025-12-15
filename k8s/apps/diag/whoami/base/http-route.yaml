@@ -20,6 +20,6 @@ spec:
       backendRefs:
         - group: ""
           kind: Service
-          name: whoami
+          name: whoami-gw
           port: 80
           weight: 1
