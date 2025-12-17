@@ -33,6 +33,7 @@ spec:
           selfHeal: true
           allowEmpty: false
         syncOptions:
+          - CreateNamespace=true
           - ServerSideApply=true
           - RespectIgnoreDifferences=true
           - ApplyOutOfSyncOnly=true
