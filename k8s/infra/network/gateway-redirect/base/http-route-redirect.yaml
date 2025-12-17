@@ -5,7 +5,9 @@ metadata:
   namespace: gateway
 spec:
   parentRefs:
-    - name: internal
+    - group: gateway.networking.k8s.io
+      kind: Gateway
+      name: internal
       sectionName: http-gateway
   rules:
     - filters:
@@ -13,3 +15,7 @@ spec:
           requestRedirect:
             scheme: https
             statusCode: 301
+      matches:
+        - path:
+            type: PathPrefix
+            value: /
