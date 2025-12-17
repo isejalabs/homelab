@@ -26,6 +26,7 @@ spec:
       tls:
         certificateRefs:
           - kind: Secret
+            group: ""
             name: cert
       allowedRoutes:
         namespaces:
