@@ -8,7 +8,7 @@ spec:
   goTemplateOptions: ["missingkey=error"]
   generators:
     - git:
-        repoURL: https://github.com/isejalabs/homelab.git
+        repoURL: &repo https://github.com/isejalabs/homelab.git
         revision: HEAD
         directories:
           - path: k8s/apps/*/*/base
@@ -21,7 +21,7 @@ spec:
       project: apps
       revisionHistoryLimit: 3
       source:
-        repoURL: https://github.com/isejalabs/homelab.git
+        repoURL: *repo
         targetRevision: HEAD
         path: "{{.path.path}}"
       destination:
