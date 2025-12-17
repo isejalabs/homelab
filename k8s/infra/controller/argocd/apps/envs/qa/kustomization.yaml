@@ -5,4 +5,4 @@ resources:
   - ../../base
 
 patches:
-  - path: apps-appset.yaml
+  - path: appset-apps.yaml
