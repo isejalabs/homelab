@@ -3,7 +3,6 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - base_appset-infra.yaml
 
 patches:
   - path: appset-apps.yaml
