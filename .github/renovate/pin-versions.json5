@@ -1,0 +1,12 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      matchPackageNames: [
+        'docker.io/mongo',
+      ],
+      allowedVersions: '<=8.0',
+      description: 'keep mongodb at v8.0 due to unifi-network-controller, and for omitting minor updates with (unnecessary) changes',
+    },
+  ],
+}
