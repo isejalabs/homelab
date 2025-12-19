@@ -44,6 +44,10 @@ The `core` set covers depencencies necessary even for `infra` components, e.g.
 Use the set for deploying all applications in the `core` category.
 
 ```sh
+# deploy for current context automatically (retrieves "dev" out of "admin@dev-homelab")
+kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
+
+# deploy for context `dev` explicitely
 kustomize build --enable-helm k8s/core/_envs/dev | kubectl apply -f -
 ```
 
