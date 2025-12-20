@@ -11,7 +11,7 @@ spec:
         operator: DoesNotExist
 
   bgpInstances:
-    - name: "instance-64523"
+    - name: "instance-64526"
       localASN: 64526 # Use your cluster's ASN here!
       peers:
         - name: "peer-64520-gw2"
