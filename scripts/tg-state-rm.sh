@@ -5,6 +5,7 @@
 for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); do terragrunt state rm "$i"; done
 
 # also remove everything which would block a destroy command when the cluster is not functional or nodes shut down
+for i in $(terragrunt state list | grep module.volumes.module.persistent-volume); do terragrunt state rm "$i"; done
 terragrunt state rm 'module.sealed_secrets.kubernetes_namespace.sealed-secrets'
 terragrunt state rm 'module.sealed_secrets.kubernetes_secret.sealed-secrets-key'
 terragrunt state rm 'module.talos.talos_cluster_kubeconfig.this'
