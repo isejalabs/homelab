@@ -5,6 +5,7 @@
   - changed-files:
       - any-glob-to-any-file:
           - "k8s/**/base/**"
+          - "terragrunt/_envcommon/**"
 "env:head":
   - changed-files:
       - any-glob-to-any-file:
