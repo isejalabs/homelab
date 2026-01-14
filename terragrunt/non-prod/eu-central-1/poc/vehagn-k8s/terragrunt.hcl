@@ -69,7 +69,7 @@ inputs = {
     ]
     gateway                      = "10.7.8.1"
     gateway_api_version          = local.gateway_api_version
-    kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
+    kubernetes_version           = "v1.35.0" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
       # disable rotate-server-certificates for test environments to avoid cert issues upon cluster rebuilds
       # extraArgs:
