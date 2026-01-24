@@ -86,6 +86,7 @@ inputs = {
     on_boot                      = local.on_boot
     proxmox_cluster              = "iseja-lab"
     talos_machine_config_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
+    vip                          = "10.7.8.130"
   }
 
   nodes = {
