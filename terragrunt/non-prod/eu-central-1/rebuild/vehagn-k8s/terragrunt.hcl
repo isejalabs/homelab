@@ -66,15 +66,15 @@ inputs = {
   cluster = {
     extra_manifests = [
       "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
+      "https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/main/deploy/standalone-install.yaml",
     ]
     gateway                      = "10.7.8.1"
     gateway_api_version          = local.gateway_api_version
     kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
-      # disable rotate-server-certificates for test environments to avoid cert issues upon cluster rebuilds
-      # extraArgs:
-      #   # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
-      #   rotate-server-certificates: true
+      extraArgs:
+        # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
+        rotate-server-certificates: true
       registerWithFQDN: true
     EOT
     machine_features             = <<-EOT
