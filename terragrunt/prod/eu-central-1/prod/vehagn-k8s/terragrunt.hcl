@@ -34,28 +34,28 @@ locals {
   root_path   = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
-  cilium_path    = include.envcommon.locals.cilium_path
-  cpu_type       = include.envcommon.locals.cpu_type
-  ctrl_cpu       = include.envcommon.locals.ctrl_cpu
-  ctrl_disk_size = include.envcommon.locals.ctrl_disk_size
-  ctrl_ram       = include.envcommon.locals.ctrl_ram
-  datastore_id   = include.envcommon.locals.datastore_id
-  dns            = include.envcommon.locals.dns
-  vlan_id        = include.envcommon.locals.vlan_id
-  work_cpu       = include.envcommon.locals.work_cpu
-  work_disk_size = include.envcommon.locals.work_disk_size
-  work_ram       = 6144
+  cilium_path         = include.envcommon.locals.cilium_path
+  cpu_type            = include.envcommon.locals.cpu_type
+  ctrl_cpu            = include.envcommon.locals.ctrl_cpu
+  ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
+  ctrl_ram            = include.envcommon.locals.ctrl_ram
+  datastore_id        = include.envcommon.locals.datastore_id
+  dns                 = include.envcommon.locals.dns
+  domain              = "home.iseja.net"
+  gateway_api_version = include.envcommon.locals.gateway_api_version
+  vlan_id             = include.envcommon.locals.vlan_id
+  work_cpu            = include.envcommon.locals.work_cpu
+  work_disk_size      = include.envcommon.locals.work_disk_size
+  work_ram            = 6144
 
   # Set some values specific to this environment
-  domain              = "home.iseja.net"
-  storage_vmid        = 9818
-  on_boot             = true
-  gateway_api_version = include.envcommon.locals.gateway_api_version
+  storage_vmid = 9818
+  on_boot      = true
 }
 
 inputs = {
 
-  env = "${local.env}"
+  env = local.env
 
   image = {
     version        = "v1.11.2"
@@ -82,7 +82,7 @@ inputs = {
         forwardKubeDNSToHost: false
     EOT
     name                         = "${local.env}-${local.projectname}"
-    on_boot                      = "${local.on_boot}"
+    on_boot                      = local.on_boot
     proxmox_cluster              = "iseja-lab"
     talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
   }
@@ -93,12 +93,12 @@ inputs = {
       machine_type  = "controlplane"
       ip            = "10.7.8.181"
       vm_id         = 7008181
-      cpu           = "${local.ctrl_cpu}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.ctrl_cpu
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.ctrl_disk_size}"
-      ram_dedicated = "${local.ctrl_ram}"
-      vlan_id       = "${local.vlan_id}"
+      disk_size     = local.ctrl_disk_size
+      ram_dedicated = local.ctrl_ram
+      vlan_id       = local.vlan_id
       # update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
@@ -106,12 +106,12 @@ inputs = {
       machine_type  = "controlplane"
       ip            = "10.7.8.182"
       vm_id         = 7008182
-      cpu           = "${local.ctrl_cpu}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.ctrl_cpu
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.ctrl_disk_size}"
-      ram_dedicated = "${local.ctrl_ram}"
-      vlan_id       = "${local.vlan_id}"
+      disk_size     = local.ctrl_disk_size
+      ram_dedicated = local.ctrl_ram
+      vlan_id       = local.vlan_id
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
@@ -119,12 +119,12 @@ inputs = {
       machine_type  = "controlplane"
       ip            = "10.7.8.183"
       vm_id         = 7008183
-      cpu           = "${local.ctrl_cpu}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.ctrl_cpu
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.ctrl_disk_size}"
-      ram_dedicated = "${local.ctrl_ram}"
-      vlan_id       = "${local.vlan_id}"
+      disk_size     = local.ctrl_disk_size
+      ram_dedicated = local.ctrl_ram
+      vlan_id       = local.vlan_id
       # update        = true
     }
     "${local.env}-work-01.${local.domain}" = {
@@ -132,13 +132,13 @@ inputs = {
       machine_type  = "worker"
       ip            = "10.7.8.184"
       vm_id         = 7008184
-      cpu           = "${local.work_cpu}"
-      cpu_type      = "${local.cpu_type}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.work_disk_size}"
-      ram_dedicated = "${local.work_ram}"
-      vlan_id       = "${local.vlan_id}"
+      disk_size     = local.work_disk_size
+      ram_dedicated = local.work_ram
+      vlan_id       = local.vlan_id
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
@@ -146,13 +146,13 @@ inputs = {
       machine_type  = "worker"
       ip            = "10.7.8.185"
       vm_id         = 7008185
-      cpu           = "${local.work_cpu}"
-      cpu_type      = "${local.cpu_type}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.work_disk_size}"
-      ram_dedicated = "${local.work_ram}"
-      vlan_id       = "${local.vlan_id}"
+      disk_size     = local.work_disk_size
+      ram_dedicated = local.work_ram
+      vlan_id       = local.vlan_id
       # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
@@ -160,13 +160,13 @@ inputs = {
       machine_type  = "worker"
       ip            = "10.7.8.186"
       vm_id         = 7008186
-      cpu           = "${local.work_cpu}"
-      cpu_type      = "${local.cpu_type}"
-      datastore_id  = "${local.datastore_id}"
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore_id  = local.datastore_id
       dns           = local.dns
-      disk_size     = "${local.work_disk_size}"
+      disk_size     = local.work_disk_size
       ram_dedicated = 2048
-      vlan_id       = "${local.vlan_id}"
+      vlan_id       = local.vlan_id
       # update        = true
     }
   }
@@ -177,14 +177,14 @@ inputs = {
     pv-mongodb = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-mongodb_size
-      vmid    = "${local.storage_vmid}"
-      storage = "${local.datastore_id}"
+      vmid    = local.storage_vmid
+      storage = local.datastore_id
     }
     pv-unifi = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-unifi_size
-      vmid    = "${local.storage_vmid}"
-      storage = "${local.datastore_id}"
+      vmid    = local.storage_vmid
+      storage = local.datastore_id
     }
   }
 

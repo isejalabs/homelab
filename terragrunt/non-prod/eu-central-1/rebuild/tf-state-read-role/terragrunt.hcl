@@ -23,7 +23,7 @@ include "envcommon" {
 # Configure the version of the module to use in this environment. This allows you to promote new versions one
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
-  source = "${include.envcommon.locals.base_source_url}"
+  source = include.envcommon.locals.base_source_url
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

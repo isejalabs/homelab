@@ -61,9 +61,9 @@ inputs = {
       machine_type  = "controlplane"
       ip            = "10.7.4.111"
       vm_id         = 7004111
-      vlan_id       = "${local.vlan_id}"
-      cpu           = "${local.ctrl_cpu}"
-      ram_dedicated = "${local.ctrl_ram}"
+      vlan_id       = local.vlan_id
+      cpu           = local.ctrl_cpu
+      ram_dedicated = local.ctrl_ram
       # update        = true
     }
     # "${local.env}-ctrl-02.${local.domain}" = {
@@ -71,9 +71,9 @@ inputs = {
     #   machine_type  = "controlplane"
     #   ip            = "10.7.4.112"
     #   vm_id         = 7004112
-    #   vlan_id       = "${local.vlan_id}"
-    #   cpu           = "${local.ctrl_cpu}"
-    #   ram_dedicated = "${local.ctrl_ram}"
+    #   vlan_id       = local.vlan_id
+    #   cpu           = local.ctrl_cpu
+    #   ram_dedicated = local.ctrl_ram
     #   # update        = true
     # }
     # "${local.env}-ctrl-03.${local.domain}" = {
@@ -81,9 +81,9 @@ inputs = {
     #   machine_type  = "controlplane"
     #   ip            = "10.7.4.113"
     #   vm_id         = 7004113
-    #   vlan_id       = "${local.vlan_id}"
-    #   cpu           = "${local.ctrl_cpu}"
-    #   ram_dedicated = "${local.ctrl_ram}"
+    #   vlan_id       = local.vlan_id
+    #   cpu           = local.ctrl_cpu
+    #   ram_dedicated = local.ctrl_ram
     #   # update        = true
     # }
     "${local.env}-work-01.${local.domain}" = {
@@ -91,9 +91,9 @@ inputs = {
       machine_type  = "worker"
       ip            = "10.7.4.114"
       vm_id         = 7004114
-      vlan_id       = "${local.vlan_id}"
-      cpu           = "${local.work_cpu}"
-      ram_dedicated = "${local.work_ram}"
+      vlan_id       = local.vlan_id
+      cpu           = local.work_cpu
+      ram_dedicated = local.work_ram
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
@@ -101,9 +101,9 @@ inputs = {
       machine_type  = "worker"
       ip            = "10.7.4.115"
       vm_id         = 7004115
-      vlan_id       = "${local.vlan_id}"
-      cpu           = "${local.work_cpu}"
-      ram_dedicated = "${local.work_ram}"
+      vlan_id       = local.vlan_id
+      cpu           = local.work_cpu
+      ram_dedicated = local.work_ram
       # update        = true
     }
   }
