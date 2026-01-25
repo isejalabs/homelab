@@ -35,14 +35,14 @@ locals {
   cilium_path    = "k8s/core/network/cilium"
   cpu_type       = "custom-x86-64-v2-AES-AVX"
   ctrl_cpu       = 2
-  ctrl_disk_size = 10
+  ctrl_disk_size = 6
   ctrl_ram       = 2432
-  datastore_id   = "local-enc"
+  datastore      = "local-enc"
   dns            = ["10.8.8.8", "10.9.9.9"]
   domain         = "test.iseja.net"
   vlan_id        = 108
   work_cpu       = 2
-  work_disk_size = 10
+  work_disk_size = 6
   work_ram       = 2048
 
   gateway_api_version = "v1.4.0" # renovate: github-releases=kubernetes-sigs/gateway-api

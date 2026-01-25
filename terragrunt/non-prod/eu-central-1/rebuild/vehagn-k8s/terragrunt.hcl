@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v5.0.1"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v6.0.0"
 }
 
 locals {
@@ -39,7 +39,7 @@ locals {
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
-  datastore_id        = include.envcommon.locals.datastore_id
+  datastore           = include.envcommon.locals.datastore
   dns                 = include.envcommon.locals.dns
   domain              = include.envcommon.locals.domain
   gateway_api_version = include.envcommon.locals.gateway_api_version
@@ -96,7 +96,7 @@ inputs = {
       ip            = "10.7.8.171"
       vm_id         = 7008171
       cpu           = local.ctrl_cpu
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
@@ -109,7 +109,7 @@ inputs = {
       ip            = "10.7.8.172"
       vm_id         = 7008172
       cpu           = local.ctrl_cpu
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
@@ -122,7 +122,7 @@ inputs = {
       ip            = "10.7.8.173"
       vm_id         = 7008173
       cpu           = local.ctrl_cpu
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
@@ -136,7 +136,7 @@ inputs = {
       vm_id         = 7008174
       cpu           = local.work_cpu
       cpu_type      = local.cpu_type
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
@@ -150,7 +150,7 @@ inputs = {
       vm_id         = 7008175
       cpu           = local.work_cpu
       cpu_type      = local.cpu_type
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
@@ -166,13 +166,13 @@ inputs = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-mongodb_size
       vmid    = local.storage_vmid
-      storage = local.datastore_id
+      datastore = local.datastore
     }
     pv-unifi = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-unifi_size
       vmid    = local.storage_vmid
-      storage = local.datastore_id
+      datastore = local.datastore
     }
   }
 
