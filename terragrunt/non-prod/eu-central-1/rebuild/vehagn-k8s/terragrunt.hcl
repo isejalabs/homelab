@@ -64,6 +64,11 @@ inputs = {
   }
 
   cluster = {
+    api_server                   = <<-EOT
+      certSANs:
+        # Add FQDN for API server access (via VIP)
+        - "${local.env}-${local.projectname}-k8s-api.${local.domain}"
+    EOT
     extra_manifests = [
       "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
       "https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/main/deploy/standalone-install.yaml",
