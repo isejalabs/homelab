@@ -11,4 +11,4 @@ spec:
     spec:
       containers:
         - name: mongodb
-          image: mongo:latest@sha256:ea783d8ac4dcac9f8a7ff236b26a52e36649fc1bdd1778ffb44ba5e4de776cda
+          image: mongo:latest@sha256:6f55a078e025aa29fea2826c82f67ff2f774b82efd816c4c30bbfe67904f0bb8
