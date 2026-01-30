@@ -3,6 +3,7 @@
   extends: [
     ":disableRateLimiting",
     "config:best-practices",
+    "github>isejalabs/homelab//.github/renovate/organize-semantic-scope.json5",
     "github>isejalabs/homelab//.github/renovate/pin-versions.json5",
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],

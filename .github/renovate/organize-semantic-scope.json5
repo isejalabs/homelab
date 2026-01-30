@@ -1,0 +1,13 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  semanticCommitScope: '{{parentDir}}',
+  "packageRules": [
+    {
+      "description": "add semantic commit scope for terragrunt environments",
+      "matchFileNames": [
+        "terragrunt/*/*/**"
+      ],
+      "semanticCommitScope": "{{ lookup (split packageFileDir '/') 3 }}/{{ lookup (split packageFileDir '/') 4 }}"
+    },
+  ]
+}
