@@ -18,20 +18,44 @@
       labels: ["updateType:digest"],
     },
     {
+      matchUpdateTypes: ["pinDigest"],
+      labels: ["updateType:pinDigest"],
+    },
+    {
       matchDatasources: ["docker"],
       addLabels: ["dataSource:container"],
+    },
+    {
+      matchDatasources: ["github-releases"],
+      addLabels: ["dataSource:github-releases"],
+    },
+    {
+      matchDatasources: ["github-runners"],
+      addLabels: ["dataSource:github-runnners"],
+    },
+    {
+      matchDatasources: ["github-tags"],
+      addLabels: ["dataSource:github-tags"],
     },
     {
       matchDatasources: ["helm"],
       addLabels: ["dataSource:helm"],
     },
     {
-      matchManagers: ["github-actions"],
-      addLabels: ["dataSource:github-action"],
+      matchDatasources: ["kubernetes-api"],
+      addLabels: ["dataSource:kubernetes-api"],
     },
     {
-      matchDatasources: ["github-releases"],
-      addLabels: ["dataSource:github-release"],
+      matchDatasources: ["terraform-module"],
+      addLabels: ["dataSource:terraform-module"],
+    },
+    {
+      matchDatasources: ["terraform-provider"],
+      addLabels: ["dataSource:terraform-provider"],
+    },
+    {
+      matchManagers: ["github-actions"],
+      addLabels: ["dataSource:github-action"],
     },
   ],
 }
