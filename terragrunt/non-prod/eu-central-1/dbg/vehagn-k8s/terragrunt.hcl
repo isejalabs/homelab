@@ -39,7 +39,7 @@ locals {
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
-  datastore_id        = include.envcommon.locals.datastore_id
+  datastore           = include.envcommon.locals.datastore
   dns                 = include.envcommon.locals.dns
   domain              = include.envcommon.locals.domain
   gateway_api_version = include.envcommon.locals.gateway_api_version
@@ -58,8 +58,8 @@ inputs = {
   env = local.env
 
   image = {
-    version        = "v1.11.2"
-    update_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
+    version        = "v1.11.5"
+    update_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
@@ -90,7 +90,7 @@ inputs = {
     name                         = "${local.env}-${local.projectname}"
     on_boot                      = local.on_boot
     proxmox_cluster              = "iseja-lab"
-    talos_machine_config_version = "v1.11.2" # renovate: github-releases=siderolabs/talos
+    talos_machine_config_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
     vip                          = "10.7.8.190"
   }
 
@@ -101,7 +101,7 @@ inputs = {
       ip            = "10.7.8.191"
       vm_id         = 7008191
       cpu           = local.ctrl_cpu
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
@@ -114,7 +114,7 @@ inputs = {
     #   ip            = "10.7.8.192"
     #   vm_id         = 7008192
     #   cpu           = local.ctrl_cpu
-    #   datastore_id  = local.datastore_id
+    #   datastore     = local.datastore
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
@@ -127,7 +127,7 @@ inputs = {
     #   ip            = "10.7.8.193"
     #   vm_id         = 7008193
     #   cpu           = local.ctrl_cpu
-    #   datastore_id  = local.datastore_id
+    #   datastore     = local.datastore
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
@@ -141,7 +141,7 @@ inputs = {
       vm_id         = 7008194
       cpu           = local.work_cpu
       cpu_type      = local.cpu_type
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
@@ -155,7 +155,7 @@ inputs = {
       vm_id         = 7008195
       cpu           = local.work_cpu
       cpu_type      = local.cpu_type
-      datastore_id  = local.datastore_id
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
@@ -171,13 +171,13 @@ inputs = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-mongodb_size
       vmid    = local.storage_vmid
-      storage = local.datastore_id
+      datastore = local.datastore
     }
     pv-unifi = {
       node    = "pve4"
       size    = include.envcommon.locals.pv-unifi_size
       vmid    = local.storage_vmid
-      storage = local.datastore_id
+      datastore = local.datastore
     }
   }
 
