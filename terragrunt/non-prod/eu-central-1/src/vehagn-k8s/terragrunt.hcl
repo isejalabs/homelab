@@ -109,19 +109,19 @@ inputs = {
       vlan_id       = local.vlan_id
       # update        = true
     }
-    "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.152"
-      vm_id         = 7008152
-      cpu           = local.ctrl_cpu
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
+    # "${local.env}-ctrl-02.${local.domain}" = {
+    #   host_node     = "pve4"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.152"
+    #   vm_id         = 7008152
+    #   cpu           = local.ctrl_cpu
+    #   datastore     = local.datastore
+    #   dns           = local.dns
+    #   disk_size     = local.ctrl_disk_size
+    #   ram_dedicated = local.ctrl_ram
+    #   vlan_id       = local.vlan_id
+    #   # update        = true
+    # }
     # "${local.env}-ctrl-03.${local.domain}" = {
     #   host_node     = "pve3"
     #   machine_type  = "controlplane"
@@ -149,20 +149,20 @@ inputs = {
       vlan_id       = local.vlan_id
       # update        = true
     }
-    "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "worker"
-      ip            = "10.7.8.155"
-      vm_id         = 7008155
-      cpu           = local.work_cpu
-      cpu_type      = local.cpu_type
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.work_disk_size
-      ram_dedicated = local.work_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
+    # "${local.env}-work-02.${local.domain}" = {
+    #   host_node     = "pve4"
+    #   machine_type  = "worker"
+    #   ip            = "10.7.8.155"
+    #   vm_id         = 7008155
+    #   cpu           = local.work_cpu
+    #   cpu_type      = local.cpu_type
+    #   datastore     = local.datastore
+    #   dns           = local.dns
+    #   disk_size     = local.work_disk_size
+    #   ram_dedicated = local.work_ram
+    #   vlan_id       = local.vlan_id
+    #   # update        = true
+    # }
   }
 
   cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
