@@ -135,25 +135,11 @@ inputs = {
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
-    "${local.env}-work-01.${local.domain}" = {
-      host_node     = "pve1"
-      machine_type  = "worker"
-      ip            = "10.7.8.154"
-      vm_id         = 7008154
-      cpu           = local.work_cpu
-      cpu_type      = local.cpu_type
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.work_disk_size
-      ram_dedicated = local.work_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
-    # "${local.env}-work-02.${local.domain}" = {
-    #   host_node     = "pve4"
+    # "${local.env}-work-01.${local.domain}" = {
+    #   host_node     = "pve1"
     #   machine_type  = "worker"
-    #   ip            = "10.7.8.155"
-    #   vm_id         = 7008155
+    #   ip            = "10.7.8.154"
+    #   vm_id         = 7008154
     #   cpu           = local.work_cpu
     #   cpu_type      = local.cpu_type
     #   datastore     = local.datastore
@@ -163,6 +149,20 @@ inputs = {
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
+    "${local.env}-work-02.${local.domain}" = {
+      host_node     = "pve4"
+      machine_type  = "worker"
+      ip            = "10.7.8.155"
+      vm_id         = 7008155
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.work_disk_size
+      ram_dedicated = local.work_ram
+      vlan_id       = local.vlan_id
+      # update        = true
+    }
   }
 
   cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
@@ -180,11 +180,9 @@ inputs = {
       vmid    = local.storage_vmid
       datastore = local.datastore
     }
-    worker-test1 = {
-      size = 7
+    disk-test1 = {
+      size = "1G"
       type = "disk"
-      # datastore = local.datastore
-      # datastore = "local"
     }
   }
 
