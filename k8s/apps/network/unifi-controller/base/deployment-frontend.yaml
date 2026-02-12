@@ -32,7 +32,7 @@ spec:
         #   type: RuntimeDefault
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:10.0.162@sha256:7948b8c2ca4cd9bf9e1839f3e399c320e0a8318cd54dc807c247f48702f4b157
+          image: lscr.io/linuxserver/unifi-network-application:10.1.85@sha256:3dc07d42ca5ee4dec6084def7102ffa02a9e02136572cbf34a1bc2f4ccf6e5d0
           env:
             - name: PUID
               value: '999'
