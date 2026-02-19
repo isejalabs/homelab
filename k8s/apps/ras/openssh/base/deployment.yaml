@@ -27,7 +27,7 @@ spec:
         #   type: RuntimeDefault
       containers:
         - name: ssh
-          image: lscr.io/linuxserver/openssh-server:10.2_p1-r0-ls213@sha256:f6ed4e429022c33a7590059b262b59d689c7ec48a0027179fad8ae3a1ad6222d
+          image: lscr.io/linuxserver/openssh-server:10.2_p1-r0-ls216@sha256:5367818a2a39e1dbd8564503a7e8b2e13fbe83bb00df86fdb2df37ca3ba306e2
           # securityContext:
           #   allowPrivilegeEscalation: false
           #   readOnlyRootFilesystem: true
