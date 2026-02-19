@@ -15,6 +15,7 @@
   },
   additionalBranchPrefix: "{{packageFileDir}}/",
   prBodyColumns: ["Package", "Package file", "Update", "Change"],
+  separateMinorPatch: true,
   kubernetes: {
     managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
   },
