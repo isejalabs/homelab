@@ -58,8 +58,8 @@ inputs = {
   env = local.env
 
   image = {
-    version        = "v1.11.5"
-    update_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
+    version        = "v1.12.4"
+    update_version = "v1.12.4" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
@@ -75,7 +75,7 @@ inputs = {
     ]
     gateway                      = "10.7.8.1"
     gateway_api_version          = local.gateway_api_version
-    kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
+    kubernetes_version           = "v1.35.1" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
       extraArgs:
         # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
@@ -90,7 +90,7 @@ inputs = {
     name                         = "${local.env}-${local.projectname}"
     on_boot                      = local.on_boot
     proxmox_cluster              = "iseja-lab"
-    talos_machine_config_version = "v1.11.5" # renovate: github-releases=siderolabs/talos
+    talos_machine_config_version = "v1.12.4" # renovate: github-releases=siderolabs/talos
     vip                          = "10.7.8.180"
   }
 
