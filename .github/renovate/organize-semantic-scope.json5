@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  semanticCommitScope: '{{parentDir}}',
+  "semanticCommitScope": "{{parentDir}}",
   "packageRules": [
     {
       "description": "add semantic commit scope for terragrunt environments",
