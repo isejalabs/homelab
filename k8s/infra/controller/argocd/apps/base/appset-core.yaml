@@ -39,6 +39,7 @@ spec:
           - ApplyOutOfSyncOnly=true
           - Replace=false
           - IgnoreMissingTemplate=true
+          - SkipDryRunOnMissingResource=true
         retry:
           limit: 5
           backoff:
