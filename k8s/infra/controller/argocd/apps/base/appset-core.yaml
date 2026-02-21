@@ -14,7 +14,7 @@ spec:
           - path: k8s/core/*/*/base
   template:
     metadata:
-      name: "infra-{{index .path.segments 3}}"
+      name: "core-{{index .path.segments 3}}"
       annotations:
         argocd.argoproj.io/sync-wave: "1"
     spec:
