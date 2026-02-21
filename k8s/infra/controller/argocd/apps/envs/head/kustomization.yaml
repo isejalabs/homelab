@@ -6,4 +6,5 @@ resources:
 
 patches:
   - path: appset-apps.yaml
+  - path: appset-core.yaml
   - path: appset-infra.yaml

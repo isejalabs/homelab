@@ -3,4 +3,5 @@ kind: Kustomization
 resources:
   - projects.yaml
   - appset-apps.yaml
+  - appset-core.yaml
   - appset-infra.yaml
