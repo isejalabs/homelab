@@ -4,6 +4,5 @@ kind: Kustomization
 resources:
   - ns.yaml
   - cert.yaml
-  - gateway-class.yaml
   - gw-external.yaml
   - gw-internal.yaml
