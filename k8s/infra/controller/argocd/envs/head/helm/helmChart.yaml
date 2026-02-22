@@ -1,0 +1,82 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: argo-cd
+name: argo-cd
+namespace: argocd
+repo: https://argoproj.github.io/argo-helm
+releaseName: "argocd"
+version: 9.3.7    # renovate: github-releases=checkmk/checkmk_kube_agent
+
+## do not use valuesFile as it's not inherited in overlays
+# valuesFile: values.yaml
+## only inline values are inherited in overlays
+valuesInline:
+  # ConfigMaps and feature flags
+  configs:
+    params:
+      # This ensures the server knows it is running behind a gateway
+      # and should not handle TLS itself. This adds the --insecure flag
+      # to the argocd-server command.
+      server.insecure: "true"
+    cm:
+      # Enable Helm support in Kustomize builds
+      kustomize.buildOptions: "--enable-helm"
+
+  # Argo CD server settings
+  server:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # ApplicationSet controller settings
+  applicationSet:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+      limits:
+        cpu: 100m
+        memory: 256Mi
+
+  # Argo CD controller settings
+  controller:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+  # Redis database
+  redis:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 8Mi
+      limits:
+        cpu: 100m
+        memory: 64Mi
+
+  # Argo CD repo-server settings
+  repoServer:
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 256Mi
+
+  # Dex is disabled; external authentication (e.g. SSO) is used
+  dex:
+    enabled: false
+
+  # Notifications maybe later
+  notifications:
+    enabled: false

@@ -8,5 +8,8 @@ resources:
 components:
   - ../../../../../_components/qa
 
+generators:
+  - ./helm
+
 patches:
   - path: root.yaml
