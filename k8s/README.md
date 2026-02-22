@@ -4,10 +4,12 @@
 - [ ] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
 - [ ] document kustomize overlay approach (incl. transformers and components)
 
-# Manual bootstrap
+# Bootstrapping the cluster and deploying applications
+
+
 
 > [!TIP]
-> Substitute `<env>` with the specific environment, e.g. dev, qa, prod
+> Substitute `<env>` (or the example environment `dev`) with the specific environment, e.g. dev, qa, prod
 > <br>
 > In the following the command `k` is aliased for `kubectl` (`alias k=kubectl`)
 
@@ -43,6 +45,38 @@ kubectl get pods -A --field-selector=status.phase=Failed
 # "completed" pods can be expected for some workloads, e.g. jobs for cilium installation, cert-manager jobs)
 kubectl get pods -A --field-selector=status.phase!=Running
 ```
+
+## Bootstrapping options
+
+The cluster can be bootstrapped in two ways:
+
+1. [**Manual bootstrapping**](#manual-bootstrapping) by applying the manifests with `kubectl apply -k` or `kustomize build --enable-helm | kubectl apply`, subsequently for the `core`, `infra` and `apps` categories, as described in the following sections. This approach is more error-prone and requires more manual work, but it allows for a better understanding of the bootstrapping process and the dependencies between the different components.
+2. [**Automatic bootstrapping**](#automatic-bootstrapping-via-argocd) via ArgoCD, by applying the ArgoCD application manifests and letting ArgoCD take care of the rest of the bootstrapping process, as it will automatically apply the manifests for the `core`, `infra` and `apps` categories.
+
+# Automatic bootstrapping via ArgoCD
+
+The ArgoCD application manifests are located in the `k8s/infra/controller/argocd/` folder. The `base` folder contains the base application manifests, which are environment-agnostic, while the `envs` folder contains the environment-specific application manifests, which are applied on top of the base manifests. 
+
+You can apply the ArgoCD application manifests with the following command:
+
+```sh
+kustomize build --enable-helm k8s/infra/controller/argocd/apps/envs/<env> | kubectl apply -f - --server-side
+```
+
+Automatic bootstrapping via ArgoCD is the recommended approach for the following environments:
+
+- prod
+- qa
+- rebuild
+- head
+
+# Manual bootstrapping
+
+You need to bootstrap the cluster in the following order, as there are dependencies between the different components:
+
+1. [**Core**](#core-requirements): The core components are the foundation of the cluster and need to be up and running before you can deploy any other components, e.g. the CNI needs to be up and running before you can deploy the Gateway API controller, as the latter depends on the CNI for networking.
+2. [**Infrastructure**](#infrastructure): The infrastructure components are the building blocks for the applications and need to be up and running before you can deploy any applications, e.g. the cert-manager needs to be up and running before you can deploy any certificates or issuers, as they depend on the cert-manager for certificate management.
+3. [**Applications**](#applications): The applications are the actual workloads that run on the cluster and depend on the core and infrastructure components to be up available.
 
 ## Core Requirements
 

@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../apps/envs/poc
 
 components:
   - ../../../../../_components/poc

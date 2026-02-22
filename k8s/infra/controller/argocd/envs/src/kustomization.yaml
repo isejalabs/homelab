@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../base
+  - ../../apps/envs/src
 
 components:
   - ../../../../../_components/src
