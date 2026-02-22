@@ -6,4 +6,4 @@ metadata:
 spec:
   source:
     path: k8s/infra/controller/argocd/apps/envs/rebuild
-    targetRevision: issue/556_argo-cilium-SharedResourceWarning
+    targetRevision: HEAD

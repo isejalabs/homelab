@@ -8,15 +8,15 @@ patches:
   - path: appset-apps.yaml
   - path: appset-core.yaml
   - path: appset-infra.yaml
-  - path: patch-revision.yaml
-    target:
-      kind: ApplicationSet
-      name: apps
-  - path: patch-revision.yaml
-    target:
-      kind: ApplicationSet
-      name: core
-  - path: patch-revision.yaml
-    target:
-      kind: ApplicationSet
-      name: infra
+  # - path: patch-revision.yaml
+  #   target:
+  #     kind: ApplicationSet
+  #     name: apps
+  # - path: patch-revision.yaml
+  #   target:
+  #     kind: ApplicationSet
+  #     name: core
+  # - path: patch-revision.yaml
+  #   target:
+  #     kind: ApplicationSet
+  #     name: infra
