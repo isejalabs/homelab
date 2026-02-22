@@ -8,5 +8,8 @@ resources:
 components:
   - ../../../../../_components/rebuild
 
+generators:
+  - ./helm
+
 patches:
   - path: root.yaml
