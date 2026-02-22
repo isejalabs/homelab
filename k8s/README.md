@@ -1,11 +1,13 @@
 # ToDo
 
 - [ ] document folder structure
+- [ ] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
 - [ ] document kustomize overlay approach (incl. transformers and components)
 
 # Manual bootstrap
 
-> **Note**: Substitute `<env>` with the specific environment, e.g. dev, qa, prod
+> [!TIP]
+> Substitute `<env>` with the specific environment, e.g. dev, qa, prod
 > <br>
 > In the following the command `k` is aliased for `kubectl` (`alias k=kubectl`)
 
@@ -24,42 +26,112 @@ k config use-context admin@foo
 k get all -A --context admin@bar
 ```
 
-Check that all nodes and pods ar up running
+Check that all nodes and pods are up running:
 
 ```sh
 kubectl get nodes -A -o wide
 kubectl get pods -A -o wide
 ```
 
+Check for failed pods:
+
+```sh
+kubectl get pods -A --field-selector=status.phase=Failed
+
+# alternatively, check for non-running pods (e.g. pending, crashloopbackoff, etc.)
+# this will also reveal "completed" pods whigh are not running anymore but have completed successfully
+# "completed" pods can be expected for some workloads, e.g. jobs for cilium installation, cert-manager jobs)
+kubectl get pods -A --field-selector=status.phase!=Running
+```
+
 ## Core Requirements
 
 The `core` set covers depencencies necessary even for `infra` components, e.g.
 
-- CNI (cilium)
-- Gateway API - CRDs only
-- Sealed Secrets Controller
+- CNI (cilium), incl. BGP configuration
+- Gateway API - CRDs only (controller in `infra` set, as it depends on CNI being up and running)
+- Sealed Secrets Controller (secret management for infra components)
 
 ### Set
 
-Use the set for deploying all applications in the `core` category.
+Use the `kustomize` set in the `_envs` folder for deploying all applications in the `core` category.
 
 ```sh
-# deploy for current context automatically (retrieves "dev" out of "admin@dev-homelab")
+# deploy for current context (retrieves "dev" environment out of "admin@dev-homelab" automatically)
 kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 
-# deploy for context `dev` explicitely
+# alternatively, deploy for environment `dev` explicitely (be sure to have the correct context active, e.g. `admin@dev-homelab`)
 kustomize build --enable-helm k8s/core/_envs/dev | kubectl apply -f -
 ```
 
+### Need to run multiple times
+
+> [!Important]
+> You will need to run the above command multiple times, as some resources depend on each other.
+
+The Cilium BGP CRDs need to be available before the BGP configuration can be applied successfully. Thus, you will need to run the above command multiple times, at minimum twice, to get everything up and running.
+If you get an error about the BGP CRDs not being found (note the "ensure CRDs are installed first" below), just run the command again after a while, as the Cilium operator will create the CRDs once it is up and running:
+
+```text
+resource mapping not found for name: "bgp-advertisements" namespace: "" from "STDIN": no matches for kind "CiliumBGPAdvertisement" in version "cilium.io/v2"
+ensure CRDs are installed first
+resource mapping not found for name: "cilium-bgp" namespace: "" from "STDIN": no matches for kind "CiliumBGPClusterConfig" in version "cilium.io/v2"
+ensure CRDs are installed first
+ciliumloadbalancerippool.cilium.io/bgp-pool created
+resource mapping not found for name: "cilium-peer" namespace: "" from "STDIN": no matches for kind "CiliumBGPPeerConfig" in version "cilium.io/v2"
+ensure CRDs are installed first
+```
+
+The CNI is running properly when you see the following output for the `cilium status` command:
+
+```sh
+❯ cilium status --wait
+    /¯¯\
+ /¯¯\__/¯¯\    Cilium:             OK
+ \__/¯¯\__/    Operator:           OK
+ /¯¯\__/¯¯\    Envoy DaemonSet:    OK
+ \__/¯¯\__/    Hubble Relay:       OK
+    \__/       ClusterMesh:        disabled
+...
+``` 
+
+... and the BGP configuration is applied successfully, when you see the following output for the `kubectl apply` command (note the "created" or "unchanged" status):
+
+```text
+ciliumbgpadvertisement.cilium.io/bgp-advertisements created
+ciliumbgpclusterconfig.cilium.io/cilium-bgp created
+ciliumbgppeerconfig.cilium.io/cilium-peer created
+ciliumloadbalancerippool.cilium.io/bgp-pool unchanged
+```
+
+This will be reflected in the output of `cilium bgp status`:
+
+```sh
+❯ k get ciliumbgppeerconfigs
+NAME          AGE
+cilium-peer   1m
+```
+
+
+Alternatively to the `cilium` command, you can check for the CNI being ready by checking the status of the cilium pods in the `kube-system` namespace.
+
+```sh
+k get pods -n kube-system -l k8s-app=cilium
+```
+
+You will need to wait for the CNI to be up and running before you can deploy other applications, e.g. the Gateway API controller.
+
+### Handling individual applications
+
 If not all applications are needed, use the following `kustomize build` commands instead.
 
-### Cilium
+#### Cilium
 
 ```sh
 kustomize build --enable-helm k8s/core/network/cilium/envs/dev | kubectl apply -f -
 ```
 
-#### Checks
+##### Checks
 
 Check for cilium being deployed successfully:
 
@@ -67,7 +139,7 @@ Check for cilium being deployed successfully:
 cilium status --wait
 ```
 
-#### Configuration
+##### Configuration
 
 Print out configuration:
 
@@ -78,19 +150,19 @@ kubectl -n kube-system get configmap cilium-config -o yaml
 helm get values cilium -n kube-system
 ```
 
-### Gateway API
+#### Gateway API
 
 ```sh
 kustomize build --enable-helm k8s/core/network/gateway/envs/<env> | kubectl apply -f -
 ```
 
-### Sealed Secrets
+#### Sealed Secrets
 
 ```sh
 kustomize build --enable-helm infra/controllers/sealed-secrets | kubectl apply -f -
 ```
 
-#### Usage
+##### Usage
 
 Check whether Sealed Secrets Controller is working (you need to have `kubeseal` CLI installed on the workstation as well):
 
@@ -139,23 +211,51 @@ cat users.yaml | kubectl create secret generic users --dry-run=client --from-fil
 kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets < infra/controllers/cert-manager/cloudflare-api-token.yaml --recovery-unseal --recovery-private-key sealed-secrets-key.yaml -o json | jq -r ' .data."api-token" | @base64d'
 ```
 
-#### Decrypt
+##### Decrypt
 
 ```sh
 k get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
-
-
 ```
 
 ## Infrastructure
 
 ### Set
 
-Use the set for deploying all applications in the `infra` category.
+Use the `kustomize` set for deploying all applications in the `infra` category.
 
 ```sh
 kustomize build --enable-helm k8s/infra/_envs/dev | kubectl apply -f -
 ```
+
+### Need to run multiple times
+
+> [!Important]
+> You will need to run the above command **two times**.
+
+Some resources depend on each other, e.g. the cert-manager controller needs to be up and running before you can apply the certificate and issuer resources. If you get an error about the CRDs not being found (cf. below), just run the command again after a while, as the cert-manager operator will create the CRDs once it is up and running:
+
+```
+resource mapping not found for name: "cert" namespace: "gateway" from "STDIN": no matches for kind "Certificate" in version "cert-manager.io/v1"
+ensure CRDs are installed first
+resource mapping not found for name: "cloudflare-cluster-issuer" namespace: "" from "STDIN": no matches for kind "ClusterIssuer" in version "cert-manager.io/v1"
+ensure CRDs are installed first
+```
+
+You can check for the cert-manager being up and running by checking the status of the cert-manager pods in the `cert-manager` namespace.
+
+```sh
+k get pods -n cert-manager
+```
+
+You can also check the for the certificate beging issued successfully by checking the status of the certificate resource:
+
+```sh
+❯ k get certificate -n gateway
+NAME   READY   SECRET   AGE
+cert   True    cert     1m
+```
+
+### Handling individual applications
 
 If not all applications are needed, use the following `kustomize build` commands instead.
 
@@ -169,15 +269,15 @@ k logs -n cert-manager services/cert-manager -f
 k get secrets -n cert-manager cloudflare-api-token -o json | jq -r '.data."api-token" | @base64d'
 ```
 
-### Proxmox CSI
+#### Proxmox CSI
 
 ```sh
 kustomize build --enable-helm infra/storage/proxmox-csi | kubectl apply -f -
 ```
 
-> **TODO**: Command does not provide output initially. Maybe only after first app deployment?
-
 Check for Proxmox CSI being connected with Proxmox server properly:
+
+> [!TIP] **TODO**: Command does not provide output initially. Maybe only after first app deployment?
 
 ```sh
 kubectl get csistoragecapacities -ocustom-columns=CLASS:.storageClassName,AVAIL:.capacity,ZONE:.nodeTopology.matchLabels -A
@@ -186,7 +286,9 @@ k get -A pv
 
 ## Applications
 
-## Example: whoami
+### Handling individual applications
+
+#### whoami
 
 ```sh
 kustomize build --enable-helm k8s/apps/diag/whoami/envs/<env> | kubectl apply -f -
