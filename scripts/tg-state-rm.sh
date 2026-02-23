@@ -1,10 +1,6 @@
 #!/bin/sh
 
-# remove state of proxmox volumes to prevent their deletion by a `tofu/terragrunt destroy` command
-# this allows re-using them upon re-creating the cluster (needs state import then)
-for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); do terragrunt state rm "$i"; done
-
-# also remove everything which would block a destroy command when the cluster is not functional or nodes shut down
+# remove everything which would block a destroy command when the cluster is not functional or nodes shut down
 for i in $(terragrunt state list | grep module.volumes.module.persistent-volume); do terragrunt state rm "$i"; done
 terragrunt state rm 'module.sealed_secrets.kubernetes_namespace.sealed-secrets'
 terragrunt state rm 'module.sealed_secrets.kubernetes_secret.sealed-secrets-key'
