@@ -95,32 +95,32 @@ inputs = {
   }
 
   nodes = {
-    "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve1"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.121"
-      vm_id         = 7008121
-      cpu           = local.ctrl_cpu
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
-    "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.122"
-      vm_id         = 7008122
-      cpu           = local.ctrl_cpu
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
+    # "${local.env}-ctrl-01.${local.domain}" = {
+    #   host_node     = "pve1"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.121"
+    #   vm_id         = 7008121
+    #   cpu           = local.ctrl_cpu
+    #   datastore     = local.datastore
+    #   dns           = local.dns
+    #   disk_size     = local.ctrl_disk_size
+    #   ram_dedicated = local.ctrl_ram
+    #   vlan_id       = local.vlan_id
+    #   # update        = true
+    # }
+    # "${local.env}-ctrl-02.${local.domain}" = {
+    #   host_node     = "pve4"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.122"
+    #   vm_id         = 7008122
+    #   cpu           = local.ctrl_cpu
+    #   datastore     = local.datastore
+    #   dns           = local.dns
+    #   disk_size     = local.ctrl_disk_size
+    #   ram_dedicated = local.ctrl_ram
+    #   vlan_id       = local.vlan_id
+    #   # update        = true
+    # }
     "${local.env}-ctrl-03.${local.domain}" = {
       host_node     = "pve3"
       machine_type  = "controlplane"
