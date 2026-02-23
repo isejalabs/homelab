@@ -1,0 +1,13 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: unifi
+  labels:
+    app: mongodb
+spec:
+  template:
+    spec:
+      nodeSelector:
+        topology.kubernetes.io/zone: pve5
