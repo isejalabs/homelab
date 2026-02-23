@@ -75,7 +75,7 @@ inputs = {
     ]
     gateway                      = "10.7.8.1"
     gateway_api_version          = local.gateway_api_version
-    kubernetes_version           = "v1.34.1" # renovate: github-releases=kubernetes/kubernetes
+    kubernetes_version           = "v1.34.4" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
       extraArgs:
         # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
