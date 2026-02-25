@@ -1,12 +1,10 @@
 # ToDo
 
 - [ ] document folder structure
-- [ ] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
+- [X] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
 - [ ] document kustomize overlay approach (incl. transformers and components)
 
 # Bootstrapping the cluster and deploying applications
-
-
 
 > [!TIP]
 > Substitute `<env>` (or the example environment `dev`) with the specific environment, e.g. dev, qa, prod
@@ -60,7 +58,13 @@ The ArgoCD application manifests are located in the `k8s/infra/controller/argocd
 You can apply the ArgoCD application manifests with the following command:
 
 ```sh
-kustomize build --enable-helm k8s/infra/controller/argocd/apps/envs/<env> | kubectl apply -f - --server-side
+kustomize build --enable-helm k8s/infra/controller/argocd/envs/<env> | kubectl apply -f - --server-side
+```
+
+For example, the following command will bootstrap the cluster in the `rebuild` environment:
+
+```sh
+kustomize build --enable-helm k8s/infra/controller/argocd/envs/rebuild | kaf - --server-side --context admin@rebuild-homelab
 ```
 
 Automatic bootstrapping via ArgoCD is the recommended approach for the following environments:
