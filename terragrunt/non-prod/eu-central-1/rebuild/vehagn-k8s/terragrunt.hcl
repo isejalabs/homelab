@@ -24,7 +24,8 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v6.1.0"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v7.1.0"
+  # source = "${local.root_path}/../../terraform-proxmox-talos"
 }
 
 locals {
