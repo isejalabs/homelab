@@ -6,7 +6,7 @@ name: argo-cd
 namespace: argocd
 repo: https://argoproj.github.io/argo-helm
 releaseName: "argocd"
-version: 9.3.7    # renovate: helm=argo-cd registry=https://argoproj.github.io/argo-helm
+version: 9.4.5    # renovate: helm=argo-cd registry=https://argoproj.github.io/argo-helm
 
 ## do not use valuesFile as it's not inherited in overlays
 # valuesFile: values.yaml
