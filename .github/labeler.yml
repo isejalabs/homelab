@@ -1,5 +1,23 @@
 # vim:sw=2:ts=2:expandtab:ai
 ---
+# Area
+"area:docs":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+"area:k8s":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "k8s/**"
+"area:terragrunt":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "terragrunt/**"
+"area:tofu":
+  - changed-files:
+      - any-glob-to-any-file:
+          - "tofu/**"
+
 # Environment
 "env:base":
   - changed-files:
