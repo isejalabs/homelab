@@ -49,4 +49,5 @@
       datasourceTemplate: "github-tags",
     },
   ],
+  commitMessageAction: "{{{updateType}}}",
 }
