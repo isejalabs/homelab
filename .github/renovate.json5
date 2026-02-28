@@ -8,7 +8,6 @@
     "github>isejalabs/homelab//.github/renovate/pin-versions.json5",
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
-  assignees: ["sebiklamar"],
   ignorePaths: ["_attic/**"],
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
