@@ -17,4 +17,5 @@
     },
   ],
   automergeType: "branch",
+  platformAutomerge: true,
 }
