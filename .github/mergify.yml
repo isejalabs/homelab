@@ -7,7 +7,7 @@ pull_request_rules:
     actions:
       merge:
         method: squash            # Choose merge, squash or rebase
-  - name: Auto-Merge minor not flagged for automerge:off
+  - name: Automatic Merge for updateType:minor, unless excluded for automerge
     conditions:
       - label=pr-type:renovate    # renovate PRs only, i.e. exclude manual PRs
       - label=updateType:minor    # PRs for minor updates 
