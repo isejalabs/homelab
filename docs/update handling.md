@@ -71,11 +71,11 @@ Automerging is configured as `automergeType=branch` in renovate, which means tha
 
 ### Handling special apps and use cases
 
-Some packages have a non-standard update strategy, e.g. by allowing only updates of type `patch` or by pinning them to a specific version or by not allowing updates at all. There's also an exception for the `HEAD` environment.
+Some packages have a non-standard update strategy, e.g. by allowing only updates of type `patch` or by pinning them to a specific version or by not allowing updates at all. There's also an exception for the `HEAD` and `PoC` environments.
 
-#### HEAD environment
+#### HEAD and PoC environment
 
-Updates applicable to the `HEAD` environment are automerged regardless of the type of update, as they are only applied to the `HEAD` environment and thus do not pose a risk to the stability of the production or other test environments. This is done to test new application versions and updates as soon as they are available in a dedicated test environment (like tracking `latest` or `edge` version), which allows for early detection of potential issues and ensures that the latest versions are being tested.
+Updates applicable to the `HEAD` and `PoC` environments are automerged regardless of the type of update, as they are only applied to the `HEAD` and `PoC` environments and thus do not pose a risk to the stability of the production or other test environments. This is done to test new application versions and updates as soon as they are available in a dedicated test environment (like tracking `latest` or `edge` version), which allows for early detection of potential issues and ensures that the latest versions are being tested.
 
 #### Non-standard update strategy
 
@@ -113,4 +113,3 @@ Some asprects still need to be investigated and tested further to ensure that th
   - need to be handled manually for testing and/or implementation (e.g. manual handling of terraform/terragrunt), or
   - are waiting for promotion to production, e.g. due to the need for testing in a specific environment, or 
   - are expected to cause issues, e.g. due to new features being introduced in a major (or minor) update; otherwise, PRs should be created and automerged as soon as they are available, even if they are for minor updates, to ensure that the latest versions are being tested and used.
-- [ ] PRs for `unbound` not updated in recent tests in `renovate-test` repo
