@@ -13,6 +13,9 @@
       "addLabels": [
         "automerge:off"
       ],
+      "assignees": [
+        "sebiklamar"
+      ],
     },
     {
       "description": "disable automerge for specific file paths",
@@ -24,6 +27,9 @@
       "automerge": false,
       "addLabels": [
         "automerge:off"
+      ],
+      "assignees": [
+        "sebiklamar"
       ],
     },
   ],
