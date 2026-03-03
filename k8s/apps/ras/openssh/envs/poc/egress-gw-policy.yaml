@@ -23,11 +23,11 @@ spec:
     # ToDo: use node where pod is running
     nodeSelector:
       matchLabels:
-        kubernetes.io/hostname: dev-work-01
+        kubernetes.io/hostname: poc-work-01
 
     # Specify the IP address used to SNAT traffic matched by the policy.
     # It must exist as an IP associated with a network interface on the instance.
-    egressIP: 10.8.3.29
+    egressIP: 10.8.6.22
 
     # Alternatively it's possible to specify the interface to be used for egress traffic.
     # In this case the first IPv4 assigned to that interface will be used as egress IP.

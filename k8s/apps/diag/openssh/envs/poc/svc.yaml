@@ -4,4 +4,4 @@ metadata:
   name: ssh
   namespace: diag
   annotations:
-    io.cilium/lb-ipam-ips: 10.8.3.29
+    io.cilium/lb-ipam-ips: 10.8.6.29
