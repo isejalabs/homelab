@@ -2,16 +2,17 @@ queue_rules: []
 pull_request_rules:
   - name: Automatic Merge for HEAD environment
     conditions:
-      - label=pr-type:renovate    # renovate PRs only, i.e. exclude manual PRs
-      - label=env:head            # only for HEAD environment, i.e. like "latest" updates
+      - label=pr-type:renovate          # renovate PRs only, i.e. exclude manual PRs
+      - label=env:head                  # only for HEAD environment, i.e. like "latest" updates
     actions:
       merge:
-        method: squash            # Choose merge, squash or rebase
-  - name: Automatic Merge for updateType:minor, unless excluded for automerge
+        method: squash                  # Choose merge, squash or rebase
+  - name: Auto-Merge minor unless flagged for updateStrategy:manual or :pinWatch
     conditions:
-      - label=pr-type:renovate    # renovate PRs only, i.e. exclude manual PRs
-      - label=updateType:minor    # PRs for minor updates 
-      - label!=automerge:off      # ... unless excluded from automerging
+      - label=pr-type:renovate          # renovate PRs only, i.e. exclude manual PRs
+      - label=updateType:minor          # PRs for minor updates
+      - label!=updateStrategy:manual    # ... unless excluded from automerging
+      - label!=updateStrategy:pinWatch  # ... unless flagged for pinWatch
     actions:
       merge:
-        method: squash            # Choose  merge, squash or rebase
+        method: squash                  # Choose  merge, squash or rebase

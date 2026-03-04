@@ -2,11 +2,96 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
+      description: 'keep cilium at an older version due to checkmk',
+      allowedVersions: '<=1.18',
+      matchPackageNames: [
+        'cilium',
+      ],
+    },
+    {
+      description: 'allow latest versions of cilium for HEAD and PoC environment, i.e. like "latest" updates',
+      allowedVersions: '>=1.18',
+      matchPackageNames: [
+        'cilium',
+      ],
+      matchFileNames: [
+        'k8s/**/envs/head/**',
+        'k8s/**/envs/poc/**',
+        'terragrunt/**/head/**',
+        'terragrunt/**/poc/**',
+      ],
+      "addLabels": [
+        "updateStrategy:pinWatch"
+      ],
+    },
+    {
+      description: 'keep gateway-api at an older version due to checkmk',
+      allowedVersions: '<=1.4',
+      matchPackageNames: [
+        'kubernetes-sigs/gateway-api',
+      ],
+    },
+    {
+      description: 'allow latest versions of gateway-api for HEAD and PoC environment, i.e. like "latest" updates',
+      allowedVersions: '>=1.4',
+      matchPackageNames: [
+        'kubernetes-sigs/gateway-api',
+      ],
+      matchFileNames: [
+        'k8s/**/envs/head/**',
+        'k8s/**/envs/poc/**',
+        'terragrunt/**/head/**',
+        'terragrunt/**/poc/**',
+      ],
+      "addLabels": [
+        "updateStrategy:pinWatch"
+      ],
+    },
+    {
+      description: 'keep kubernetes at an older version due to checkmk',
+      allowedVersions: '<=1.34',
+      matchPackageNames: [
+        'kubernetes/kubernetes',
+      ],
+    },
+    {
+      description: 'allow latest versions of kubernetes for HEAD and PoC environment, i.e. like "latest" updates',
+      allowedVersions: '>=1.34',
+      matchPackageNames: [
+        'kubernetes/kubernetes',
+      ],
+      matchFileNames: [
+        'k8s/**/envs/head/**',
+        'k8s/**/envs/poc/**',
+        'terragrunt/**/head/**',
+        'terragrunt/**/poc/**',
+      ],
+      "addLabels": [
+        "updateStrategy:pinWatch"
+      ],
+    },
+    {
+      description: 'keep mongodb at v8.0 due to unifi-network-controller, and for omitting minor updates with (unnecessary) changes',
+      allowedVersions: '<=8.0',
       matchPackageNames: [
         'docker.io/mongo',
       ],
-      allowedVersions: '<=8.0',
-      description: 'keep mongodb at v8.0 due to unifi-network-controller, and for omitting minor updates with (unnecessary) changes',
+    },
+    {
+      description: 'allow latest versions of mongodb for HEAD and PoC environment, i.e. like "latest" updates',
+      allowedVersions: '>=8.0',
+      matchPackageNames: [
+        'docker.io/mongo',
+      ],
+      matchFileNames: [
+        'k8s/**/envs/head/**',
+        'k8s/**/envs/poc/**',
+        'terragrunt/**/head/**',
+        'terragrunt/**/poc/**',
+      ],
+      "addLabels": [
+        "updateStrategy:pinWatch"
+      ],
     },
   ],
 }

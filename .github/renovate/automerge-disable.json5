@@ -1,36 +1,23 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "packageRules": [
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
     {
-      "description": "disable automerge for specific packages",
-      "matchPackageNames": [
-        "cilium",
-        "kubernetes-sigs/gateway-api",
+      description: "disable automerge for specific packages",
+      matchPackageNames: [
+        "github.com/isejalabs/terraform-proxmox-talos",
         "kubernetes/kubernetes",
-        "sidero/talos"
+        "sidero/talos",
       ],
-      "automerge": false,
-      "addLabels": [
-        "automerge:off"
-      ],
-      "assignees": [
-        "sebiklamar"
-      ],
+      automerge: false,
+      addLabels: ["updateStrategy:manual"],
+      assignees: ["sebiklamar"],
     },
     {
-      "description": "disable automerge for specific file paths",
-      "matchFileNames": [
-        ".github/**",
-        "terragrunt/**",
-        "tofu/**",
-      ],
-      "automerge": false,
-      "addLabels": [
-        "automerge:off"
-      ],
-      "assignees": [
-        "sebiklamar"
-      ],
+      description: "disable automerge for specific file paths",
+      matchFileNames: [".github/**", "terragrunt/**", "tofu/**"],
+      automerge: false,
+      addLabels: ["updateStrategy:manual"],
+      assignees: ["sebiklamar"],
     },
   ],
 }
