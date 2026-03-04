@@ -45,7 +45,7 @@ locals {
   work_disk_size = 6
   work_ram       = 2048
 
-  gateway_api_version = "v1.4.0" # renovate: github-releases=kubernetes-sigs/gateway-api
+  gateway_api_version = "v1.5.0" # renovate: github-releases=kubernetes-sigs/gateway-api
 
 
   # volumes
