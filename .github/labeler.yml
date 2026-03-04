@@ -62,7 +62,7 @@
       - any-glob-to-any-file:
           - "k8s/**/envs/prod/**"
           - "terragrunt/*/*/prod/**"
-"env:debug":
+"env:dbg":
   - changed-files:
       - any-glob-to-any-file:
           - "k8s/**/envs/dbg/**"
