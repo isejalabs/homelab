@@ -3,7 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
-  namespace: unifi
   labels:
     app: mongodb
 spec:
@@ -43,9 +42,9 @@ spec:
               containerPort: 27017
           env:
             - name: PUID
-              value: '999'
+              value: "999"
             - name: PGID
-              value: '999'
+              value: "999"
             - name: TZ
               value: Europe/Berlin
             - name: MONGO_AUTHSOURCE

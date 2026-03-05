@@ -2,7 +2,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: adguard
-  namespace: dns
 spec:
   replicas: 1
   selector:
@@ -21,12 +20,17 @@ spec:
       initContainers:
         - name: copy-base-config
           image: busybox@sha256:b3255e7dfbcd10cb367af0d409747d511aeb66dfac98cf30e97e87e4207dd76f
-          command: [ "cp", "/tmp/AdGuardHome.yaml", "/opt/adguardhome/conf/AdGuardHome.yaml" ]
+          command:
+            [
+              "cp",
+              "/tmp/AdGuardHome.yaml",
+              "/opt/adguardhome/conf/AdGuardHome.yaml",
+            ]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: [ "ALL" ]
+              drop: ["ALL"]
           volumeMounts:
             - name: config
               mountPath: /tmp/AdGuardHome.yaml
@@ -35,12 +39,17 @@ spec:
               mountPath: /opt/adguardhome/conf
         - name: append-users
           image: busybox@sha256:b3255e7dfbcd10cb367af0d409747d511aeb66dfac98cf30e97e87e4207dd76f
-          command: [ "sh", "-c", "cat /tmp/users.yaml >> /opt/adguardhome/conf/AdGuardHome.yaml" ]
+          command:
+            [
+              "sh",
+              "-c",
+              "cat /tmp/users.yaml >> /opt/adguardhome/conf/AdGuardHome.yaml",
+            ]
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
-              drop: [ "ALL" ]
+              drop: ["ALL"]
           volumeMounts:
             - name: users
               mountPath: /tmp/users.yaml
@@ -88,6 +97,6 @@ spec:
           secret:
             secretName: users
         - name: config-folder
-          emptyDir: { }
+          emptyDir: {}
         - name: work-folder
-          emptyDir: { }
+          emptyDir: {}

@@ -2,7 +2,6 @@ apiVersion: cert-manager.io/v1
 kind: Certificate
 metadata:
   name: cert
-  namespace: gateway
 spec:
   dnsNames:
     # rewrite by kustomize set up for wildcard domain only
