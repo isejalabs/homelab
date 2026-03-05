@@ -1,3 +1,6 @@
 #!/bin/sh
-# Usage: sh upgrade-k8s.sh <controlplane node> or sh upgrade-k8s.sh <controlplane node> --dry-run (for a dry run)
-talosctl $2 --nodes $1 upgrade-k8s --to 1.34.5 # renovate: github-releases=kubernetes/kubernetes
+
+TALCONFIG=$(find . -iname talos-config.yaml)
+
+# Usage: upgrade-k8s.sh [--dry-run]
+talosctl upgrade-k8s $1 --talosconfig ${TALCONFIG} --nodes $( yq -r '.contexts.*.endpoints.[0]' ${TALCONFIG}) --to 1.34.5 # renovate: github-releases=kubernetes/kubernetes
