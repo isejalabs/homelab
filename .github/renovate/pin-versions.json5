@@ -25,7 +25,7 @@
       ],
     },
     {
-      description: 'keep gateway-api at an older version due to checkmk',
+      description: 'keep gateway-api at an older version due to cilium compatibility',
       allowedVersions: '<=1.4',
       matchPackageNames: [
         'kubernetes-sigs/gateway-api',
