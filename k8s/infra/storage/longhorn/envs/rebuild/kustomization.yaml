@@ -6,6 +6,7 @@ components:
 
 resources:
   - ../../base
+  - minio-backup-secret-sealed.yaml
 
 generators:
   - ./helm

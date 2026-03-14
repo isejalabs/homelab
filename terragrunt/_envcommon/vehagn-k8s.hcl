@@ -43,6 +43,7 @@ locals {
   vlan_id        = 108
   work_cpu       = 2
   work_disk_size = 6
+  work_disk_size-medium = 12
   work_ram       = 2048
 
   gateway_api_version = "v1.4.1" # renovate: github-releases=kubernetes-sigs/gateway-api
@@ -52,6 +53,11 @@ locals {
   # needs to have 500M free space on-top of actual usage, cf. #241
   pv-mongodb_size = "1024M"
   pv-unifi_size   = "500M"
+
+  # disks
+  disk_longhorn-small = 10
+  disk_longhorn-medium = 20
+  disk_longhorn-big = 30
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

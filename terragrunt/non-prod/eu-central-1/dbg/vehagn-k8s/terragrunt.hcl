@@ -194,6 +194,10 @@ inputs = {
       vmid    = local.storage_vmid
       datastore = local.datastore
     }
+    longhorn = {
+      size = include.envcommon.locals.disk_longhorn-small
+      type = "disk"
+    }
   }
 
 }

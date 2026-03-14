@@ -122,7 +122,7 @@ inputs = {
     #   # update        = true
     # }
     # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve3"
+    #   host_node     = "pve5"
     #   machine_type  = "controlplane"
     #   ip            = "10.7.8.133"
     #   vm_id         = 7008133
@@ -163,7 +163,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
-      host_node     = "pve3"
+      host_node     = "pve5"
       machine_type  = "worker"
       ip            = "10.7.8.136"
       vm_id         = 7008136
@@ -189,9 +189,14 @@ inputs = {
     }
     pv-unifi = {
       node    = "pve4"
-      size    = include.envcommon.locals.pv-unifi_size
+      # size    = include.envcommon.locals.pv-unifi_size
+      size    = "600M"
       vmid    = local.storage_vmid
       datastore = local.datastore
+    }
+    longhorn = {
+      size = include.envcommon.locals.disk_longhorn-medium
+      type = "disk"
     }
   }
 

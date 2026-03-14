@@ -181,8 +181,8 @@ inputs = {
       datastore = local.datastore
       # datastore = "local" 
     }
-    test-disk1 = {
-      size = "1G"
+    longhorn = {
+      size = include.envcommon.locals.disk_longhorn-small
       type = "disk"
     }
   }
