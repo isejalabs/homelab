@@ -1,0 +1,8 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: longhorn
+valuesInline:
+  defaultBackupStore:
+    backupTarget: "s3://dev-longhorn-backup@local/default"
+    backupTargetCredentialSecret: longhorn-minio-credentials

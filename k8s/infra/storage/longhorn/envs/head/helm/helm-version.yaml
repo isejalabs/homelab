@@ -1,0 +1,5 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: longhorn
+version: 1.11.0 # renovate: helm=longhorn registry=https://charts.longhorn.io
