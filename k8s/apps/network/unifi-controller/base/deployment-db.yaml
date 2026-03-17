@@ -31,7 +31,7 @@ spec:
         #   type: RuntimeDefault
       containers:
         - name: mongodb
-          image: docker.io/mongo:8.0.19@sha256:b3f7ad203b34c4519d235df0ba63834235f91ba8a9c23be67e22ecc861524173
+          image: docker.io/mongo:8.0.19@sha256:8283f525f029c21baacca6606287235abb1fe7be67aed13b066a261f99ded88f
           # securityContext:
           #   allowPrivilegeEscalation: false
           #   readOnlyRootFilesystem: false
