@@ -11,4 +11,4 @@ spec:
       containers:
         - name: unifi-network-application
           # track version in this environment explicitly
-          image: lscr.io/linuxserver/unifi-network-application:10.1.85@sha256:05e8e7e5003263adc0e714c32ae5f9543279f324e54ff8750c4550924b25c79c
+          image: lscr.io/linuxserver/unifi-network-application:10.1.89@sha256:f86da30498d3f6c00b403e6d2e32dfd012b531f87cad5bd9a270c35aceedbd7a
