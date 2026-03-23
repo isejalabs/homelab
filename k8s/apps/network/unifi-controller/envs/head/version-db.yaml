@@ -1,0 +1,13 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  labels:
+    app: mongodb
+spec:
+  template:
+    spec:
+      containers:
+        - name: mongodb
+          image: docker.io/mongo:8.2.6@sha256:eea8506335198f8b359865b32004036310854a935fbd317083817c614152818f

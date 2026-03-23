@@ -8,8 +8,5 @@ metadata:
 spec:
   template:
     spec:
-      containers:
-        - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:10.1.89@sha256:521f2dad190e259259c4c82bcc87c6440ec9ed3020f2141a9eaaaab881418744
       nodeSelector:
         topology.kubernetes.io/zone: pve5
