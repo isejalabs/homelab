@@ -10,6 +10,6 @@ spec:
     spec:
       containers:
         - name: unifi-network-application
-          image: ghcr.io/linuxserver/unifi-controller:latest@sha256:0ae315a3a45635e443899e30e86bd507c2c48922cb27f4bc7241777885f4650e
+          image: lscr.io/linuxserver/unifi-network-application:10.1.89@sha256:f86da30498d3f6c00b403e6d2e32dfd012b531f87cad5bd9a270c35aceedbd7a
       nodeSelector:
         topology.kubernetes.io/zone: pve5
