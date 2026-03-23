@@ -18,6 +18,6 @@ spec:
       backendRefs:
         - group: ""
           kind: Service
-          name: adguard-gw
+          name: adguard-ui
           port: 3000
           weight: 1
