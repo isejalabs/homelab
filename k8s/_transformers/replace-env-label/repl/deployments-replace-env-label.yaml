@@ -1,0 +1,11 @@
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    # updates selectors and pod templates (for Deployments, StatefulSets etc.)
+    - select:
+        kind: Deployment
+      fieldPaths:
+        - spec.selector.matchLabels.[iseja.net/env]
+        - spec.template.metadata.labels.[iseja.net/env]
