@@ -1,0 +1,10 @@
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    # sets label in metdata of all resources
+    - select: {}
+      fieldPaths:
+        - metadata.labels.[iseja.net/env]
+    
