@@ -86,6 +86,12 @@ Some packages have a non-standard update strategy, e.g. by allowing only updates
 
 #### Special environments
 
+Environment | Characteristics
+----------- | ---------------
+HEAD | `latest` version used
+POC  | used for tracking the next version (e.g. X.Y+1) when version **pinning** is used (cf. [non-standard update strategy](#non-standard-update-strategies))
+PROD | iff a version is tracked separately, it is **not merged automatically**
+
 ##### HEAD environment
 
 The `HEAD` environment is a special environment used for testing new application versions and updates as soon as they are available (like tracking `latest` or `edge` version). It is configured to automerge all updates regardless of the type of update (also ignoring manual updates and version pinning). This is done to ensure that the latest versions are being tested and to allow for early detection of potential issues with new application versions and updates.
@@ -96,7 +102,16 @@ The `POC` environment is a testing environment for proof of concept (PoC) implem
 
 The `POC` environment also serves as testbed and reminder for new package versions and updates. As such, it is exempted from application pinning and allows renovate to create PRs for all types of updates. While all other environments are pinned to a specific version, the `POC` (and `HEAD`) environment(s) is not pinned to a specific version, which allows for testing of new versions and updates as soon as they are available. Other than the `HEAD` environment, new package versions and updates in the `POC` environment are not automerged – to have a PR around as "reminder" for a new minor or major version.
 
-#### Non-standard update strategy
+##### PROD environment
+
+Normally, for the `PROD` environment, the same package version is used as in the other environments (e.g. QA, DEV, etc., except HEAD and POC, as mentioned before). This is done by leveraging the definition in the `base` kustomize environment.
+
+If there's a special version set up for tracking in the `PROD` environment, i.e. when the `base` definition is not used, mergify is set up to not update the version manually. Instead, the PR with the new package version needs to get applied manually.
+
+>[!NOTE]-
+> Despite of handled _manually_ currently, the PR is not labeled `updateStrategy:manual`. A planned _future approach_ will be a _delayed_ automatic merging.
+
+#### Non-standard update strategies
 
 | Package                             | Update strategy    | Description                                                                                                                                                                                                                                                                                                                                                                       |
 | ----------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
