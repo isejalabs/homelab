@@ -7,12 +7,13 @@ pull_request_rules:
     actions:
       merge:
         method: squash                  # Choose merge, squash or rebase
-  - name: Auto-Merge minor unless flagged for updateStrategy:manual or :pinWatch
+  - name: Auto-Merge minor unless flagged for updateStrategy:manual, :pinWatch or env:prod
     conditions:
       - label=pr-type:renovate          # renovate PRs only, i.e. exclude manual PRs
       - label=updateType:minor          # PRs for minor updates
       - label!=updateStrategy:manual    # ... unless excluded from automerging
       - label!=updateStrategy:pinWatch  # ... unless flagged for pinWatch
+      - label!=env:prod                 # ... unless version tracked in env:prod separetely
     actions:
       merge:
         method: squash                  # Choose  merge, squash or rebase
