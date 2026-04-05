@@ -4,4 +4,4 @@ kind: Kustomization
 namespace: longhorn-system
 
 resources:
-  - https://raw.githubusercontent.com/longhorn/longhorn/v1.11.0/uninstall/uninstall.yaml
+  - https://raw.githubusercontent.com/longhorn/longhorn/v1.11.1/uninstall/uninstall.yaml
