@@ -15,10 +15,12 @@ valuesInline:
   # ConfigMaps and feature flags
   configs:
     params:
-      annotations:
-        # URL: https://argo-cd.readthedocs.io/en/stable/user-guide/diff-strategies/#server-side-diff
-        # URL: https://github.com/prometheus-community/helm-charts/issues/6441#issuecomment-3890123425
-        argocd.argoproj.io/compare-options: ServerSideDiff=true
+      # Enables the server side diff feature at the application controller level.
+      # Diff calculation will be done by running a server side apply dryrun (when
+      # diff cache is unavailable).
+      # URL: https://argo-cd.readthedocs.io/en/stable/user-guide/diff-strategies/#server-side-diff
+      # URL: https://github.com/prometheus-community/helm-charts/issues/6441#issuecomment-3890123425
+      controller.diff.server.side: "true"
       # This ensures the server knows it is running behind a gateway
       # and should not handle TLS itself. This adds the --insecure flag
       # to the argocd-server command.
