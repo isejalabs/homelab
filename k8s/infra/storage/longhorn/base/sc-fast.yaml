@@ -1,0 +1,15 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-fast
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain
+parameters:
+  dataLocality: strict-local
+  fsType: xfs
+  numberOfReplicas: "1"
+  # When true, improves write performance but reduces consistency guarantees during failures
+  revisionCounterDisabled: "true"
+  # Time in minutes before a disconnected replica is marked stale and rebuilt
+  staleReplicaTimeout: "2880" # 48 hours in minutes

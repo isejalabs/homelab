@@ -1,0 +1,44 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: longhorn
+name: longhorn
+namespace: longhorn-system
+includeCRDs: true
+repo: https://charts.longhorn.io
+releaseName: longhorn
+version: 1.11.1 # renovate: helm=longhorn registry=https://charts.longhorn.io
+## do not use valuesFile as it's not inherited in overlays
+# valuesFile: values.yaml
+## only inline values are inherited in overlays
+valuesInline:
+  csi:
+    # -- Replica count of the CSI Attacher. When unspecified, Longhorn uses the default value ("3").
+    attacherReplicaCount: 1
+    # -- Replica count of the CSI Provisioner. When unspecified, Longhorn uses the default value ("3").
+    provisionerReplicaCount: 1
+    # -- Replica count of the CSI Resizer. When unspecified, Longhorn uses the default value ("3").
+    resizerReplicaCount: 1
+    # -- Replica count of the CSI Snapshotter. When unspecified, Longhorn uses the default value ("3").
+    snapshotterReplicaCount: 1
+
+  defaultSettings:
+    defaultDataPath: /var/mnt/longhorn
+    # -- Default number of replicas for volumes created using the Longhorn UI. For Kubernetes configuration, modify the `numberOfReplicas` field in the StorageClass. The default value is "{"v1":"3","v2":"3"}".
+    defaultReplicaCount: 2
+    storageReservedPercentageForDefaultDisk: 0
+
+  httproute:
+    enabled: true
+    parentRefs:
+    - name: internal
+      namespace: gateway
+    hostnames:
+    - longhorn.example.com
+
+  longhornUI:
+    replicas: 1
+
+  persistence:
+    # -- Replica count of the default Longhorn StorageClass.
+    defaultClassReplicaCount: 1

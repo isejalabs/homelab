@@ -1,0 +1,33 @@
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: &name test-longhorn-fast
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 333Mi
+  storageClassName: longhorn-fast
+  # volumeName: *name   # does not work unless pv and volume get pre-provisioned with that specified name
+                        # -- otherwise dynamic provisioning creates a volume with pvc-UUID name
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: &name test-longhorn-fast
+  namespace: default
+spec:
+  containers:
+    - name: test
+      image: busybox
+      command: ["sh", "-c", "while true; do echo $(date) >> /data/log.txt; sleep 5; done"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: *name

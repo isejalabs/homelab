@@ -1,0 +1,10 @@
+apiVersion: longhorn.io/v1beta2
+kind: Volume
+metadata:
+  name: &name test-longhorn-volume-only
+  namespace: longhorn
+spec:
+  dataLocality: best-effort
+  frontend: blockdev
+  numberOfReplicas: 1
+  size: "350224384"

@@ -1,0 +1,67 @@
+apiVersion: longhorn.io/v1beta2
+kind: Volume
+metadata:
+  name: &name test-longhorn-all-preprovisioned
+  namespace: longhorn
+spec:
+  dataLocality: best-effort
+  frontend: blockdev
+  numberOfReplicas: 1
+  size: "350224384"
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: &name test-longhorn-all-preprovisioned
+spec:
+  capacity:
+    storage: 333Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Delete
+  storageClassName: longhorn
+  csi:
+    driver: driver.longhorn.io
+    fsType: xfs
+    volumeAttributes:
+      numberOfReplicas: "1"
+      staleReplicaTimeout: "2880"
+    volumeHandle: *name
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: &name test-longhorn-all-preprovisioned
+  namespace: default
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 333Mi
+  storageClassName: longhorn
+  volumeName: *name
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: &name test-longhorn-all-preprovisioned
+  namespace: default
+spec:
+  containers:
+    - name: test
+      image: busybox
+      command:
+        [
+          "sh",
+          "-c",
+          "while true; do echo $(date) >> /data/log.txt; sleep 5; done",
+        ]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: *name
