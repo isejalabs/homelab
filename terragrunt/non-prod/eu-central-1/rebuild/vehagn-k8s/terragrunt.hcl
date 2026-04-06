@@ -173,7 +173,7 @@ inputs = {
       datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
-      ram_dedicated = 10240
+      ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
       # update        = true
     }

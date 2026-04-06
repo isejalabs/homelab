@@ -122,7 +122,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve3"
+      host_node     = "pve5"
       machine_type  = "controlplane"
       ip            = "10.7.8.183"
       vm_id         = 7008183
@@ -163,7 +163,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
-      host_node     = "pve3"
+      host_node     = "pve5"
       machine_type  = "worker"
       ip            = "10.7.8.186"
       vm_id         = 7008186
@@ -172,7 +172,7 @@ inputs = {
       datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
-      ram_dedicated = 2048
+      ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
       # update        = true
     }
