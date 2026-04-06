@@ -95,19 +95,19 @@ inputs = {
   }
 
   nodes = {
-    "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve1"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.131"
-      vm_id         = 7008131
-      cpu           = local.ctrl_cpu
-      datastore     = local.datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
-      # update        = true
-    }
+    # "${local.env}-ctrl-01.${local.domain}" = {
+    #   host_node     = "pve1"
+    #   machine_type  = "controlplane"
+    #   ip            = "10.7.8.131"
+    #   vm_id         = 7008131
+    #   cpu           = local.ctrl_cpu
+    #   datastore     = local.datastore
+    #   dns           = local.dns
+    #   disk_size     = local.ctrl_disk_size
+    #   ram_dedicated = local.ctrl_ram
+    #   vlan_id       = local.vlan_id
+    #   # update        = true
+    # }
     # "${local.env}-ctrl-02.${local.domain}" = {
     #   host_node     = "pve4"
     #   machine_type  = "controlplane"
@@ -121,19 +121,19 @@ inputs = {
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
-    # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve5"
-    #   machine_type  = "controlplane"
-    #   ip            = "10.7.8.133"
-    #   vm_id         = 7008133
-    #   cpu           = local.ctrl_cpu
-    #   datastore     = local.datastore
-    #   dns           = local.dns
-    #   disk_size     = local.ctrl_disk_size
-    #   ram_dedicated = local.ctrl_ram
-    #   vlan_id       = local.vlan_id
-    #   # update        = true
-    # }
+    "${local.env}-ctrl-03.${local.domain}" = {
+      host_node     = "pve5"
+      machine_type  = "controlplane"
+      ip            = "10.7.8.133"
+      vm_id         = 7008133
+      cpu           = local.ctrl_cpu
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.ctrl_disk_size
+      ram_dedicated = local.ctrl_ram
+      vlan_id       = local.vlan_id
+      # update        = true
+    }
     "${local.env}-work-01.${local.domain}" = {
       host_node     = "pve1"
       machine_type  = "worker"
