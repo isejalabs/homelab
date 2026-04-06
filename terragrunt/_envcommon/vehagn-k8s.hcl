@@ -42,8 +42,9 @@ locals {
   domain         = "test.iseja.net"
   vlan_id        = 108
   work_cpu       = 2
-  work_disk_size = 6
+  work_disk_size-small = 6
   work_disk_size-medium = 12
+  work_disk_size-big = 17
   work_ram       = 2048
 
   gateway_api_version = "v1.4.1" # renovate: github-releases=kubernetes-sigs/gateway-api

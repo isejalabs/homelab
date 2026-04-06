@@ -45,7 +45,7 @@ locals {
   gateway_api_version = include.envcommon.locals.gateway_api_version
   vlan_id             = include.envcommon.locals.vlan_id
   work_cpu            = include.envcommon.locals.work_cpu
-  work_disk_size      = include.envcommon.locals.work_disk_size
+  work_disk_size      = include.envcommon.locals.work_disk_size-big
   work_ram            = 6144
 
   # Set some values specific to this environment

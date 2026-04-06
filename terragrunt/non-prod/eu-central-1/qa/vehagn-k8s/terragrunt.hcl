@@ -45,7 +45,7 @@ locals {
   gateway_api_version = include.envcommon.locals.gateway_api_version
   vlan_id             = include.envcommon.locals.vlan_id
   work_cpu            = include.envcommon.locals.work_cpu
-  work_disk_size      = include.envcommon.locals.work_disk_size
+  work_disk_size      = include.envcommon.locals.work_disk_size-medium
   work_ram            = 6144
 
   # Set some values specific to this environment
@@ -163,7 +163,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
-      host_node     = "pve3"
+      host_node     = "pve5"
       machine_type  = "worker"
       ip            = "10.7.8.126"
       vm_id         = 7008126
@@ -172,7 +172,7 @@ inputs = {
       datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.work_disk_size
-      ram_dedicated = 2048
+      ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
       # update        = true
     }
