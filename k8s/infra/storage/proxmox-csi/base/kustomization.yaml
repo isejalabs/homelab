@@ -3,6 +3,9 @@ kind: Kustomization
 
 namespace: csi-proxmox
 
+resources:
+  - ns.yaml
+
 helmCharts:
   - name: proxmox-csi-plugin
     repo: oci://ghcr.io/sergelogvinov/charts
