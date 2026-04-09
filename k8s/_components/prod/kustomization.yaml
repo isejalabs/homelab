@@ -1,6 +1,13 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+# set a label we replace later on with configured cluster setting
+labels:
+  - pairs:
+      iseja.net/env: base
+    includeSelectors: true  # This ensures Deployment selectors are updated
+    includeTemplates: true  # This ensures Pod templates get the labels
+
 resources:
   - cluster-param.yaml
 
@@ -8,3 +15,24 @@ components:
   - ../base # configures domain replacements already
   # do not prefix domain
   # - ../../_transformers/prefix-domain   # prefix domain
+  # the `replace-env-label` transformer does not work...
+  # - ../../_transformers/replace-env-label
+
+# ... hence, we need to state this inline here
+replacements:
+  - source:
+      kind: ConfigMap
+      name: cluster-param
+      fieldPath: data.CLUSTER_ENVIRONMENT
+    targets:
+      # sets label in metdata of all resources
+      - select: {}
+        fieldPaths:
+          - metadata.labels.[iseja.net/env]
+      
+      # updates selectors and pod templates (for Deployments, StatefulSets etc.)
+      - select:
+          kind: Deployment
+        fieldPaths:
+          - spec.selector.matchLabels.[iseja.net/env]
+          - spec.template.metadata.labels.[iseja.net/env]
