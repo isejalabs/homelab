@@ -1,0 +1,23 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: &name actualbudget
+name: *name
+# only default namespace is supported by this helm chart, so we do not specify it
+# namespace: *name
+repo: https://community-charts.github.io/helm-charts
+releaseName: *name
+version: 1.8.7    # renovate: helm=actualbudget registry=https://community-charts.github.io/helm-charts
+## do not use valuesFile as it's not inherited in overlays
+# valuesFile: values.yaml
+## only inline values are inherited in overlays
+valuesInline:
+  image:
+    tag: "26.4.0" # renovate: docker=ghcr.io/actualbudget/actual-server versioning=loose
+
+  persistence:
+    enabled: true
+    size: 1Gi
+
+  strategy:
+    type: Recreate

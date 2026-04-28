@@ -1,0 +1,9 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# only default namespace is supported by this helm chart, so we do not specify it
+namespace: default
+
+resources:
+  # - ns.yaml
+  - http-route.yaml
