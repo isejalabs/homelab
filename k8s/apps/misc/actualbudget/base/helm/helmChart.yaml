@@ -3,8 +3,10 @@ kind: HelmChartInflationGenerator
 metadata:
   name: &name actualbudget
 name: *name
-# only default namespace is supported by this helm chart, so we do not specify it
-# namespace: *name
+# namespace setting only supported to limited extent by helm chart templates,
+# which are needed by `kustomize build --enable helm` (using `helm template`)
+# setting it anyway for argo/flux
+namespace: *name
 repo: https://community-charts.github.io/helm-charts
 releaseName: *name
 version: 1.8.7    # renovate: helm=actualbudget registry=https://community-charts.github.io/helm-charts
