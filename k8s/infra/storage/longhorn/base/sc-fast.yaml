@@ -4,7 +4,8 @@ metadata:
   name: longhorn-fast
 provisioner: driver.longhorn.io
 allowVolumeExpansion: true
-reclaimPolicy: Retain
+reclaimPolicy: Retain # Retain volume when PVC is deleted
+volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
 parameters:
   dataLocality: strict-local
   fsType: xfs

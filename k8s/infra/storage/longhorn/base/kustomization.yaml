@@ -5,4 +5,8 @@ namespace: longhorn-system
 
 resources:
   - ns.yaml
+  - sc-ext4.yaml
   - sc-fast.yaml
+  - sc-ha.yaml
+  - sc-standard.yaml
+  - sc-xfs.yaml

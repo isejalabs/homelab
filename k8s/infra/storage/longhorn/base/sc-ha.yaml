@@ -1,0 +1,29 @@
+# High availability StorageClass with strict replication
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-ha
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain # Retain volume when PVC is deleted
+volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
+parameters:
+  # Use XFS for better performance and reliability
+  fsType: xfs
+
+  # Three replicas ensures survival of two node failures
+  numberOfReplicas: "3"
+
+  # Auto-balance replicas when nodes are added/removed
+  # Options: disabled, least-effort, best-effort
+  replicaAutoBalance: "best-effort"
+
+  # Allow scheduling replicas on the same node (not recommended for HA)
+  replicaDiskSoftAntiAffinity: "true"
+
+  # Minimum number of healthy replicas before writes are blocked
+  # Prevents data loss during degraded states
+  replicaSoftAntiAffinity: "true"
+
+  # Zone-aware replica placement (requires node labels)
+  replicaZoneSoftAntiAffinity: "true"

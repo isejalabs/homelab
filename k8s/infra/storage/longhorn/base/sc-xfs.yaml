@@ -1,0 +1,21 @@
+# Basic Longhorn StorageClass with commonly used parameters
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-xfs
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Retain # Retain volume when PVC is deleted
+volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
+parameters:
+  # Filesystem type: ext4 or xfs
+  fsType: "xfs"
+
+  # Number of replicas for each volume (default: 3)
+  numberOfReplicas: "2"
+
+  # Enable/disable revision counter for replica consistency
+  revisionCounterDisabled: "false"
+
+  # Stale replica timeout before rebuild (default: 30 minutes)
+  staleReplicaTimeout: "30"
