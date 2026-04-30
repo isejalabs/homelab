@@ -1,0 +1,13 @@
+# Hourly snapshots for all (default) volumes
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: defaut-snapshot-hourly
+  namespace: longhorn-system
+spec:
+  task: snapshot
+  cron: "0 * * * *"
+  retain: 24
+  concurrency: 3
+  groups:
+    - default

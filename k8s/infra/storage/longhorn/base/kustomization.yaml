@@ -5,6 +5,9 @@ namespace: longhorn-system
 
 resources:
   - ns.yaml
+  - job-backup-default.yaml
+  - job-fs-trim-default.yaml
+  - job-snapshot.yaml
   - sc-ext4.yaml
   - sc-fast.yaml
   - sc-ha.yaml

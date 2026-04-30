@@ -1,0 +1,45 @@
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: default-backup-daily
+  namespace: longhorn-system
+spec:
+  task: backup
+  # daily at 4:30 AM
+  cron: "30 4 * * *"
+  retain: 7
+  concurrency: 1
+  # Applies to volumes without explicit group
+  groups:
+    - default
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: default-backup-weekly
+  namespace: longhorn-system
+spec:
+  task: backup
+  # weekly at 4:04 AM
+  cron: "4 4 * * 0"
+  retain: 4
+  concurrency: 1
+  # Applies to volumes without explicit group
+  groups:
+    - default
+---
+apiVersion: longhorn.io/v1beta2
+kind: RecurringJob
+metadata:
+  name: default-backup-monthly
+  namespace: longhorn-system
+spec:
+  task: backup
+  # monthly at 4:12 AM on the 1st
+  cron: "12 4 1 * *"
+  retain: 6
+  concurrency: 1
+  # Applies to volumes without explicit group
+  groups:
+    - default
