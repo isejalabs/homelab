@@ -28,6 +28,9 @@ valuesInline:
     defaultReplicaCount: 2
     storageReservedPercentageForDefaultDisk: 0
 
+  global:
+    timezone: Europe/Berlin
+
   httproute:
     enabled: true
     parentRefs:
