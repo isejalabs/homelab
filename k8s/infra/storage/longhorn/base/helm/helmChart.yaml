@@ -7,7 +7,7 @@ namespace: longhorn-system
 includeCRDs: true
 repo: https://charts.longhorn.io
 releaseName: longhorn
-version: 1.11.1 # renovate: helm=longhorn registry=https://charts.longhorn.io
+version: 1.11.2 # renovate: helm=longhorn registry=https://charts.longhorn.io
 ## do not use valuesFile as it's not inherited in overlays
 # valuesFile: values.yaml
 ## only inline values are inherited in overlays
