@@ -23,4 +23,3 @@ spec:
     url: "https://github.com/isejalabs/homelab"
     ref: "refs/heads/issue/808_fluxcd"
     path: "k8s/clusters/rebuild"
-    pullSecret: "flux-system"

@@ -13,6 +13,7 @@ spec:
   sourceRef:
     kind: ExternalArtifact
     name: apps
-  path: ./rebuild
+  # path: ./apps
+  # path: ./apps/diag/whoami/envs/rebuild
   prune: true
   wait: true
