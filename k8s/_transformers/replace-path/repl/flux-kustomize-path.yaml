@@ -1,0 +1,30 @@
+# replace the last segment of the path of all Kustomizations with "envs/example"
+# typically apps/foo/bar/base -> apps/foo/bar/envs/example
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.TMP
+  targets:
+    - select:
+        # apiVersion: kustomize.toolkit.fluxcd.io/v1
+        kind: Kustomization
+      fieldPaths:
+        - spec.path
+      options:
+        delimiter: "/"
+        index: 5
+# replace the last segment of the path of all Kustomizations with THE environment
+# typically apps/foo/bar/envs/example -> apps/foo/bar/envs/dev
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    - select:
+        apiVersion: kustomize.toolkit.fluxcd.io/v1
+        kind: Kustomization
+      fieldPaths:
+        - spec.path
+      options:
+        delimiter: "/"
+        index: 6

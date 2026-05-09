@@ -7,3 +7,4 @@ resources:
 components:
   - ../base   # configures domain replacement
   - ../../_transformers/prefix-domain
+  - ../../_transformers/replace-path
