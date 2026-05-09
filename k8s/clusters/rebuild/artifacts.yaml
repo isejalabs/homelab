@@ -1,0 +1,23 @@
+---
+apiVersion: source.extensions.fluxcd.io/v1beta1
+kind: ArtifactGenerator
+metadata:
+  name: flux-system
+  namespace: flux-system
+spec:
+  sources:
+    - alias: source
+      kind: GitRepository
+      name: flux-system
+  artifacts:
+    - name: apps
+      originRevision: "@source"
+      copy:
+        - from: "@source/k8s/_components/**"
+          to: "@artifact/_components/"
+        - from: "@source/k8s/_transformers/**"
+          to: "@artifact/_transformers/"
+        - from: "@source/k8s/apps/**/base/**"
+          to: "@artifact/base/"
+        - from: "@source/k8s/apps/**/envs/rebuild/**"
+          to: "@artifact/rebuild/"
