@@ -1,0 +1,5 @@
+apiVersion: builtin
+kind: HelmChartInflationGenerator
+metadata:
+  name: checkmk
+version: 1.10.0
