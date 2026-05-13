@@ -7,6 +7,6 @@ namespace: flux-system
 resources:
   - ../../../../../../apps/diag/whoami/base/flux
   - ../../../../../../apps/dns/adguard/flux
-  # - ../../../../../../apps/dns/unbound/base/flux
+  - ../../../../../../apps/dns/unbound/flux
   - ../../../../../../apps/monitoring/metrics-server/base/flux
   
