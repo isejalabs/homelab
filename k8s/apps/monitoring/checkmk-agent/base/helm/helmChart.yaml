@@ -48,7 +48,7 @@ valuesInline:
       resources:
         requests:
           cpu: 30m
-          memory: 25Mi
+          memory: 35Mi
         limits:
           cpu: 100m
-          memory: 30Mi
+          memory: 40Mi
