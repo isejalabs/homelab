@@ -3,6 +3,8 @@ kind: Kustomization
 
 namespace: kube-system
 
+components:
+  - ../../../../../components/envs/qa
+
 resources:
-  - bgp-peer-config.yaml
-  - bgp-advertisement.yaml
+  - ../../base
