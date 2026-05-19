@@ -41,20 +41,6 @@ resources:
     cpu: 200m
     memory: 512Mi
 
-#debug:
-#  enabled: true
-
-# Increase rate limit when doing L2 announcements
-k8sClientRateLimit:
-  qps: 20
-  burst: 100
-
-l2announcements:
-  enabled: true
-
-externalIPs:
-  enabled: true
-
 loadBalancer:
   # https://docs.cilium.io/en/stable/network/kubernetes/kubeproxy-free/#maglev-consistent-hashing
   algorithm: maglev
@@ -79,13 +65,6 @@ hubble:
 # mTLS
 authentication:
   enabled: false
-  mutual:
-    spire:
-      enabled: false
-      install:
-        server:
-          dataStorage:
-            storageClass: cilium-spire-sc
 
 ## enable BGP
 # URL: https://docs.cilium.io/en/stable/network/bgp-control-plane/bgp-control-plane/#installation
