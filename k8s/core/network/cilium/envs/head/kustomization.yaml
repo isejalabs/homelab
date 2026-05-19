@@ -6,14 +6,5 @@ resources:
   - ip-pool-bgp.yaml
   - bgp-cluster-config.yaml
 
-helmCharts:
-  - name: cilium
-    repo: https://helm.cilium.io
-    version: 1.19.3
-    releaseName: "cilium"
-    includeCRDs: true
-    namespace: kube-system
-    valuesFile: values.yaml
-    # valuesMerge: merge
-    additionalValuesFiles:
-      - additional-values.yaml
+patches:
+  - path: patch-helm-version.yaml

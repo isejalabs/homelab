@@ -5,4 +5,6 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
+  - ../../../../../../core/network/cilium-core/flux
+  - ../../../../../../core/network/cilium/flux
   - ../../../../../../core/network/gateway-api-crds/flux

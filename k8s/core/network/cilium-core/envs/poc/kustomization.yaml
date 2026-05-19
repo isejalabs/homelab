@@ -3,5 +3,3 @@ kind: Kustomization
 
 resources:
   - ../../base
-  - ip-pool-bgp.yaml
-  - bgp-cluster-config.yaml
