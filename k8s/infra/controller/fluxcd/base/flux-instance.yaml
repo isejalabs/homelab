@@ -22,4 +22,4 @@ spec:
     kind: GitRepository
     url: "https://github.com/isejalabs/homelab"
     ref: "refs/heads/issue/808_fluxcd"
-    path: "k8s/clusters/rebuild"
+    path: "k8s/infra/controller/fluxcd/cluster/envs/rebuild"
