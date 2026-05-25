@@ -19,7 +19,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: copy-base-config
-          image: busybox@sha256:32015ee641bfecc97161986c9d24957068175444f66fbcbe08a664b6cf5c1c2e
+          image: busybox@sha256:fd8d9aa63ba2f0982b5304e1ee8d3b90a210bc1ffb5314d980eb6962f1a9715d
           command:
             [
               "cp",
@@ -38,7 +38,7 @@ spec:
             - name: config-folder
               mountPath: /opt/adguardhome/conf
         - name: append-users
-          image: busybox@sha256:32015ee641bfecc97161986c9d24957068175444f66fbcbe08a664b6cf5c1c2e
+          image: busybox@sha256:fd8d9aa63ba2f0982b5304e1ee8d3b90a210bc1ffb5314d980eb6962f1a9715d
           command:
             [
               "sh",
