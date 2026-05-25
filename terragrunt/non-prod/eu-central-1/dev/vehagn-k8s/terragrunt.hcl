@@ -50,7 +50,7 @@ locals {
 
   # Set some values specific to this environment
   storage_vmid = 9813
-  on_boot      = false
+  on_boot      = true
 }
 
 inputs = {
