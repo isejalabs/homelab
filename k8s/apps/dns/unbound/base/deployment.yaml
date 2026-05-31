@@ -21,7 +21,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: unbound
-          image: docker.io/madnuttah/unbound:1.25.1-1-quic@sha256:8d3c71515a20be588dcf39da70c3ba55794fab9306b803fb01a9d5b1b1dc5364
+          image: docker.io/madnuttah/unbound:1.25.1-2-quic@sha256:fbff6779726b50b3dd9d0fd75ef825f419a22d1041026e6c439aab9b545f4682
           securityContext:
             allowPrivilegeEscalation: false
             # readOnlyRootFilesystem: true
