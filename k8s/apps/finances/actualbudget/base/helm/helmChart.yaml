@@ -9,7 +9,7 @@ name: *name
 namespace: *name
 repo: https://community-charts.github.io/helm-charts
 releaseName: *name
-version: 1.8.9    # renovate: helm=actualbudget registry=https://community-charts.github.io/helm-charts
+version: 1.9.0    # renovate: helm=actualbudget registry=https://community-charts.github.io/helm-charts
 ## do not use valuesFile as it's not inherited in overlays
 # valuesFile: values.yaml
 ## only inline values are inherited in overlays
