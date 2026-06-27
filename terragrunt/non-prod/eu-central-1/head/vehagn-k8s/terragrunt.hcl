@@ -178,7 +178,9 @@ inputs = {
     }
   }
 
-  cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  cilium_config = {
+    values_file_path = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  }
 
   volumes = {
     pv-mongodb = {

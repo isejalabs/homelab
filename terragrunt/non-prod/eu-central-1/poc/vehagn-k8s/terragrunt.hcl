@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v7.2.2"
+  source = "git::git@github.com:isejalabs/terraform-proxmox-talos.git?ref=v7.2.3"
 }
 
 locals {
@@ -164,7 +164,9 @@ inputs = {
     }
   }
 
-  cilium_values = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  cilium_config = {
+    values_file_path = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+  }
 
   volumes = {
     pv-mongodb = {
