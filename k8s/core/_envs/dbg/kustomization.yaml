@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - ../../controller/sealed-secrets/envs/dbg
   - ../../network/cilium/envs/dbg
-  - ../../network/gateway/envs/dbg
+  - ../../network/gateway-api-crds/envs/dbg
