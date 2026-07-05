@@ -3,11 +3,14 @@ kind: Kustomization
 
 namespace: sealed-secrets
 
-helmCharts:
-  - name: sealed-secrets
-    repo: oci://registry-1.docker.io/bitnamicharts
-    version: 2.18.1
-    releaseName: sealed-secrets-controller
-    namespace: sealed-secrets
-    includeCRDs: true
-    valuesFile: values.yaml
+resources:
+  - helmrepository.yaml
+  - helmrelease.yaml
+
+configMapGenerator:
+  - name: base-values
+    files:
+      - values.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true
