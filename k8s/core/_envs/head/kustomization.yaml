@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - ../../controller/sealed-secrets/envs/head
   - ../../network/cilium/envs/head
-  - ../../network/gateway/envs/head
+  - ../../network/gateway-api-crds/envs/head

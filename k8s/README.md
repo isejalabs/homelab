@@ -191,7 +191,7 @@ helm get values cilium -n kube-system
 #### Gateway API
 
 ```sh
-kustomize build --enable-helm k8s/core/network/gateway/envs/<env> | kubectl apply -f -
+kustomize build --enable-helm k8s/core/network/gateway-api-crds/envs/<env> | kubectl apply -f -
 ```
 
 #### Sealed Secrets

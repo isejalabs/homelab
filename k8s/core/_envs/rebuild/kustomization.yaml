@@ -4,4 +4,4 @@ kind: Kustomization
 resources:
   - ../../controller/sealed-secrets/envs/rebuild
   - ../../network/cilium/envs/rebuild
-  - ../../network/gateway/envs/rebuild
+  - ../../network/gateway-api-crds/envs/rebuild
