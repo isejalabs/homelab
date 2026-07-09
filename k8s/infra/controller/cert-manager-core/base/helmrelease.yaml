@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.bjw-s.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cert-manager
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: cert-manager
+  interval: 1h
+  values:
+    crds:
+      enabled: true
+
+    # use external DNS resolvers for accomodating split DNS
+    dns01RecursiveNameservers: https://1.1.1.1:443/dns-query,https://9.9.9.9:443/dns-query
+
+    extraArgs:
+      - "--enable-gateway-api"
+
+    resources:
+      limits:
+        cpu: 100m
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 64Mi
+    webhook:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 64Mi
+        requests:
+          cpu: 10m
+          memory: 32Mi
+    cainjector:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi

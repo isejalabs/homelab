@@ -2,7 +2,8 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../network/cert-manager/envs/qa
+  - ../../controller/cert-manager-core/envs/qa
+  - ../../controller/cert-manager/envs/qa
   - ../../controller/kubelet-serving-cert-approver/envs/qa
   - ../../network/gateway/envs/qa
   - ../../network/gateway-redirect/envs/qa
