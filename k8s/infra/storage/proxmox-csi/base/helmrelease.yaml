@@ -1,0 +1,15 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: proxmox-csi-plugin
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: proxmox-csi-plugin
+  interval: 1h
+  valuesFrom:
+    - kind: ConfigMap
+      name: base-values
+      valuesKey: values.yaml
