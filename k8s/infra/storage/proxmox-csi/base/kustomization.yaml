@@ -3,11 +3,14 @@ kind: Kustomization
 
 namespace: csi-proxmox
 
-helmCharts:
-  - name: proxmox-csi-plugin
-    repo: oci://ghcr.io/sergelogvinov/charts
-    version: 0.5.7
-    releaseName: proxmox-csi-plugin
-    includeCRDs: true
-    namespace: csi-proxmox
-    valuesFile: values.yaml
+resources:
+  - helmrelease.yaml
+  - ocirepository.yaml
+
+configMapGenerator:
+  - name: base-values
+    files:
+      - values.yaml
+
+generatorOptions:
+  disableNameSuffixHash: true

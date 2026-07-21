@@ -1,0 +1,12 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: proxmox-csi-plugin
+spec:
+  interval: 1h
+  ref:
+    tag: 0.5.7
+  url: oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin
+

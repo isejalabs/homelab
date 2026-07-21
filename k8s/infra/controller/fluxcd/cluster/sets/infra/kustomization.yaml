@@ -11,5 +11,5 @@ resources:
   - ../../../../../../infra/controller/kubelet-serving-cert-approver/flux
   - ../../../../../../infra/network/gateway/flux
   - ../../../../../../infra/network/gateway-redirect/flux
-  # - ../../../../../../infra/storage/proxmox-csi/flux
+  - ../../../../../../infra/storage/proxmox-csi/flux
   # - ../../../../../../infra/storage/longhorn/flux
