@@ -1,0 +1,10 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: longhorn
+spec:
+  values:
+    defaultBackupStore:
+      backupTarget: "s3://qa-longhorn-backup@local/default"
+      backupTargetCredentialSecret: longhorn-minio-credentials
