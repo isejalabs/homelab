@@ -7,7 +7,7 @@ namespace: flux-system
 resources:
   - ../../../../../../infra/controller/cert-manager-core/flux
   - ../../../../../../infra/controller/cert-manager/flux
-  # - ../../../../../../infra/controller/fluxcd/flux
+  - ../../../../../../infra/controller/flux-operator/flux
   - ../../../../../../infra/controller/kubelet-serving-cert-approver/flux
   - ../../../../../../infra/network/gateway/flux
   - ../../../../../../infra/network/gateway-redirect/flux
