@@ -8,5 +8,5 @@ resources:
   - ../../../../../../apps/diag/whoami/flux
   - ../../../../../../apps/dns/adguard/flux
   - ../../../../../../apps/dns/unbound/flux
-  - ../../../../../../apps/monitoring/metrics-server/base/flux
-  
+  - ../../../../../../apps/finances/actualbudget/flux
+  - ../../../../../../apps/monitoring/metrics-server/flux

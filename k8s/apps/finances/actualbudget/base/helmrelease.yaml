@@ -1,0 +1,28 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &name actualbudget
+spec:
+  interval: 1h
+  chart:
+    spec:
+      chart: *name
+      version: 1.8.7    # renovate: helm=actualbudget registry=https://community-charts.github.io/helm-charts
+      sourceRef:
+        kind: HelmRepository
+        name: *name
+        namespace: *name
+  releaseName: *name
+  values:
+    image:
+      tag: "26.7.0" # renovate: docker=ghcr.io/actualbudget/actual-server versioning=loose
+
+    persistence:
+      enabled: true
+      size: 1Gi
+      storageClass: longhorn-standard
+
+    strategy:
+      type: Recreate
