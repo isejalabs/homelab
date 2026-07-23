@@ -5,7 +5,7 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - ../../../../../../apps/diag/whoami/base/flux
+  - ../../../../../../apps/diag/whoami/flux
   - ../../../../../../apps/dns/adguard/flux
   - ../../../../../../apps/dns/unbound/flux
   - ../../../../../../apps/monitoring/metrics-server/base/flux
