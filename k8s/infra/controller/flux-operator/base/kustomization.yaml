@@ -5,7 +5,7 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - clusterrolebinding.yaml
+  # - clusterrolebinding.yaml
   - oci-repository.yaml
   - helm-release.yaml
   - http-route.yaml
