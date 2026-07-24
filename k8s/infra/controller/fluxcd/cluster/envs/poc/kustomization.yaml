@@ -5,4 +5,4 @@ components:
   - ../../../../../../_components/poc
 
 resources:
-  - ../../sets
+  - ../../sets/minimal
