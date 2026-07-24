@@ -5,4 +5,4 @@ components:
   - ../../../../../../_components/rebuild
 
 resources:
-  - ../../sets
+  - ../../sets/minimal
