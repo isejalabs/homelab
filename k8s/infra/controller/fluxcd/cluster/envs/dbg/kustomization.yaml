@@ -5,4 +5,4 @@ components:
   - ../../../../../../components/envs/dbg
 
 resources:
-  - ../../sets
+  - ../../sets/minimal

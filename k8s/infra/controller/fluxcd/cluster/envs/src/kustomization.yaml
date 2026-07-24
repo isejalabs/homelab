@@ -5,4 +5,4 @@ components:
   - ../../../../../../components/envs/src
 
 resources:
-  - ../../sets
+  - ../../sets/minimal
