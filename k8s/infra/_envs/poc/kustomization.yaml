@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../network/cert-manager/envs/poc
+  - ../../controller/kubelet-serving-cert-approver/envs/poc
   - ../../network/gateway/envs/poc
   - ../../network/gateway-redirect/envs/poc
   - ../../storage/proxmox-csi/envs/poc

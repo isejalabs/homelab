@@ -3,6 +3,7 @@ kind: Kustomization
 
 resources:
   - ../../network/cert-manager/envs/dbg
+  - ../../controller/kubelet-serving-cert-approver/envs/dbg
   - ../../network/gateway/envs/dbg
   - ../../network/gateway-redirect/envs/dbg
   - ../../storage/proxmox-csi/envs/dbg
