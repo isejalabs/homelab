@@ -6,7 +6,7 @@ resources:
   - ../../apps/envs/dbg
 
 components:
-  - ../../../../../_components/dbg
+  - ../../../../../components/envs/dbg
 
 generators:
   - ./helm

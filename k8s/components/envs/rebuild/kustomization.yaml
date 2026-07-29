@@ -5,5 +5,5 @@ resources:
   - cluster-param.yaml
 
 components:
-  - ../base   # configures domain replacement
-  - ../../_transformers/prefix-domain
+  - ../base # configures domain replacement
+  - ../../transformers/prefix-domain

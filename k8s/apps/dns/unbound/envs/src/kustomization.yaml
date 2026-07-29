@@ -5,7 +5,7 @@ resources:
   - ../../base
 
 components:
-  - ../../../../../_components/src
+  - ../../../../../components/envs/src
 
 patches:
   - path: svc.yaml

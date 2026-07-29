@@ -6,7 +6,7 @@ resources:
   - ../../apps/envs/poc
 
 components:
-  - ../../../../../_components/poc
+  - ../../../../../components/envs/poc
 
 generators:
   - ./helm

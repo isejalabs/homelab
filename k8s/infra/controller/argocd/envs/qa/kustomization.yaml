@@ -6,7 +6,7 @@ resources:
   - ../../apps/envs/qa
 
 components:
-  - ../../../../../_components/qa
+  - ../../../../../components/envs/qa
 
 generators:
   - ./helm

@@ -5,7 +5,7 @@ resources:
   - ../../base
 
 components:
-  - ../../../../../_components/dbg
+  - ../../../../../components/envs/dbg
 
 patches:
   - path: svc.yaml

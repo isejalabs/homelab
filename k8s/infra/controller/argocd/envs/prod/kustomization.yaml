@@ -6,7 +6,7 @@ resources:
   - ../../apps/envs/prod
 
 components:
-  - ../../../../../_components/prod
+  - ../../../../../components/envs/prod
 
 generators:
   - ./helm

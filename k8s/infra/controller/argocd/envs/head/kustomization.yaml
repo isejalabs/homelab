@@ -6,7 +6,7 @@ resources:
   - ../../apps/envs/head
 
 components:
-  - ../../../../../_components/head
+  - ../../../../../components/envs/head
 
 generators:
   - ./helm
