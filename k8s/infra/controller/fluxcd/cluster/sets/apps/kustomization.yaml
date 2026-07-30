@@ -6,3 +6,4 @@ namespace: flux-system
 
 resources:
   - ../../../../../../apps/diag/whoami/flux
+  - ../../../../../../apps/monitoring/metrics-server/flux
