@@ -1,0 +1,11 @@
+apiVersion: builtin
+kind: LabelTransformer
+metadata:
+  name: label-ConfigMaps
+labels:
+  # Forces Flux to immediately upgrade the HelmRelease when this ConfigMap changes
+  reconcile.fluxcd.io/watch: "Enabled"
+fieldSpecs:
+- kind: ConfigMap
+  path: metadata/labels
+  create: true
