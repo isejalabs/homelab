@@ -45,7 +45,9 @@ locals {
   work_disk_size-small = 6
   work_disk_size-medium = 12
   work_disk_size-big = 17
-  work_ram       = 2048
+  work_ram-small        = 2048
+  work_ram-medium       = 4096
+  work_ram-big          = 6144
 
   gateway_api_version = "v1.4.1" # renovate: github-releases=kubernetes-sigs/gateway-api
 

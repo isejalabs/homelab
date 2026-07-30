@@ -46,7 +46,7 @@ locals {
   vlan_id             = include.envcommon.locals.vlan_id
   work_cpu            = include.envcommon.locals.work_cpu
   work_disk_size      = include.envcommon.locals.work_disk_size-big
-  work_ram            = 6144
+  work_ram            = include.envcommon.locals.work_ram-big
 
   # Set some values specific to this environment
   storage_vmid = 9818
