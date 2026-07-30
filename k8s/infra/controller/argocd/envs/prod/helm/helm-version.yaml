@@ -1,5 +1,0 @@
-apiVersion: builtin
-kind: HelmChartInflationGenerator
-metadata:
-  name: argo-cd
-version: 9.7.1    # renovate: helm=argo-cd registry=https://argoproj.github.io/argo-helm
