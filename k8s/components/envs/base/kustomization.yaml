@@ -3,3 +3,7 @@ kind: Component
 
 components:
   - ../../transformers/replace-domain
+  - ../../transformers/replace-path
+
+resources:
+  - cluster-base-param.yaml

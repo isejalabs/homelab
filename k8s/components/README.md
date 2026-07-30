@@ -17,6 +17,7 @@ These components can then be included in the `kustomization.yaml` files of indiv
 │   ├── 📁 ...                (sourced in fooapp/envs/dev)
 │   └── 📁 prod             # prod environment-specific configuration
 └── 📁 transformers         # kustomize transformers used in the components above
-│   ├── 📁 prefix-domain    # prefix domain with env., e.g. dev-app.example.com
-│   └── 📁 replace-domain   # rename base domain example.com to your.sub.domain.com
+    ├── 📁 prefix-domain    # prefix domain with env., e.g. dev-app.example.com
+    ├── 📁 replace-domain   # rename base domain example.com to your.sub.domain.com
+    └── 📁 replace-path     # replace base path by environment-specific path in configuration files (flux)
 ```
