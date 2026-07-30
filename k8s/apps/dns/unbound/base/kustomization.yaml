@@ -8,7 +8,7 @@ configMapGenerator:
     literals:
       - TZ="Europe/Berlin"
       - EXTENDED_HEALTHCHECK="true"
-      - EXTENDED_HEALTHCHECK_DOMAIN="."
+      - EXTENDED_HEALTHCHECK_DOMAIN="k.root-servers.net"
   - name: unbound-conf
     files:
       - config/conf.d/access-control.conf
