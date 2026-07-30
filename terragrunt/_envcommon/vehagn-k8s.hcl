@@ -32,19 +32,19 @@ locals {
   base_source_url = "git::git@github.com:isejalabs/terraform-proxmox-talos.git"
 
   # Set some values common accross all environments
-  cilium_path    = "k8s/core/network/cilium"
-  cpu_type       = "custom-x86-64-v2-AES-AVX"
-  ctrl_cpu       = 2
-  ctrl_disk_size = 6
-  ctrl_ram       = 2816
-  datastore      = "local-enc"
-  dns            = ["10.8.8.8", "10.9.9.9"]
-  domain         = "test.iseja.net"
-  vlan_id        = 108
-  work_cpu       = 2
-  work_disk_size-small = 6
+  cilium_path           = "k8s/core/network/cilium"
+  cpu_type              = "custom-x86-64-v2-AES-AVX"
+  ctrl_cpu              = 2
+  ctrl_disk_size        = 6
+  ctrl_ram              = 2816
+  datastore             = "local-enc"
+  dns                   = ["10.8.8.8", "10.9.9.9"]
+  domain                = "test.iseja.net"
+  vlan_id               = 108
+  work_cpu              = 2
+  work_disk_size-small  = 6
   work_disk_size-medium = 12
-  work_disk_size-big = 17
+  work_disk_size-big    = 17
   work_ram-small        = 2048
   work_ram-medium       = 4096
   work_ram-big          = 6144
@@ -58,9 +58,9 @@ locals {
   pv-unifi_size   = "500M"
 
   # disks
-  disk_longhorn-small = 10
+  disk_longhorn-small  = 10
   disk_longhorn-medium = 20
-  disk_longhorn-big = 30
+  disk_longhorn-big    = 30
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

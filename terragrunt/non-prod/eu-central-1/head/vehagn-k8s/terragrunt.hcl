@@ -64,7 +64,7 @@ inputs = {
   }
 
   cluster = {
-    api_server                   = <<-EOT
+    api_server = <<-EOT
       certSANs:
         # Add FQDN for API server access (via VIP)
         - "${local.env}-${local.projectname}-k8s-api.${local.domain}"
@@ -184,15 +184,15 @@ inputs = {
 
   volumes = {
     pv-mongodb = {
-      node    = "pve5"
-      size    = include.envcommon.locals.pv-mongodb_size
-      vmid    = local.storage_vmid
+      node      = "pve5"
+      size      = include.envcommon.locals.pv-mongodb_size
+      vmid      = local.storage_vmid
       datastore = local.datastore
     }
     pv-unifi = {
-      node    = "pve5"
-      size    = include.envcommon.locals.pv-unifi_size
-      vmid    = local.storage_vmid
+      node      = "pve5"
+      size      = include.envcommon.locals.pv-unifi_size
+      vmid      = local.storage_vmid
       datastore = local.datastore
     }
     longhorn = {
