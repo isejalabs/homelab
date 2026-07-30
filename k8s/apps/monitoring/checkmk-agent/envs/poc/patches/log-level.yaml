@@ -1,0 +1,9 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &name checkmk-kube-agent
+spec:
+  values:
+    clusterCollector:
+      # can be: "debug", "info", "warning" (default), "critical"
+      logLevel: info

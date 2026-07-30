@@ -9,5 +9,6 @@ resources:
   - ../../../../../../apps/dns/adguard/flux
   - ../../../../../../apps/dns/unbound/flux
   - ../../../../../../apps/finances/actualbudget/flux
+  - ../../../../../../apps/monitoring/checkmk-agent/flux
   - ../../../../../../apps/monitoring/metrics-server/flux
   - ../../../../../../apps/network/unifi-controller/flux

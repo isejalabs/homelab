@@ -7,5 +7,5 @@ components:
 resources:
   - ../../base
 
-generators:
-  - ./helm
+patches:
+  - path: patches/log-level.yaml
