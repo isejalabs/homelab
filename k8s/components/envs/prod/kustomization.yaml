@@ -7,4 +7,4 @@ resources:
 components:
   - ../base # configures domain replacements already
   # do not prefix domain
-  # - ../../_transformers/prefix-domain   # prefix domain
+  # - ../../transformers/prefix-domain   # prefix domain

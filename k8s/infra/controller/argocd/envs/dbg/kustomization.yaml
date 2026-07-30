@@ -1,12 +1,12 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+components:
+  - ../../../../../components/envs/dbg
+
 resources:
   - ../../base
   - ../../apps/envs/dbg
-
-components:
-  - ../../../../../_components/dbg
 
 generators:
   - ./helm
