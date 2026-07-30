@@ -10,3 +10,4 @@ resources:
   - ../../../../../../apps/dns/unbound/flux
   - ../../../../../../apps/finances/actualbudget/flux
   - ../../../../../../apps/monitoring/metrics-server/flux
+  - ../../../../../../apps/network/unifi-controller/flux
