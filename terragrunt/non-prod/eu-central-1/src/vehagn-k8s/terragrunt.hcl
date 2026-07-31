@@ -166,7 +166,7 @@ inputs = {
   }
 
   cilium_config = {
-    values_file_path = "${local.root_path}/../${local.cilium_path}/envs/${local.env}/values.yaml"
+    values_file_path = "${local.root_path}/../${local.cilium_path}/base/values.yaml"
   }
 
   volumes = {
