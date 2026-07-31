@@ -13,6 +13,7 @@ spec:
     crds: CreateReplace
   upgrade:
     crds: CreateReplace
+  timeout: 10m
   valuesFrom:
     - kind: ConfigMap
       name: cilium-base-values
