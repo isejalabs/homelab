@@ -66,6 +66,3 @@ egressGateway:
   enabled: true
 bpf:
   masquerade: true
-# egress gateway not compatible with CiliumEndpointSlice
-# URL: https://github.com/cilium/cilium/issues/24833
-enableCiliumEndpointSlice: false
