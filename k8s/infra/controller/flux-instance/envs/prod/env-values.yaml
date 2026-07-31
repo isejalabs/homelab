@@ -1,0 +1,3 @@
+instance:
+  sync:
+    path: "k8s/infra/controller/fluxcd/cluster/envs/prod"
