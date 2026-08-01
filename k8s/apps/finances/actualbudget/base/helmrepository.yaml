@@ -4,6 +4,10 @@ apiVersion: source.toolkit.fluxcd.io/v1
 kind: HelmRepository
 metadata:
   name: community-charts
+  # pre-set namespace to allow renovate linking HelmRelease and HelmRepository
+  # as it cannot cope with NS set by kustomize
+  # https://docs.renovatebot.com/modules/manager/flux/#helmrelease-support
+  namespace: actualbudget
 spec:
   interval: 1h
   url: https://community-charts.github.io/helm-charts
