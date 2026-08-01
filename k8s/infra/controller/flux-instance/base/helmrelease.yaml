@@ -9,6 +9,7 @@ spec:
     kind: OCIRepository
     name: flux-instance
   interval: 1h
+  timeout: 10m
   valuesFrom:
     - kind: ConfigMap
       name: flux-instance-base-values
