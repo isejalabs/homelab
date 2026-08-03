@@ -10,15 +10,16 @@ These components can then be included in the `kustomization.yaml` files of indiv
 
 ```
 📁 components
-├── 📁 apps                 # application-specific configuration
-├── 📁 envs                 # environment-specific configuration
-│   ├── 📁 base             # sourced and reused in the env-specific overlays
-│   ├── 📁 dev              # dev environment-specific configuration
-│   ├── 📁 ...                (sourced in fooapp/envs/dev)
-│   └── 📁 prod             # prod environment-specific configuration
-└── 📁 transformers         # kustomize transformers used in the components above
-    ├── 📁 add-labels       # add labels to resources (e.g. reconcile.fluxcd.io/watch: "Enabled")
-    ├── 📁 prefix-domain    # prefix domain with env., e.g. dev-app.example.com
-    ├── 📁 replace-domain   # rename base domain example.com to your.sub.domain.com
-    └── 📁 replace-path     # replace base path by environment-specific path in configuration files (flux)
+├── 📁 apps                     # application-specific configuration
+├── 📁 envs                     # environment-specific configuration
+│   ├── 📁 base                 # sourced and reused in the env-specific overlays
+│   ├── 📁 dev                  # dev environment-specific configuration
+│   ├── 📁 ...                    (sourced in fooapp/envs/dev)
+│   └── 📁 prod                 # prod environment-specific configuration
+└── 📁 transformers             # kustomize transformers used in the components above
+    ├── 📁 add-labels           # add labels to resources, e.g. reconcile.fluxcd.io/watch: "Enabled"
+    ├── 📁 prefix-domain        # prefix domain with env., e.g. dev-app.example.com
+    ├── 📁 replace-domain       # rename base domain example.com to your.sub.domain.com
+    ├── 📁 replace-path         # replace base path by environment-specific path in configuration files (flux)
+    └── 📁 set-flux-defaults    # set default values for flux configuration files
 ```

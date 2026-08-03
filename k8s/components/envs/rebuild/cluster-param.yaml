@@ -8,3 +8,4 @@ data:
   CLUSTER_ENVIRONMENT: rebuild
   DOMAIN_BASE: rebuild.iseja
   DOMAIN_TLD: net
+  FLUX_RECONCILIATION_INTERVAL: 10m
