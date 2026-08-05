@@ -58,7 +58,7 @@ inputs = {
   env = local.env
 
   image = {
-    version        = "v1.12.6"
+    version        = "v1.13.8" # renovate: github-releases=siderolabs/talos
     update_version = "v1.13.8" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
