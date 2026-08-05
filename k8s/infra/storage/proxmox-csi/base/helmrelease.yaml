@@ -9,6 +9,7 @@ spec:
     kind: OCIRepository
     name: proxmox-csi-plugin
   interval: 1h
+  timeout: 10m
   valuesFrom:
     - kind: ConfigMap
       name: base-values
