@@ -35,14 +35,6 @@ spec:
     global:
       timezone: Europe/Berlin
 
-    httproute:
-      enabled: true
-      parentRefs:
-      - name: internal
-        namespace: gateway
-      hostnames:
-      - longhorn.example.com
-
     longhornUI:
       replicas: 1
 
