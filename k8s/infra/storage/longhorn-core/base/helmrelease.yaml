@@ -14,6 +14,7 @@ spec:
         kind: HelmRepository
         name: *name
         namespace: longhorn-system
+  timeout: 10m
   values:
     csi:
       # -- Replica count of the CSI Attacher. When unspecified, Longhorn uses the default value ("3").
