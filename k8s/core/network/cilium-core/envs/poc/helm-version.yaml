@@ -7,3 +7,4 @@ metadata:
 spec:
   ref:
     tag: 1.19.4
+  url: oci://quay.io/cilium/charts/cilium
