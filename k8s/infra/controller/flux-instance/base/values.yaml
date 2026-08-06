@@ -12,6 +12,6 @@ instance:
   sync:
     kind: GitRepository
     url: "https://github.com/isejalabs/homelab"
-    ref: "refs/heads/issue/808_fluxcd"
+    ref: "refs/heads/main"
     path: "k8s/infra/controller/fluxcd/cluster/envs/REPLACE_ME"
     interval: 10m
