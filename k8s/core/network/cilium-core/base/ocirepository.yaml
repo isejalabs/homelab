@@ -11,4 +11,5 @@ spec:
     operation: copy
   ref:
     tag: 1.18.11
+    digest: sha256:fc5dd92b76a70103d64789e85ea9ce50e48939abbbd2e548e9ba6e1a35fd07c1
   url: oci://quay.io/cilium/charts/cilium
