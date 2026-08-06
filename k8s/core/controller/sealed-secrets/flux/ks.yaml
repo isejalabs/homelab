@@ -6,7 +6,7 @@ metadata:
   name: sealed-secrets
 spec:
   interval: 1h
-  path: ./k8s/core/controller/sealed-secrets/flux
+  path: ./k8s/core/controller/sealed-secrets/base
   prune: true
   sourceRef:
     kind: GitRepository

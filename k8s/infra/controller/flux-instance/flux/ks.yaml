@@ -6,7 +6,7 @@ metadata:
   name: flux-instance
 spec:
   interval: 1h
-  path: ./k8s/infra/controller/flux-instance/flux
+  path: ./k8s/infra/controller/flux-instance/base
   prune: true
   sourceRef:
     kind: GitRepository

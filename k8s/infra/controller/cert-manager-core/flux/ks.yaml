@@ -6,7 +6,7 @@ metadata:
   name: cert-manager-core
 spec:
   interval: 1h
-  path: ./k8s/infra/controller/cert-manager-core/flux
+  path: ./k8s/infra/controller/cert-manager-core/base
   prune: true
   sourceRef:
     kind: GitRepository

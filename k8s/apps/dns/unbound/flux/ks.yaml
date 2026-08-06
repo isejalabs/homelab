@@ -6,7 +6,7 @@ metadata:
   name: unbound
 spec:
   interval: 1h
-  path: ./k8s/apps/dns/unbound/flux
+  path: ./k8s/apps/dns/unbound/base
   prune: true
   sourceRef:
     kind: GitRepository

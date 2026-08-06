@@ -6,7 +6,7 @@ metadata:
   name: gateway-api-crds
 spec:
   interval: 1h
-  path: ./k8s/core/network/gateway-api-crds/flux
+  path: ./k8s/core/network/gateway-api-crds/base
   prune: true
   sourceRef:
     kind: GitRepository

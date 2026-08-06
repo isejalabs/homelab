@@ -6,7 +6,7 @@ metadata:
   name: gateway-api
 spec:
   interval: 1h
-  path: ./k8s/infra/network/gateway/flux
+  path: ./k8s/infra/network/gateway/base
   prune: true
   sourceRef:
     kind: GitRepository

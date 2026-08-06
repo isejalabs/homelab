@@ -6,7 +6,7 @@ metadata:
   name: cilium
 spec:
   interval: 1h
-  path: ./k8s/core/network/cilium/flux
+  path: ./k8s/core/network/cilium/base
   prune: true
   sourceRef:
     kind: GitRepository

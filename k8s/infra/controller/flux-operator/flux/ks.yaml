@@ -6,7 +6,7 @@ metadata:
   name: flux-operator
 spec:
   interval: 1h
-  path: ./k8s/infra/controller/flux-operator/flux
+  path: ./k8s/infra/controller/flux-operator/base
   prune: true
   sourceRef:
     kind: GitRepository

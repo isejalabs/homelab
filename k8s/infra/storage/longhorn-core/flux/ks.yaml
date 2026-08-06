@@ -6,7 +6,7 @@ metadata:
   name: longhorn-core
 spec:
   interval: 1h
-  path: ./k8s/infra/storage/longhorn-core/flux
+  path: ./k8s/infra/storage/longhorn-core/base
   prune: true
   sourceRef:
     kind: GitRepository

@@ -6,7 +6,7 @@ metadata:
   name: proxmox-csi
 spec:
   interval: 1h
-  path: ./k8s/infra/storage/proxmox-csi/flux
+  path: ./k8s/infra/storage/proxmox-csi/base
   prune: true
   sourceRef:
     kind: GitRepository

@@ -6,7 +6,7 @@ metadata:
   name: k-serving-cert-approver
 spec:
   interval: 1h
-  path: ./k8s/infra/controller/kubelet-serving-cert-approver/flux
+  path: ./k8s/infra/controller/kubelet-serving-cert-approver/base
   prune: true
   sourceRef:
     kind: GitRepository
