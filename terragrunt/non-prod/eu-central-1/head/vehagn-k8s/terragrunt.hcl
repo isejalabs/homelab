@@ -46,7 +46,7 @@ locals {
   vlan_id             = include.envcommon.locals.vlan_id
   work_cpu            = include.envcommon.locals.work_cpu
   work_disk_size      = include.envcommon.locals.work_disk_size-medium
-  work_ram            = include.envcommon.locals.work_ram-small
+  work_ram            = include.envcommon.locals.work_ram-big
 
   # Set some values specific to this environment
   storage_vmid = 9811
@@ -134,34 +134,34 @@ inputs = {
       vlan_id       = local.vlan_id
       # update        = true
     }
-    # "${local.env}-work-01.${local.domain}" = {
-    #   host_node     = "pve1"
-    #   machine_type  = "worker"
-    #   ip            = "10.7.8.114"
-    #   vm_id         = 7008114
-    #   cpu           = local.work_cpu
-    #   cpu_type      = local.cpu_type
-    #   datastore     = local.datastore
-    #   dns           = local.dns
-    #   disk_size     = local.work_disk_size
-    #   ram_dedicated = local.work_ram
-    #   vlan_id       = local.vlan_id
-    #   # update        = true
-    # }
-    # "${local.env}-work-02.${local.domain}" = {
-    #   host_node     = "pve4"
-    #   machine_type  = "worker"
-    #   ip            = "10.7.8.115"
-    #   vm_id         = 7008115
-    #   cpu           = local.work_cpu
-    #   cpu_type      = local.cpu_type
-    #   datastore     = local.datastore
-    #   dns           = local.dns
-    #   disk_size     = local.work_disk_size
-    #   ram_dedicated = local.work_ram
-    #   vlan_id       = local.vlan_id
-    #   # update        = true
-    # }
+    "${local.env}-work-01.${local.domain}" = {
+      host_node     = "pve1"
+      machine_type  = "worker"
+      ip            = "10.7.8.114"
+      vm_id         = 7008114
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.work_disk_size
+      ram_dedicated = local.work_ram
+      vlan_id       = local.vlan_id
+      # update        = true
+    }
+    "${local.env}-work-02.${local.domain}" = {
+      host_node     = "pve4"
+      machine_type  = "worker"
+      ip            = "10.7.8.115"
+      vm_id         = 7008115
+      cpu           = local.work_cpu
+      cpu_type      = local.cpu_type
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.work_disk_size
+      ram_dedicated = local.work_ram
+      vlan_id       = local.vlan_id
+      # update        = true
+    }
     "${local.env}-work-03.${local.domain}" = {
       host_node     = "pve5"
       machine_type  = "worker"
