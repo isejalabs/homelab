@@ -1,17 +1,17 @@
-# ToDo
+## ToDo
 
 - [ ] document folder structure
 - [X] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
 - [ ] document kustomize overlay approach (incl. transformers and components)
 
-# Bootstrapping the cluster and deploying applications
+## Bootstrapping the cluster and deploying applications
 
 > [!TIP]
 > Substitute `<env>` (or the example environment `dev`) with the specific environment, e.g. dev, qa, prod
-> <br>
+>
 > In the following the command `k` is aliased for `kubectl` (`alias k=kubectl`)
 
-## Preliminary Checks
+### Preliminary Checks
 
 Check cluster is reachable and you can authenticate.
 
@@ -44,45 +44,66 @@ kubectl get pods -A --field-selector=status.phase=Failed
 kubectl get pods -A --field-selector=status.phase!=Running
 ```
 
-## Bootstrapping options
+### Bootstrapping options
+
+The cluster needs to get bootstrapped with FluxCD.  It cannot _easily_ get bootstrapped manually as the Kubernetes manifests depend on FluxCD.  Especially, for Helm charts, Flux's `HelmRelease` (and `HelmRepository` and `OCIRepository`) manifests are used instead of `kustomize`'s `HelmChart` and `HelmChartInflationGenerator` features.  Thus, Flux's `HelmController` needs to be up and running before any Helm charts can be deployed.  
+
+There is a possibility to bootstrap the cluster manually by deploying the manifests with `kubectl apply -k` or `kustomize build | kubectl apply`, but this is not recommended.
+
+The bootstrapping process is described in the following sections.
 
 The cluster can be bootstrapped in two ways:
 
-1. [**Manual bootstrapping**](#manual-bootstrapping) by applying the manifests with `kubectl apply -k` or `kustomize build --enable-helm | kubectl apply`, subsequently for the `core`, `infra` and `apps` categories, as described in the following sections. This approach is more error-prone and requires more manual work, but it allows for a better understanding of the bootstrapping process and the dependencies between the different components.
-2. [**Automatic bootstrapping**](#automatic-bootstrapping-via-argocd) via ArgoCD, by applying the ArgoCD application manifests and letting ArgoCD take care of the rest of the bootstrapping process, as it will automatically apply the manifests for the `core`, `infra` and `apps` categories.
+1. [**Automatic bootstrapping**](#automatic-bootstrapping-via-argocd) via FluxCD, by applying the FluxCD application manifests and letting FluxCD take care of the rest of the bootstrapping process, as it will automatically apply the manifests for the `core`, `infra` and `apps` categories and manage inter-app dependencies.
+1. **Not recommended**: [**Manual bootstrapping**](#manual-bootstrapping) by applying the manifests with `kubectl apply -k` or `kustomize build | kubectl apply`, subsequently for the `core`, `infra` and `apps` categories, as described in the following sections. This approach is more error-prone and requires more manual work, but it allows for a better understanding of the bootstrapping process and the dependencies between the different components.
 
-# Automatic bootstrapping via ArgoCD
+> [!TIP]
+> Applying manifests manually, especially in the application category, allows adding and configuring new applications before committing the changes to the Git repository yet.
 
-The ArgoCD application manifests are located in the `k8s/infra/controller/argocd/` folder. The `base` folder contains the base application manifests, which are environment-agnostic, while the `envs` folder contains the environment-specific application manifests, which are applied on top of the base manifests. 
+## Automatic bootstrapping by Helmfile and FluxCD
 
-You can apply the ArgoCD application manifests with the following command:
+Among the options for bootstrapping FluxCD, the approach of installing `flux-operator` and `flux-instance` is doing it via **Helmfile**.  
+
+Run the following command to bootstrap the cluster in the `<env>` environment:
 
 ```sh
-kustomize build --enable-helm k8s/infra/controller/argocd/envs/<env> | kubectl apply -f - --server-side
+helmfile -f k8s/bootstrap -e <env> sync
 ```
 
 For example, the following command will bootstrap the cluster in the `rebuild` environment:
 
 ```sh
-kustomize build --enable-helm k8s/infra/controller/argocd/envs/rebuild | kaf - --server-side --context admin@rebuild-homelab
+helmfile -f k8s/bootstrap -e rebuild sync
 ```
 
-Automatic bootstrapping via ArgoCD is the recommended approach for the following environments:
+Output of the command will look like this:
 
-- prod
-- qa
-- rebuild
-- head
+```text
+...
+============================================ Updated Releases =============================================
+NAME            NAMESPACE     CHART                                                      VERSION   DURATION
+flux-operator   flux-system   oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator   0.55.0         30s
+flux-instance   flux-system   oci://ghcr.io/controlplaneio-fluxcd/charts/flux-instance   0.55.0          3s
+```
 
-# Manual bootstrapping
+## Manual bootstrapping
+
+> [!IMPORTANT]
+>For this to work, you need to point `instance.sync.path` of the `flux-instance` to another path to avoid automatic reconciliation with the GitRepository.  Alternatively, you can disable reconciliation for the GitRepository by setting `spec.suspend: true` in the GitRepository manifest.
+>
+>This will prevent FluxCD from automatically reconciling the GitRepository and applying the manifests, which would lead to a conflict with the manual bootstrapping process.
 
 You need to bootstrap the cluster in the following order, as there are dependencies between the different components:
 
-1. [**Core**](#core-requirements): The core components are the foundation of the cluster and need to be up and running before you can deploy any other components, e.g. the CNI needs to be up and running before you can deploy the Gateway API controller, as the latter depends on the CNI for networking.
-2. [**Infrastructure**](#infrastructure): The infrastructure components are the building blocks for the applications and need to be up and running before you can deploy any applications, e.g. the cert-manager needs to be up and running before you can deploy any certificates or issuers, as they depend on the cert-manager for certificate management.
-3. [**Applications**](#applications): The applications are the actual workloads that run on the cluster and depend on the core and infrastructure components to be up available.
+1. [**FluxCD**](#fluxcd): The FluxCD components are the foundation of the cluster and need to be up and running before you can deploy any other components, e.g. the HelmRelease resources for the `core`, `infra` and `apps` categories depend on the FluxCD controllers being up and running.
 
-## Core Requirements
+   See section above for automatic [bootstrapping via Helmfile and FluxCD](#automatic-bootstrapping-by-helmfile-and-fluxcd).
+
+1. [**Core**](#core-requirements): The core components are the foundation of the cluster and need to be up and running before you can deploy any other components, e.g. the CNI needs to be up and running before you can deploy the Gateway API controller, as the latter depends on the CNI for networking.
+1. [**Infrastructure**](#infrastructure): The infrastructure components are the building blocks for the applications and need to be up and running before you can deploy any applications, e.g. the cert-manager needs to be up and running before you can deploy any certificates or issuers, as they depend on the cert-manager for certificate management.
+1. [**Applications**](#applications): The applications are the actual workloads that run on the cluster and depend on the core and infrastructure components to be up available.
+
+### Core Requirements
 
 The `core` set covers depencencies necessary even for `infra` components, e.g.
 
@@ -90,19 +111,19 @@ The `core` set covers depencencies necessary even for `infra` components, e.g.
 - Gateway API - CRDs only (controller in `infra` set, as it depends on CNI being up and running)
 - Sealed Secrets Controller (secret management for infra components)
 
-### Set
+#### Set
 
 Use the `kustomize` set in the `_envs` folder for deploying all applications in the `core` category.
 
 ```sh
 # deploy for current context (retrieves "dev" environment out of "admin@dev-homelab" automatically)
-kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
+kustomize build k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 
 # alternatively, deploy for environment `dev` explicitely (be sure to have the correct context active, e.g. `admin@dev-homelab`)
-kustomize build --enable-helm k8s/core/_envs/dev | kubectl apply -f -
+kustomize build k8s/core/_envs/dev | kubectl apply -f -
 ```
 
-### Need to run multiple times
+#### Need to run multiple times
 
 > [!Important]
 > You will need to run the above command multiple times, as some resources depend on each other.
@@ -159,17 +180,17 @@ k get pods -n kube-system -l k8s-app=cilium
 
 You will need to wait for the CNI to be up and running before you can deploy other applications, e.g. the Gateway API controller.
 
-### Handling individual applications
+#### Handling individual applications
 
 If not all applications are needed, use the following `kustomize build` commands instead.
 
-#### Cilium
+##### Cilium
 
 ```sh
-kustomize build --enable-helm k8s/core/network/cilium/envs/dev | kubectl apply -f -
+kustomize build k8s/core/network/cilium/envs/dev | kubectl apply -f -
 ```
 
-##### Checks
+###### Checks
 
 Check for cilium being deployed successfully:
 
@@ -177,7 +198,7 @@ Check for cilium being deployed successfully:
 cilium status --wait
 ```
 
-##### Configuration
+###### Configuration
 
 Print out configuration:
 
@@ -188,19 +209,19 @@ kubectl -n kube-system get configmap cilium-config -o yaml
 helm get values cilium -n kube-system
 ```
 
-#### Gateway API
+##### Gateway API
 
 ```sh
-kustomize build --enable-helm k8s/core/network/gateway/envs/<env> | kubectl apply -f -
+kustomize build k8s/core/network/gateway-api-crds/envs/<env> | kubectl apply -f -
 ```
 
-#### Sealed Secrets
+##### Sealed Secrets
 
 ```sh
-kustomize build --enable-helm infra/controllers/sealed-secrets | kubectl apply -f -
+kustomize build infra/controllers/sealed-secrets | kubectl apply -f -
 ```
 
-##### Usage
+###### Usage
 
 Check whether Sealed Secrets Controller is working (you need to have `kubeseal` CLI installed on the workstation as well):
 
@@ -249,23 +270,23 @@ cat users.yaml | kubectl create secret generic users --dry-run=client --from-fil
 kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets < infra/controllers/cert-manager/cloudflare-api-token.yaml --recovery-unseal --recovery-private-key sealed-secrets-key.yaml -o json | jq -r ' .data."api-token" | @base64d'
 ```
 
-##### Decrypt
+###### Decrypt
 
 ```sh
 k get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
 ```
 
-## Infrastructure
+### Infrastructure
 
-### Set
+#### Set
 
 Use the `kustomize` set for deploying all applications in the `infra` category.
 
 ```sh
-kustomize build --enable-helm k8s/infra/_envs/dev | kubectl apply -f -
+kustomize build k8s/infra/_envs/dev | kubectl apply -f -
 ```
 
-### Need to run multiple times
+#### Need to run multiple times
 
 > [!Important]
 > You will need to run the above command **two times**.
@@ -293,11 +314,11 @@ NAME   READY   SECRET   AGE
 cert   True    cert     1m
 ```
 
-### Handling individual applications
+#### Handling individual applications
 
 If not all applications are needed, use the following `kustomize build` commands instead.
 
-### Cert Manager
+#### Cert Manager
 
 ```sh
 k describe -n cert-manager secrets
@@ -307,10 +328,10 @@ k logs -n cert-manager services/cert-manager -f
 k get secrets -n cert-manager cloudflare-api-token -o json | jq -r '.data."api-token" | @base64d'
 ```
 
-#### Proxmox CSI
+##### Proxmox CSI
 
 ```sh
-kustomize build --enable-helm infra/storage/proxmox-csi | kubectl apply -f -
+kustomize build infra/storage/proxmox-csi | kubectl apply -f -
 ```
 
 Check for Proxmox CSI being connected with Proxmox server properly:
@@ -322,12 +343,12 @@ kubectl get csistoragecapacities -ocustom-columns=CLASS:.storageClassName,AVAIL:
 k get -A pv
 ```
 
-## Applications
+### Applications
 
-### Handling individual applications
+#### Handling individual applications
 
-#### whoami
+##### whoami
 
 ```sh
-kustomize build --enable-helm k8s/apps/diag/whoami/envs/<env> | kubectl apply -f -
+kustomize build k8s/apps/diag/whoami/envs/<env> | kubectl apply -f -
 ```

@@ -6,4 +6,6 @@ namespace: actualbudget
 
 resources:
   - ns.yaml
+  - helmrelease.yaml
+  - helmrepository.yaml
   - http-route.yaml

@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/helmrepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: checkmk-kube-agent
+  # pre-set namespace to allow renovate linking HelmRelease and HelmRepository
+  # as it cannot cope with NS set by kustomize
+  # https://docs.renovatebot.com/modules/manager/flux/#helmrelease-support
+  namespace: checkmk-kube-agent
+spec:
+  interval: 1h
+  url: https://checkmk.github.io/checkmk_kube_agent

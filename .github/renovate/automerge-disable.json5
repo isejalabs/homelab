@@ -4,7 +4,7 @@
     {
       description: "disable automerge for specific packages",
       matchPackageNames: [
-        "cilium",
+        "quay.io/cilium/charts/cilium",
         "github.com/isejalabs/terraform-proxmox-talos",
         "kubernetes/kubernetes",
         "sidero/talos",

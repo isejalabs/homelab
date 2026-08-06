@@ -2,4 +2,10 @@ apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
 components:
+  - ../../transformers/add-labels
   - ../../transformers/replace-domain
+  - ../../transformers/replace-path
+  - ../../transformers/set-flux-defaults
+
+resources:
+  - cluster-base-param.yaml

@@ -6,12 +6,3 @@ namespace: kube-system
 resources:
   - bgp-peer-config.yaml
   - bgp-advertisement.yaml
-
-helmCharts:
-  - name: cilium
-    repo: https://helm.cilium.io
-    version: 1.18.9
-    releaseName: "cilium"
-    includeCRDs: true
-    namespace: kube-system
-    valuesFile: values.yaml

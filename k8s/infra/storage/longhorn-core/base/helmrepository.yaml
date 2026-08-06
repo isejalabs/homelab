@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/source.toolkit.fluxcd.io/helmrepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: HelmRepository
+metadata:
+  name: longhorn
+  # pre-set namespace to allow renovate linking HelmRelease and HelmRepository
+  # as it cannot cope with NS set by kustomize
+  # https://docs.renovatebot.com/modules/manager/flux/#helmrelease-support
+  namespace: longhorn-system
+spec:
+  interval: 1h
+  url: https://charts.longhorn.io

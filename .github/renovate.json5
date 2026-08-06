@@ -18,6 +18,9 @@
   additionalBranchPrefix: "{{packageFileDir}}/",
   prBodyColumns: ["Package", "Package file", "Update", "Change"],
   separateMinorPatch: true,
+  flux: {
+    managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
+  },
   kubernetes: {
     managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
   },

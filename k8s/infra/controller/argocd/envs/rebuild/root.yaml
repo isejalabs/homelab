@@ -1,8 +1,0 @@
-apiVersion: argoproj.io/v1alpha1
-kind: Application
-metadata:
-  name: root
-spec:
-  source:
-    path: k8s/infra/controller/argocd/apps/envs/rebuild
-    targetRevision: HEAD
