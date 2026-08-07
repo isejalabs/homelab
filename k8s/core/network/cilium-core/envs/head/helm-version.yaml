@@ -7,4 +7,5 @@ metadata:
 spec:
   ref:
     tag: 1.20.0
+    digest: sha256:8009baed89d99fd84f7ee5cfdbf3a1fae8153452132549833956b6aca8b9d738
   url: oci://quay.io/cilium/charts/cilium
