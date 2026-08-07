@@ -1,0 +1,61 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "matchPackageNames": ["ghcr.io/actualbudget/actual-server"],
+      "commitMessageTopic": "actualbudget/actual-server"
+    },
+    {
+      "matchPackageNames": ["docker.io/adguard/adguardhome"],
+      "commitMessageTopic": "adguard/adguardhome"
+    },
+    {
+      "matchPackageNames": ["quay.io/jetstack/charts/cert-manager"],
+      "commitMessageTopic": "jetstack/cert-manager"
+    },
+    {
+      "matchPackageNames": ["quay.io/cilium/charts/cilium"],
+      "commitMessageTopic": "cilium/cilium"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/controlplaneio-fluxcd/charts/flux-instance"],
+      "commitMessageTopic": "controlplaneio-fluxcd/flux-instance"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/controlplaneio-fluxcd/charts/flux-operator"],
+      "commitMessageTopic": "controlplaneio-fluxcd/flux-operator"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/home-operations/charts-mirror/metrics-server"],
+      "commitMessageTopic": "home-operations/metrics-server"
+    },
+    {
+      "matchPackageNames": ["lscr.io/linuxserver/openssh-server"],
+      "commitMessageTopic": "linuxserver/openssh-server"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/sergelogvinov/charts/proxmox-csi-plugin"],
+      "commitMessageTopic": "sergelogvinov/proxmox-csi-plugin"
+    },
+    {
+      "matchPackageNames": ["registry-1.docker.io/bitnamicharts/sealed-secrets"],
+      "commitMessageTopic": "bitnamicharts/sealed-secrets"
+    },
+    {
+      "matchPackageNames": ["github.com/isejalabs/terraform-proxmox-talos"],
+      "commitMessageTopic": "isejalabs/terraform-proxmox-talos"
+    },
+    {
+      "matchPackageNames": ["docker.io/madnuttah/unbound"],
+      "commitMessageTopic": "madnuttah/unbound"
+    },
+    {
+      "matchPackageNames": ["ghcr.io/traefik/whoami"],
+      "commitMessageTopic": "traefik/whoami"
+    },
+    {
+      "matchPackageNames": ["lscr.io/linuxserver/unifi-network-application"],
+      "commitMessageTopic": "linuxserver/unifi-network-application"
+    },
+  ]
+}
