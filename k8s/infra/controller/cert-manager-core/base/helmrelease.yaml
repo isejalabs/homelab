@@ -10,14 +10,15 @@ spec:
     name: cert-manager
   interval: 1h
   values:
+    config:
+      gatewayAPI:
+        enabled: true
+  
     crds:
       enabled: true
 
     # use external DNS resolvers for accomodating split DNS
     dns01RecursiveNameservers: https://1.1.1.1:443/dns-query,https://9.9.9.9:443/dns-query
-
-    extraArgs:
-      - "--enable-gateway-api"
 
     resources:
       limits:
