@@ -1,4 +1,4 @@
 instance:
   sync:
     interval: 1m
-    path: "k8s/infra/controller/fluxcd/cluster/envs/dev"
+    path: "k8s/bootstrap/cluster/flux/envs/dev"
