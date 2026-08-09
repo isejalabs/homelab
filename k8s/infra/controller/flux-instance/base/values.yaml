@@ -13,5 +13,5 @@ instance:
     kind: GitRepository
     url: "https://github.com/isejalabs/homelab"
     ref: "refs/heads/main"
-    path: "k8s/infra/controller/fluxcd/cluster/envs/REPLACE_ME"
+    path: "k8s/bootstrap/cluster/flux/envs/REPLACE_ME"
     interval: 10m
