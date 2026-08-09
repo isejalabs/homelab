@@ -61,13 +61,13 @@ Among the options for bootstrapping FluxCD, the approach of installing `flux-ope
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
 ```sh
-helmfile -f k8s/bootstrap -e <env> sync
+helmfile -f k8s/bootstrap/helmfile -e <env> sync
 ```
 
 For example, the following command will bootstrap the cluster in the `rebuild` environment:
 
 ```sh
-helmfile -f k8s/bootstrap -e rebuild sync
+helmfile -f k8s/bootstrap/helmfile -e rebuild sync
 ```
 
 Output of the command will look like this:
