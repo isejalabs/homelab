@@ -7,7 +7,7 @@ spec:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: internal
-      namespace: gateway
+      namespace: gateway-api
   hostnames:
     - "cmk-k8s-cluster-collector.example.com"
   rules:
