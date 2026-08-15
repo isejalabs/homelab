@@ -180,7 +180,7 @@ If not all applications are needed, use the following `kustomize build` commands
 ##### Cilium
 
 ```sh
-kustomize build k8s/core/network/cilium/envs/dev | kubectl apply -f -
+kustomize build k8s/infra/kube-system/cilium/envs/dev | kubectl apply -f -
 ```
 
 ###### Checks
@@ -205,7 +205,7 @@ helm get values cilium -n kube-system
 ##### Gateway API
 
 ```sh
-kustomize build k8s/core/gateway-api/gateway-api-crds/envs/<env> | kubectl apply -f -
+kustomize build k8s/infra/gateway-api/gateway-api-crds/envs/<env> | kubectl apply -f -
 ```
 
 ##### Sealed Secrets

@@ -4,7 +4,11 @@ kind: Kustomization
 resources:
   - ../../cert-manager/cert-manager-core/envs/dev
   - ../../cert-manager/cert-manager/envs/dev
-  - ../../kube-system/kubelet-serving-cert-approver/envs/dev
-  - ../../gateway-api/gateway/envs/dev
-  - ../../gateway-api/gateway-redirect/envs/dev
   - ../../csi-proxmox/proxmox-csi/envs/dev
+  - ../../gateway-api/gateway-api-crds/envs/dev
+  - ../../gateway-api/gateway-redirect/envs/dev
+  - ../../gateway-api/gateway/envs/dev
+  - ../../kube-system/cilium-core/envs/dev
+  - ../../kube-system/cilium/envs/dev
+  - ../../kube-system/kubelet-serving-cert-approver/envs/dev
+  - ../../sealed-secrets/sealed-secrets/envs/dev

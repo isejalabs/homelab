@@ -3,13 +3,16 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: gateway-api-crds
+  name: sealed-secrets
 spec:
   interval: 1h
-  path: ./k8s/core/gateway-api/gateway-api-crds/base
+  path: ./k8s/infra/sealed-secrets/sealed-secrets/base
   prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
   wait: true
+  dependsOn:
+    - name: cilium
+    - name: infra-ns

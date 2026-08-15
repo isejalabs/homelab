@@ -12,3 +12,4 @@ resources:
 - ../../../gateway-api/_ns/base
 - ../../../kube-system/_ns/base
 - ../../../longhorn-system/_ns/base
+- ../../../sealed-secrets/_ns/base

@@ -3,13 +3,15 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: cilium-core
+  name: cilium
 spec:
   interval: 1h
-  path: ./k8s/core/network/cilium-core/base
+  path: ./k8s/infra/kube-system/cilium/base
   prune: true
   sourceRef:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
   wait: true
+  dependsOn:
+    - name: cilium-core
