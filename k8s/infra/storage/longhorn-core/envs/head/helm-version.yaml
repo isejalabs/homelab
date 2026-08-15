@@ -10,4 +10,4 @@ spec:
         kind: HelmRepository
         name: *name
         namespace: longhorn-system
-      version: "1.12.0"
+      version: "1.12.1"
