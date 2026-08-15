@@ -9,6 +9,8 @@ resources:
   - ../../../../../../infra/cert-manager/cert-manager/flux
   - ../../../../../../infra/common/ns/flux
   - ../../../../../../infra/csi-proxmox/proxmox-csi/flux
+  - ../../../../../../infra/flux-system/flux-instance/flux
+  - ../../../../../../infra/flux-system/flux-operator/flux
   - ../../../../../../infra/gateway-api/gateway-redirect/flux
   - ../../../../../../infra/gateway-api/gateway/flux
   - ../../../../../../infra/kube-system/kubelet-serving-cert-approver/flux
