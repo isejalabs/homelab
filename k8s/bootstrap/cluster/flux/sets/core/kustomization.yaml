@@ -8,4 +8,4 @@ resources:
   - ../../../../../core/controller/sealed-secrets/flux
   - ../../../../../core/network/cilium-core/flux
   - ../../../../../core/network/cilium/flux
-  - ../../../../../core/network/gateway-api-crds/flux
+  - ../../../../../core/gateway-api/gateway-api-crds/flux

@@ -5,4 +5,4 @@ resources:
   - ../../controller/sealed-secrets/envs/prod
   - ../../network/cilium-core/envs/prod
   - ../../network/cilium/envs/prod
-  - ../../network/gateway-api-crds/envs/prod
+  - ../../gateway-api/gateway-api-crds/envs/prod

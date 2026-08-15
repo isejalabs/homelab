@@ -5,9 +5,10 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - ../../../../../../infra/controller/cert-manager-core/flux
-  - ../../../../../../infra/controller/cert-manager/flux
-  - ../../../../../../infra/controller/kubelet-serving-cert-approver/flux
-  - ../../../../../../infra/network/gateway/flux
-  - ../../../../../../infra/network/gateway-redirect/flux
-  - ../../../../../../infra/storage/proxmox-csi/flux
+  - ../../../../../../infra/cert-manager/cert-manager-core/flux
+  - ../../../../../../infra/cert-manager/cert-manager/flux
+  - ../../../../../../infra/common/ns/flux
+  - ../../../../../../infra/csi-proxmox/proxmox-csi/flux
+  - ../../../../../../infra/gateway-api/gateway-redirect/flux
+  - ../../../../../../infra/gateway-api/gateway/flux
+  - ../../../../../../infra/kube-system/kubelet-serving-cert-approver/flux

@@ -2,9 +2,9 @@ apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
 resources:
-  - ../../controller/cert-manager-core/envs/src
-  - ../../controller/cert-manager/envs/src
-  - ../../controller/kubelet-serving-cert-approver/envs/src
-  - ../../network/gateway/envs/src
-  - ../../network/gateway-redirect/envs/src
-  - ../../storage/proxmox-csi/envs/src
+  - ../../cert-manager/cert-manager-core/envs/src
+  - ../../cert-manager/cert-manager/envs/src
+  - ../../kube-system/kubelet-serving-cert-approver/envs/src
+  - ../../gateway-api/gateway/envs/src
+  - ../../gateway-api/gateway-redirect/envs/src
+  - ../../csi-proxmox/proxmox-csi/envs/src
