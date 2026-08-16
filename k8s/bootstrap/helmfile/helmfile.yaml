@@ -2,12 +2,13 @@
 # yaml-language-server: $schema=https://json.schemastore.org/helmfile
 
 bases:
-  - base/default-release-template.yaml
+  - base/release-templates.yaml
   - base/environments.yaml
   - base/helmdefaults.yaml.gotmpl
 
 defaultInherit:
-  - default-release-template
+  - chart-version-from-ocirelease
+  - values-from-values-yaml-file
 
 releases:
   - name: flux-operator
