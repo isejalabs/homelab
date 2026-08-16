@@ -1,0 +1,15 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# no namespace declaration as this would override substream NS def.
+# namespace: DO-NOT-UNCOMMENT
+
+# source the base of the namespace resources, as we can't do it dependent on the environment
+resources:
+- ../../../cert-manager/_ns/base
+- ../../../csi-proxmox/_ns/base
+- ../../../flux-system/_ns/base
+- ../../../gateway-api/_ns/base
+- ../../../kube-system/_ns/base
+- ../../../longhorn-system/_ns/base
+- ../../../sealed-secrets/_ns/base

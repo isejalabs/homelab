@@ -32,7 +32,7 @@ locals {
   base_source_url = "git::git@github.com:isejalabs/terraform-proxmox-talos.git"
 
   # Set some values common accross all environments
-  cilium_path           = "k8s/core/network/cilium-core"
+  cilium_path           = "k8s/infra/kube-system/cilium-core"
   cpu_type              = "custom-x86-64-v2-AES-AVX"
   ctrl_cpu              = 2
   ctrl_disk_size        = 6

@@ -1,3 +1,0 @@
-instance:
-  sync:
-    path: "k8s/bootstrap/cluster/flux/envs/poc"

@@ -40,7 +40,7 @@ kubectl get pods -A --field-selector=status.phase!=Running
 
 ### Bootstrapping options
 
-The cluster needs to get bootstrapped with FluxCD.  It cannot _easily_ get bootstrapped manually as the Kubernetes manifests depend on FluxCD.  Especially, for Helm charts, Flux's `HelmRelease` (and `HelmRepository` and `OCIRepository`) manifests are used instead of `kustomize`'s `HelmChart` and `HelmChartInflationGenerator` features.  Thus, Flux's `HelmController` needs to be up and running before any Helm charts can be deployed.  
+The cluster needs to get bootstrapped with FluxCD. It cannot _easily_ get bootstrapped manually as the Kubernetes manifests depend on FluxCD. Especially, for Helm charts, Flux's `HelmRelease` (and `HelmRepository` and `OCIRepository`) manifests are used instead of `kustomize`'s `HelmChart` and `HelmChartInflationGenerator` features. Thus, Flux's `HelmController` needs to be up and running before any Helm charts can be deployed.
 
 There is a possibility to bootstrap the cluster manually by deploying the manifests with `kubectl apply -k` or `kustomize build | kubectl apply`, but this is not recommended.
 
@@ -56,7 +56,7 @@ The cluster can be bootstrapped in two ways:
 
 ## Automatic bootstrapping by Helmfile and FluxCD
 
-Among the options for bootstrapping FluxCD, the approach of installing `flux-operator` and `flux-instance` is doing it via **Helmfile**.  
+Among the options for bootstrapping FluxCD, the approach of installing `flux-operator` and `flux-instance` is doing it via **Helmfile**.
 
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
@@ -83,9 +83,9 @@ flux-instance   flux-system   oci://ghcr.io/controlplaneio-fluxcd/charts/flux-in
 ## Manual bootstrapping
 
 > [!IMPORTANT]
->For this to work, you need to point `instance.sync.path` of the `flux-instance` to another path to avoid automatic reconciliation with the GitRepository.  Alternatively, you can disable reconciliation for the GitRepository by setting `spec.suspend: true` in the GitRepository manifest.
+> For this to work, you need to point `instance.sync.path` of the `flux-instance` to another path to avoid automatic reconciliation with the GitRepository. Alternatively, you can disable reconciliation for the GitRepository by setting `spec.suspend: true` in the GitRepository manifest.
 >
->This will prevent FluxCD from automatically reconciling the GitRepository and applying the manifests, which would lead to a conflict with the manual bootstrapping process.
+> This will prevent FluxCD from automatically reconciling the GitRepository and applying the manifests, which would lead to a conflict with the manual bootstrapping process.
 
 You need to bootstrap the cluster in the following order, as there are dependencies between the different components:
 
@@ -146,7 +146,7 @@ The CNI is running properly when you see the following output for the `cilium st
  \__/¯¯\__/    Hubble Relay:       OK
     \__/       ClusterMesh:        disabled
 ...
-``` 
+```
 
 ... and the BGP configuration is applied successfully, when you see the following output for the `kubectl apply` command (note the "created" or "unchanged" status):
 
@@ -165,7 +165,6 @@ NAME          AGE
 cilium-peer   1m
 ```
 
-
 Alternatively to the `cilium` command, you can check for the CNI being ready by checking the status of the cilium pods in the `kube-system` namespace.
 
 ```sh
@@ -181,7 +180,7 @@ If not all applications are needed, use the following `kustomize build` commands
 ##### Cilium
 
 ```sh
-kustomize build k8s/core/network/cilium/envs/dev | kubectl apply -f -
+kustomize build k8s/infra/kube-system/cilium/envs/dev | kubectl apply -f -
 ```
 
 ###### Checks
@@ -206,7 +205,7 @@ helm get values cilium -n kube-system
 ##### Gateway API
 
 ```sh
-kustomize build k8s/core/network/gateway-api-crds/envs/<env> | kubectl apply -f -
+kustomize build k8s/infra/gateway-api/gateway-api-crds/envs/<env> | kubectl apply -f -
 ```
 
 ##### Sealed Secrets
@@ -303,7 +302,7 @@ k get pods -n cert-manager
 You can also check the for the certificate beging issued successfully by checking the status of the certificate resource:
 
 ```sh
-❯ k get certificate -n gateway
+❯ k get certificate -n gateway-api
 NAME   READY   SECRET   AGE
 cert   True    cert     1m
 ```
@@ -325,7 +324,7 @@ k get secrets -n cert-manager cloudflare-api-token -o json | jq -r '.data."api-t
 ##### Proxmox CSI
 
 ```sh
-kustomize build infra/storage/proxmox-csi | kubectl apply -f -
+kustomize build infra/csi-proxmox/proxmox-csi | kubectl apply -f -
 ```
 
 Check for Proxmox CSI being connected with Proxmox server properly:
