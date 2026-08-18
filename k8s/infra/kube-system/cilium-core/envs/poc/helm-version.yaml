@@ -6,6 +6,6 @@ metadata:
   name: cilium
 spec:
   ref:
-    tag: 1.19.4
-    digest: sha256:2ae196af6b06d14ee680ef66553ba0419da4595b12786942a2655997ac0527db
+    tag: 1.19.7
+    digest: sha256:10838283b2f99f2a24b5502220fe5ba850ec08718c7fc745f8cc4e04698ce124
   url: oci://quay.io/cilium/charts/cilium
