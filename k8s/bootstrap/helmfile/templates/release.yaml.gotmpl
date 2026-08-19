@@ -1,3 +1,22 @@
-{{- $oci := fromYaml (readFile (printf "../../infra/%s/%s/base/ocirepository.yaml" .Release.Namespace .Release.Name)) -}}
-chart: {{ $oci.spec.url }}
-version: {{ $oci.spec.ref.tag }}
+# 0. Some constants
+{{- $baseFile := printf "../../infra/%s/%s/base/ocirepository.yaml" .Release.Namespace .Release.Name }}
+{{- $envFile := printf "../../infra/%s/%s/envs/%s/ocirepository.yaml" .Release.Namespace .Release.Name .Environment.Name }}
+
+# 1. Source files and parse the base/env YAML string into a map
+{{- $base := readFile $baseFile | fromYaml }}
+# env-file is optional and might not exist, hence needs a fallback
+{{- if isFile $envFile }}
+{{- $env := readFile $envFile | fromYaml }}
+{{- else }}
+{{- $env := "{}" | fromYaml }}
+{{- end }}
+
+# 2. Merge '$env' and '$base'
+{{ $merged := merge $env $base }}
+
+# 3. Optionally, output the final merged map back to YAML format
+{{ $merged | toYaml }}
+
+# 4. Define final YAML
+chart: {{ $merged.spec.url }}
+version: {{ $merged.spec.ref.tag }}
