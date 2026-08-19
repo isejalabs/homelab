@@ -1,0 +1,10 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: flux-instance
+spec:
+  ref:
+    tag: 0.57.0
+    digest: sha256:2ef25fdd727deeb2480ec563845961b13c7258a422570a15a010fec0b6384803
