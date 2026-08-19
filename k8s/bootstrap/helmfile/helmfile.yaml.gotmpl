@@ -2,27 +2,20 @@
 
 environments:
   head:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   qa:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   dev:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   src:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   poc:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   rebuild:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   prod:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   dbg:
-    kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
 
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/helmfile
 
 helmDefaults:
   cleanupOnFail: true
+  kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   wait: true
   waitForJobs: true
 
