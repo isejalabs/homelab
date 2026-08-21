@@ -7,6 +7,6 @@ metadata:
 spec:
   interval: 1h
   ref:
-    tag: 2.19.2
-    digest: sha256:0722ab2239e9e754599c956d0a6050e7a3636ea9c5c5c8c087e9149ec5223263
+    tag: 2.19.3
+    digest: sha256:0a22f95d56c30e5e9778bf887ba7e3e68b6570356c3d9de4921f3816edf098f5
   url: oci://registry-1.docker.io/bitnamicharts/sealed-secrets
