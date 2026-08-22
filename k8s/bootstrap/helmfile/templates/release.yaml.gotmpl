@@ -6,8 +6,10 @@
 {{- $base := readFile $baseFile | fromYaml }}
 # env-file is optional and might not exist, hence needs a fallback
 {{- if isFile $envFile }}
+# the following will not be executed
 {{- $env := readFile $envFile | fromYaml }}
 {{- else }}
+# the following will also not be executed
 {{- $env := "{}" | fromYaml }}
 {{- end }}
 
