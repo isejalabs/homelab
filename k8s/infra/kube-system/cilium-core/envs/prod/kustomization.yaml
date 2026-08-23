@@ -10,4 +10,4 @@ resources:
   - ../../base
 
 patches:
-  - path: helm-version.yaml
+  - path: ocirepository.yaml
