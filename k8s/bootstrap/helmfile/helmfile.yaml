@@ -7,15 +7,52 @@ bases:
   - base/helmdefaults.yaml.gotmpl
 
 defaultInherit:
+  # get chart url and version from OCI release
   - chart-version-from-ocirelease
+  # get chart values from HelmRelease
   - values-from-helmrelease
 
 releases:
+  - name: cilium
+    namespace: kube-system
+    hooks:
+        # Wait for CRDs to be available
+      - command: kubectl
+        args:
+          - wait
+          - --for=create
+          - crd/ciliumbgpadvertisements.cilium.io
+          - crd/ciliumbgpclusterconfigs.cilium.io
+          - crd/ciliumbgppeerconfigs.cilium.io
+          - crd/ciliumloadbalancerippools.cilium.io
+          - --timeout=2m
+        events:
+          - postsync
+        showlogs: true
+    inherit:
+      # do not inherit values from HelmRelease, get them from values.yaml file instead, and we want to avoid conflicts
+      - template: values-from-helmrelease
+        except:
+          - values
+      - template: values-from-values-yaml-file
+
+  - name: sealed-secrets
+    namespace: sealed-secrets
+    needs:
+      - kube-system/cilium
+
+  - name: cert-manager
+    namespace: cert-manager
+    needs:
+      - sealed-secrets/sealed-secrets
+
   - name: flux-operator
     namespace: flux-system
+    needs:
+      - cert-manager/cert-manager
 
   - name: flux-instance
     namespace: flux-system
-    wait: false
     needs:
       - flux-system/flux-operator
+  
