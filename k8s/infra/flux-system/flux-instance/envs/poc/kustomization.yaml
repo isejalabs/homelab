@@ -9,11 +9,11 @@ components:
 resources:
   - ../../base
 
-# load _additional_ values from env-values.yaml
+# load _additional_ values from values.yaml
 configMapGenerator:
   - name: flux-instance-env-values
     files:
-      - env-values.yaml
+      - values.yaml
     options:
       disableNameSuffixHash: true
 
@@ -27,4 +27,4 @@ patches:
         value: 
           kind: ConfigMap
           name: flux-instance-env-values
-          valuesKey: env-values.yaml
+          valuesKey: values.yaml
