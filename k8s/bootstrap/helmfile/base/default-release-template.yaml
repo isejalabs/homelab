@@ -8,4 +8,4 @@ templates:
     missingFileHandler: Debug
     values:
     - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/base/values.yaml
-    - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/env-values.yaml
+    - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/values.yaml
