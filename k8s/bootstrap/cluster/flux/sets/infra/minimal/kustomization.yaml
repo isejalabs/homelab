@@ -14,7 +14,6 @@ resources:
   - ../../../../../../infra/gateway-api/gateway-api-crds/flux
   - ../../../../../../infra/gateway-api/gateway-redirect/flux
   - ../../../../../../infra/gateway-api/gateway/flux
-  - ../../../../../../infra/kube-system/cilium-core/flux
   - ../../../../../../infra/kube-system/cilium/flux
   - ../../../../../../infra/kube-system/kubelet-serving-cert-approver/flux
   - ../../../../../../infra/sealed-secrets/sealed-secrets/flux
