@@ -27,14 +27,9 @@ helmDefaults:
 releases:
   - name: flux-operator
     namespace: flux-system
-    values:
-      - ../../infra/flux-system/flux-operator/base/values.yaml
 
   - name: flux-instance
     namespace: flux-system
     wait: false
-    values:
-      - ../../infra/flux-system/flux-instance/base/values.yaml
-      - ../../infra/flux-system/flux-instance/envs/{{ .Environment.Name }}/env-values.yaml 
     needs:
       - flux-system/flux-operator
