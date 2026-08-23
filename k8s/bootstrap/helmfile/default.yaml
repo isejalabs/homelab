@@ -4,5 +4,8 @@ templates:
   default:
     chart: '{{ (fromYaml (tpl (readFile "./templates/release.yaml.gotmpl") .)).chart }}'
     version: '{{ (fromYaml (tpl (readFile "./templates/release.yaml.gotmpl") .)).version }}'
+    # Ignore missing files, as they are optional and might not exist
+    missingFileHandler: Debug
     values:
-      - ./templates/values.yaml.gotmpl
+    - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/base/values.yaml
+    - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/env-values.yaml
