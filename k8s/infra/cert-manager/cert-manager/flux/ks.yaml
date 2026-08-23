@@ -14,6 +14,5 @@ spec:
     namespace: flux-system
   wait: true
   dependsOn:
-    - name: cert-manager-core
     - name: gateway-api-crds
     - name: sealed-secrets

@@ -5,7 +5,6 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - ../../../../../../infra/cert-manager/cert-manager-core/flux
   - ../../../../../../infra/cert-manager/cert-manager/flux
   - ../../../../../../infra/common/ns/flux
   - ../../../../../../infra/csi-proxmox/proxmox-csi/flux
