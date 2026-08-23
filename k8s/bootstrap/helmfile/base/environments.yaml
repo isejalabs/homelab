@@ -1,0 +1,11 @@
+---
+
+environments:
+  head:
+  qa:
+  dev:
+  src:
+  poc:
+  rebuild:
+  prod:
+  dbg:

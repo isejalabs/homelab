@@ -1,9 +1,9 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/helmfile
 templates:
-  default:
-    chart: '{{ (fromYaml (tpl (readFile "./templates/release.yaml.gotmpl") .)).chart }}'
-    version: '{{ (fromYaml (tpl (readFile "./templates/release.yaml.gotmpl") .)).version }}'
+  default-release-template:
+    chart: '{{ (fromYaml (tpl (readFile "./templates/ocirelease.yaml.gotmpl") .)).chart }}'
+    version: '{{ (fromYaml (tpl (readFile "./templates/ocirelease.yaml.gotmpl") .)).version }}'
     # Ignore missing files, as they are optional and might not exist
     missingFileHandler: Debug
     values:
