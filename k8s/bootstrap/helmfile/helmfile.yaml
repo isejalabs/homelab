@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/helmfile
+
+bases:
+  - base/default-release-template.yaml
+  - base/environments.yaml
+  - base/helmdefaults.yaml.gotmpl
+
+defaultInherit:
+  - default-release-template
+
+releases:
+  - name: flux-operator
+    namespace: flux-system
+
+  - name: flux-instance
+    namespace: flux-system
+    wait: false
+    needs:
+      - flux-system/flux-operator
