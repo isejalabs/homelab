@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux-instance
+spec:
+  values:
+    instance:
+      sync:
+        path: "k8s/bootstrap/cluster/flux/envs/head"
+        # Uncomment f. line to use a specific branch for this environment
+        # ref: "refs/heads/issue/123_XY-branch"

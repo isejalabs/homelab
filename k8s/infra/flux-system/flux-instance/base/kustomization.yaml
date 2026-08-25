@@ -8,10 +8,3 @@ namespace: flux-system
 resources:
   - ocirepository.yaml
   - helmrelease.yaml
-
-configMapGenerator:
-  - name: flux-instance-base-values
-    files:
-      - values.yaml
-    options:
-      disableNameSuffixHash: true
