@@ -1,0 +1,14 @@
+{{/* 
+  This template extracts helm chart values from a helmrelease.yaml .spec.values
+  stanza and makes them available to the helmfile release as a values file.
+  There's some safeguarding for the case that
+  - the helmrelease.yaml file does not exist (which might occur if there's no
+    common base), and when
+  - there's no .spec.values stanza in the helmrelease.yaml file (which might
+    occur if the release is not configured with any values).
+*/}}
+{{- $baseFile := printf "../../../infra/%s/%s/base/helmrelease.yaml" .Release.Namespace .Release.Name -}}
+
+{{- if isFile $baseFile -}}
+{{ dig "spec" "values" (dict) (fromYaml (readFile $baseFile)) | toYaml }}
+{{- end -}}
