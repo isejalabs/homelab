@@ -1,1 +1,0 @@
-{{ (fromYaml (readFile (printf "../../../infra/%s/%s/base/helmrelease.yaml" .Release.Namespace .Release.Name)) | default "{}" ).spec.values | toYaml }}
