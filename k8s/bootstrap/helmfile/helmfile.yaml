@@ -8,7 +8,7 @@ bases:
 
 defaultInherit:
   - chart-version-from-ocirelease
-  - values-from-values-yaml-file
+  - values-from-helmrelease
 
 releases:
   - name: flux-operator
