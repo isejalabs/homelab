@@ -9,22 +9,5 @@ components:
 resources:
   - ../../base
 
-# load _additional_ values from values.yaml
-configMapGenerator:
-  - name: flux-instance-env-values
-    files:
-      - values.yaml
-    options:
-      disableNameSuffixHash: true
-
 patches:
-  - target:
-      kind: HelmRelease
-      name: flux-instance
-    patch: |-
-      - op: add
-        path: /spec/valuesFrom/-
-        value: 
-          kind: ConfigMap
-          name: flux-instance-env-values
-          valuesKey: values.yaml
+  - path: helmrelease.yaml

@@ -6,11 +6,3 @@ namespace: sealed-secrets
 resources:
   - helmrelease.yaml
   - ocirepository.yaml
-
-configMapGenerator:
-  - name: base-values
-    files:
-      - values.yaml
-
-generatorOptions:
-  disableNameSuffixHash: true
