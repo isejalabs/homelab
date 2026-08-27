@@ -13,6 +13,3 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: true
-  dependsOn:
-    - name: gateway-api-crds
-    - name: sealed-secrets
