@@ -2,7 +2,7 @@
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: default-backup-daily
+  name: daily-backup
   namespace: longhorn-system
 spec:
   task: backup
@@ -17,7 +17,7 @@ spec:
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: default-backup-weekly
+  name: weekly-backup
   namespace: longhorn-system
 spec:
   task: backup
@@ -32,7 +32,7 @@ spec:
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: default-backup-monthly
+  name: monthly-backup
   namespace: longhorn-system
 spec:
   task: backup

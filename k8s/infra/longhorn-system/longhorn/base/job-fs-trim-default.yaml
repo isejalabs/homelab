@@ -2,7 +2,7 @@
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: default-trim-weekly
+  name: weekly-trim
   namespace: longhorn-system
 spec:
   task: filesystem-trim
