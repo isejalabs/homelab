@@ -61,23 +61,26 @@ Among the options for bootstrapping FluxCD, the approach of installing `flux-ope
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e <env> sync
+helmfile -f k8s/bootstrap/helmfile --hide-notes -e <env> sync
 ```
 
 For example, the following command will bootstrap the cluster in the `rebuild` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e rebuild sync
+helmfile -f k8s/bootstrap/helmfile --hide-notes -e rebuild sync
 ```
 
 Output of the command will look like this:
 
-```text
+```
 ...
-============================================ Updated Releases =============================================
-NAME            NAMESPACE     CHART                                                      VERSION   DURATION
-flux-operator   flux-system   oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator   0.55.0         30s
-flux-instance   flux-system   oci://ghcr.io/controlplaneio-fluxcd/charts/flux-instance   0.55.0          3s
+============================================== Updated Releases ===============================================
+NAME             NAMESPACE        CHART                                                      VERSION   DURATION
+cilium           kube-system      oci://quay.io/cilium/charts/cilium                         1.18.13      2m27s
+sealed-secrets   sealed-secrets   oci://registry-1.docker.io/bitnamicharts/sealed-secrets    2.19.3         12s
+cert-manager     cert-manager     oci://quay.io/jetstack/charts/cert-manager                 v1.21.1        29s
+flux-operator    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator   0.58.1         23s
+flux-instance    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flux-instance   0.58.1         51s
 ```
 
 ## Manual bootstrapping

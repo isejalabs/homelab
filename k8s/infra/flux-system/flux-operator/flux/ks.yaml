@@ -14,6 +14,4 @@ spec:
     namespace: flux-system
   wait: true
   dependsOn:
-    - name: cilium
-    - name: gateway-api
     - name: infra-ns

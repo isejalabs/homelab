@@ -14,7 +14,5 @@ spec:
     namespace: flux-system
   wait: true
   dependsOn:
-    - name: cert-manager
-    - name: cilium
     - name: gateway-api-crds
     - name: infra-ns

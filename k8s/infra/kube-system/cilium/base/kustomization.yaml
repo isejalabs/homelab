@@ -6,3 +6,12 @@ namespace: kube-system
 resources:
   - bgp-peer-config.yaml
   - bgp-advertisement.yaml
+  - helmrelease.yaml
+  - ocirepository.yaml
+
+configMapGenerator:
+  - name: cilium-base-values
+    files:
+      - values.yaml
+    options:
+      disableNameSuffixHash: true
