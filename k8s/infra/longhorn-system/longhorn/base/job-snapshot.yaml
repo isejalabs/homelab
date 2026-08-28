@@ -2,7 +2,7 @@
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
 metadata:
-  name: defaut-snapshot-hourly
+  name: default-snapshot-hourly
   namespace: longhorn-system
 spec:
   task: snapshot
