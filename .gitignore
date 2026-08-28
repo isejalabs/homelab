@@ -16,7 +16,8 @@ clusterconfig
 *.tfstate.*
 *.tfvars
 *.tfvars.json
-terragrunt/non-prod/**/*.lock.hcl
+terragrunt/non-prod/**/.*.lock.hcl
+!terragrunt/non-prod/**/qa/**/.*.lock.hcl
 override.tf
 override.tf.json
 *_override.tf
