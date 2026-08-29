@@ -5,14 +5,14 @@
       description: 'keep cilium at an older version due to checkmk',
       allowedVersions: '<=1.18',
       matchPackageNames: [
-        'cilium',
+        'quay.io/cilium/charts/cilium',
       ],
     },
     {
       description: 'allow latest versions of cilium for HEAD and PoC environment, i.e. like "latest" updates',
       allowedVersions: '>=1.18',
       matchPackageNames: [
-        'cilium',
+        'quay.io/cilium/charts/cilium',
       ],
       matchFileNames: [
         'k8s/**/envs/head/**',
