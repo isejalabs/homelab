@@ -1,9 +1,19 @@
-## Bootstrapping the cluster and deploying applications
+## Stages of bootstrapping
+
+Bootstrapping the cluster is done in 3 stages by different tools:
+
+1. Terragrunt is used to provision the VMs in Proxmox and install Talos OS Kubernetes distribution.
+1. Helmfile is used to install some crucial infrastructure apps in the cluster (cilium CNI, secrets controller, cert-manager, flux).
+1. Afterwards, Flux CD will automatically reconcile with the Git repository to install all remaining apps in the cluster.
+
+## Deploying infrastructure and applications
 
 > [!TIP]
-> Substitute `<env>` (or the example environment `dev`) with the specific environment, e.g. dev, qa, prod
+> Substitute `<env>` (or the example environment `dev`) with the specific environment, e.g. `dev`, `qa`, `prod`
 >
-> In the following the command `k` is aliased for `kubectl` (`alias k=kubectl`)
+> In the following, the command `k` is aliased for `kubectl` (`alias k=kubectl`)
+
+Once the cluster is bootstrapped with terragrunt, the infrastructure and applications can be deployed.
 
 ### Preliminary Checks
 
@@ -38,25 +48,9 @@ kubectl get pods -A --field-selector=status.phase=Failed
 kubectl get pods -A --field-selector=status.phase!=Running
 ```
 
-### Bootstrapping options
-
-The cluster needs to get bootstrapped with FluxCD. It cannot _easily_ get bootstrapped manually as the Kubernetes manifests depend on FluxCD. Especially, for Helm charts, Flux's `HelmRelease` (and `HelmRepository` and `OCIRepository`) manifests are used instead of `kustomize`'s `HelmChart` and `HelmChartInflationGenerator` features. Thus, Flux's `HelmController` needs to be up and running before any Helm charts can be deployed.
-
-There is a possibility to bootstrap the cluster manually by deploying the manifests with `kubectl apply -k` or `kustomize build | kubectl apply`, but this is not recommended.
-
-The bootstrapping process is described in the following sections.
-
-The cluster can be bootstrapped in two ways:
-
-1. [**Automatic bootstrapping**](#automatic-bootstrapping-via-argocd) via FluxCD, by applying the FluxCD application manifests and letting FluxCD take care of the rest of the bootstrapping process, as it will automatically apply the manifests for the `core`, `infra` and `apps` categories and manage inter-app dependencies.
-1. **Not recommended**: [**Manual bootstrapping**](#manual-bootstrapping) by applying the manifests with `kubectl apply -k` or `kustomize build | kubectl apply`, subsequently for the `core`, `infra` and `apps` categories, as described in the following sections. This approach is more error-prone and requires more manual work, but it allows for a better understanding of the bootstrapping process and the dependencies between the different components.
-
-> [!TIP]
-> Applying manifests manually, especially in the application category, allows adding and configuring new applications before committing the changes to the Git repository yet.
-
 ## Automatic bootstrapping by Helmfile and FluxCD
 
-Among the options for bootstrapping FluxCD, the approach of installing `flux-operator` and `flux-instance` is doing it via **Helmfile**.
+The cluster can be bootstrapped only automatically by leveraging [`helmfile`](https://helmfile.readthedocs.io/en/latest/) and [Flux CD](https://fluxcd.io/).
 
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
