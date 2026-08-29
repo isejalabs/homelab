@@ -4,7 +4,8 @@
 bases:
   - base/release-templates.yaml
   - base/environments.yaml
-  - base/helmdefaults.yaml.gotmpl
+  - base/helmDefaults.yaml
+  - base/kubeContext.yaml.gotmpl
 
 defaultInherit:
   # get chart url and version from OCI release

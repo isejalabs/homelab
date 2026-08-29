@@ -1,5 +1,4 @@
 helmDefaults:
   cleanupOnFail: true
-  kubeContext: {{ printf "admin@%s-homelab" .Environment.Name }}
   wait: true
   waitForJobs: true
