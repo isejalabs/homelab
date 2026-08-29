@@ -7,7 +7,7 @@
   - there's no .spec.values stanza in the helmrelease.yaml file (which might
     occur if the release is not configured with any values).
 */}}
-{{- $baseFile := printf "../../../infra/%s/%s/base/helmrelease.yaml" .Release.Namespace .Release.Name -}}
+{{- $baseFile := printf "../../../../infra/%s/%s/base/helmrelease.yaml" .Release.Namespace .Release.Name -}}
 
 {{- if isFile $baseFile -}}
 {{ dig "spec" "values" (dict) (fromYaml (readFile $baseFile)) | toYaml }}

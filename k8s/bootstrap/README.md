@@ -55,13 +55,13 @@ The cluster can be bootstrapped only automatically by leveraging [`helmfile`](ht
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e <env> sync --hide-notes
+helmfile -f k8s/bootstrap/helmfile/apps -e <env> sync --hide-notes
 ```
 
 For example, the following command will bootstrap the cluster in the `rebuild` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e rebuild sync --hide-notes
+helmfile -f k8s/bootstrap/helmfile/apps -e rebuild sync --hide-notes
 ```
 
 Output of the command will look like this:
