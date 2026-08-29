@@ -17,7 +17,7 @@ releases:
   - name: cilium
     namespace: kube-system
     hooks:
-        # Wait for CRDs to be available
+      # Wait for CRDs to be available
       - command: kubectl
         args:
           - wait
@@ -27,6 +27,8 @@ releases:
           - crd/ciliumbgppeerconfigs.cilium.io
           - crd/ciliumloadbalancerippools.cilium.io
           - --timeout=2m
+          - --context
+          - "{{ printf "admin@%s-homelab" .Environment.Name }}" # non-DRY duplicate kubeContext :-/
         events:
           - postsync
         showlogs: true
