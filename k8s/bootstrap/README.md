@@ -75,12 +75,31 @@ helmfile -f k8s/bootstrap/helmfile/crds -e rebuild template -q | yq ea -r -e 'se
 Output of the command will look like this:
 
 ```text
-err: no releases found that matches specified selector() and environment(rebuild), in any helmfile
-Error: no matches found
-error: no objects passed to apply
+❯ helmfile -f k8s/bootstrap/helmfile/crds -e rebuild template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl apply --server-side --force-conflicts -f -
+customresourcedefinition.apiextensions.k8s.io/grafanaalertrulegroups.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanacontactpoints.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanadashboards.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanadatasources.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanafolders.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanalibrarypanels.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanamanifests.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanamutetimings.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafananotificationpolicies.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafananotificationpolicyroutes.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafananotificationtemplates.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanas.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/grafanaserviceaccounts.grafana.integreatly.org serverside-applied
+customresourcedefinition.apiextensions.k8s.io/alertmanagerconfigs.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/alertmanagers.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/podmonitors.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/probes.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/prometheusagents.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/prometheuses.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/prometheusrules.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/scrapeconfigs.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/servicemonitors.monitoring.coreos.com serverside-applied
+customresourcedefinition.apiextensions.k8s.io/thanosrulers.monitoring.coreos.com serverside-applied
 ```
-
-This is because at the moment no CRDs have been selected for installation.
 
 #### Install apps in the cluster
 
