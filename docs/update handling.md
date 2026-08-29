@@ -120,7 +120,7 @@ If there's a special version set up for tracking in the `PROD` environment, i.e.
 | `kubernetes-sigs/gateway-api`       | Pin minor          | Pinned to a specific minor version in accordance with other application compatibility constraints (`cilium`). Only `patch` updates are allowed.                                                                                                                                                                                                                                   |
 | `kubernetes/kubernetes`             | Pin minor, Manual  | Pinned to a specific minor version in accordance with other application compatibility constraints (e.g. `checkmk`). Only `patch` updates are allowed.<br><br>No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                  |
 | `mongo`                             | Pin Minor          | Pinned to a specific minor version (`8.0`) in accordance with other application compatibility constraints (unific-application-controller). Only `patch` updates are allowed, as updates of type `minor` introduce new features which might cause issues (and are not needed for proper functioning).                                                                              |
-| `sidero/talos`                      | Manual             | No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                                                                                                                                                                               |
+| `siderolabs/talos`                  | Manual             | No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                                                                                                                                                                               |
 
 #### Excluded packages from auto-merging
 
@@ -129,7 +129,7 @@ Some packages are excluded from automerging due to their criticality or because 
 - `cilium`
 - `isejalabs/terraform-proxmox-talos`
 - `kubernetes/kubernetes`,
-- `sidero/talos`
+- `siderolabs/talos`
 
 #### Excluded file paths from auto-merging
 
