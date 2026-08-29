@@ -7,7 +7,7 @@
         "quay.io/cilium/charts/cilium",
         "github.com/isejalabs/terraform-proxmox-talos",
         "kubernetes/kubernetes",
-        "sidero/talos",
+        "siderolabs/talos",
       ],
       automerge: false,
       addLabels: ["updateStrategy:manual"],
