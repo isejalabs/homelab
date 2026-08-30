@@ -7,7 +7,7 @@ metadata:
 spec:
   interval: 1h
   ref:
-    tag: 0.5.10
-    digest: sha256:618944174ec6f568f1ef739a83d900ccc2bfd6c7130e5bac29e3ff66f27b8da4
+    tag: 0.5.11
+    digest: sha256:39393a27157668303bbf514a72ce8fbb903ca28a3f176028d853c73be8a5b3a1
   url: oci://ghcr.io/sergelogvinov/charts/proxmox-csi-plugin
 
