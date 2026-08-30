@@ -52,6 +52,41 @@ releases:
     needs:
       - kube-system/cilium
 
+  - name: external-secrets
+    namespace: external-secrets
+    needs:
+      - kube-system/cilium
+
+  - name: onepassword-connect
+    namespace: external-secrets
+    hooks:
+      - # Wait for CRDs to be available
+        command: kubectl
+        args:
+          - wait
+          - --for=create
+          - crd/clustersecretstores.external-secrets.io
+          - --timeout=2m
+          - --context
+          - "{{ printf "admin@%s-homelab" .Environment.Name }}" # non-DRY duplicate kubeContext :-/
+        events:
+          - postsync
+        showlogs: true
+      - # Apply Resources
+        command: kubectl
+        args:
+          - apply
+          - --server-side
+          - --force-conflicts
+          - --filename=../../../infra/{{`{{ .Release.Namespace }}`}}/{{`{{ .Release.Name }}`}}/base/clustersecretstore.yaml
+          - --context
+          - "{{ printf "admin@%s-homelab" .Environment.Name }}" # non-DRY duplicate kubeContext :-/
+        events:
+          - postsync
+        showlogs: true
+    needs:
+      - external-secrets/external-secrets
+
   - name: cert-manager
     namespace: cert-manager
     needs:

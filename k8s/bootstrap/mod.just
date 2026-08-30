@@ -19,6 +19,10 @@ core env:
     if ! kustomize build {{ source_directory() }}/../infra/common/ns/envs/{{env}} | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
         just log fatal "Failed to create namespaces" "stage" "{{ recipe_name() }}"
     fi
+    just logstep "{{ recipe_name() }}"  "personal credentials injection"
+    if ! kustomize build {{ source_directory() }}/kustomize/personal | just template - | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
+        just log fatal "Failed to apply personal manifests" "stage" "{{ recipe_name() }}"
+    fi
     just logstep "{{ recipe_name() }}" "CRDs installation"
     if ! helmfile -f "{{ source_directory() }}/helmfile/crds" template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
         just log fatal "Failed to apply base crds" "stage" "{{ recipe_name() }}"

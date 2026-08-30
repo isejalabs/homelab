@@ -8,6 +8,7 @@ kind: Kustomization
 resources:
 - ../../../cert-manager/_ns/base
 - ../../../csi-proxmox/_ns/base
+- ../../../external-secrets/_ns/base
 - ../../../flux-system/_ns/base
 - ../../../gateway-api/_ns/base
 - ../../../kube-system/_ns/base

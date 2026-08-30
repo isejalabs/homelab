@@ -4,6 +4,7 @@ repos:
   rev: v2.1.0
   hooks:
   - id: forbid-secrets
+    exclude: ^k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml$  # allow committing this file, but not others
 - repo: https://github.com/voldy/validate-sops
   rev: 'v0.1.1'  # Use the latest commit SHA or tag
   hooks:
