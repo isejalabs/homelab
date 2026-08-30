@@ -1,11 +1,18 @@
 ---
 # yaml-language-server: $schema=https://json.schemastore.org/helmfile
 
+# Bootstraps core applications that provide a minimal runtime base for the
+# cluster. These releases are installed first so the cluster has the resources
+# Flux needs before its own reconciliation begins.
+#
+# After this bootstrap phase, Flux is ready to take over management of the
+# application stack and continue reconciling downstream state.
+
 bases:
-  - base/release-templates.yaml
-  - base/environments.yaml
-  - base/helmDefaults.yaml
-  - base/kubeContext.yaml.gotmpl
+  - ../base/environments.yaml
+  - ../base/helmDefaults.yaml
+  - ../base/kubeContext.yaml.gotmpl
+  - ../base/release-templates.yaml
 
 defaultInherit:
   # get chart url and version from OCI release
@@ -33,10 +40,11 @@ releases:
           - postsync
         showlogs: true
     inherit:
-      # do not inherit values from HelmRelease, get them from values.yaml file instead, and we want to avoid conflicts
+      # do not inherit values from HelmRelease...
       - template: values-from-helmrelease
         except:
           - values
+      # get them from values.yaml file instead
       - template: values-from-values-yaml-file
 
   - name: sealed-secrets

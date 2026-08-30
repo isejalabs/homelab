@@ -2,17 +2,17 @@
 # yaml-language-server: $schema=https://json.schemastore.org/helmfile
 templates:
   chart-version-from-ocirelease:
-    chart: '{{ (fromYaml (tpl (readFile "./templates/ocirelease.yaml.gotmpl") .)).chart }}'
-    version: '{{ (fromYaml (tpl (readFile "./templates/ocirelease.yaml.gotmpl") .)).version }}'
+    chart: '{{ (fromYaml (tpl (readFile "../templates/ocirelease.yaml.gotmpl") .)).chart }}'
+    version: '{{ (fromYaml (tpl (readFile "../templates/ocirelease.yaml.gotmpl") .)).version }}'
 
   values-from-values-yaml-file:
     # Ignore missing files, as they are optional and might not exist
     missingFileHandler: Debug
     values:
-      - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/base/values.yaml
-      - ../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/values.yaml
+      - ../../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/base/values.yaml
+      - ../../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/values.yaml
 
   values-from-helmrelease:
     values:
-      - ./templates/helmrelease-base-values.yaml.gotmpl
-      - ./templates/helmrelease-env-values.yaml.gotmpl
+      - ../templates/helmrelease-base-values.yaml.gotmpl
+      - ../templates/helmrelease-env-values.yaml.gotmpl

@@ -3,7 +3,9 @@
 Bootstrapping the cluster is done in 3 stages by different tools:
 
 1. Terragrunt is used to provision the VMs in Proxmox and install Talos OS Kubernetes distribution.
-1. Helmfile is used to install some crucial infrastructure apps in the cluster (cilium CNI, secrets controller, cert-manager, flux).
+1. Helmfile is used to 
+   - install some crucial CRDs in the cluster,
+   - install foundational infrastructure apps in the cluster (e.g. cilium CNI, secrets controller, cert-manager, flux).
 1. Afterwards, Flux CD will automatically reconcile with the Git repository to install all remaining apps in the cluster.
 
 ## Deploying infrastructure and applications
@@ -52,16 +54,46 @@ kubectl get pods -A --field-selector=status.phase!=Running
 
 The cluster can be bootstrapped only automatically by leveraging [`helmfile`](https://helmfile.readthedocs.io/en/latest/) and [Flux CD](https://fluxcd.io/).
 
+### Helmfile
+
+#### Install CRDs in the cluster
+
+Run the following command to install crucial CRDs in the cluster in the `<env>` environment:
+
+```sh
+helmfile -f k8s/bootstrap/helmfile/crds -e <env> template -q | \
+  yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | \
+  kubectl apply --server-side --force-conflicts -f -
+```
+
+For example, the following command will install CRDs in the `rebuild` environment:
+
+```sh
+helmfile -f k8s/bootstrap/helmfile/crds -e rebuild template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl apply --server-side --force-conflicts -f -
+```
+
+Output of the command will look like this:
+
+```text
+err: no releases found that matches specified selector() and environment(rebuild), in any helmfile
+Error: no matches found
+error: no objects passed to apply
+```
+
+This is because at the moment no CRDs have been selected for installation.
+
+#### Install apps in the cluster
+
 Run the following command to bootstrap the cluster in the `<env>` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e <env> sync --hide-notes
+helmfile -f k8s/bootstrap/helmfile/apps -e <env> sync --hide-notes
 ```
 
 For example, the following command will bootstrap the cluster in the `rebuild` environment:
 
 ```sh
-helmfile -f k8s/bootstrap/helmfile -e rebuild sync --hide-notes
+helmfile -f k8s/bootstrap/helmfile/apps -e rebuild sync --hide-notes
 ```
 
 Output of the command will look like this:
@@ -75,4 +107,40 @@ sealed-secrets   sealed-secrets   oci://registry-1.docker.io/bitnamicharts/seale
 cert-manager     cert-manager     oci://quay.io/jetstack/charts/cert-manager                 v1.21.1        29s
 flux-operator    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flux-operator   0.58.1         23s
 flux-instance    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flux-instance   0.58.1         51s
+```
+
+### Flux CD
+
+You can check the status of cluster bootstrapping by flux by running the `flux` command:
+
+```sh
+flux get ks -A
+```
+
+Output of the command will look like this:
+
+```
+❯ flux get ks -A
+NAMESPACE  	NAME                   	REVISION                     	SUSPENDED	READY	MESSAGE
+flux-system	actualbudget           	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	adguard                	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	cert-manager           	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	checkmk-kube-agent     	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	cilium                 	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	flux-instance          	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	flux-operator          	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	flux-system            	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	gateway-api            	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	gateway-api-crds       	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	gateway-api-redirect   	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	infra-ns               	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	k-serving-cert-approver	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	longhorn               	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	longhorn-core          	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	metrics-server         	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	proxmox-csi            	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	sealed-secrets         	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	unbound                	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	unifi-controller       	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
+flux-system	whoami                 	refs/heads/main@sha1:d50cc11a	False    	True 	Applied revision: refs/heads/main@sha1:d50cc11a
 ```

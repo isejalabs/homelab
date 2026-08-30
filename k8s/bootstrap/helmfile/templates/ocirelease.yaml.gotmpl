@@ -1,6 +1,6 @@
 # 0. Some constants
-{{- $baseFile := printf "../../infra/%s/%s/base/ocirepository.yaml" .Release.Namespace .Release.Name -}}
-{{- $envFile := printf "../../infra/%s/%s/envs/%s/ocirepository.yaml" .Release.Namespace .Release.Name .Environment.Name -}}
+{{- $baseFile := printf "../../../infra/%s/%s/base/ocirepository.yaml" .Release.Namespace .Release.Name -}}
+{{- $envFile := printf "../../../infra/%s/%s/envs/%s/ocirepository.yaml" .Release.Namespace .Release.Name .Environment.Name -}}
 
 # 0. Initialize the environment variable
 {{- $env := dict -}}
