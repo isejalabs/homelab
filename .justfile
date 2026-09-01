@@ -13,6 +13,10 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 mod bootstrap "k8s/bootstrap"
 
 [private]
+logstep stage msg:
+    just log debug "Running step... {{msg}}" "stage" "{{ stage }}"
+
+[private]
 log lvl msg *args:
     gum log -t rfc3339 -s -l "{{ lvl }}" "{{ msg }}" {{ args }}
 
