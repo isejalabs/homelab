@@ -18,5 +18,5 @@ It's all about IaC and DRY -- and my future homelab (based on [vehagn/homelab](h
 
 See also
 
-- [terragrunt/README.md](terragrunt/README.md) for the bootstrapping of the Kubernetes cluster by deploying VMs in Proxmox, installing Talos and deploying core infrastructure such as Cilium CNI and Proxmox CSI,
-- [k8s/README.md](k8s/README.md) for deployment of apps in the Kubernetes cluster.
+- [terragrunt/README.md](terragrunt/README.md) for the bootstrapping of the Kubernetes cluster by provisioning VMs in Proxmox, installing Talos and deploying core infrastructure such as Cilium CNI and Proxmox CSI setup,
+- [k8s/bootstrap/README.md](k8s/bootstrap/README.md) for deployment of infrastructure components and apps in the Kubernetes cluster,
