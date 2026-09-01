@@ -8,7 +8,7 @@
     occur if the overlay configures other aspects, e.g. the helm chart version only).
   This template deviates from the base template only for the filename due to the different location
 */}}
-{{- $envFile := printf "../../../../infra/%s/%s/envs/%s/helmrelease.yaml" .Release.Namespace .Release.Name .Environment.Name -}}
+{{- $envFile := printf "../../../infra/%s/%s/envs/%s/helmrelease.yaml" .Release.Namespace .Release.Name .Environment.Name -}}
 
 {{- if isFile $envFile -}}
 {{ dig "spec" "values" (dict) (fromYaml (readFile $envFile)) | toYaml }}
