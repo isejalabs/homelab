@@ -3,7 +3,7 @@ set default-script
 set no-exit-message
 set quiet
 set script-interpreter := ['bash', '-euo', 'pipefail']
-set shell := ['bash', '-euo', 'pipefail', '-c']
+set shell := ['sh', '-euo', 'pipefail', '-c']
 
 [confirm('Bootstrap cluster for environment "' + env + '"? [y|N]')]
 [doc('Bootstrap a Talos & Kubernetes cluster end-to-end')]
