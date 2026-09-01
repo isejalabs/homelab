@@ -17,7 +17,7 @@ spec:
   values:
     image:
       # track image version separately b/c helm chart version is not always up-to-date with the actual image version
-      tag: "26.8.1" # renovate: docker=ghcr.io/actualbudget/actual-server versioning=loose
+      tag: "26.9.0" # renovate: docker=ghcr.io/actualbudget/actual-server versioning=loose
 
     persistence:
       enabled: true
