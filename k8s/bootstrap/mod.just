@@ -15,6 +15,10 @@ cluster env: (core env) (apps env)
 [private]
 core env:
     just log info "Running stage..." "stage" "{{ recipe_name() }}"
+    just logstep "{{ recipe_name() }}" "namespace creation"
+    if ! kustomize build {{ source_directory() }}/../infra/common/ns/envs/{{env}} | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
+        just log fatal "Failed to create namespaces" "stage" "{{ recipe_name() }}"
+    fi
     just logstep "{{ recipe_name() }}" "CRDs installation"
     if ! helmfile -f "{{ source_directory() }}/helmfile/crds" template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
         just log fatal "Failed to apply base crds" "stage" "{{ recipe_name() }}"
