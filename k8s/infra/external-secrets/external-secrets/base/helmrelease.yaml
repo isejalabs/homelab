@@ -9,6 +9,7 @@ spec:
     kind: OCIRepository
     name: external-secrets
   interval: 1h
+  timeout: 10m
   values:
     leaderElect: true
     serviceMonitor:
