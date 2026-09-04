@@ -5,5 +5,7 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
+  - ../../../../../../infra/kopiur-system/kopiur/flux
+  - ../../../../../../infra/kopiur-system/kopiur-repository/flux
   - ../../../../../../infra/longhorn-system/longhorn-core/flux
   - ../../../../../../infra/longhorn-system/longhorn/flux

@@ -11,6 +11,7 @@ resources:
 - ../../../external-secrets/_ns/base
 - ../../../flux-system/_ns/base
 - ../../../gateway-api/_ns/base
+- ../../../kopiur-system/_ns/base
 - ../../../kube-system/_ns/base
 - ../../../longhorn-system/_ns/base
 - ../../../sealed-secrets/_ns/base
