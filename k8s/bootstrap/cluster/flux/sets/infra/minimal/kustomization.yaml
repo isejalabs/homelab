@@ -8,6 +8,8 @@ resources:
   - ../../../../../../infra/cert-manager/cert-manager/flux
   - ../../../../../../infra/common/ns/flux
   - ../../../../../../infra/csi-proxmox/proxmox-csi/flux
+  - ../../../../../../infra/external-secrets/external-secrets/flux
+  - ../../../../../../infra/external-secrets/onepassword-connect/flux
   - ../../../../../../infra/flux-system/flux-instance/flux
   - ../../../../../../infra/flux-system/flux-operator/flux
   - ../../../../../../infra/gateway-api/gateway-api-crds/flux

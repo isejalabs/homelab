@@ -10,19 +10,42 @@ Bootstrapping the cluster is done in 3 phases:
    - **foundational infrastructure apps** (e.g. cilium CNI, secrets controller, cert-manager, flux).
 
    in the cluster.
+
 1. Afterwards, **Flux CD** will automatically reconcile with the Git repository to install some further infrastructure components (e.g. CSI) and all application workloads in the cluster.
 
 This document describes the steps to bootstrap the cluster by using `just`.
 
 ## Provision VMs and install Talos OS Kubernetes distribution by using Terragrunt
 
-Provisioning the VMs in Proxmox and installing Talos OS Kubernetes distribution is done by using Terragrunt.  The steps are described in the [README](../../terragrunt/README.md) of the `terragrunt/` directory of this repository.
+Provisioning the VMs in Proxmox and installing Talos OS Kubernetes distribution is done by using Terragrunt. The steps are described in the [README](../../terragrunt/README.md) of the `terragrunt/` directory of this repository.
+
+### Prerequisites
+
+- Tools installed:
+  - `talosctl` (optional)
+  - `terraform` or `tofu`
+  - `terragrunt`
 
 ## Deploying infrastructure and applications
 
-Once the Talos OS VMs are provisioned with terragrunt, the infrastructure and applications can be deployed to the cluster.  The entire process is driven by using [just](https://github.com/casey/just).  It is a command runner similar to `make`.
+Once the Talos OS VMs are provisioned with terragrunt, the infrastructure and applications can be deployed to the cluster. The entire process is driven by using [`just`](https://github.com/casey/just). It is a command runner similar to `make`.
 
 Before running the `just` command, make sure that the initial cluster is ready and you have access to the cluster and .
+
+### Prerequisites
+
+- Tools installed:
+  - `gum`
+  - `helmfile`
+  - `jq` (optional)
+  - `just`
+  - `kubectl`
+  - `kustomize`
+  - `minijinja-cli`
+  - `op`
+  - `yq`
+- A signed-in 1Password CLI (`op`). Machine secrets never live in this repo; every `op://` reference in the manifests is resolved with an `op inject` during the bootstrapping (and later handled by [ESO](https://external-secrets.io/)).
+- A valid kube context configured and available with the naming scheme `admin@<env>-homelab`.
 
 ### Preliminary Checks
 
@@ -93,7 +116,6 @@ flux-instance    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flu
 2026-09-01T18:57:04+02:00 INFO Deployed cluster env=rebuild
 just bootstrap cluster --env rebuild  6,59s user 2,29s system 2% cpu 6:15,81 total
 ```
-
 
 <details>
 <summary>Full version:</summary>
@@ -213,12 +235,15 @@ just bootstrap cluster --env rebuild  6,59s user 2,29s system 2% cpu 6:15,81 tot
 
 > [!NOTE]
 > What's happening behind the scenes:
-> 1. The `just` command will just call `helmfile`, which is a tool to manage multiple Helm charts.  The `helmfile` tool is used to 
+>
+> 1. The `just` command will just call `helmfile`, which is a tool to manage multiple Helm charts, alongside `kubectl`. The `helmfile` (and `kubectl` partly) tools are used to
+>    - create the **namespaces** for the infrastructure in the cluster,
+>    - inject **personal credentials** into the cluster (e.g. for 1Password Connect),
 >    - install some crucial **CRDs** in the cluster by extracting them from the Helm charts and applying them manually with `kubectl`,
 >    - install **foundational infrastructure apps** in the cluster (e.g. cilium CNI, secrets controller, cert-manager, flux).
 > 1. Afterwards, **Flux CD** will automatically reconcile with the Git repository to install some further infrastructure as well as **all apps in the cluster**.
 >
-> Actually, it would be sufficient only installing Flux CD to the cluster (and CNI cilium which is installed by terragrunt already).  However, installing some CRDs and foundational infrastructure components beforehand is done to avoid issues with Helm chart installations that require CRDs to be present before the Helm chart can be installed and getting around complex dependency chains in Flux.
+> Actually, it would be sufficient only installing Flux CD to the cluster (and CNI cilium which is installed by terragrunt already). However, installing some CRDs and foundational infrastructure components beforehand is done to avoid issues with Helm chart installations that require CRDs to be present before the Helm chart can be installed and getting around complex dependency chains in Flux.
 
 ### Flux CD
 
