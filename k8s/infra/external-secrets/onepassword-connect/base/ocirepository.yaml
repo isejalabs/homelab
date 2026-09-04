@@ -11,4 +11,5 @@ spec:
     operation: copy
   ref:
     tag: 2.4.1
+    digest: sha256:3b49dc825ed9e6cb5122c268dd20fce08790894b1e9df5c94725082c8fe9e270
   url: oci://ghcr.io/1password/connect
