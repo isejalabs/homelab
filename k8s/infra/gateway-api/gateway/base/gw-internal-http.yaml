@@ -1,0 +1,22 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internal-http
+spec:
+  gatewayClassName: cilium
+  infrastructure:
+    annotations:
+      io.cilium/lb-ipam-ips: 192.168.8.80
+      # shared with the internal Gateway so both get the same LB IP
+      io.cilium/lb-ipam-sharing-key: internal
+  listeners:
+    - name: http-gateway
+      protocol: HTTP
+      port: 80
+      # do not state hostname here, otherwise routes would attach despite of the allowedRoutes settings
+      # hostname: "*.example.com"
+      allowedRoutes:
+        namespaces:
+          # only allow routes from the same namespace as the gateway, i.e. the http-redirect route
+          # no other routes from other namespaces will be attached to prevent unencrypted traffic
+          from: Same

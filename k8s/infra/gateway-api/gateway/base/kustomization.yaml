@@ -7,3 +7,4 @@ resources:
   - cert.yaml
   - gw-external.yaml
   - gw-internal.yaml
+  - gw-internal-http.yaml

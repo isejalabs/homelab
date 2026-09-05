@@ -10,3 +10,4 @@ resources:
 patches:
   - path: gw-external.yaml
   - path: gw-internal.yaml
+  - path: gw-internal-http.yaml
