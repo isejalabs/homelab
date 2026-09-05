@@ -5,6 +5,11 @@
   targets:
     - select:
         kind: HTTPRoute
+      # http-redirect-to-https has no hostnames by design (it matches all
+      # hosts) - a wildcard fieldPath with zero matches is a hard error in
+      # kustomize, so it must be excluded here rather than matched
+      reject:
+        - name: http-redirect-to-https
       fieldPaths:
         - spec.hostnames.*
       options:
@@ -17,6 +22,8 @@
   targets:
     - select:
         kind: HTTPRoute
+      reject:
+        - name: http-redirect-to-https
       fieldPaths:
         - spec.hostnames.*
       options:

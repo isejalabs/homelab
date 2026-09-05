@@ -8,3 +8,4 @@ resources:
   - gw-external.yaml
   - gw-internal.yaml
   - gw-internal-http.yaml
+  - http-route-redirect.yaml
