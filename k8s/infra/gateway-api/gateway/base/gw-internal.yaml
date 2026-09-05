@@ -10,7 +10,7 @@ spec:
       # shared with the internal-http Gateway so both get the same LB IP
       # (split into two Gateways because Cilium's Envoy translation leaks
       # per-hostname HTTPS routes into the HTTP listener's own route table
-      # when both listeners live on one Gateway - see gateway-api/gateway-redirect/README.md
+      # when both listeners live on one Gateway - see gateway-api/gateway/README.md
       # and https://github.com/cilium/cilium/issues/44123 for the related upstream bug class)
       io.cilium/lb-ipam-sharing-key: internal
   listeners:

@@ -5,6 +5,10 @@
   targets:
     - select:
         kind: HTTPRoute
+      # http-redirect-to-https has no hostnames by design - see
+      # replace-domain/repl/httproute-replace-domain.yaml
+      reject:
+        - name: http-redirect-to-https
       fieldPaths:
         - spec.hostnames.*
       options:
