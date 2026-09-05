@@ -16,8 +16,6 @@ spec:
       bucket: base-kopiur-backup
       endpoint: fiona.home.iseja.net:9000
       region: default
-      tls:
-        disableTls: true
   encryption:
     passwordSecretRef:
       name: kopiur-repository-secret
