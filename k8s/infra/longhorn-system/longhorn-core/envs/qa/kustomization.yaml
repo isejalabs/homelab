@@ -6,7 +6,7 @@ components:
 
 resources:
   - ../../base
-  - minio-backup-secret-sealed.yaml
 
 patches:
   - path: backup-target.yaml
+  - path: minio-backup-secret.yaml

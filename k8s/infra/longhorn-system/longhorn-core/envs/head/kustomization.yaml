@@ -9,3 +9,4 @@ resources:
 
 patches:
   - path: helm-version.yaml
+  - path: minio-backup-secret.yaml

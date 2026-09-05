@@ -6,3 +6,6 @@ components:
 
 resources:
   - ../../base
+
+patches:
+  - path: minio-backup-secret.yaml
