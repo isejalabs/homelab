@@ -7,17 +7,13 @@ spec:
   infrastructure:
     annotations:
       io.cilium/lb-ipam-ips: 192.168.8.80
+      # shared with the internal-http Gateway so both get the same LB IP
+      # (split into two Gateways because Cilium's Envoy translation leaks
+      # per-hostname HTTPS routes into the HTTP listener's own route table
+      # when both listeners live on one Gateway - see gateway-api/gateway-redirect/README.md
+      # and https://github.com/cilium/cilium/issues/44123 for the related upstream bug class)
+      io.cilium/lb-ipam-sharing-key: internal
   listeners:
-    - name: http-gateway
-      protocol: HTTP
-      port: 80
-      # do not state hostname here, otherwise routes would attach despite of the allowedRoutes settings
-      # hostname: "*.example.com"
-      allowedRoutes:
-        namespaces:
-          # only allow routes from the same namespace as the gateway, i.e. the http-redirect route
-          # no other routes from other namespaces will be attached to prevent unencrypted traffic
-          from: Same
     - protocol: HTTPS
       port: 443
       name: https-gateway

@@ -5,6 +5,11 @@
   targets:
     - select:
         kind: Gateway
+      # internal-http has no hostname on any listener by design (see its
+      # own comment) - a wildcard fieldPath with zero matches is a hard
+      # error in kustomize, so it must be excluded here rather than matched
+      reject:
+        - name: internal-http
       fieldPaths:
         - spec.listeners.*.hostname
       options:
@@ -17,6 +22,8 @@
   targets:
     - select:
         kind: Gateway
+      reject:
+        - name: internal-http
       fieldPaths:
         - spec.listeners.*.hostname
       options:

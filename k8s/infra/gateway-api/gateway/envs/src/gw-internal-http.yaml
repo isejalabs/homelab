@@ -1,0 +1,8 @@
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: internal-http
+spec:
+  infrastructure:
+    annotations:
+      io.cilium/lb-ipam-ips: 10.8.5.80
