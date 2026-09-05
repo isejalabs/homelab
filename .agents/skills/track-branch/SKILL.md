@@ -43,9 +43,16 @@ above it untouched. Repeat per requested environment.
 
 ## 2. Commit
 
-One commit per environment, staging only that env's `helmrelease.yaml`. The established convention
-here is a deliberately non-Conventional-Commits `tmp(...)` type, marking the commit as throwaway and
-meant to be reverted once testing is done — do not fold it into a real `feat`/`fix`/`chore` commit:
+**Commit this onto the branch being tracked itself — never onto `main`.** `main` is what every other
+environment reconciles from; a `tmp(...)` override pushed there would be live for all of them, not just
+the one being tested, and it's the kind of direct-to-`main` push that should never happen. Since the
+override's whole point is to make an environment follow a branch other than `main`, the commit
+belongs on that branch, where it's self-contained and disappears once the branch is deleted/merged.
+
+Amend/add it onto the existing feature branch (or, if there is no branch yet, create one from the
+current commit first) — staging only that env's `helmrelease.yaml`. The established convention here is
+a deliberately non-Conventional-Commits `tmp(...)` type, marking the commit as throwaway and meant to
+be reverted once testing is done — do not fold it into a real `feat`/`fix`/`chore` commit:
 
 ```
 tmp(<env>): track dev branch
@@ -56,11 +63,38 @@ literally the `dev` environment. Don't reword it to name the actual branch or en
 commits (`tmp(dev): track dev branch`, `tmp(qa): track dev branch`) established this exact wording as
 the convention.
 
-You can push the commit automatically.
+You can push the commit (to the feature branch) automatically.
 
-## 3. Reverting later
+## 3. Apply directly to the live cluster
+
+Pushing the branch to GitHub is not enough by itself: the target environment's `GitRepository` is
+still pinned to whatever ref its `flux-instance` `HelmRelease` currently specifies (normally `main`),
+so it will never notice a commit that only exists on another branch. The environment has to be told,
+right now, to point at the new ref — which happens by applying the edited overlay straight to the
+live cluster, bypassing the normal git-push-and-wait-for-reconciliation flow entirely:
+
+```sh
+kubectl apply -k k8s/infra/flux-system/flux-instance/envs/<env> --context admin@<env>-homelab
+```
+
+This updates the live `flux-instance` HelmRelease and its `OCIRepository`; the flux-operator then
+rewrites the environment's `GitRepository.spec.ref` to match. Confirm it took:
+
+```sh
+kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
+```
+
+Expect `{"name":"refs/heads/<branch>"}`. The `GitRepository`'s *status* (last stored revision) only
+catches up on its next reconcile interval (typically 1m) — don't mistake a stale status for failure.
+
+Run this `kubectl apply -k` for every environment being switched. `admin@<env>-homelab` is the kubectx
+naming convention used throughout this repo (verify with `kubectl config get-contexts` if unsure).
+
+## 4. Reverting later
 
 Once testing is done and before merging the branch, the override must be undone so the environment
 falls back to tracking `main`. Restore the line to its commented placeholder form (or drop the `ref:`
-line entirely and re-add the comment) and commit — but no wording convention exists yet for the revert
-commit, so ask the user what message they want rather than guessing one.
+line entirely and re-add the comment), commit that (again on the feature branch, not `main` — no
+wording convention exists yet for this commit, so ask the user what message they want rather than
+guessing one), then re-run the same `kubectl apply -k ... --context admin@<env>-homelab` from step 3
+so the live cluster actually flips back to `main` immediately rather than waiting to merge.
