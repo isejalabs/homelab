@@ -13,9 +13,9 @@ spec:
         secretRef:
           name: kopiur-repository-secret
           namespace: kopiur-system
-      bucket: kopiur
-      endpoint: expanse.internal:9000
-      region: us-east-1
+      bucket: base-kopiur-backup
+      endpoint: fiona.home.iseja.net:9000
+      region: default
       tls:
         disableTls: true
   encryption:
@@ -24,4 +24,4 @@ spec:
       namespace: kopiur-system
       key: KOPIA_PASSWORD
   scheduleDefaults:
-    timezone: America/New_York
+    timezone: Europe/Berlin

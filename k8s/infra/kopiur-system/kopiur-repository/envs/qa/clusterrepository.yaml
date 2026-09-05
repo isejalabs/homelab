@@ -1,0 +1,9 @@
+---
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: ClusterRepository
+metadata:
+  name: expanse
+spec:
+  backend:
+    s3:
+      bucket: qa-kopiur-backup

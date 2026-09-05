@@ -6,3 +6,7 @@ components:
 
 resources:
   - ../../base
+
+patches:
+  - path: clusterrepository.yaml
+  - path: externalsecret.yaml
