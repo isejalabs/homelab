@@ -37,7 +37,7 @@ This grouping is its own axis, independent of which apps an environment runs -- 
 ## Daily tasks (manual, for now)
 
 > [!NOTE]
-> A `just kopiur::*` recipe set (snapshot listing, manual backup, restore choreography) exists as a draft on the `feat/kopiur-just-recipes` branch and will land as its own PR. Until then, here's the manual equivalent — worth knowing regardless, since the recipes will just be thin wrappers around exactly these commands.
+> A `just kopiur::*` recipe set (`snapshots`/`backup`/`backup-all`/`restore`) wraps exactly the commands below — see `kopiur.just`. The manual equivalent is still worth knowing, both to understand what the recipes actually do and for anything they don't cover (e.g. restoring a specific older snapshot, below).
 
 ### List all available backups (snapshots) of an app
 
@@ -66,7 +66,11 @@ EOF
 
 ### Restore an app from its latest backup
 
-kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). Flux actively reverts manual changes (a scaled-down Deployment gets scaled back up on its next reconcile), so the owning Flux object must be suspended first.
+kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). The owning Flux object must be suspended first, or Flux fights the manual scale-down in step 3.
+
+For a **plain-manifest app**, resuming its Kustomization is enough to bring the Deployment back to its original replica count — the Kustomization does real drift detection and corrects any live divergence from git, including a field that hasn't otherwise changed. For a **Helm-based app**, it is not: `helm upgrade` computes its patch as a diff against the *previous release's own declared values*, not against live state, so a field unchanged between revisions (typically `replicas`, since it's rarely bumped) is simply absent from the patch, and the manual `kubectl scale --replicas=0` from step 3 is never corrected by resuming/reconciling alone. Confirmed live (dev, rebuild): `flux resume helmrelease` completes successfully, but the Deployment stays at 0 replicas indefinitely. Step 6 below scales it back up explicitly instead of relying on this — do that regardless of which kind of app this is, it's a no-op if Flux already fixed it.
+
+Similarly, for a Helm-based app the PVC itself is a *plain manifest* owned by a different Flux Kustomization than the HelmRelease (the app's own `base/kustomization.yaml` applies both as siblings) — resuming the HelmRelease alone does nothing for the deleted PVC, which otherwise waits for that Kustomization's own reconcile interval (up to 1h) to notice it's missing and recreate it. Find that Kustomization from the PVC's own labels (`kustomize.toolkit.fluxcd.io/name`/`namespace`) before deleting it, and force-reconcile it too in step 5.
 
 1. **Determine ownership** — check the Deployment's own labels:
    ```sh
@@ -93,19 +97,23 @@ kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, a
    recreates an *empty* volume again, silently reusing the stale `NoSnapshot` pin instead of picking up a
    snapshot that was taken in the meantime. Deleting the `Restore` object too forces Flux to recreate it
    fresh on the next reconcile, so it resolves against whatever snapshots actually exist right now.
-5. **Resume** — this recreates the PVC (populated from the latest snapshot) *and* scales the Deployment back up in the same reconcile, no separate scale-up step needed:
+5. **Resume**, and for a Helm-based app, also force-reconcile the PVC's own owning Kustomization (found from its labels before step 4 deleted it — for a plain-manifest app this is the same Kustomization already resumed here, so skip the second command):
    ```sh
-   ❯ flux resume kustomization <name>        # or: flux resume helmrelease <name> -n <namespace>
-   ❯ flux reconcile kustomization <name>     # or: flux reconcile helmrelease <name> -n <namespace> --with-source --force
+   ❯ flux resume kustomization <name>            # or: flux resume helmrelease <name> -n <namespace>
+   ❯ flux reconcile kustomization <pvc-owner>     # Helm-based app only; recreates the PVC
    ```
-6. **Wait for the PVC to bind:**
+6. **Scale back up explicitly** — don't rely on the resume/reconcile above to have done it (see why above):
+   ```sh
+   ❯ kubectl scale deployment <app> -n <namespace> --replicas=<original count>
+   ```
+7. **Wait for the PVC to bind:**
    ```sh
    ❯ kubectl get pvc <app> -n <namespace> -w
    ```
 
 The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly instead.
 
-**This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-6 above (delete the PVC, resume, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
+**This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-7 above (delete the PVC, resume, scale up, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
 
 ```sh
 # find the Snapshot to restore -- reuse "list all available backups" above
