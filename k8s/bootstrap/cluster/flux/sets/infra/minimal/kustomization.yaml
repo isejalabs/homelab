@@ -16,4 +16,5 @@ resources:
   - ../../../../../../infra/gateway-api/gateway/flux
   - ../../../../../../infra/kube-system/cilium/flux
   - ../../../../../../infra/kube-system/kubelet-serving-cert-approver/flux
+  - ../../../../../../infra/kube-system/snapshot-controller/flux
   - ../../../../../../infra/sealed-secrets/sealed-secrets/flux

@@ -12,3 +12,4 @@ resources:
   - sc-ha.yaml
   - sc-standard.yaml
   - sc-xfs.yaml
+  - vsc-standard.yaml
