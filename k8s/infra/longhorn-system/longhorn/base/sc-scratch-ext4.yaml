@@ -1,0 +1,33 @@
+# Fast, non-durable StorageClass for disposable scratch/staging data (e.g. the
+# temporary PVC kopiur/kopia stages a VolumeSnapshot into before backing it up).
+# Single replica, co-located with the consuming pod, no rebuild/consistency
+# safety nets: acceptable only because nothing here needs to survive a node
+# failure — the source of truth lives elsewhere.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-scratch-ext4
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete # nothing worth retaining; avoids orphaned scratch volumes
+volumeBindingMode: WaitForFirstConsumer # required for dataLocality: strict-local
+parameters:
+  # No redundancy: skips replica sync entirely, halving write overhead.
+  numberOfReplicas: "1"
+
+  # Places the sole replica on the same node as the consuming pod, avoiding
+  # any network hop for reads/writes.
+  dataLocality: strict-local
+
+  # Must match the source volume's actual on-disk filesystem: a CSI
+  # VolumeSnapshot restore is a raw block-level copy, not a reformat, so
+  # mounting it with a different fsType than the source fails outright
+  # ("wrong fs type, bad superblock"). Use this class for ext4-backed sources
+  # (longhorn-standard/longhorn-ext4); see longhorn-scratch-xfs for
+  # xfs-backed sources (longhorn-xfs/longhorn-fast/longhorn-ha).
+  fsType: ext4
+
+  # Skips per-write revision-counter bookkeeping (used to detect split-brain
+  # across replicas). Meaningless with a single replica, and the write it
+  # saves is pure overhead here.
+  revisionCounterDisabled: "true"

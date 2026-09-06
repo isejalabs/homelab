@@ -1,0 +1,39 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/kopiur.home-operations.com/snapshotpolicy_v1alpha1.json
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: ${APP}
+spec:
+  compression:
+    compressor: zstd
+  mover:
+    cache:
+      capacity: ${KOPIUR_CAPACITY:=5Gi}
+      mode: Persistent
+      storageClassName: ${KOPIUR_CACHE_STORAGECLASS:=longhorn-standard}
+    securityContext:
+      runAsUser: ${KOPIUR_PUID:=1000}
+      runAsGroup: ${KOPIUR_PGID:=1000}
+  repository:
+    kind: ClusterRepository
+    name: fiona
+  retention:
+    keepLatest: 3
+    keepHourly: 24
+    keepDaily: 7
+    keepWeekly: 4
+  sources:
+    - pvc:
+        name: ${APP}
+  staging:
+    # Must use the same filesystem as ${KOPIUR_STORAGECLASS} (the app's own
+    # data PVC): a VolumeSnapshot restore is a raw block-level copy, not a
+    # reformat, so staging an xfs-backed source (longhorn-xfs/longhorn-fast/
+    # longhorn-ha) on longhorn-scratch-ext4 -- or an ext4-backed source
+    # (longhorn-standard/longhorn-ext4, the default) on longhorn-scratch-xfs
+    # -- fails outright at mount time ("wrong fs type, bad superblock").
+    # Override KOPIUR_STAGING_STORAGECLASS to longhorn-scratch-xfs for any
+    # app whose KOPIUR_STORAGECLASS is xfs-backed.
+    storageClassName: ${KOPIUR_STAGING_STORAGECLASS:=longhorn-scratch-ext4}
+  volumeSnapshotClassName: ${KOPIUR_SNAPSHOTCLASS:=longhorn-snapshot}
