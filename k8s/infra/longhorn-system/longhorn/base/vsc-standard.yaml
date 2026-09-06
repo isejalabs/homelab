@@ -1,0 +1,7 @@
+# VolumeSnapshotClass for Longhorn CSI snapshots
+apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: longhorn-snapshot
+driver: driver.longhorn.io
+deletionPolicy: Delete
