@@ -11,4 +11,5 @@ spec:
     operation: copy
   ref:
     tag: 0.1.0
+    digest: sha256:8bdb99b574cbc791a07996ab7333a5e8c2915e794c992b4057aa45f3f48922bd
   url: oci://ghcr.io/home-operations/charts/snapshot-controller
