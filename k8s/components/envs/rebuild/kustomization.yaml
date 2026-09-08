@@ -7,3 +7,4 @@ resources:
 components:
   - ../base # configures domain replacement
   - ../../transformers/prefix-domain
+  - ../../transformers/kopiur-secret-env

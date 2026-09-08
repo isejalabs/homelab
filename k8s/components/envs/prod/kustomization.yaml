@@ -8,3 +8,4 @@ components:
   - ../base # configures domain replacements already
   # do not prefix domain
   # - ../../transformers/prefix-domain   # prefix domain
+  - ../../transformers/kopiur-secret-env
