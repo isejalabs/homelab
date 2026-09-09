@@ -8,8 +8,8 @@ variable "rustfs" {
   sensitive = true
 }
 
-variable "bucket_name" {
-  description = "Name of the RustFS bucket to create. Also used as the dedicated bucket user's access key and as the base name for its policy."
+variable "name" {
+  description = "Canonical name for this bucket/user/policy triple. Used verbatim for the bucket name and the dedicated user's access key, and as the base name (with a `-rw` suffix) for its policy -- one input so all three never drift apart."
   type        = string
 }
 

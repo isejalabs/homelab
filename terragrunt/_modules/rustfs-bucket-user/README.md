@@ -22,6 +22,12 @@ Uses the community [`weinmann-emt/rustfs`](https://github.com/weinmann-emt/terra
 [rustfs/rustfs#2079](https://github.com/rustfs/rustfs/issues/2079)), which is why this uses a RustFS-specific
 provider rather than `hashicorp/aws` pointed at a custom endpoint.
 
+## Inputs
+
+`var.name` is the single canonical name for the bucket/user/policy triple -- used verbatim for the bucket name and
+the user's access key, and with a `-rw` suffix for the policy name. One input, so the three can't drift apart
+(e.g. a user named differently than its bucket).
+
 ## Required secret
 
 `var.rustfs` (admin endpoint/credentials, not stored in this module) is expected to come from
@@ -50,3 +56,11 @@ into 1Password automatically (e.g. via the 1Password Terraform provider) is not 
   section) is unrelated to RustFS/S3 and is not generated here.
 - Bucket lifecycle/versioning/encryption/quota are not configured -- only what's needed to prove out
   bucket+user+permission provisioning end-to-end.
+- No credential rotation yet (e.g. a `time_rotating` keeper on the generated secret, or writing straight into
+  1Password via its Terraform provider instead of a manual `terraform output` copy-paste).
+
+## Roadmap
+
+Still living locally under `terragrunt/_modules/` while the mechanism is being validated. Once past PoC, move it
+to [`isejalabs/terraform-modules`](https://github.com/isejalabs/terraform-modules) alongside the other modules
+(`vms`, `talos-proxmox`) and reference it the same way (`git::...?ref=<tag>`), rather than a local path.

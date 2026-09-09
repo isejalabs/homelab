@@ -30,5 +30,5 @@ locals {
 }
 
 inputs = {
-  bucket_name = "${local.env}-kopiur-backup"
+  name = "${local.env}-kopiur-backup"
 }

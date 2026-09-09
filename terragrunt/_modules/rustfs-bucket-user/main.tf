@@ -5,12 +5,12 @@ provider "rustfs" {
 }
 
 resource "rustfs_bucket" "this" {
-  name = var.bucket_name
+  name = var.name
 }
 
 # Scopes the dedicated user down to only this bucket, rather than reusing the admin credentials.
 resource "rustfs_policy" "this" {
-  name    = "${var.bucket_name}-rw"
+  name    = "${var.name}-rw"
   version = "2012-10-17"
 
   statement {
@@ -29,7 +29,7 @@ resource "random_password" "user_secret" {
 }
 
 resource "rustfs_user" "this" {
-  access_key = var.bucket_name
+  access_key = var.name
   secret_key = random_password.user_secret.result
   status     = "enabled"
   policy     = rustfs_policy.this.name
