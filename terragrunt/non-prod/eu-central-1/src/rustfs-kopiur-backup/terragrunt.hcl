@@ -24,11 +24,6 @@ terraform {
   source = include.envcommon.locals.base_source_url
 }
 
-locals {
-  # Reuse the common variables from the root configuration
-  env = include.root.inputs.env
-}
-
-inputs = {
-  name = "${local.env}-kopiur-backup"
-}
+# ---------------------------------------------------------------------------------------------------------------------
+# We don't need to override any of the common parameters for this environment, so we don't specify any inputs.
+# ---------------------------------------------------------------------------------------------------------------------

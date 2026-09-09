@@ -8,6 +8,9 @@ locals {
   ### The following is duplicate code from the `root.hcl` configuration b/c TerraGrunt does not allow
   ### including `root.hcl` here again (no 2-level includes).
 
+  # Automatically load account-, region- and environment-level variables
+  environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+
   # Automatically load global-, account-, region-, environment- and local secrets
   # The files are SOPS encrypted, and a value in a lower placed dir. is overwriting its parent
   global_secret_vars      = try(yamldecode(sops_decrypt_file(find_in_parent_folders("global-secrets.sops.yaml"))), {})
@@ -31,6 +34,10 @@ locals {
   # This is a PoC module living in this repo (not an external terraform-modules release yet), so it's referenced by
   # local path rather than a git `?ref=<tag>` source.
   base_source_url = "${dirname(find_in_parent_folders("root.hcl"))}/_modules/rustfs-bucket-user"
+
+  # Only the env prefix differs per environment -- computed here so per-env units don't repeat it.
+  env  = local.environment_vars.locals.env
+  name = "${local.env}-kopiur-backup"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -41,4 +48,5 @@ locals {
 inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
   rustfs = local.secret_vars.rustfs
+  name   = local.name
 }
