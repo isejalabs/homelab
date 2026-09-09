@@ -29,7 +29,7 @@ locals {
   ### Common variables for the component across all environments
 
   # Expose the base source URL so different versions of the module can be deployed in different environments.
-  base_source_url = "git::git@github.com:isejalabs/terraform-proxmox-talos.git"
+  base_source_url = "git::https://github.com/isejalabs/terraform-proxmox-talos.git"
 
   # Set some values common accross all environments
   cilium_path           = "k8s/infra/kube-system/cilium"
