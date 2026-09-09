@@ -6,6 +6,13 @@ cd terragrunt/<account>/<region>/<env>/vehagn-k8s
 
 > **TODO** document more
 
+# RustFS buckets/users (PoC)
+
+`rustfs-kopiur-backup` (one per environment) provisions a RustFS bucket, a policy scoped to it, and a dedicated
+user, via the local module at [`_modules/rustfs-bucket-user`](_modules/rustfs-bucket-user/README.md) -- see that
+module's README for the required `rustfs` entry in `global-secrets.sops.yaml` and current caveats (e.g. `dev`'s
+bucket already existing and needing an import).
+
 # Proxmox volume handling
 
 ## Import Proxmox volume
