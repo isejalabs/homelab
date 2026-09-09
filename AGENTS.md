@@ -44,6 +44,8 @@ terragrunt plan
 terragrunt apply
 ```
 
+Each environment directory has an `.envrc` (e.g. `terragrunt/non-prod/eu-central-1/dev/.envrc`) that exports `TG_IAM_ASSUME_ROLE`, the per-env state-read/write role terragrunt assumes for the S3 remote-state backend. `direnv` loads this automatically on `cd` in an interactive shell — but a non-interactive agent shell (no direnv hook) must `source` that `.envrc` itself before running `terragrunt plan`/`apply`, or every command fails with a generic S3 `HeadObject`/`403 Forbidden` on state access (easy to misdiagnose as an unrelated AWS credentials problem).
+
 SOPS:
 
 ```sh
