@@ -1,6 +1,6 @@
 # Sorting instructions for all YAML files
 
-Whenever asked to sort these files, follow these instructions:
+Follow these instructions whenever creating or editing a YAML file — not just when explicitly asked to sort one. This includes new files, files patched/ported in from another repo (e.g. via the `port-app` skill), and any other write to an existing file that touches ordering. An explicit "sort this file" request re-applies the same rules to a file's current content.
 
 - **Default rule**: all fields and properties should be sorted alphabetically at every level of the YAML structure, regardless of how deeply nested they are, unless a specific override rule is provided below.
 
