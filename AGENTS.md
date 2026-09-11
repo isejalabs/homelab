@@ -54,6 +54,8 @@ terragrunt apply
 
 Each environment directory has an `.envrc` (e.g. `terragrunt/non-prod/eu-central-1/dev/.envrc`) that exports `TG_IAM_ASSUME_ROLE`, the per-env state-read/write role terragrunt assumes for the S3 remote-state backend. `direnv` loads this automatically on `cd` in an interactive shell — but a non-interactive agent shell (no direnv hook) must `source` that `.envrc` itself before running `terragrunt plan`/`apply`, or every command fails with a generic S3 `HeadObject`/`403 Forbidden` on state access (easy to misdiagnose as an unrelated AWS credentials problem).
 
+**Apply from `main`, not a feature branch.** `prod` and `qa` may *only* ever be applied from a `main` checkout — no exceptions. For the other envs, applying from a feature branch to validate a not-yet-merged change is acceptable, but treat it as temporary the same way the `track-branch` skill's live Flux testing is temporary — merge the branch promptly afterward so the next apply (from `main`) is a no-op, rather than leaving real state hanging indefinitely on an unmerged branch. Unlike that skill's live `kubectl` override, there's no equivalent one-command revert here: a `terragrunt apply` from a branch creates real state that only matches an *unmerged* branch, and the only way back in sync is merging it, not pointing back at `main`. That asymmetry is exactly why `prod`/`qa` don't get the temporary exception at all.
+
 SOPS:
 
 ```sh
