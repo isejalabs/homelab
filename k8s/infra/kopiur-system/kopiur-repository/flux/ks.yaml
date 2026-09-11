@@ -5,9 +5,6 @@ kind: Kustomization
 metadata:
   name: kopiur-repository
 spec:
-  dependsOn:
-    - name: kopiur
-    - name: onepassword-connect
   interval: 1h
   path: ./k8s/infra/kopiur-system/kopiur-repository/base
   prune: true
@@ -17,3 +14,6 @@ spec:
     namespace: flux-system
   targetNamespace: kopiur-system
   wait: false
+  dependsOn:
+    - name: kopiur
+    - name: onepassword-connect

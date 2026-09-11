@@ -5,8 +5,8 @@ kind: Kustomization
 
 namespace: kopiur-system
 
-resources:
-  - clusterrepository.yaml
-
 components:
   - ../../../../components/apps/kopiur/secret
+
+resources:
+  - clusterrepository.yaml
