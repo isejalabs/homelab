@@ -23,3 +23,61 @@ Per-env credentials (`kopiur-secret`'s `dataFrom.extract.key`) are rewritten aut
 reference and the storage-class/filesystem pairing rules, and
 [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md) for how the backup/restore
 mechanism itself works.
+
+## Wiring up an app
+
+Two files change. `${APP}` is a placeholder throughout `pvc`/`pvc-no-backup` (it's what makes the
+component reusable across apps) — it must be set alongside any `STORAGE_*` override, or the PVC/Restore/
+policy/schedule objects will literally be named `${APP}` instead of your app's name.
+
+**1. `base/kustomization.yaml`** — add the component (`pvc` for the default, backed-up case; swap in
+`pvc-no-backup` for the opt-out case). Following the [field-ordering convention](../../../../.agents/instructions/sorting.md), `components` goes before `resources`:
+
+```yaml
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: myapp
+
+components:
+  - ../../../../components/apps/storage/pvc # or pvc-no-backup
+
+resources:
+  - deployment.yaml
+  - service.yaml
+```
+
+(Path depth depends on where your app lives — `../../../../components/apps/storage/pvc` is correct for
+the common `k8s/apps/<domain>/<app>/base/` layout; adjust the `../` count if your app sits elsewhere.)
+
+**2. `flux/ks.yaml`** — set `APP` via `postBuild.substitute`, plus any `STORAGE_*`/`PUID`/`PGID` override
+your app needs (see [docs/app-storage.md](../../../../docs/app-storage.md) for the full list and defaults
+— most apps only need `APP`, everything else has a sensible default):
+
+```yaml
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: myapp
+spec:
+  interval: 1h
+  path: ./k8s/apps/<domain>/myapp/base
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  wait: true
+  postBuild:
+    substitute:
+      APP: myapp
+      # STORAGE_CAPACITY: 10Gi
+      # STORAGE_CLASS: longhorn-xfs           # if this app needs xfs
+      # STORAGE_STAGING_CLASS: longhorn-scratch-xfs  # required alongside an xfs STORAGE_CLASS
+      # PUID: "1001"
+      # PGID: "1001"
+```
+
+That's it — no per-env patching, no separate secret wiring. The app's PVC binds empty on first deploy
+(`onMissingSnapshot: Continue`), and from then on (if using `pvc`, not `pvc-no-backup`) is backed up daily
+per [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md).
