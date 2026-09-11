@@ -5,8 +5,6 @@ kind: Kustomization
 metadata:
   name: external-secrets
 spec:
-  dependsOn:
-    - name: infra-ns
   interval: 1h
   path: ./k8s/infra/external-secrets/external-secrets/base
   prune: true
@@ -15,3 +13,5 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: true
+  dependsOn:
+    - name: infra-ns

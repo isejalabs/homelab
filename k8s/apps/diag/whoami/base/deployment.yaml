@@ -15,29 +15,29 @@ spec:
       labels:
         app: whoami
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 999
-        runAsGroup: 999
-        fsGroup: 999
-        fsGroupChangePolicy: OnRootMismatch
-        seccompProfile:
-          type: RuntimeDefault
       containers:
-        - name: whoami
-          image: ghcr.io/traefik/whoami:v1.12@sha256:c4717a8d1f0134a7444e24f881160e033991f23027c6c5a9a3f8fd22e70d1d44
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
+        - image: ghcr.io/traefik/whoami:v1.12@sha256:c4717a8d1f0134a7444e24f881160e033991f23027c6c5a9a3f8fd22e70d1d44
+          name: whoami
           ports:
-            - name: http
-              containerPort: 80
+            - containerPort: 80
+              name: http
           resources:
-            requests:
-              cpu: 50m
-              memory: 12Mi
             limits:
               cpu: 1000m
               memory: 24Mi
+            requests:
+              cpu: 50m
+              memory: 12Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+      securityContext:
+        fsGroup: 999
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 999
+        runAsNonRoot: true
+        runAsUser: 999
+        seccompProfile:
+          type: RuntimeDefault

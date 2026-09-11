@@ -3,10 +3,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: mongodb-data
 spec:
-  storageClassName: proxmox-csi
-  volumeName: pv-mongodb
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 800M
+  storageClassName: proxmox-csi
+  volumeName: pv-mongodb

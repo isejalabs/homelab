@@ -8,12 +8,12 @@ spec:
   chartRef:
     kind: OCIRepository
     name: cilium
-  interval: 1h
   install:
     crds: CreateReplace
+  interval: 1h
+  timeout: 10m
   upgrade:
     crds: CreateReplace
-  timeout: 10m
   valuesFrom:
     - kind: ConfigMap
       name: cilium-base-values

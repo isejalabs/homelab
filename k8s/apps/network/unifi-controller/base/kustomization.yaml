@@ -16,6 +16,6 @@ resources:
   - db-secret.sealed.yaml
 
 configMapGenerator:
-  - name: mongodb-init
-    files:
+  - files:
       - assets/init-mongo.sh
+    name: mongodb-init

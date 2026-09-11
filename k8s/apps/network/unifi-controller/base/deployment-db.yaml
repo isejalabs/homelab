@@ -18,29 +18,8 @@ spec:
       labels:
         app: mongodb
     spec:
-      nodeSelector:
-        topology.kubernetes.io/zone: pve4
-      securityContext:
-        runAsNonRoot: false
-        # runAsNonRoot: true
-        # runAsUser: 999
-        # runAsGroup: 999
-        # fsGroup: 999
-        # fsGroupChangePolicy: OnRootMismatch
-        # seccompProfile:
-        #   type: RuntimeDefault
       containers:
-        - name: mongodb
-          image: docker.io/mongo:8.0.30@sha256:4a0f30875898413139bec44c73c02a05fed172578de65b644dcdcee143ae7306
-          # securityContext:
-          #   allowPrivilegeEscalation: false
-          #   readOnlyRootFilesystem: false
-          #   capabilities:
-          #     drop: [ "ALL" ]
-          ports:
-            - name: mongodb
-              containerPort: 27017
-          env:
+        - env:
             - name: PUID
               value: "999"
             - name: PGID
@@ -52,43 +31,64 @@ spec:
             - name: MONGO_INITDB_ROOT_USERNAME
               valueFrom:
                 secretKeyRef:
-                  name: db-secret-sealed
                   key: root_user
+                  name: db-secret-sealed
             - name: MONGO_INITDB_ROOT_PASSWORD
               valueFrom:
                 secretKeyRef:
-                  name: db-secret-sealed
                   key: root_pass
+                  name: db-secret-sealed
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  name: db-secret-sealed
                   key: mongo_user
+                  name: db-secret-sealed
             - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  name: db-secret-sealed
                   key: mongo_pass
+                  name: db-secret-sealed
             - name: MONGO_DBNAME
               value: unifidb
+          image: docker.io/mongo:8.0.30@sha256:4a0f30875898413139bec44c73c02a05fed172578de65b644dcdcee143ae7306
+          # securityContext:
+          #   allowPrivilegeEscalation: false
+          #   readOnlyRootFilesystem: false
+          #   capabilities:
+          #     drop: [ "ALL" ]
+          name: mongodb
+          ports:
+            - containerPort: 27017
+              name: mongodb
           resources:
-            requests:
-              cpu: 50m
-              memory: 350Mi
             limits:
               cpu: 500m
               memory: 500Mi
+            requests:
+              cpu: 50m
+              memory: 350Mi
           volumeMounts:
-            - name: mongodb-init
-              mountPath: /docker-entrypoint-initdb.d/init-mongo.sh
-              subPath: init-mongo.sh
+            - mountPath: /docker-entrypoint-initdb.d/init-mongo.sh
+              name: mongodb-init
               readOnly: true
-            - name: mongodb-data
-              mountPath: /data/db
+              subPath: init-mongo.sh
+            - mountPath: /data/db
+              name: mongodb-data
+      nodeSelector:
+        topology.kubernetes.io/zone: pve4
+      securityContext:
+        runAsNonRoot: false
+        # runAsNonRoot: true
+        # runAsUser: 999
+        # runAsGroup: 999
+        # fsGroup: 999
+        # fsGroupChangePolicy: OnRootMismatch
+        # seccompProfile:
+        #   type: RuntimeDefault
       volumes:
-        - name: mongodb-init
-          configMap:
+        - configMap:
             name: mongodb-init
+          name: mongodb-init
         - name: mongodb-data
           persistentVolumeClaim:
             claimName: mongodb-data

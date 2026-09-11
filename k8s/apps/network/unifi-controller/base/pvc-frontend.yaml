@@ -3,10 +3,10 @@ kind: PersistentVolumeClaim
 metadata:
   name: unifi-controller-data
 spec:
-  storageClassName: proxmox-csi
-  volumeName: pv-unifi
   accessModes:
     - ReadWriteOnce
   resources:
     requests:
       storage: 500M
+  storageClassName: proxmox-csi
+  volumeName: pv-unifi

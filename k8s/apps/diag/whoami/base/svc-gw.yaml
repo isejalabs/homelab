@@ -3,10 +3,10 @@ kind: Service
 metadata:
   name: whoami-gw
 spec:
-  type: ClusterIP
-  selector:
-    app: whoami
   ports:
     - name: web
       port: 80
       targetPort: http
+  selector:
+    app: whoami
+  type: ClusterIP

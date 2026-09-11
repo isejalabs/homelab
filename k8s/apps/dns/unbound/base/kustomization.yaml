@@ -3,24 +3,24 @@ kind: Kustomization
 
 namespace: unbound
 
+resources:
+  - ns.yaml
+  - deployment.yaml
+  - svc.yaml
 configMapGenerator:
-  - name: unbound-env
-    literals:
+  - literals:
       - TZ="Europe/Berlin"
       - EXTENDED_HEALTHCHECK="true"
       - EXTENDED_HEALTHCHECK_DOMAIN="k.root-servers.net"
-  - name: unbound-conf
-    files:
+    name: unbound-env
+  - files:
       - config/conf.d/access-control.conf
       - config/conf.d/logging-default.conf
       - config/conf.d/logging-verbose.conf
       - config/conf.d/rootless.conf
       - config/unbound.conf
-  - name: unbound-zones
-    files:
+    name: unbound-conf
+  - files:
       - config/zones.d/unbound-iseja.conf
 
-resources:
-  - ns.yaml
-  - deployment.yaml
-  - svc.yaml
+    name: unbound-zones

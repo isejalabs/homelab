@@ -8,12 +8,12 @@ spec:
     annotations:
       io.cilium/lb-ipam-ips: 10.8.6.82
   listeners:
-    - protocol: TLS
-      port: 443
-      name: unifi
-      hostname: "poc-unifi.poc.iseja.net"
-      tls:
-        mode: Passthrough
-      allowedRoutes:
+    - allowedRoutes:
         namespaces:
           from: All
+      hostname: "poc-unifi.poc.iseja.net"
+      name: unifi
+      port: 443
+      protocol: TLS
+      tls:
+        mode: Passthrough

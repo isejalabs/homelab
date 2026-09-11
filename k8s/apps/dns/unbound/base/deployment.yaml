@@ -11,68 +11,66 @@ spec:
       labels:
         app: unbound
     spec:
-      securityContext:
-        runAsNonRoot: true
-        runAsUser: 1000 # _unbound user
-        runAsGroup: 1000
-        fsGroup: 1000
-        fsGroupChangePolicy: OnRootMismatch
-        seccompProfile:
-          type: RuntimeDefault
       containers:
-        - name: unbound
-          image: docker.io/madnuttah/unbound:1.26.0-1-quic@sha256:7078e62ecd3f652af3c2e107d63bbf505bd3046f9d9b4a45d40367f6ea342ce8
-          securityContext:
-            allowPrivilegeEscalation: false
-            # readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          env:
+        - env:
             - name: DISABLE_SET_PERMS
               value: "true"
           envFrom:
             - configMapRef:
                 name: unbound-env
+          image: docker.io/madnuttah/unbound:1.26.0-1-quic@sha256:7078e62ecd3f652af3c2e107d63bbf505bd3046f9d9b4a45d40367f6ea342ce8
+          livenessProbe:
+            exec:
+              command: ['/usr/local/unbound/sbin/healthcheck.sh']
+          name: unbound
           ports:
-            - name: dns-tcp
-              containerPort: 5335
+            - containerPort: 5335
+              name: dns-tcp
               protocol: TCP
-            - name: dns-udp
-              containerPort: 5335
+            - containerPort: 5335
+              name: dns-udp
               protocol: UDP
           resources:
-            requests:
-              cpu: 10m
-              memory: 64Mi
             limits:
               cpu: 500m
               memory: 128Mi
-          livenessProbe:
-            exec:
-              command: [ '/usr/local/unbound/sbin/healthcheck.sh' ]
+            requests:
+              cpu: 10m
+              memory: 64Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            # readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           volumeMounts:
-            - name: unbound-conf
-              mountPath: /usr/local/unbound/conf.d/access-control.conf
+            - mountPath: /usr/local/unbound/conf.d/access-control.conf
+              name: unbound-conf
               subPath: access-control.conf
-            - name: unbound-conf
-              mountPath: /usr/local/unbound/conf.d/logging-default.conf
+            - mountPath: /usr/local/unbound/conf.d/logging-default.conf
+              name: unbound-conf
               subPath: logging-default.conf
             # - name: unbound-conf
             #   mountPath: /usr/local/unbound/conf.d/logging-verbose.conf
             #   subPath: logging-verbose.conf
-            - name: unbound-conf
-              mountPath: /usr/local/unbound/conf.d/rootless.conf
+            - mountPath: /usr/local/unbound/conf.d/rootless.conf
+              name: unbound-conf
               subPath: rootless.conf
-            - name: unbound-conf
-              mountPath: /usr/local/unbound/unbound.conf
+            - mountPath: /usr/local/unbound/unbound.conf
+              name: unbound-conf
               subPath: unbound.conf
-            - name: iseja-zone
-              mountPath: /usr/local/unbound/zones.d/iseja.conf
+            - mountPath: /usr/local/unbound/zones.d/iseja.conf
+              name: iseja-zone
               subPath: unbound-iseja.conf
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000 # _unbound user
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
-        - name: unbound-conf
-          configMap:
-            name: unbound-conf
+        - configMap:
             items:
               - key: access-control.conf
                 path: access-control.conf
@@ -84,7 +82,9 @@ spec:
                 path: rootless.conf
               - key: unbound.conf
                 path: unbound.conf
-        - name: iseja-zone
-          configMap:
-            name: unbound-zones
+            name: unbound-conf
+          name: unbound-conf
+        - configMap:
             items: [{key: unbound-iseja.conf, path: unbound-iseja.conf}]
+            name: unbound-zones
+          name: iseja-zone

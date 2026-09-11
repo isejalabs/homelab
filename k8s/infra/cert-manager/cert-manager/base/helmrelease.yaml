@@ -10,10 +10,18 @@ spec:
     name: cert-manager
   interval: 1h
   values:
+    cainjector:
+      resources:
+        limits:
+          cpu: 100m
+          memory: 128Mi
+        requests:
+          cpu: 10m
+          memory: 64Mi
     config:
       gatewayAPI:
         enabled: true
-  
+
     crds:
       enabled: true
 
@@ -35,11 +43,3 @@ spec:
         requests:
           cpu: 10m
           memory: 32Mi
-    cainjector:
-      resources:
-        limits:
-          cpu: 100m
-          memory: 128Mi
-        requests:
-          cpu: 10m
-          memory: 64Mi
