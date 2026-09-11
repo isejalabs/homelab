@@ -5,8 +5,11 @@ kind: Kustomization
 metadata:
   name: onepassword-connect
 spec:
-  dependsOn:
-    - name: external-secrets
+  healthCheckExprs:
+    - apiVersion: external-secrets.io/v1
+      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
+      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
+      kind: ClusterSecretStore
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
@@ -15,11 +18,6 @@ spec:
     - apiVersion: external-secrets.io/v1
       kind: ClusterSecretStore
       name: onepassword-connect
-  healthCheckExprs:
-    - apiVersion: external-secrets.io/v1
-      kind: ClusterSecretStore
-      failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
-      current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
   interval: 1h
   path: ./k8s/infra/external-secrets/onepassword-connect/base
   prune: true
@@ -28,3 +26,5 @@ spec:
     name: flux-system
     namespace: flux-system
   targetNamespace: external-secrets
+  dependsOn:
+    - name: external-secrets

@@ -1,12 +1,12 @@
 - source:
+    fieldPath: data.CLUSTER_ENVIRONMENT
     kind: ConfigMap
     name: cluster-param
-    fieldPath: data.CLUSTER_ENVIRONMENT
   targets:
-    - select:
-        kind: Ingress
-      fieldPaths:
+    - fieldPaths:
         - spec.rules.*.host
       options:
         delimiter: "-"
         index: -1
+      select:
+        kind: Ingress

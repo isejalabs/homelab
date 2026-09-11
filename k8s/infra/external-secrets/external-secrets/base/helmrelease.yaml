@@ -11,10 +11,10 @@ spec:
   interval: 1h
   timeout: 10m
   values:
+    grafanaDashboard:
+      enabled: true
     leaderElect: true
     serviceMonitor:
-      enabled: true
-    grafanaDashboard:
       enabled: true
     webhook:
       replicaCount: 2

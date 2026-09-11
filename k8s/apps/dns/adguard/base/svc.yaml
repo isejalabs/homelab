@@ -5,7 +5,6 @@ metadata:
   annotations:
     io.cilium/lb-ipam-ips: 192.168.1.253
 spec:
-  type: LoadBalancer
   externalTrafficPolicy: Local
   ports:
     - name: dns-tcp
@@ -19,3 +18,4 @@ spec:
       protocol: UDP
   selector:
     app: adguard
+  type: LoadBalancer

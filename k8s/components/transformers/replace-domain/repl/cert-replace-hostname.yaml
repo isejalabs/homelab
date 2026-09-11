@@ -1,24 +1,24 @@
 - source:
+    fieldPath: data.DOMAIN_TLD
     kind: ConfigMap
     name: cluster-param
-    fieldPath: data.DOMAIN_TLD
   targets:
-    - select:
-        kind: Certificate
-      fieldPaths:
+    - fieldPaths:
         - spec.dnsNames.*
       options:
         delimiter: "."
         index: 2
+      select:
+        kind: Certificate
 - source:
+    fieldPath: data.DOMAIN_BASE
     kind: ConfigMap
     name: cluster-param
-    fieldPath: data.DOMAIN_BASE
   targets:
-    - select:
-        kind: Certificate
-      fieldPaths:
+    - fieldPaths:
         - spec.dnsNames.*
       options:
         delimiter: "."
         index: 1
+      select:
+        kind: Certificate

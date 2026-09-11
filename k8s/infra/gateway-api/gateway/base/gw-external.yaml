@@ -8,15 +8,15 @@ spec:
     annotations:
       io.cilium/lb-ipam-ips: 192.168.8.83
   listeners:
-    - protocol: HTTPS
-      port: 443
-      name: https-gateway
-      hostname: "*.example.com"
-      tls:
-        certificateRefs:
-          - kind: Secret
-            group: ""
-            name: cert
-      allowedRoutes:
+    - allowedRoutes:
         namespaces:
           from: All
+      hostname: "*.example.com"
+      name: https-gateway
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: cert

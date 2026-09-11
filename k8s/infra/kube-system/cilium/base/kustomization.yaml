@@ -10,8 +10,8 @@ resources:
   - ocirepository.yaml
 
 configMapGenerator:
-  - name: cilium-base-values
-    files:
+  - files:
       - values.yaml
+    name: cilium-base-values
     options:
       disableNameSuffixHash: true

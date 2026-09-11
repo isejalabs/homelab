@@ -5,9 +5,9 @@ metadata:
   name: hourly-snapshot
   namespace: longhorn-system
 spec:
-  task: snapshot
-  cron: "0 * * * *"
-  retain: 24
   concurrency: 3
+  cron: "0 * * * *"
   groups:
     - default
+  retain: 24
+  task: snapshot

@@ -10,11 +10,11 @@ components:
 resources:
   - ../../base
 
+configMapGenerator:
+  - files:
+      - config/AdGuardHome.yaml
+    name: adguard-config-local
 patches:
   - path: svc.yaml
   - path: merge-deployment.yaml
 
-configMapGenerator:
-  - name: adguard-config-local
-    files:
-      - config/AdGuardHome.yaml

@@ -1,11 +1,11 @@
 ---
 
 environments:
-  head:
-  qa:
-  dev:
-  src:
-  poc:
-  rebuild:
-  prod:
   dbg:
+  dev:
+  head:
+  poc:
+  prod:
+  qa:
+  rebuild:
+  src:

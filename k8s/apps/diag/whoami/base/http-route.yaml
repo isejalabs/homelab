@@ -3,22 +3,22 @@ kind: HTTPRoute
 metadata:
   name: whoami-ingress
 spec:
+  hostnames:
+    - "whoami.example.com"
+    - "whoami-ingress.example.com"
   parentRefs:
     - group: gateway.networking.k8s.io
       kind: Gateway
       name: internal
       namespace: gateway-api
-  hostnames:
-    - "whoami.example.com"
-    - "whoami-ingress.example.com"
   rules:
-    - matches:
-        - path:
-            type: PathPrefix
-            value: /
-      backendRefs:
+    - backendRefs:
         - group: ""
           kind: Service
           name: whoami-gw
           port: 80
           weight: 1
+      matches:
+        - path:
+            type: PathPrefix
+            value: /

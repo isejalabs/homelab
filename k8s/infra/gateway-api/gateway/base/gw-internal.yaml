@@ -14,15 +14,15 @@ spec:
       # and https://github.com/cilium/cilium/issues/44123 for the related upstream bug class)
       io.cilium/lb-ipam-sharing-key: internal
   listeners:
-    - protocol: HTTPS
-      port: 443
-      name: https-gateway
-      hostname: "*.example.com"
-      tls:
-        certificateRefs:
-          - kind: Secret
-            group: ""
-            name: cert
-      allowedRoutes:
+    - allowedRoutes:
         namespaces:
           from: All
+      hostname: "*.example.com"
+      name: https-gateway
+      port: 443
+      protocol: HTTPS
+      tls:
+        certificateRefs:
+          - group: ""
+            kind: Secret
+            name: cert
