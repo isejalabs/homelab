@@ -3,3 +3,4 @@ kind: Component
 
 replacements:
   - path: repl/externalsecret-kopiur-key.yaml
+  - path: repl/clusterrepository-bucket.yaml

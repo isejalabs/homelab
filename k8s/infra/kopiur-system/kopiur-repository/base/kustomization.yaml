@@ -7,4 +7,6 @@ namespace: kopiur-system
 
 resources:
   - clusterrepository.yaml
-  - externalsecret.yaml
+
+components:
+  - ../../../../components/apps/kopiur/secret

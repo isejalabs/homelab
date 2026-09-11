@@ -1,9 +1,0 @@
----
-apiVersion: kopiur.home-operations.com/v1alpha1
-kind: ClusterRepository
-metadata:
-  name: fiona
-spec:
-  backend:
-    s3:
-      bucket: dbg-kopiur-backup
