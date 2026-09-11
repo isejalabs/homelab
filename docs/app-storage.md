@@ -4,8 +4,14 @@ How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc
 (see [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md) for which one to
 pick). Scoped to the app-facing interface only -- not a Longhorn or Proxmox architecture doc.
 
-All variables below are set via `postBuild.substitute` in the app's own `flux/ks.yaml`, the same mechanism
-used throughout this repo (e.g. `DOMAIN_BASE`). None are required -- every one has a sensible default.
+All variables below are `${VAR:=default}`-style placeholders, resolved via Flux's `postBuild.substitute` in
+the app's own `flux/ks.yaml` -- **not** the same mechanism as e.g. `DOMAIN_BASE`, which is a kustomize
+`replacements` value resolved entirely at `kustomize build` time, no Flux involved. As of this writing, no
+app actually overrides any of these yet (none currently consume `apps/storage/pvc`/`pvc-no-backup`), so
+this is the intended, designed-for mechanism rather than an established one -- an app doing so for the
+first time should add a `spec.postBuild.substitute: {STORAGE_CLASS: "longhorn-xfs", ...}` block to its own
+`flux/ks.yaml` and confirm it actually resolves as expected. None of these are required -- every one has a
+sensible default.
 
 ## Variables
 
