@@ -5,12 +5,12 @@ metadata:
   name: ${APP}
 spec:
   accessModes:
-    - ${KOPIUR_ACCESSMODES:=ReadWriteOnce}
+    - ${STORAGE_ACCESSMODES:=ReadWriteOnce}
   dataSourceRef:
     apiGroup: kopiur.home-operations.com
     kind: Restore
     name: ${APP}
   resources:
     requests:
-      storage: ${KOPIUR_CAPACITY:=5Gi}
-  storageClassName: ${KOPIUR_STORAGECLASS:=longhorn-standard}
+      storage: ${STORAGE_CAPACITY:=5Gi}
+  storageClassName: ${STORAGE_CLASS:=longhorn-standard}

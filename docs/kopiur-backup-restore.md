@@ -4,31 +4,33 @@
 
 [kopiur](https://github.com/home-operations/kopiur) is the Kubernetes-native backup operator used in this cluster. It snapshots PVC data via CSI `VolumeSnapshot`s, uploads it with [kopia](https://kopia.io) (a content-addressable, deduplicating backup engine) to an S3-compatible repository, and can populate new PVCs from those backups via the standard Kubernetes CSI PVC-populator mechanism.
 
-- **Repository**: `fiona`, a `ClusterRepository` pointing at this cluster's S3-compatible NAS (`fiona.home.iseja.net:9000`), with a separate bucket per environment (`<env>-kopiur-backup`).
-- **Wiring an app up**: include the `kopiur-backup` component (`k8s/components/apps/kopiur/backup`) in the app's `base/kustomization.yaml`. It pulls in the `kopiur-secret` component automatically — no separate reference needed, and no per-env patching either (see [Automatic per-env credentials](#automatic-per-env-credentials) below). See [k8s/components/apps/kopiur/README.md](../k8s/components/apps/kopiur/README.md) for what each component does.
-- **Two independent backup layers exist.** Longhorn's own native `RecurringJob`s (`k8s/infra/longhorn-system/longhorn/base/job-*.yaml`) already give *every* Longhorn volume an hourly local snapshot plus daily/weekly/monthly offsite backups automatically, with zero per-app setup. kopiur adds a finer-grained (hourly, offsite) layer on top, but only for apps explicitly opted in via the component above. Once an app is on kopiur, it's covered by both — that's deliberate defense-in-depth, not redundant waste, since the two fail independently (see the [PR discussion](https://github.com/isejalabs/homelab/pull/1121) for why).
+- **Repository**: `fiona`, a `ClusterRepository` pointing at this cluster's S3-compatible NAS (`fiona.home.iseja.net:9000`), with a separate bucket per environment (`<env>-kopiur-backup`) in all 8 environments.
+- **Wiring an app up**: include exactly one of `apps/storage/pvc` or `apps/storage/pvc-no-backup` in the app's `base/kustomization.yaml` -- requiring storage gets it backed up automatically by default; use `pvc-no-backup` only when the data genuinely doesn't need protecting. Both pull in kopiur's credential-wiring `apps/kopiur/secret` component automatically -- no separate reference needed, and no per-env patching either (see [Automatic per-env credentials](#automatic-per-env-credentials) below). See [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md) for what each component does, and [docs/app-storage.md](app-storage.md) for the full variable/storage-class reference.
+- **Two independent backup layers exist.** Longhorn's own native `RecurringJob`s (`k8s/infra/longhorn-system/longhorn/base/job-*.yaml`) already give *every* Longhorn volume an hourly local snapshot plus daily/weekly/monthly offsite backups automatically (the latter only in `dev`/`qa`/`rebuild`/`prod`), with zero per-app setup. kopiur adds a second, independent offsite layer on top, for apps explicitly opted in via `apps/storage/pvc`. Once an app is on kopiur, it's covered by both -- deliberate defense-in-depth (the two fail independently, via entirely different backend integrations) rather than redundant waste, even though both now run on a similar (daily) cadence.
+- **Not every environment runs an active schedule.** `dbg`/`head`/`poc`/`src` get a real bucket and the storage components too (so `Restore`'s CSI populator has something valid to connect to), but any `SnapshotSchedule` there is force-suspended by the `suspend-kopiur-schedule` transformer -- see [Dormant environments](#dormant-environments) below.
 
 ## How it works
 
-### Automatic restore when an app's PVC is (re)created
+### Restore-on-create: the core idea
 
-An app's PVC has `dataSourceRef` pointing at a `Restore` object. `Restore.spec.target.populator: {}` uses the CSI PVC-populator mechanism: when a PVC referencing it is created, kopiur automatically restores the latest matching snapshot into it *before* any pod can mount it — kubelet just waits.
+An app's PVC has `dataSourceRef` pointing at a `Restore` object, using the CSI PVC-populator mechanism. This one mechanism covers both of the cases that matter, adapted from [onedr0p/home-ops](https://github.com/onedr0p/home-ops)' original design (see [Credits & changes from upstream](#credits--changes-from-upstream)):
 
-This is why deleting a PVC and letting it get recreated (a deliberate `kubectl delete pvc`, or a full namespace recreation) transparently restores the app's data with no explicit "restore" command needed for the common "the volume got deleted/lost and needs to come back" case.
+- **An existing backup exists** (app redeployed, PVC deleted/recreated, or a full namespace recreation): kopiur automatically restores the latest matching snapshot into the new PVC *before* any pod can mount it -- kubelet just waits. No explicit "restore" command needed for the common "the volume got lost and needs to come back" case.
+- **No backup exists yet** (very first deploy): `Restore.spec.policy.onMissingSnapshot: Continue` populates an empty volume instead of blocking forever. Confirmed live: a brand-new app's PVC binds and its pod starts immediately, no manual intervention needed.
 
-### Automatic empty-volume creation when there's no backup yet
+### Ongoing protection (`apps/storage/pvc` only)
 
-On an app's very first deploy, no snapshot exists yet for its identity. `Restore.spec.policy.onMissingSnapshot: Continue` tells kopiur to populate an empty volume instead of blocking forever waiting for a snapshot that will never arrive. Confirmed live: a brand-new app's PVC binds and its pod starts immediately, no manual intervention needed.
-
-### Ongoing protection
-
-A `SnapshotSchedule` fires hourly (`cron: H * * * *`) per app, creating a `Snapshot` object. That `Snapshot`:
+A `SnapshotSchedule` fires daily (`cron: H 3 * * *`, off-peak, ahead of Longhorn's own ~4am jobs) per app, creating a `Snapshot` object. That `Snapshot`:
 1. Takes a CSI `VolumeSnapshot` of the source PVC.
-2. Restores it into a temporary staging PVC (`longhorn-scratch-ext4`/`longhorn-scratch-xfs` — fast, single-replica, disposable; **must match the source PVC's filesystem**, since a `VolumeSnapshot` restore is a raw block copy, not a reformat).
+2. Restores it into a temporary staging PVC (`longhorn-scratch-ext4`/`longhorn-scratch-xfs` -- fast, single-replica, disposable; **must match the source PVC's filesystem**, since a `VolumeSnapshot` restore is a raw block copy, not a reformat -- see [docs/app-storage.md](app-storage.md)).
 3. Runs the kopia mover, which reads the staging PVC and uploads to `fiona`.
-4. Deletes the staging PVC automatically once done (confirmed: no accumulation from routine hourly operation, only from the app itself being deleted/recreated repeatedly, which orphans the *data* PVC's old `Retain`-policy volume, not the staging one).
+4. Deletes the staging PVC automatically once done (confirmed: no accumulation from routine operation, only from the app itself being deleted/recreated repeatedly, which orphans the *data* PVC's old `Retain`-policy volume, not the staging one).
 
-Retention is GFS-style (`SnapshotPolicy.spec.retention`: `keepLatest` / `keepHourly` / `keepDaily` / `keepWeekly`) — old snapshots beyond those counts are pruned automatically; no manual cleanup needed for normal operation.
+Retention is GFS-style (`SnapshotPolicy.spec.retention`: `keepLatest` / `keepHourly` / `keepDaily` / `keepWeekly`) -- old snapshots beyond those counts are pruned automatically; no manual cleanup needed for normal operation. `keepHourly` is `0` now that snapshots are daily, not hourly.
+
+### Dormant environments
+
+`dbg`/`head`/`poc`/`src` are throwaway/ephemeral environments that don't need scheduled protection, but should still have storage provisioning behave consistently with the rest of the cluster. Rather than excluding them from the storage components entirely, the [`suspend-kopiur-schedule`](../k8s/components/transformers/suspend-kopiur-schedule) transformer (registered only in those 4 envs' `k8s/components/envs/<env>/kustomization.yaml`) force-patches every `SnapshotSchedule` to `spec.schedule.suspend: true`, regardless of which storage component an app picked. The object stays visible (`kubectl get snapshotschedule` shows `Suspended: true`) rather than disappearing -- "available, not activated," not excluded.
 
 ## Daily tasks (manual, for now)
 
@@ -92,7 +94,7 @@ kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation. T
    ❯ kubectl get pvc <app> -n <namespace> -w
    ```
 
-The steps above restore the **latest** backup — the app's `Restore` object (from the `kopiur-backup` component) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly, before step 4 (deleting the PVC):
+The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly, before step 4 (deleting the PVC):
 
 ```sh
 # find the Snapshot to restore -- reuse "list all available backups" above
@@ -139,18 +141,20 @@ Absolute — everything before a specific date (e.g. cleaning up everything from
 
 Deleting a `Snapshot` CR (`deletionPolicy: Delete`, the default for produced backups) also deletes the underlying kopia snapshot from the repository, not just the Kubernetes object.
 
-## Storage classes involved
-
-| Class | Role |
-|---|---|
-| `longhorn-standard` | Default class for an app's actual data (`KOPIUR_STORAGECLASS`) |
-| `longhorn-snapshot` | `VolumeSnapshotClass` used to capture the source PVC |
-| `longhorn-scratch-ext4` / `longhorn-scratch-xfs` | Fast, disposable staging PVC for the mover (`KOPIUR_STAGING_STORAGECLASS`) — must match the source's fsType, or the mover fails at mount time ("wrong fs type, bad superblock") |
-
 ## Automatic per-env credentials
 
-Each environment has its own bucket and credentials (`kopiur-backup#dev`, `kopiur-backup#qa`, etc.). The `kopiur-secret-env` transformer (`k8s/components/transformers/kopiur-secret-env`, included by every `k8s/components/envs/<env>`) rewrites `kopiur-secret`'s `ExternalSecret` key accordingly (`kopiur-backup#base` → `kopiur-backup#dev`, ...) — no per-app patching needed, and it's a no-op for apps that don't include `kopiur-backup` at all.
+Each environment has its own bucket and credentials (`kopiur-backup#dev`, `kopiur-backup#qa`, etc.), for all 8 environments. The `kopiur-secret-env` transformer (`k8s/components/transformers/kopiur-secret-env`, included by every `k8s/components/envs/<env>`) rewrites `kopiur-secret`'s `ExternalSecret` key accordingly (`kopiur-backup#base` → `kopiur-backup#dev`, ...) and the `ClusterRepository`'s bucket name the same way — no per-app patching needed, and it's a no-op for apps that don't include `apps/storage/pvc`/`pvc-no-backup` at all.
 
 ## Known caveats
 
-- **fsType matching**: the staging `StorageClass` must match the source data's filesystem — a `VolumeSnapshot` restore is a raw block-level copy, not a reformat. Documented inline in `k8s/components/apps/kopiur/backup/snapshotpolicy.yaml`.
+- **fsType matching**: the staging `StorageClass` must match the source data's filesystem — a `VolumeSnapshot` restore is a raw block-level copy, not a reformat. Full variable reference and the storage-class table live in [docs/app-storage.md](app-storage.md); the rule itself is documented inline in `k8s/components/apps/storage/pvc-no-backup/snapshotpolicy.yaml`.
+
+## Credits & changes from upstream
+
+This is adapted from [onedr0p/home-ops](https://github.com/onedr0p/home-ops)' original kopiur backup component -- including the core "existing backup restores automatically on fresh bootstrap, otherwise a clean PVC" idea described above, which is onedr0p's design, not this repo's. Changes made since adopting it:
+
+- Storage classes: Ceph-specific defaults (`csi-ceph-blockpool`, `ceph-block`, `miroir-slow`) replaced with this cluster's Longhorn equivalents.
+- Coverage extended to all 8 environments, with `dbg`/`head`/`poc`/`src` dormant (see [Dormant environments](#dormant-environments)) rather than excluded outright.
+- Off-site cadence changed from hourly to daily (`H 3 * * *`), since Longhorn's own hourly *local* snapshots already cover the "recent changes" recovery case independently.
+- The single `kopiur-backup` component was split into an opt-*out* pair, `apps/storage/pvc` (default, includes backup) and `apps/storage/pvc-no-backup` (explicit exception) -- see [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md).
+- App-facing variables (`KOPIUR_*`) renamed to generic, implementation-agnostic names (`STORAGE_*`, `PUID`/`PGID`) so the interface doesn't hard-depend on kopiur specifically -- see [docs/app-storage.md](app-storage.md).

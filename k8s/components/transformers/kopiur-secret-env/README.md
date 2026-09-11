@@ -68,7 +68,7 @@ value, which only exists once a specific environment's component is included, no
 ## No-op safety
 
 Each `select` targets a specific `kind`+`name` (`ExternalSecret`/`kopiur-repository`,
-`ClusterRepository`/`fiona`). For any app that doesn't include the `kopiur-backup` component at all,
+`ClusterRepository`/`fiona`). For any app that doesn't include `apps/storage/pvc`/`pvc-no-backup` at all,
 neither matches and the replacement silently no-ops — same behavior as `prefix-domain`'s
 `Ingress`/`HTTPRoute`/`TLSRoute` replacements for apps with none of those resources. No app-level wiring
 or opt-out is needed either way.
