@@ -148,6 +148,7 @@ Each environment has its own bucket and credentials (`kopiur-backup#dev`, `kopiu
 ## Known caveats
 
 - **fsType matching**: the staging `StorageClass` must match the source data's filesystem — a `VolumeSnapshot` restore is a raw block-level copy, not a reformat. Full variable reference and the storage-class table live in [docs/app-storage.md](app-storage.md); the rule itself is documented inline in `k8s/components/apps/storage/pvc-no-backup/snapshotpolicy.yaml`.
+- **Longhorn-backed volumes only, for now.** kopiur relies on the standard Kubernetes CSI `VolumeSnapshot` API, which is CSI-driver-agnostic in principle — but this cluster's `proxmox-csi` driver (`csi.proxmox.sinextra.dev`) doesn't support it today: its controller deployment has no `csi-snapshotter` sidecar, and there's no `VolumeSnapshotClass` for it (only `longhorn-snapshot` exists). Confirmed by testing directly: creating a `VolumeSnapshot` against a `proxmox-csi`-backed PVC (referencing `longhorn-snapshot`, since nothing else exists) fails with `rpc error: code = Unavailable ... error reading from server: EOF` — Kubernetes doesn't validate that a `VolumeSnapshotClass`'s driver matches the source PVC's provisioner, so the request silently routes to Longhorn's driver, which can't act on a volume it doesn't own. An app whose data lives on `proxmox-csi` can't be backed up by kopiur as currently deployed; it would need a `VolumeSnapshotClass` and functioning snapshot support added to `proxmox-csi` first.
 
 ## Credits & changes from upstream
 
