@@ -1,6 +1,13 @@
 # vim:sw=2:ts=2:expandtab:ai
 ---
 # Area
+"area:ai":
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".agents/**"
+          - ".claude/**"
+          - "AGENTS.md"
+          - "CLAUDE.md"
 "area:ci":
   - changed-files:
       - any-glob-to-any-file:
