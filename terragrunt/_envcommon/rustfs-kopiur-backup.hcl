@@ -31,7 +31,9 @@ locals {
 
   ### Common variables for the component across all environments
 
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-kopiur-backup"
+  # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
+  # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-kopiur-backup?ref=rustfs-kopiur-backup-v0.1.0"
 
   # Only the env differs per environment -- computed here so per-env units don't repeat it. The module
   # derives both the bucket/user/policy name and the 1Password item title from this plus its own
