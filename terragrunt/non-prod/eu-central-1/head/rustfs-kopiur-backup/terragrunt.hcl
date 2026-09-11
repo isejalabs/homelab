@@ -21,7 +21,9 @@ include "envcommon" {
 }
 
 terraform {
-  source = include.envcommon.locals.base_source_url
+  # using hard-coded URL instead of envcommon variable, so this env tracks the module's latest commit
+  # instead of the pinned release tag other environments use (mirrors vehagn-k8s's head unit).
+  source = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-kopiur-backup?ref=HEAD"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
