@@ -21,7 +21,12 @@ include "envcommon" {
 }
 
 terraform {
-  source = include.envcommon.locals.base_source_url
+  # source = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-kopiur-backup?ref=HEAD"
+  source = "${local.root_path}/../../terraform-modules/modules/rustfs-kopiur-backup"
+}
+
+locals {
+  root_path = "${dirname(find_in_parent_folders("root.hcl"))}"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
