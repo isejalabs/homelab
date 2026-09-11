@@ -36,6 +36,14 @@ This runs two private sub-recipes in order:
 - `core` (namespaces and personal credential injection via `op inject` leveraging `k8s/bootstrap/kustomize`, as well as CRD extraction/apply from helmfile — see `k8s/bootstrap/helmfile/crds/helmfile.yaml.gotmpl`)
 - `apps` (helmfile sync of Cilium, sealed-secrets, cert-manager, external-secrets, onepassword-connect, flux-operator, flux-instance — see `k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl` for the authoritative list and ordering). After that, Flux CD takes over reconciliation from Git automatically — there is no separate "apply everything" command for `k8s/infra`/`k8s/apps`; changes land by being merged and reconciled by Flux (`flux get ks -A` to check status).
 
+**Testing a not-yet-merged branch against a live environment**: see the `track-branch` skill
+(`.agents/skills/track-branch/`) — points one environment's `flux-instance` at a branch via a `tmp(<env>): ...`
+commit made *on that same branch* (never `main`, never a separate branch) plus a direct `kubectl apply -k`
+to the live cluster. Fine for any non-prod environment (`dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src`)
+— never `prod`. Clean up any test-created resources afterward, including
+Retain-policy PVs/Longhorn volumes, which outlive the PVC/namespace that claimed them and need deleting
+both as the k8s `PersistentVolume` object and the underlying `volumes.longhorn.io` object.
+
 Terragrunt (run from `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`):
 
 ```sh
@@ -74,6 +82,7 @@ There is no build/lint/test suite (no application source code) — validation is
 
 ## PR discipline
 
+- **Never push directly to `main`** (or any other protected/default branch) — always through a PR, regardless of size or how temporary the change is meant to be. Even a throwaway commit meant to be reverted minutes later belongs on a feature branch, never `main` — see the `track-branch` skill's `tmp(<env>): ...` convention (under Commands above) for a concrete example of a temporary, self-reverting change still living entirely on its own branch.
 - **No CI in this repo.** There's no GitHub Actions/CI pipeline gating PRs (see "Commands" above — validation is `pre-commit`, `kustomize build`/`helmfile template`, and Flux's own reconciliation, none of which run as PR checks). Don't offer to watch/subscribe to a PR for CI status, don't treat "waiting on CI" as a reason to hold off, and don't apply any CI-red/re-run workflow to this repo's own PRs — there's nothing to watch. A PR here is ready once it's mergeable and any human review is addressed.
 - **Prerequisite items**: if something must happen before an action can be taken — merging a PR, closing an issue, applying a plan-based change — never assume it's done just because it was mentioned earlier or the user said "looks good". For a PR, list it under a `## Before merging` heading in its body as a checklist; the same rule applies to a prerequisite stated in a standalone issue or plan, PR or not. Before taking the dependent action, list each item back to the user explicitly and get per-item confirmation — a general go-ahead doesn't count. This is agent-mediated: it applies whenever an agent performs the action, including via CLI (e.g. an agent running `gh pr merge`) — only a human bypassing the agent entirely (merging themselves through the UI or their own shell) skips it. Once an item is confirmed, check it off in the PR body as part of the same action (e.g. before/with the merge) — don't leave it for a separate request.
 - **Post-merge follow-ups**: put anything to address *after* merge (not blocking merge) under a `## Post-merge follow-ups` heading in the PR body, as a checklist — kept separate from `## Before merging` above. Don't pre-create a tracking issue for this speculatively before the PR exists or merges (that caused duplicate/stale issues in the past, e.g. #1117 vs #1118). Instead, once the PR merges, automation reads that heading and opens exactly one tracking issue labeled `post-merge-followup`, linked back to the PR; a separate daily digest emails every open issue carrying that label until it's closed. That label is reserved for this automation — never apply it by hand to a regular issue, so it stays a small, clean queue distinct from the normal issue backlog/project board. Most PRs won't need this section at all.
