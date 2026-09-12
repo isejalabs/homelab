@@ -1,9 +1,13 @@
 # Storage: Longhorn vs. proxmox-csi
 
-Two storage backends are available in-cluster, and the choice between them isn't about performance — it's
-about **who owns the volume's lifecycle**. proxmox-csi is for the small number of volumes Terragrunt
-declares as real Proxmox disks and deliberately keeps alive across a full cluster teardown/rebuild. Longhorn
-is for everything else: ordinary dynamically-provisioned, replicated storage that an app just asks for.
+Two storage backends are available in-cluster. This isn't a permanent 50/50 split: **Longhorn is replacing
+proxmox-csi step by step**, and proxmox-csi is being kept only where there's a specific benefit to sticking
+with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending
+on Longhorn's own backup/restore path. So the practical question for a new volume isn't "which is better" but
+"does this volume need the proxmox-csi property badly enough to justify it" — if not, it goes on Longhorn.
+That consolidation is also what's driving [issue #807](https://github.com/isejalabs/homelab/issues/807),
+currently being worked on, to give the cluster consistent, reliable storage provisioning and backup/restore
+in one place, rather than the two different lifecycle stories this doc otherwise has to describe.
 
 ## proxmox-csi — Terragrunt-pinned volumes that survive a cluster rebuild
 
@@ -110,23 +114,38 @@ only present where an environment's Flux set actually includes it:
 
 ### StorageClasses — one driver, several tradeoff profiles
 
-All five, in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/),
-share `provisioner: driver.longhorn.io`, `reclaimPolicy: Retain`, `volumeBindingMode: WaitForFirstConsumer`,
+There are six, not five — one easy to miss because it isn't declared alongside the others. Five are custom,
+in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/),
+sharing `provisioner: driver.longhorn.io`, `reclaimPolicy: Retain`, `volumeBindingMode: WaitForFirstConsumer`,
 `allowVolumeExpansion: true` — only the `parameters:` differ:
 
 | StorageClass | fsType | replicas | notes |
 | --- | --- | --- | --- |
-| `longhorn-standard` | ext4 | 2 | general-purpose default (not cluster-default — see below) |
+| `longhorn-standard` | ext4 | 2 | general-purpose |
 | `longhorn-ext4` | ext4 | 2 | same profile, explicit ext4 |
 | `longhorn-xfs` | xfs | 2 | same profile, xfs |
 | `longhorn-fast` | xfs | 1 | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
 | `longhorn-ha` | xfs | 3 | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
 
-No Longhorn `StorageClass` is marked as the cluster default —
-[`sc-standard.yaml`](../../k8s/infra/longhorn-system/longhorn/base/sc-standard.yaml) explicitly sets
-`storageclass.kubernetes.io/is-default-class: "false"`, and none of the others set the annotation at all —
-so every app has to name a storage class explicitly. Real usage example
-([`k8s/apps/finances/actualbudget/base/helmrelease.yaml`](../../k8s/apps/finances/actualbudget/base/helmrelease.yaml)):
+The sixth, **`longhorn`**, is not defined in that `base/` folder at all — it's created automatically by the
+Longhorn Helm chart itself (`longhorn-core`'s
+[`base/helmrelease.yaml`](../../k8s/infra/longhorn-system/longhorn-core/base/helmrelease.yaml)):
+
+```yaml
+persistence:
+  # -- Replica count of the default Longhorn StorageClass.
+  defaultClassReplicaCount: 1
+```
+
+The chart's own default (`persistence.defaultClass: true`, not overridden here) both creates this
+`longhorn` class and marks it `storageclass.kubernetes.io/is-default-class: "true"` — **`longhorn` is the
+cluster's actual default StorageClass**, with a replica count of 1. None of the five custom classes above
+override that default themselves — [`sc-standard.yaml`](../../k8s/infra/longhorn-system/longhorn/base/sc-standard.yaml)
+explicitly sets its own annotation to `storageclass.kubernetes.io/is-default-class: "false"` despite the
+name "standard" inviting the assumption it's the default — so a PVC that names no `storageClassName` at all
+lands on `longhorn` (replica count 1), not on `longhorn-standard` (replica count 2). Real usage example, one
+of the five *named* classes (not the implicit default), from
+[`k8s/apps/finances/actualbudget/base/helmrelease.yaml`](../../k8s/apps/finances/actualbudget/base/helmrelease.yaml):
 
 ```yaml
 persistence:
@@ -139,18 +158,29 @@ StorageClass reference. This is the default pattern for any app that needs a vol
 `longhorn-*` class matching its consistency/performance needs, and let Longhorn provision and replicate it.
 Longhorn's own S3-backed `RecurringJob`s
 ([`job-backup-default.yaml`](../../k8s/infra/longhorn-system/longhorn/base/job-backup-default.yaml)) are the
-backup mechanism for this tier — there's no Terragrunt-style state-exclusion/re-import dance for Longhorn
-volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned volumes do.
+backup mechanism for this tier today — there's no Terragrunt-style state-exclusion/re-import dance for
+Longhorn volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned
+volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) is the tracked effort to make this
+more rigorous: it settled on [kopiur](https://github.com/home-operations/kopiur) over
+[VolSync](https://github.com/backube/volsync) as the backup/restore operator, split into the Kubernetes-side
+rollout ([#1127](https://github.com/isejalabs/homelab/issues/1127) — operator, components, StorageClasses),
+the S3 backup target in RustFS ([#1128](https://github.com/isejalabs/homelab/issues/1128)), and the
+1Password credentials kopiur needs to authenticate against it
+([#1129](https://github.com/isejalabs/homelab/issues/1129)).
 
 ## Choosing between them
 
-- **proxmox-csi** — a volume that needs to survive a full cluster teardown/rebuild by design, or one whose
-  size/placement is meaningful enough to want declared explicitly in Terragrunt rather than left to dynamic
-  provisioning. In practice: the handful of volumes an app absolutely cannot lose (e.g. unifi-controller's
-  MongoDB data).
-- **Longhorn** — everything else. Ordinary app storage, provisioned on demand, replicated for HA at the
-  storage layer instead of the infrastructure layer, with its own backup mechanism if durability across a
-  rebuild matters.
+Longhorn is the default going forward — proxmox-csi is being phased out for new workloads, kept only where
+its specific properties are worth the Terragrunt overhead:
+
+- **proxmox-csi** — reach for it only when a volume needs to survive a full cluster teardown/rebuild by
+  Terragrunt import rather than Longhorn's own backup/restore, or when its size/placement is meaningful
+  enough to want declared explicitly in Terragrunt. In practice: the handful of volumes an app absolutely
+  cannot lose (e.g. unifi-controller's MongoDB data) that predate the move to Longhorn.
+- **Longhorn** — the default for everything else, and increasingly for workloads that used to be
+  proxmox-csi candidates too. Ordinary app storage, provisioned on demand, replicated for HA at the storage
+  layer instead of the infrastructure layer, with its own backup mechanism if durability across a rebuild
+  matters.
 
 ## `reclaimPolicy: Retain` and the two-step cleanup gotcha
 
