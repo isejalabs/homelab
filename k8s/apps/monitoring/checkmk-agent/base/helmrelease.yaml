@@ -5,55 +5,52 @@ kind: HelmRelease
 metadata:
   name: &name checkmk-kube-agent
 spec:
-  interval: 1h
   chart:
     spec:
       chart: checkmk
-      version: 1.12.1
       sourceRef:
         kind: HelmRepository
         name: *name
         namespace: *name
+      version: 1.12.1
+  interval: 1h
   timeout: 10m
   values:
     clusterCollector:
       resources:
-        requests:
-          cpu: 30m
-          memory: 70Mi
         limits:
           cpu: 100m
           memory: 120Mi
-
+        requests:
+          cpu: 30m
+          memory: 70Mi
     nodeCollector:
-      # collect metrics also on control plane nodes
-      tolerations:
-        - operator: "Exists"
-          effect: "NoSchedule"
-
       cadvisor:
         resources:
-          requests:
-            cpu: 15m
-            memory: 40Mi
           limits:
             cpu: 100m
             memory: 50Mi
-
+          requests:
+            cpu: 15m
+            memory: 40Mi
       containerMetricsCollector:
         resources:
-          requests:
-            cpu: 15m
-            memory: 40Mi
           limits:
             cpu: 100m
             memory: 50Mi
 
+          requests:
+            cpu: 15m
+            memory: 40Mi
       machineSectionsCollector:
         resources:
+          limits:
+            cpu: 100m
+            memory: 40Mi
           requests:
             cpu: 30m
             memory: 35Mi
-          limits:
-            cpu: 100m
-            memory: 40Mi
+      # collect metrics also on control plane nodes
+      tolerations:
+        - effect: "NoSchedule"
+          operator: "Exists"

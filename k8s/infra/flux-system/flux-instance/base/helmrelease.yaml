@@ -12,8 +12,6 @@ spec:
   timeout: 10m
   values:
     instance:
-      distribution:
-        artifact: oci://ghcr.io/controlplaneio-fluxcd/flux-operator-manifests:v0.55.0
       cluster:
         networkPolicy: false
         size: small
@@ -22,9 +20,11 @@ spec:
         - kustomize-controller
         - helm-controller
         - notification-controller
+      distribution:
+        artifact: oci://ghcr.io/controlplaneio-fluxcd/flux-operator-manifests:v0.55.0
       sync:
         kind: GitRepository
-        url: "https://github.com/isejalabs/homelab"
-        ref: "refs/heads/main"
-        path: "k8s/bootstrap/cluster/flux/envs/REPLACE_ME"
         interval: 10m
+        path: "k8s/bootstrap/cluster/flux/envs/REPLACE_ME"
+        ref: "refs/heads/main"
+        url: "https://github.com/isejalabs/homelab"

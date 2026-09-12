@@ -15,8 +15,8 @@ spec:
       - name: proxmox-csi
         cache: writethrough
         fstype: ext4
+        mountOptions:
+          - noatime
         reclaimPolicy: Retain
         ssd: true
         storage: local-enc
-        mountOptions:
-          - noatime

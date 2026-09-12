@@ -14,56 +14,9 @@ spec:
       labels:
         app: adguard
     spec:
-      securityContext:
-        seccompProfile:
-          type: RuntimeDefault
-      initContainers:
-        - name: copy-base-config
-          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
-          command:
-            [
-              "cp",
-              "/tmp/AdGuardHome.yaml",
-              "/opt/adguardhome/conf/AdGuardHome.yaml",
-            ]
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
-            - name: config
-              mountPath: /tmp/AdGuardHome.yaml
-              subPath: AdGuardHome.yaml
-            - name: config-folder
-              mountPath: /opt/adguardhome/conf
-        - name: append-users
-          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
-          command:
-            [
-              "sh",
-              "-c",
-              "cat /tmp/users.yaml >> /opt/adguardhome/conf/AdGuardHome.yaml",
-            ]
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop: ["ALL"]
-          volumeMounts:
-            - name: users
-              mountPath: /tmp/users.yaml
-              subPath: users.yaml
-            - name: config-folder
-              mountPath: /opt/adguardhome/conf
       containers:
         - name: adguard
           image: docker.io/adguard/adguardhome:v0.107.79@sha256:aba9e3bf0613be3ba3755e1fc311b126e2c24bec25e18b6483894a88283074f0
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-          # capabilities:
-          #   drop: [ "ALL" ]
           ports:
             - name: dns-tcp
               containerPort: 53
@@ -78,17 +31,54 @@ spec:
               containerPort: 3000
               protocol: TCP
           resources:
-            requests:
-              cpu: 50m
-              memory: 256Mi
             limits:
               cpu: 500m
               memory: 512Mi
+            requests:
+              cpu: 50m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          # capabilities:
+          #   drop: [ "ALL" ]
           volumeMounts:
             - name: config-folder
               mountPath: /opt/adguardhome/conf
             - name: work-folder
               mountPath: /opt/adguardhome/work
+      initContainers:
+        - name: copy-base-config
+          command: ["cp", "/tmp/AdGuardHome.yaml", "/opt/adguardhome/conf/AdGuardHome.yaml"]
+          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: config
+              mountPath: /tmp/AdGuardHome.yaml
+              subPath: AdGuardHome.yaml
+            - name: config-folder
+              mountPath: /opt/adguardhome/conf
+        - name: append-users
+          command: ["sh", "-c", "cat /tmp/users.yaml >> /opt/adguardhome/conf/AdGuardHome.yaml"]
+          image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: users
+              mountPath: /tmp/users.yaml
+              subPath: users.yaml
+            - name: config-folder
+              mountPath: /opt/adguardhome/conf
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
       volumes:
         - name: config
           configMap:

@@ -5,9 +5,9 @@ metadata:
   name: weekly-trim
   namespace: longhorn-system
 spec:
-  task: filesystem-trim
-  cron: "7 4 * * 6"
-  retain: 0
   concurrency: 5
+  cron: "7 4 * * 6"
   groups:
     - default
+  retain: 0
+  task: filesystem-trim

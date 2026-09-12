@@ -5,14 +5,14 @@ metadata:
   name: daily-backup
   namespace: longhorn-system
 spec:
-  task: backup
+  concurrency: 1
   # daily at 4:30 AM
   cron: "30 4 * * *"
-  retain: 7
-  concurrency: 1
   # Applies to volumes without explicit group
   groups:
     - default
+  retain: 7
+  task: backup
 ---
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
@@ -20,14 +20,14 @@ metadata:
   name: weekly-backup
   namespace: longhorn-system
 spec:
-  task: backup
+  concurrency: 1
   # weekly at 4:04 AM
   cron: "4 4 * * 0"
-  retain: 4
-  concurrency: 1
   # Applies to volumes without explicit group
   groups:
     - default
+  retain: 4
+  task: backup
 ---
 apiVersion: longhorn.io/v1beta2
 kind: RecurringJob
@@ -35,11 +35,11 @@ metadata:
   name: monthly-backup
   namespace: longhorn-system
 spec:
-  task: backup
+  concurrency: 1
   # monthly at 4:12 AM on the 1st
   cron: "12 4 1 * *"
-  retain: 6
-  concurrency: 1
   # Applies to volumes without explicit group
   groups:
     - default
+  retain: 6
+  task: backup

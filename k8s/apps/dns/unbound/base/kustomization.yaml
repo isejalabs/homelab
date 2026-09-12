@@ -3,6 +3,10 @@ kind: Kustomization
 
 namespace: unbound
 
+resources:
+  - ns.yaml
+  - deployment.yaml
+  - svc.yaml
 configMapGenerator:
   - name: unbound-env
     literals:
@@ -20,7 +24,3 @@ configMapGenerator:
     files:
       - config/zones.d/unbound-iseja.conf
 
-resources:
-  - ns.yaml
-  - deployment.yaml
-  - svc.yaml

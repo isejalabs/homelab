@@ -4,17 +4,17 @@ metadata:
   name: http-redirect-to-https
 spec:
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
+    - kind: Gateway
       name: internal-http
+      group: gateway.networking.k8s.io
       sectionName: http-gateway
   rules:
-    - filters:
-        - type: RequestRedirect
-          requestRedirect:
-            scheme: https
-            statusCode: 301
-      matches:
+    - matches:
         - path:
             type: PathPrefix
             value: /
+      filters:
+        - requestRedirect:
+            scheme: https
+            statusCode: 301
+          type: RequestRedirect
