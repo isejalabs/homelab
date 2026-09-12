@@ -16,8 +16,28 @@ It's all about IaC and DRY -- and my future homelab (based on [vehagn/homelab](h
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) gives a good overview of the current state of the implementation of my homelab repo, and is being updated on a regular basis.
 
-See also
+### Folder Structure
 
-- [terragrunt/README.md](terragrunt/README.md) for the bootstrapping of the Kubernetes cluster by provisioning VMs in Proxmox, installing Talos and deploying core infrastructure such as Cilium CNI and Proxmox CSI setup,
+```
+📁 homelab
+├── 📁 terragrunt      # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
+├── 📁 k8s             # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
+├── 📁 scripts         # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
+├── 📁 docs            # cross-cutting architecture docs, procedural notes, and bootstrap logs (see docs/README.md)
+├── 📁 .agents         # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
+├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
+├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
+├── 📁 .claude         # Claude Code project skills
+├── 📁 .ci             # CI tooling config (prettier)
+└── 📁 _attic          # retired/old material, not part of the active implementation
+```
+
+Root-level config files (`.sops.yaml`, `.pre-commit-config.yaml`, `.justfile`, `.minijinja.toml`, `.gitmodules`) wire up SOPS, pre-commit hooks, the `just` command runner and templating.
+
+For the detailed layout of each major area, see also
+
+- [terragrunt/README.md](terragrunt/README.md) for the Terragrunt folder structure, and the bootstrapping of the Kubernetes cluster by provisioning VMs in Proxmox, installing Talos and deploying core infrastructure such as Cilium CNI and Proxmox CSI setup,
+- [k8s/README.md](k8s/README.md) for the k8s folder structure (`apps/`, `bootstrap/`, `components/`, `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows,
 - [k8s/bootstrap/README.md](k8s/bootstrap/README.md) for deployment of infrastructure components and apps in the Kubernetes cluster,
+- [k8s/components/README.md](k8s/components/README.md) for the shared DRY kustomize components layer,
 - [docs/README.md](docs/README.md) for cross-cutting architecture docs (e.g. the kustomize overlay approach) versus per-folder usage READMEs,
