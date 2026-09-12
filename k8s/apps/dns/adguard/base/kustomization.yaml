@@ -11,7 +11,7 @@ resources:
   - deployment.yaml
   - http-route.yaml
 configMapGenerator:
-  - files:
+  - name: adguard-config
+    files:
       - config/AdGuardHome.yaml
 
-    name: adguard-config

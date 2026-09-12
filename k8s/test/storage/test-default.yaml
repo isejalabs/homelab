@@ -18,12 +18,12 @@ metadata:
   namespace: default
 spec:
   containers:
-    - command: ["sh", "-c", "while true; do echo $(date) >> /data/log.txt; sleep 5; done"]
+    - name: test
+      command: ["sh", "-c", "while true; do echo $(date) >> /data/log.txt; sleep 5; done"]
       image: busybox@sha256:dc2d74b28e4cf8984fa52af1f39bc7c3d9c73760b41a74d629f5d11b1ab28616
-      name: test
       volumeMounts:
-        - mountPath: /data
-          name: data
+        - name: data
+          mountPath: /data
   volumes:
     - name: data
       persistentVolumeClaim:

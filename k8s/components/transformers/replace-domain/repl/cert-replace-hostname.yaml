@@ -1,7 +1,7 @@
 - source:
-    fieldPath: data.DOMAIN_TLD
     kind: ConfigMap
     name: cluster-param
+    fieldPath: data.DOMAIN_TLD
   targets:
     - fieldPaths:
         - spec.dnsNames.*
@@ -11,9 +11,9 @@
       select:
         kind: Certificate
 - source:
-    fieldPath: data.DOMAIN_BASE
     kind: ConfigMap
     name: cluster-param
+    fieldPath: data.DOMAIN_BASE
   targets:
     - fieldPaths:
         - spec.dnsNames.*

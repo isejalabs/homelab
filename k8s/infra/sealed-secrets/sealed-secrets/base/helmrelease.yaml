@@ -14,9 +14,9 @@ spec:
   upgrade:
     crds: CreateReplace
   values:
+    namespace: sealed-secrets
     keyrenewperiod: 8766h # ~ 1 year
 
-    namespace: sealed-secrets
     resources:
       limits:
         cpu: 100m

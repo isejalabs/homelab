@@ -10,13 +10,13 @@ spec:
       # shared with the internal Gateway so both get the same LB IP
       io.cilium/lb-ipam-sharing-key: internal
   listeners:
-    - allowedRoutes:
+    - name: http-gateway
+      allowedRoutes:
         namespaces:
           # only allow routes from the same namespace as the gateway, i.e. the http-redirect route
           # no other routes from other namespaces will be attached to prevent unencrypted traffic
           from: Same
       # do not state hostname here, otherwise routes would attach despite of the allowedRoutes settings
       # hostname: "*.example.com"
-      name: http-gateway
       port: 80
       protocol: HTTP

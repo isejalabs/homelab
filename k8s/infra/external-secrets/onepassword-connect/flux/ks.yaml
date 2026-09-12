@@ -7,9 +7,9 @@ metadata:
 spec:
   healthCheckExprs:
     - apiVersion: external-secrets.io/v1
+      kind: ClusterSecretStore
       current: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'True')
       failed: status.conditions.filter(e, e.type == 'Ready').all(e, e.status == 'False')
-      kind: ClusterSecretStore
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease

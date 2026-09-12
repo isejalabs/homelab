@@ -1,7 +1,7 @@
 - source:
-    fieldPath: data.CLUSTER_ENVIRONMENT
     kind: ConfigMap
     name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
   targets:
     - fieldPaths:
         - spec.rules.*.host

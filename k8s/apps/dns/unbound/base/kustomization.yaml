@@ -8,19 +8,19 @@ resources:
   - deployment.yaml
   - svc.yaml
 configMapGenerator:
-  - literals:
+  - name: unbound-env
+    literals:
       - TZ="Europe/Berlin"
       - EXTENDED_HEALTHCHECK="true"
       - EXTENDED_HEALTHCHECK_DOMAIN="k.root-servers.net"
-    name: unbound-env
-  - files:
+  - name: unbound-conf
+    files:
       - config/conf.d/access-control.conf
       - config/conf.d/logging-default.conf
       - config/conf.d/logging-verbose.conf
       - config/conf.d/rootless.conf
       - config/unbound.conf
-    name: unbound-conf
-  - files:
+  - name: unbound-zones
+    files:
       - config/zones.d/unbound-iseja.conf
 
-    name: unbound-zones

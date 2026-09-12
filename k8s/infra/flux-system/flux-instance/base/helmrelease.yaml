@@ -23,8 +23,8 @@ spec:
       distribution:
         artifact: oci://ghcr.io/controlplaneio-fluxcd/flux-operator-manifests:v0.55.0
       sync:
-        interval: 10m
         kind: GitRepository
+        interval: 10m
         path: "k8s/bootstrap/cluster/flux/envs/REPLACE_ME"
         ref: "refs/heads/main"
         url: "https://github.com/isejalabs/homelab"
