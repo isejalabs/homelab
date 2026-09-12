@@ -46,6 +46,5 @@ A `_ns` folder (e.g. `infra/cert-manager/_ns`) is the exception: it only has a `
 
 ## ToDo
 
-- [X] document folder structure
 - [X] document bootstrap process (incl. manual steps and automation via CI/CD pipelines)
 - [ ] document kustomize overlay approach (incl. transformers and components)
