@@ -4,9 +4,10 @@ A request from a LAN client to a pod crosses pieces this repo manages and pieces
 **Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium)
 terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the
 management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely:
-an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, and a redundant
-pair of **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense
-boxes), DNS, and identity services (Kerberos, LDAP, Active Directory) for the wider network. None of this is
+an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, a redundant pair of
+**UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes),
+identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair
+of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is
 documented as one story anywhere else in the repo — each in-cluster app's own README is either a bare
 `kubectl` cheatsheet or nonexistent, and the physical-network side isn't in Git at all.
 
@@ -84,7 +85,19 @@ overlays. Offsets are kept stable across environments so the same app always lan
 (each pool's actual `CiliumLoadBalancerIPPool` block only spans `.8`–`.250` of its `/24`, leaving the low and
 high ends free for infrastructure/reservations.)
 
-**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the rest of the network.
+**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the rest of the network,
+and the choice matters here for a specific reason: the `10.8.0.0/16` range those pools carve `/24`s out of
+(informally "the Kubernetes BGP net") is a completely different subnet from `10.7.8.0/24`, the one the Talos
+nodes' own network interfaces actually sit in — a VLAN dedicated solely to cluster nodes, isolated from every
+other VLAN/net on the network (DMZ, LAN, other servers, ...). No node has an interface anywhere in
+`10.8.0.0/16` at all. L2 announcement (Cilium's other LB-IP mechanism, gratuitous-ARP-based) requires the
+advertised IP to sit in the *same* L2 segment as the node advertising it — it couldn't work across that
+subnet boundary. BGP has no such requirement: it's a routing-layer (L3) protocol, so any node can advertise a
+route for any `10.8.x.x/32` IP regardless of what subnet its own interface lives in, and the router (OPNsense,
+below) just adds that route to its table like any other. That's what makes the LB-IP address space fully
+independent of node placement — an IP can be reassigned to any node, or advertised redundantly from several,
+without needing any node to actually hold it as a local address.
+
 Every environment's
 [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) peers from
 the worker nodes (control-plane nodes are explicitly excluded) to two fixed router addresses:
@@ -200,9 +213,10 @@ stub-zone:
     stub-addr: 10.7.2.12
 ```
 
-`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're the pair of **UCS (Univention Corporate
-Server)** machines (see [below](#physical-network-opnsense-and-ucs)) acting as the authoritative DNS source
-for the `iseja.net` zone, on their own VLAN/L2 segment separate from the cluster's.
+`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're a pair of small Debian LXC containers acting as
+the root/authoritative nameservers for the `iseja.net` zone (see
+[below](#physical-network-opnsense-ucs-and-the-root-nameservers)), not UCS: UCS's own DNS role is scoped to
+the `dir.iseja.net`/`home.iseja.net` subdomains, not the root zone.
 
 Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (preserves the client source IP —
 relevant for AdGuard's per-client filtering rules) and a fixed `io.cilium/lb-ipam-ips` annotation per
@@ -212,10 +226,12 @@ environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached o
 AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises
 AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
 
-## Physical network: OPNsense and UCS
+## Physical network: OPNsense, UCS, and the root nameservers
 
 Everything in this section is physical infrastructure with no representation in this repo at all — it's
-documented here only because Cilium's BGP config and Unbound's stub-zone both reference it by IP.
+documented here only because Cilium's BGP config and Unbound's stub-zone both reference it by IP. Almost all
+of it (per its owner) is itself a future migration candidate into Kubernetes, same as everything else in this
+homelab.
 
 **OPNsense** — a pair of [OPNsense](https://opnsense.org/) firewalls/routers in an HA configuration is the
 network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everything else routes through, while
@@ -223,17 +239,22 @@ network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everythin
 worker nodes (see [above](#cilium-lb-ipam-and-bgp-route-advertisement)) so LoadBalancer/Gateway routes stay
 advertised even if one box is down.
 
-**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12`, on their own
-VLAN/L2 segment) provide the network's core infrastructure services: DHCP, DNS (the authoritative source for
-`iseja.net` that Unbound's stub-zone points at), and identity management (Kerberos, LDAP, and Active
-Directory — UCS bundles a Samba/AD-compatible domain controller). Being on a separate VLAN, DHCP requests
-from client VLANs reach UCS via the **DHCP relay** service running on the OPNsense boxes — clients broadcast
-on their local segment, OPNsense relays the request across to UCS's VLAN, and the response is relayed back.
+**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are *not* these —
+see below) provide DHCP and identity management (Kerberos, LDAP, and Active Directory — UCS bundles a
+Samba/AD-compatible domain controller) for the network, plus DNS scoped specifically to the
+`dir.iseja.net`/`home.iseja.net` subdomains (not the `iseja.net` root zone itself). Being on their own VLAN,
+DHCP requests from client VLANs reach UCS via the **DHCP relay** service running on the OPNsense boxes —
+clients broadcast on their local segment, OPNsense relays the request across to UCS's VLAN, and the response
+is relayed back.
+
+**The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a
+*separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone
+itself, distinct from UCS's subdomain-scoped DNS role. Not yet migrated into Kubernetes.
 
 **unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its
-own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to either of the above: it's only
-the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows
-through, and not the BGP peer or DHCP/DNS/identity provider. Its
+own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the
+management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows
+through, and not a BGP peer, DHCP/identity provider, or nameserver. Its
 [README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
 
 ## What's not here
@@ -245,5 +266,6 @@ through, and not the BGP peer or DHCP/DNS/identity provider. Its
   either way.
 - **ACME staging, not production** — the `ClusterIssuer` currently points at Let's Encrypt's staging
   endpoint, so certificates it issues won't be trusted by real browsers/clients until that's switched over.
-- **The physical network itself (OPNsense, UCS) isn't in Git** — everything in the section above is
-  documented from IP references found in-cluster, not from any config this repo actually owns.
+- **The physical network itself (OPNsense, UCS, the root nameservers) isn't in Git** — everything in the
+  section above is documented from IP references found in-cluster, not from any config this repo actually
+  owns, and most of it is itself a future Kubernetes-migration candidate.
