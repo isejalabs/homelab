@@ -1,3 +1,6 @@
+See [`docs/architecture/terraform-bootstrap.md`](../docs/architecture/terraform-bootstrap.md) for the AWS
+remote-state backend/IAM bootstrapping story — what's automated here vs. what's manual, one-time AWS setup.
+
 # Directory handling
 
 ```sh
