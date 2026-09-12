@@ -1,151 +1,180 @@
 # Update Handling and Automerging of PRs
 
+See [`docs/architecture/environments.md`](architecture/environments.md) for what each environment is for and
+how they differ structurally (sizing, which apps run, Flux reconciliation interval, ...). This doc only
+covers how *package-update* PRs get created, labeled, and merged — and, separately, how a Flux instance
+decides what ref to reconcile from in the first place.
+
 ## Overview
 
 ### Toolchain
 
-- **renovate**: A tool for automating dependency updates, which creates PRs for package updates. It not only creates PRs but also labels them and also automerges them based on the type of update and whether they should be automerged or not.
-- **labeler**: A tool for automatically labeling PRs based on their content and the rules defined in the configuration. It is used to label PRs with the environment (e.g., `env:PROD`, `env:QA`) and the area a PR is affecting (e.g., `area:terraform`, `area:k8s`), which are then used by mergify to determine whether a PR should be automerged or not.
-- **mergify**: A tool for automating the merging of PRs based on specific conditions. It is configured to automatically merge PRs created by renovate for certain types of updates and configuration changes, while excluding others based on labels.
-- **argo-cd**: A tool for automating the deployment of applications to Kubernetes, following the **GitOps** approach. It is used to deploy changes to the k8s cluster based on what is defined in `git`, instead of a user applying the changes manually by, e.g., `kubectl apply`.
+- **renovate**: creates PRs for package/dependency updates, labels them, and automerges some of them based
+  on update type and per-package/per-path rules (see [`.github/renovate.json5`](../.github/renovate.json5)
+  and [`.github/renovate/`](../.github/renovate/)).
+- **labeler**: labels PRs from the paths they touch — `env:<env>` from which `k8s/**/envs/<env>/**` or
+  `terragrunt/*/*/<env>/**` paths changed, `area:*` from which top-level folder changed (see
+  [`.github/labeler.yml`](../.github/labeler.yml)). These labels describe *what a PR touches*, not who it's
+  "for" — a PR only gets `env:prod` because it happens to edit something under an `envs/prod/` folder.
+- **mergify**: merges PRs automatically based on the labels above (see
+  [`.github/mergify.yml`](../.github/mergify.yml)).
+- **Flux CD**: reconciles every environment's cluster continuously from Git — normally `refs/heads/main`.
+  There is no separate "apply to the cluster" step distinct from merging: once a PR lands on `main`, Flux
+  picks it up on its next reconcile (see [`kustomize.md`](architecture/kustomize.md) and
+  [`environments.md`](architecture/environments.md#flux-reconciliation-interval) for the per-environment
+  interval). This replaces an earlier draft of this doc that referenced Argo CD — **this repo has never used
+  Argo CD**; Flux is the only GitOps controller here.
 
 #### Labels
 
-Github labels are used to categorize and manage PRs based on their content and the rules defined in the configuration. The relevant labels for update handling and automerging include:
+- `pr-type:renovate`: the PR was created by renovate (as opposed to a manual PR, which carries no `pr-type`
+  label).
+- `updateType:digest`, `updateType:pinDigest`, `updateType:patch`, `updateType:minor`, `updateType:major`:
+  the kind of update.
+- `updateStrategy:manual`: excluded from automerging — critical packages, or paths that always need review
+  (`.github/**`, `terragrunt/**`, `tofu/**`).
+- `updateStrategy:pinWatch`: this package is pinned to an older version everywhere *except* `head`/`poc`
+  (which track the newest release as a "watch" for when it's safe to unpin elsewhere) — see
+  [Non-standard update strategies](#non-standard-update-strategies).
+- `env:head`, `env:qa`, `env:dev`, `env:prod`, `env:dbg`, `env:poc`, `env:rebuild`, `env:src`, `env:base`:
+  which overlay path(s) the PR touches (lowercase — matching the actual labeler config, not the `env:PROD`
+  casing an earlier draft of this doc used).
+- `area:terraform`, `area:k8s`, `area:docs`, `area:ci`, `area:ai`: which top-level folder the PR touches.
 
-- `pr-type:renovate`: Indicates that a PR was created by renovate for a package update – in contrast to manual PRs (which do _not_ have a `pr-type` label, e.g., `pr-type:manual`).
-- `updateType:digest`, `updateType:pinDigest`, `updateType:patch`, `updateType:minor`, `updateType:major`: Indicate the type of update (e.g., digest update, patch update, minor update, etc.) for a package update PR created by renovate.
-- `updateStrategy:manual`: Indicates that a PR is excluded from automerging and requires manual review and merging, e.g., for critical/terragrunt-managed packages or for changes that require manual handling and review.
-- `updateStrategy:pinWatch`: Indicates that a package is _pinned_ to a specific version (in other environments) and the PR in question is used for _watching_ for new versions and updates. The `POC` environment is used for watching and is exempted from automerging (except for patches of the pinned version), while the `HEAD` environment will receive new versions through automerging.
-- `env:PROD`, `env:QA`, `env:DEV`, etc.: Indicate the environment that a PR is affecting, which can be used to determine whether a PR should be automerged or not based on the environment it is affecting.
-- `area:terraform`, `area:k8s`, etc.: Indicate the area that a PR is affecting, which can be used to determine whether a PR should be automerged or not based on the area it is affecting.
+## How environments actually differ for update handling
 
-## Configuration changes
+Every environment's Flux instance reconciles continuously from Git — there's no per-environment "who applies
+it" split the way an earlier draft of this doc described (an "argo-cd" bucket vs. a "manual" bucket). What
+actually varies per environment is:
 
-### K8S and argo-cd
-
-Configuration changes for k8s packages are handled differently, based on the environment. For production and test environments, the manifest are applied by argo-cd. For development environments, the manifest are applied manually by a user. For other environments, also applicable for testing, it depends on the specific test scenario investigated,
-
-#### argo-cd
-
-- HEAD
-- PROD
-- QA
-- REBUILD
-
-#### manually
-
-- DEV
-- SRC
-
-#### depends on test scenario
-
-Depending on the test scenario, configuration changes for k8s packages might be applied manually by the user or by argo-cd. This is the case for environments used for testing, which are not production or test environments. Examples for manual handling might be, e.g., testing/investigating a specific application or its specific version, without requiring a full deployment. Examples for argo-cd handling might be testing a full deployment, besides the REBUILD environment, or investigating argo-cd features or issues.
-
-- DBG
-- POC
-
-### terraform/terragrunt
-
-Configuration changes for infrastructure packages managed by terraform/terragrunt are handled manually, as they require manual review of the changes/plan. There's no CI (continuous integration) for the core infrastrucure. Hence, PRs created by renovate for these packages are labeled with `updateStrategy:manual` to exclude them from automerging by renovate and mergify.
+1. **Which git ref Flux reconciles from.** Normally `main`, for every environment. The one deliberate
+   exception is `dev`, which is frequently pointed at whatever feature branch is currently under
+   development instead — via the [`track-branch`](../.agents/skills/track-branch/SKILL.md) skill — so a
+   change can be validated live before it's merged. Once pointed at a branch, Flux reconciles from it just as
+   automatically as it would `main`; the only "manual" part is the decision to point it there (and back) in
+   the first place, not the ongoing reconciliation. (An earlier draft of this doc listed `dev` as
+   config-applied "manually" — that's the part this corrects.)
+2. **Whether a renovate PR touching that environment's overlay gets automerged**, per the mergify rules
+   below.
+3. Everything else that differs per environment (sizing, which apps run at all, reconciliation interval) is
+   architectural, not update-handling-specific — see
+   [`environments.md`](architecture/environments.md#what-each-environment-is-for).
 
 ## Detecting package updates
 
 ### renovate
 
-Package updates are handled by renovate, which creates PRs for updates to packages. These PRs are labeled with `pr-type:renovate` and specific labels indicating the type of update (e.g., `updateType:digest`, `updateType:patch`, `updateType:minor`). Renovate is also configured to automatically merge PRs for certain types of updates (e.g., `digest`, `pinDigest`, `patch`), while excluding critical/terragrunt-managed packages from automerging by labeling them with `updateStrategy:manual`.
-
-Renovate is configured to create separate PRs for different environments (e.g. PROD, QA) and types of updates (`major`, `minor`, `patch`, incl. `separateMinorPatch=true`), which allows for more granular control over which updates are automerged and which require manual review or explicit testing before they are promoted.
+Renovate creates one PR per package/update-type combination (`separateMinorPatch: true`), labeled
+`pr-type:renovate` plus an `updateType:*` label. Because `env:*` labels come from changed paths, a renovate
+PR that only touches `k8s/apps/foo/envs/prod/` (see [below](#tracking-a-version-separately-per-environment))
+gets `env:prod` on its own, distinct from a PR touching `base/` (which affects every environment that
+doesn't override it) or another environment's own override.
 
 ## Merging PRs for package updates
 
 ### Automatic merging rules
 
-Generally, automerging is configured only for PRs created by renovate (labeled `pr-type:renovate`, thus excluding PRs created in other ways, e.g. by a user).
-More specifically, renovate is configured to automatically certain types of updates (e.g., `digest`, `pinDigest`, `patch`), while excluding critical/terragrunt-managed packages from automerging by labeling them with `updateStrategy:manual`. Mergify is configured to automatically merge PRs for the `HEAD` environment as well as updates of type `minor`, in the latter case unless they are excluded from auto-merging labeled `updateStrategy:manual`.
+Automerging only ever applies to `pr-type:renovate` PRs — a human-authored PR never automerges.
 
-The conditions for automerging are as follows:
+- **renovate** (`automerge-enable.json5`) automerges `digest`, `pinDigest`, and `patch` updates, and
+  `devDependencies` updates (this repo has no application source code, so that category rarely applies in
+  practice).
+- **mergify** (`.github/mergify.yml`) automerges on top of that:
+  ```yaml
+  - name: Automatic Merge for HEAD environment
+    conditions:
+      - label=pr-type:renovate
+      - label=env:head
+  - name: Auto-Merge minor unless flagged for updateStrategy:manual, :pinWatch or env:prod
+    conditions:
+      - label=pr-type:renovate
+      - label=updateType:minor
+      - label!=updateStrategy:manual
+      - label!=updateStrategy:pinWatch
+      - label!=env:prod
+  ```
+  `env:head` automerges *unconditionally* — any update type, any area, even ones normally excluded by
+  `updateStrategy:manual`. Every other environment gets `minor` updates automerged unless the PR is flagged
+  `updateStrategy:manual`/`:pinWatch`, or carries `env:prod` (see next section for why prod is carved out
+  here specifically, rather than every non-head environment being equally eligible).
 
-- **renovate**: Automerge small updates , except for critical/terragrunt-managed packages (labeled `updateStrategy:manual`, cf. below). The types of updates are:
-  - `digest` (labeled `updateType:digest`)
-  - `pinDigest` (labeled `updateType:pinDigest`), and
-  - `patch` (labeled `updateType:patch`)
-- **mergify**: Mergify is merging PRs on the following criterias:
-  - `env:head`: Automerge PRs for `HEAD` environment (labeled `env:head`), regardless of the area (k8s, terraform/terragrunt, etc.) and also ignoring whether they are exluded from automerging. They need to be created by renovate (labelled `pr-type:renovate`), at least.
-  - `updateType:minor`: Automerge PRs for updates of type `minor` (labeled `updateType:minor`), unless they are excluded from automerging (labeled `updateStrategy:manual`), if they change files in the `k8s/` folder.
+Note `automergeType: "branch"` is set in `automerge-enable.json5` (renovate merging its own branch directly
+rather than opening a PR first), but this isn't actually happening in practice — PRs are still created for
+every automerge-eligible update. This is a known, unresolved discrepancy (see [Pending](#pending)), not a
+misconfiguration this doc can currently explain away.
 
-### PR creation, checking and notification
+### Tracking a version separately per environment
 
-#### Reducing PR noise
+Any app's `envs/<env>/kustomization.yaml` can `patches:` its own chart's `OCIRepository`/`HelmRelease`
+version, completely independent of `base/` — the same generic per-environment override mechanism described
+in [`kustomize.md`](architecture/kustomize.md), applied to a version pin instead of an LB IP or replica
+count. Most apps never do this and simply inherit whatever `base/` pins. Two apps in this repo currently do,
+and both illustrate the point cleanly:
 
-Automerging is configured as `automergeType=branch` in renovate, which means that renovate will automatically merge the branch created instead of creating a PR. However, this is currently not working as expected, and PRs are still being created instead of branches being merged directly. This issue needs to be investigated further to determine the cause and find a solution.
+- **cilium** — `k8s/infra/kube-system/cilium/envs/head/ocirepository.yaml` patches its own `ref.tag`/digest
+  to a newer release (`1.20.1` vs. `base`'s `1.18.13`, at time of writing), while
+  `envs/prod/ocirepository.yaml` also exists as its own separate patch but currently pins the *same* version
+  as `base` (`1.18.13`).
+- **longhorn-core** — `k8s/infra/longhorn-system/longhorn-core/envs/prod/helm-version.yaml` similarly patches
+  its own `HelmRelease.spec.chart.spec.version`, again currently matching `base`.
 
-### Handling special apps and use cases
+This is the mechanism issue-tracked as "an app can track a version in prod separately, on an optional basis":
+**most often prod's own patch is identical to `base` (and therefore to `qa`, which also inherits `base`)** —
+the override exists in the file tree but isn't being used to diverge from anything. Its value shows up the
+moment someone *wants* to diverge: because `envs/prod/ocirepository.yaml` is its own file, renovate treats a
+version bump there as its own package instance with its own PR, separate from the PR that bumps `base/`'s
+(and therefore `qa`'s) version. That PR picks up `env:prod` from labeler (it touches `k8s/**/envs/prod/**`),
+and the mergify rule above explicitly excludes `env:prod` from automerge — so it always needs a human to
+merge it. Concretely: `base`/`qa` can pick up a new version automatically (if it's a `minor` update) or via
+manual review, get it validated running in `qa` for however long is wanted, and only then merge the
+equivalent prod-specific PR to promote it — without prod ever being forced onto a new version the moment
+`base` moves, and without needing a repo-wide freeze to hold prod back.
 
-Some packages have a non-standard update strategy, e.g. by allowing only updates of type `patch` or by pinning them to a specific version or by not allowing updates at all. There's also an exception for the `HEAD` and `PoC` environments.
+## Handling special apps and environments
 
-#### Special environments
+Some packages have a non-standard update strategy — see the table below. Two environments also get special
+treatment baked into the mergify/renovate rules themselves, beyond the generic `env:prod` carve-out above (a
+full description of each environment's purpose lives in
+[`environments.md`](architecture/environments.md#what-each-environment-is-for); this section covers only the
+update-handling-specific behavior):
 
-Environment | Characteristics
------------ | ---------------
-HEAD | `latest` version used
-POC  | used for tracking the next version (e.g. X.Y+1) when version **pinning** is used (cf. [non-standard update strategy](#non-standard-update-strategies))
-PROD | iff a version is tracked separately, it is **not merged automatically**
+- **`head`** automerges every update unconditionally (see [above](#automatic-merging-rules)), and
+  [`pin-versions.json5`](../.github/renovate/pin-versions.json5) exempts it from the repo-wide version pins
+  on `cilium`/`gateway-api`/`kubernetes/kubernetes`/`mongo` — so it's the one environment that always tracks
+  the newest available version of those packages, functioning as an early-warning signal for breakage before
+  it reaches anywhere else.
+- **`poc`** shares that same pin exemption (also tracking the newest version of those four packages) but is
+  *not* automerged — its renovate PRs are deliberately left open as a standing "reminder" that a newer
+  version exists, labeled `updateStrategy:pinWatch`, rather than landing automatically like `head`'s.
 
-##### HEAD environment
+### Non-standard update strategies
 
-The `HEAD` environment is a special environment used for testing new application versions and updates as soon as they are available (like tracking `latest` or `edge` version). It is configured to automerge all updates regardless of the type of update (also ignoring manual updates and version pinning). This is done to ensure that the latest versions are being tested and to allow for early detection of potential issues with new application versions and updates.
+| Package | Update strategy | Description |
+| --- | --- | --- |
+| `quay.io/cilium/charts/cilium` | Pin previous minor, manual | Pinned to the previous minor (`<=1.18`) for stability — a critical cluster component where even `patch` updates have caused issues before (e.g. [#725](https://github.com/isejalabs/homelab/issues/725)); `head`/`poc` track `>=1.18` instead, labeled `updateStrategy:pinWatch`. |
+| `github.com/isejalabs/terraform-proxmox-talos` | Manual | No automated updates at all — applied manually via `terragrunt`/`tofu` after bumping the version, since it provisions the cluster's own VMs/Talos install. |
+| `kubernetes-sigs/gateway-api` | Pin minor | Pinned to `<=1.4` for `cilium` compatibility; `head`/`poc` track `>=1.4`. |
+| `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.34` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.34`. |
+| `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
+| `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
 
-##### POC environment
+### Excluded packages and paths from auto-merging
 
-The `POC` environment is a testing environment for proof of concept (PoC) implementations and investigations. It is a "throw-away" environment, which means that it is not intended for long-term use and can be easily recreated if needed – unlike the `DEV` environment.
+Labeled `updateStrategy:manual` in [`automerge-disable.json5`](../.github/renovate/automerge-disable.json5),
+excluded from automerge by both renovate and mergify:
 
-The `POC` environment also serves as testbed and reminder for new package versions and updates. As such, it is exempted from application pinning and allows renovate to create PRs for all types of updates. While all other environments are pinned to a specific version, the `POC` (and `HEAD`) environment(s) is not pinned to a specific version, which allows for testing of new versions and updates as soon as they are available. Other than the `HEAD` environment, new package versions and updates in the `POC` environment are not automerged – to have a PR around as "reminder" for a new minor or major version.
-
-##### PROD environment
-
-Normally, for the `PROD` environment, the same package version is used as in the other environments (e.g. QA, DEV, etc., except HEAD and POC, as mentioned before). This is done by leveraging the definition in the `base` kustomize environment.
-
-If there's a special version set up for tracking in the `PROD` environment, i.e. when the `base` definition is not used, mergify is set up to not update the version manually. Instead, the PR with the new package version needs to get applied manually.
-
->[!NOTE]-
-> Despite of handled _manually_ currently, the PR is not labeled `updateStrategy:manual`. A planned _future approach_ will be a _delayed_ automatic merging.
-
-#### Non-standard update strategies
-
-| Package                             | Update strategy    | Description                                                                                                                                                                                                                                                                                                                                                                       |
-| ----------------------------------- | ------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cilium`                            | Pin previous minor, Manual | The version is pinned to the "oldstable" version, i.e. previous minor version (for `cilium` being `X.Y-1`, e.g. 1.18.x instead of 1.19.x).Updates.<br><br>No automatic updates are allowed, even not `digest`s and `patch`.  This is done for extra stability, as `cilium` is a critical component of the cluster and updates of type `minor` might introduce new features which could cause issues (and are not needed for proper functioning) – so do `patch`es that might introduce weird behaviour instead of just patching bugs (e.g. [#725](https://redirect.github.com/isejalabs/homelab/issues/725)). |
-| `isejalabs/terraform-proxmox-talos` | Manual             | No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                                                                                                                                                                               |
-| `kubernetes-sigs/gateway-api`       | Pin minor          | Pinned to a specific minor version in accordance with other application compatibility constraints (`cilium`). Only `patch` updates are allowed.                                                                                                                                                                                                                                   |
-| `kubernetes/kubernetes`             | Pin minor, Manual  | Pinned to a specific minor version in accordance with other application compatibility constraints (e.g. `checkmk`). Only `patch` updates are allowed.<br><br>No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                  |
-| `mongo`                             | Pin Minor          | Pinned to a specific minor version (`8.0`) in accordance with other application compatibility constraints (unific-application-controller). Only `patch` updates are allowed, as updates of type `minor` introduce new features which might cause issues (and are not needed for proper functioning).                                                                              |
-| `siderolabs/talos`                  | Manual             | No updates are allowed, as this package is managed manually by running terragrunt (or terraform) after changing the version number.                                                                                                                                                                                                                                               |
-
-#### Excluded packages from auto-merging
-
-Some packages are excluded from automerging due to their criticality or because they are managed by terragrunt, which requires manual handling. These packages are labeled with `updateStrategy:manual` in renovate configuration and excluded from automerging in mergify configuration. The exceptional packages are (as listed in the table above):
-
-- `cilium`
-- `isejalabs/terraform-proxmox-talos`
-- `kubernetes/kubernetes`,
-- `siderolabs/talos`
-
-#### Excluded file paths from auto-merging
-
-Some file paths are excluded from automerging due to the need for manual handling and review of changes, e.g. for testing or implementation purposes. These file paths are labeled with `updateStrategy:manual` in renovate configuration and excluded from automerging in mergify configuration. The exceptional file paths are:
-
-- `.github/**`
-- `terragrunt/**`
-- `tofu/**`
+- Packages: `quay.io/cilium/charts/cilium`, `github.com/isejalabs/terraform-proxmox-talos`,
+  `kubernetes/kubernetes`, `siderolabs/talos`.
+- Paths: `.github/**`, `terragrunt/**`, `tofu/**` — there's no CI in this repo (see
+  [`../CLAUDE.md`](../CLAUDE.md)'s PR discipline notes), so a Terragrunt/Terraform change always needs a
+  human to review the `plan` before merging.
 
 ## Pending
 
-Some asprects still need to be investigated and tested further to ensure that the automerging of updates is working as expected and that the configuration is correctly set up to handle different types of updates and environments. These include:
-
-- [ ] `automergeType=branch` not working (PRs get created nevertheless)
-- [ ] investigate necessity for disabling updates for `mongo` and maybe `unifi-controller` (enabled currently)
-- [X] pin `cilium`, `gateway-api` and `kubernetes` to specific minor versions to reduce PR noise; PRs only should get created when necessary without the need to ignore them "until a certain solution is released" or "depending on further testing"; PRs should be only ignored for a while if they
-  - need to be handled manually for testing and/or implementation (e.g. manual handling of terraform/terragrunt), or
-  - are waiting for promotion to production, e.g. due to the need for testing in a specific environment, or
-  - are expected to cause issues, e.g. due to new features being introduced in a major (or minor) update; otherwise, PRs should be created and automerged as soon as they are available, even if they are for minor updates, to ensure that the latest versions are being tested and used.
+- [ ] `automergeType=branch` not actually merging branches directly — PRs are still created for every
+      automerge-eligible update. Needs investigation.
+- [ ] investigate necessity for disabling updates for `mongo` and maybe `unifi-controller` (enabled
+      currently).
+- [x] pin `cilium`, `gateway-api`, and `kubernetes` to specific minor versions to reduce PR noise, with
+      `head`/`poc` as the "watch for the next version" exception — done, see
+      [`pin-versions.json5`](../.github/renovate/pin-versions.json5).
