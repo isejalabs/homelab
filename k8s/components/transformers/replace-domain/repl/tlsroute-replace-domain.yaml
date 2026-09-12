@@ -3,22 +3,22 @@
     name: cluster-param
     fieldPath: data.DOMAIN_TLD
   targets:
-    - fieldPaths:
+    - select:
+        kind: TLSRoute
+      fieldPaths:
         - spec.hostnames.*
       options:
         delimiter: "."
         index: 2
-      select:
-        kind: TLSRoute
 - source:
     kind: ConfigMap
     name: cluster-param
     fieldPath: data.DOMAIN_BASE
   targets:
-    - fieldPaths:
+    - select:
+        kind: TLSRoute
+      fieldPaths:
         - spec.hostnames.*
       options:
         delimiter: "."
         index: 1
-      select:
-        kind: TLSRoute

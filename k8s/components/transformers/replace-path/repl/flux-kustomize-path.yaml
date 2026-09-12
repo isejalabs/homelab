@@ -5,14 +5,14 @@
     name: cluster-base-param
     fieldPath: data.ENVKEY
   targets:
-    - fieldPaths:
+    - select:
+        # apiVersion: kustomize.toolkit.fluxcd.io/v1
+        kind: Kustomization
+      fieldPaths:
         - spec.path
       options:
         delimiter: "/"
         index: 5
-      select:
-        # apiVersion: kustomize.toolkit.fluxcd.io/v1
-        kind: Kustomization
 # replace the last segment of the path of all Kustomizations with THE environment
 # typically apps/foo/bar/envs/example -> apps/foo/bar/envs/dev
 - source:
@@ -20,11 +20,11 @@
     name: cluster-param
     fieldPath: data.CLUSTER_ENVIRONMENT
   targets:
-    - fieldPaths:
+    - select:
+        apiVersion: kustomize.toolkit.fluxcd.io/v1
+        kind: Kustomization
+      fieldPaths:
         - spec.path
       options:
         delimiter: "/"
         index: 6
-      select:
-        apiVersion: kustomize.toolkit.fluxcd.io/v1
-        kind: Kustomization

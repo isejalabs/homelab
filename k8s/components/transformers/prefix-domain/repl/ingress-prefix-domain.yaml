@@ -3,10 +3,10 @@
     name: cluster-param
     fieldPath: data.CLUSTER_ENVIRONMENT
   targets:
-    - fieldPaths:
+    - select:
+        kind: Ingress
+      fieldPaths:
         - spec.rules.*.host
       options:
         delimiter: "-"
         index: -1
-      select:
-        kind: Ingress
