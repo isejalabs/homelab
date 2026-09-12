@@ -1,3 +1,6 @@
+See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a full catalog of every app and
+infra component actually deployed — what each one is, and how it's installed.
+
 ## Folder Structure
 
 ```
