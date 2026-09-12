@@ -1,3 +1,6 @@
+See [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how SOPS secrets feed into
+Terragrunt (the `*-secrets.sops.yaml` hierarchy consumed by `root.hcl`).
+
 # Directory handling
 
 ```sh

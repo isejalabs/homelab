@@ -1,4 +1,8 @@
 # External Secrets & 1password Connect
+
+See [`docs/architecture/secrets.md`](../../../docs/architecture/secrets.md) for how this fits into the repo's
+overall secrets-management story (SOPS vs. sealed-secrets vs. 1Password/ESO).
+
 ## Links
 - https://www.1password.dev/connect/get-started?method=1password-cli#1password-cli
 - https://rcwz.pl/2025-10-13-managing-secrets-with-1password-and-external-secrets/
