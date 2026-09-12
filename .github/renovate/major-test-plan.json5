@@ -1,0 +1,12 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      description: "append a test plan checklist to major update PRs, since these are the ones most likely to need manual verification before merging",
+      matchUpdateTypes: ["major"],
+      prBodyNotes: [
+        "## Test Plan\n\n- [ ] Read the release notes/changelog for breaking changes relevant to this repo's usage\n- [ ] `pre-commit run --all-files` passes\n- [ ] Rendering succeeds for affected paths (`kustomize build`, `helmfile template`, or `terragrunt plan` as applicable)\n- [ ] If applicable, validated against a non-prod environment (see the `track-branch` skill) before merging",
+      ],
+    },
+  ],
+}
