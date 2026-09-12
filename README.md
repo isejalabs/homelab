@@ -57,6 +57,11 @@ up-to-date, browsable overview of the current implementation.
 - **9/2026** — adopted AI-assisted development (Claude Code), which has meaningfully boosted
   productivity — documentation included, an area this developer was otherwise not great at.
 
+**Fun fact:** the whole thing started out of sheer frustration with deploying the Unifi controller —
+previously stuck in a Debian/Ubuntu LXC container to satisfy its Java + MongoDB compatibility
+requirements. Plain Docker containers were the obvious lighter alternative, but didn't fit the
+networking needs either — so a Kubernetes cluster it was.
+
 ## Credits
 
 - [**@vehagn**](https://github.com/vehagn) — where I learned my first IaC/GitOps steps, and the
