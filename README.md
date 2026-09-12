@@ -39,10 +39,31 @@ up-to-date, browsable overview of the current implementation.
   an index of what's written up so far.
 - [`terragrunt/README.md`](terragrunt/README.md) — provisioning VMs in Proxmox, installing Talos, and
   deploying core cluster infrastructure.
+- [`k8s/README.md`](k8s/README.md) — the `k8s` folder structure (`apps/`, `bootstrap/`, `components/`,
+  `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows.
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
 - `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in
   this repo; also a decent map of the layout for humans.
+
+### Folder structure
+
+```
+📁 homelab
+├── 📁 terragrunt      # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
+├── 📁 k8s             # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
+├── 📁 scripts         # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
+├── 📁 docs            # cross-cutting architecture docs, procedural notes, and bootstrap logs (see docs/README.md)
+├── 📁 .agents         # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
+├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
+├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
+├── 📁 .claude         # Claude Code project skills
+├── 📁 .ci             # CI tooling config (prettier)
+└── 📁 _attic          # retired/old material, not part of the active implementation
+```
+
+Root-level config files (`.sops.yaml`, `.pre-commit-config.yaml`, `.justfile`, `.minijinja.toml`,
+`.gitmodules`) wire up SOPS, pre-commit hooks, the `just` command runner and templating.
 
 ## A bit of history
 
