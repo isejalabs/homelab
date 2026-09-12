@@ -23,7 +23,7 @@ It's all about IaC and DRY -- and my future homelab (based on [vehagn/homelab](h
 ├── 📁 terragrunt      # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
 ├── 📁 k8s             # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
 ├── 📁 scripts         # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
-├── 📁 docs            # supplementary docs and installation logs
+├── 📁 docs            # cross-cutting architecture docs, procedural notes, and bootstrap logs (see docs/README.md)
 ├── 📁 .agents         # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
 ├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
 ├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
@@ -40,3 +40,4 @@ For the detailed layout of each major area, see also
 - [k8s/README.md](k8s/README.md) for the k8s folder structure (`apps/`, `bootstrap/`, `components/`, `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows,
 - [k8s/bootstrap/README.md](k8s/bootstrap/README.md) for deployment of infrastructure components and apps in the Kubernetes cluster,
 - [k8s/components/README.md](k8s/components/README.md) for the shared DRY kustomize components layer,
+- [docs/README.md](docs/README.md) for cross-cutting architecture docs (e.g. the kustomize overlay approach) versus per-folder usage READMEs,

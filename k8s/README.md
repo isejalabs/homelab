@@ -43,3 +43,9 @@ Every leaf under `apps/<domain>/<app>` and `infra/<namespace>/<component>` follo
 `flux/ks.yaml`'s `spec.path` is written pointing at `base/` but gets rewritten to `envs/<env>/` per environment by the `replace-path` transformer (see `components/README.md`).
 
 A `_ns` folder (e.g. `infra/cert-manager/_ns`) is the exception: it only has a `base/` with the namespace manifest, no `envs/`/`flux/` of its own. Every group's `_ns/base` is pulled in as a resource by `infra/common/ns`, which is the one Flux Kustomization (`infra-ns`) that actually creates all infra namespaces.
+
+## Kustomize overlay approach
+
+See [`docs/architecture/kustomize.md`](../docs/architecture/kustomize.md) for how the `base`/`envs/<env>`/`flux`
+overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers
+(domain rewriting, common labels, Flux `spec.path`/`spec.interval` rewriting) fit together.
