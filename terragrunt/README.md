@@ -1,3 +1,7 @@
+See [`docs/architecture/terraform-bootstrap.md`](../docs/architecture/terraform-bootstrap.md) for the AWS
+remote-state backend/IAM bootstrapping story (what's automated here vs. what's manual, one-time AWS setup),
+and [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how SOPS secrets feed into this.
+
 # Directory handling
 
 ```sh
