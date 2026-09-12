@@ -1,3 +1,6 @@
+See [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how SOPS secrets feed into
+Terragrunt (the `*-secrets.sops.yaml` hierarchy consumed by `root.hcl`).
+
 # Folder Structure
 
 Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `root.hcl` merges

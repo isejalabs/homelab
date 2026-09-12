@@ -28,7 +28,7 @@ thing they describe.
 | Doc | Status | Covers |
 | --- | --- | --- |
 | [`architecture/kustomize.md`](architecture/kustomize.md) | done | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
-| `architecture/secrets.md` | planned ([#98](https://github.com/isejalabs/homelab/issues/98), [#130](https://github.com/isejalabs/homelab/issues/130)) | SOPS (terraform + select k8s secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
+| [`architecture/secrets.md`](architecture/secrets.md) | done | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
 | `architecture/terraform-bootstrap.md` | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
 | [`architecture/environments.md`](architecture/environments.md) | done | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
 | [`architecture/network.md`](architecture/network.md) | done | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS), and unifi-controller fit together |
