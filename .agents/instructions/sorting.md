@@ -43,6 +43,25 @@ rules:
 
 Anything else on the rule (e.g. `timeouts`, `sessionPersistence`) sorts alphabetically after `backendRefs`. This is a narrower case of the same principle as `kustomize`'s top-level layout above: reading order over alphabetical order when alphabetical would scramble a mapping's actual data flow.
 
+## kustomize `replacements[].targets[]` entries
+
+Each entry in a `replacements[]` item's `targets[]` list should have `select` lead, with `reject` (its exception list, when present) immediately following — both narrow down *what* is targeted, ahead of `fieldPaths`/`options`, which stay alphabetical after them:
+
+```yaml
+targets:
+  - select: # which resources this target applies to — leads, like an object reference
+      kind: Certificate
+    reject: # exceptions to the selection above, if present — stays with select
+      - name: ...
+    fieldPaths:
+      - spec.dnsNames.*
+    options:
+      delimiter: "."
+      index: 2
+```
+
+Same reading-order principle as `spec.rules` above: `select`/`reject` narrow down *what* is targeted before `fieldPaths`/`options` describe the mechanics of the replacement — alphabetical order would otherwise bury the selector (and split it from its own exceptions) behind the fields it applies to.
+
 ## kustomize `kustomization.yaml`/`Component` files
 
 This covers every `kustomization.yaml` in `k8s/` — `kind: Kustomization` (bases, overlays, and the shared `components/envs/<env>` includes) and `kind: Component` (`components/transformers/*`). These files have **no `spec`** — the standard K8s object rule above doesn't apply; use this section instead.
