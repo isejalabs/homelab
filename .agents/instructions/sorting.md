@@ -20,6 +20,25 @@ Follow these instructions whenever creating or editing a YAML file — not just 
   - `annotations`
   - `labels`
 
+- **`name` (or `id`) leads any mapping it appears in, anywhere** — not just `metadata` above, but any mapping at any depth: a container, an env var, a `Service`/`HTTPRoute` port or backend, a `parentRef`, a BGP peer, a filter entry, etc. It's the field that identifies *which* entry this is, so a reader scanning a list benefits from it being first and in a consistent position even when other, alphabetically-earlier fields are also present (e.g. a container's `image` would otherwise sort before its `name`). Sort everything else in that mapping alphabetically after it. Use `id` in this same leading position only when `name` isn't present in that mapping; if a mapping has neither, this rule doesn't apply and the default alphabetical rule takes over from the top.
+
+## Gateway API route rules (`HTTPRoute`/`GRPCRoute`/`TCPRoute`/`TLSRoute` `spec.rules`)
+
+Each entry in `spec.rules` should read in request-processing order — what to match, what to do to it, where to send it — rather than alphabetically:
+
+```yaml
+rules:
+  - name: ... # if present (Gateway API rule naming) — leading identifier, per the name/id rule above
+    matches: # what triggers this rule
+      - ...
+    filters: # what happens to a matching request, if anything
+      - ...
+    backendRefs: # where a (possibly filtered) request is sent
+      - ...
+```
+
+Anything else on the rule (e.g. `timeouts`, `sessionPersistence`) sorts alphabetically after `backendRefs`. This is a narrower case of the same principle as `kustomize`'s top-level layout above: reading order over alphabetical order when alphabetical would scramble a mapping's actual data flow.
+
 ## kustomize `kustomization.yaml`/`Component` files
 
 This covers every `kustomization.yaml` in `k8s/` — `kind: Kustomization` (bases, overlays, and the shared `components/envs/<env>` includes) and `kind: Component` (`components/transformers/*`). These files have **no `spec`** — the standard K8s object rule above doesn't apply; use this section instead.
