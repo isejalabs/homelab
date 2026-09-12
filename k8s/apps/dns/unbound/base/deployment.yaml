@@ -12,7 +12,8 @@ spec:
         app: unbound
     spec:
       containers:
-        - env:
+        - name: unbound
+          env:
             - name: DISABLE_SET_PERMS
               value: "true"
           envFrom:
@@ -22,13 +23,12 @@ spec:
           livenessProbe:
             exec:
               command: ['/usr/local/unbound/sbin/healthcheck.sh']
-          name: unbound
           ports:
-            - containerPort: 5335
-              name: dns-tcp
+            - name: dns-tcp
+              containerPort: 5335
               protocol: TCP
-            - containerPort: 5335
-              name: dns-udp
+            - name: dns-udp
+              containerPort: 5335
               protocol: UDP
           resources:
             limits:
@@ -43,23 +43,23 @@ spec:
             capabilities:
               drop: ["ALL"]
           volumeMounts:
-            - mountPath: /usr/local/unbound/conf.d/access-control.conf
-              name: unbound-conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/access-control.conf
               subPath: access-control.conf
-            - mountPath: /usr/local/unbound/conf.d/logging-default.conf
-              name: unbound-conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/logging-default.conf
               subPath: logging-default.conf
             # - name: unbound-conf
             #   mountPath: /usr/local/unbound/conf.d/logging-verbose.conf
             #   subPath: logging-verbose.conf
-            - mountPath: /usr/local/unbound/conf.d/rootless.conf
-              name: unbound-conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/conf.d/rootless.conf
               subPath: rootless.conf
-            - mountPath: /usr/local/unbound/unbound.conf
-              name: unbound-conf
+            - name: unbound-conf
+              mountPath: /usr/local/unbound/unbound.conf
               subPath: unbound.conf
-            - mountPath: /usr/local/unbound/zones.d/iseja.conf
-              name: iseja-zone
+            - name: iseja-zone
+              mountPath: /usr/local/unbound/zones.d/iseja.conf
               subPath: unbound-iseja.conf
       securityContext:
         fsGroup: 1000
@@ -70,7 +70,9 @@ spec:
         seccompProfile:
           type: RuntimeDefault
       volumes:
-        - configMap:
+        - name: unbound-conf
+          configMap:
+            name: unbound-conf
             items:
               - key: access-control.conf
                 path: access-control.conf
@@ -82,9 +84,7 @@ spec:
                 path: rootless.conf
               - key: unbound.conf
                 path: unbound.conf
-            name: unbound-conf
-          name: unbound-conf
-        - configMap:
-            items: [{key: unbound-iseja.conf, path: unbound-iseja.conf}]
+        - name: iseja-zone
+          configMap:
             name: unbound-zones
-          name: iseja-zone
+            items: [{key: unbound-iseja.conf, path: unbound-iseja.conf}]

@@ -11,9 +11,9 @@ resources:
   - ../../base
 
 configMapGenerator:
-  - files:
+  - name: adguard-config-local
+    files:
       - config/AdGuardHome.yaml
-    name: adguard-config-local
 patches:
   - path: svc.yaml
   - path: merge-deployment.yaml

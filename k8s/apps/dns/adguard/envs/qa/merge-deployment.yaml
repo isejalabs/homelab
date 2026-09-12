@@ -6,6 +6,6 @@ spec:
   template:
     spec:
       volumes:
-        - configMap:
+        - name: config
+          configMap:
             name: adguard-config-local
-          name: config

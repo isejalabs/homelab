@@ -8,18 +8,18 @@ spec:
   hostnames:
     - flux.example.com
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
+    - kind: Gateway
       name: internal
       namespace: gateway-api
+      group: gateway.networking.k8s.io
   rules:
-    - backendRefs:
-        - group: ""
-          kind: Service
-          name: flux-operator
-          port: 9080
-          weight: 1
-      matches:
+    - matches:
         - path:
             type: PathPrefix
             value: /
+      backendRefs:
+        - kind: Service
+          name: flux-operator
+          group: ""
+          port: 9080
+          weight: 1

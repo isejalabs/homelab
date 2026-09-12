@@ -19,7 +19,8 @@ spec:
         app: unifi-controller
     spec:
       containers:
-        - env:
+        - name: unifi-network-application
+          env:
             - name: PUID
               value: "999"
             - name: PGID
@@ -29,13 +30,13 @@ spec:
             - name: MONGO_USER
               valueFrom:
                 secretKeyRef:
-                  key: mongo_user
                   name: db-secret-sealed
+                  key: mongo_user
             - name: MONGO_PASS
               valueFrom:
                 secretKeyRef:
-                  key: mongo_pass
                   name: db-secret-sealed
+                  key: mongo_pass
             - name: MONGO_HOST
               value: mongodb
             - name: MONGO_PORT
@@ -45,39 +46,38 @@ spec:
             - name: MONGO_AUTHSOURCE
               value: admin
           image: lscr.io/linuxserver/unifi-network-application:10.6.101@sha256:ccadcad5c640c91388d79e66a3751e4de3c9accdcef181f76c142aeca612214d
-          name: unifi-network-application
           ports:
             # required
-            - containerPort: 8443
-              name: web-admin
+            - name: web-admin
+              containerPort: 8443
               protocol: TCP
             # required
-            - containerPort: 6789
-              name: speedtest
+            - name: speedtest
+              containerPort: 6789
               protocol: TCP
             # required
-            - containerPort: 8080
-              name: device-comm
+            - name: device-comm
+              containerPort: 8080
               protocol: TCP
             # optional
-            - containerPort: 8880
-              name: http-redirect
+            - name: http-redirect
+              containerPort: 8880
               protocol: TCP
             # optional
-            - containerPort: 8843
-              name: secure-redirect
+            - name: secure-redirect
+              containerPort: 8843
               protocol: TCP
             # required
-            - containerPort: 3478
-              name: stun
+            - name: stun
+              containerPort: 3478
               protocol: UDP
             # optional
-            - containerPort: 5514
-              name: snmp-trap
+            - name: snmp-trap
+              containerPort: 5514
               protocol: UDP
             # required
-            - containerPort: 10001
-              name: unifi-disc
+            - name: unifi-disc
+              containerPort: 10001
               protocol: UDP
           resources:
             limits:
@@ -87,8 +87,8 @@ spec:
               cpu: 50m
               memory: 500Mi
           volumeMounts:
-            - mountPath: /config
-              name: unifi-controller-data
+            - name: unifi-controller-data
+              mountPath: /config
       nodeSelector:
         topology.kubernetes.io/zone: pve4
       securityContext:

@@ -12,11 +12,11 @@ spec:
   timeout: 10m
   values:
     storageClass:
-      - cache: writethrough
+      - name: proxmox-csi
+        cache: writethrough
         fstype: ext4
         mountOptions:
           - noatime
-        name: proxmox-csi
         reclaimPolicy: Retain
         ssd: true
         storage: local-enc

@@ -5,8 +5,8 @@ metadata:
   name: cilium-bgp
 spec:
   bgpInstances:
-    - localASN: 64522 # Use your cluster's ASN here!
-      name: "instance-64522"
+    - name: "instance-64522"
+      localASN: 64522 # Use your cluster's ASN here!
       peers:
         - name: "peer-64520-gw2"
           peerAddress: 10.7.8.2

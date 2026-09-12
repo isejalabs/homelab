@@ -7,8 +7,8 @@ metadata:
 spec:
   allowCrossNamespaceImport: true
   configMapRef:
-    key: external-secrets.json
     name: external-secrets-dashboard
+    key: external-secrets.json
   datasources:
     - datasourceName: prometheus
       inputName: DS_PROMETHEUS

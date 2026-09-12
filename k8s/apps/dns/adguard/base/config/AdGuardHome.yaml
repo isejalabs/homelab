@@ -1,3 +1,24 @@
+filters:
+  - name: AdGuard DNS filter
+    enabled: true
+    id: 1
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+  - name: AdAway Default Blocklist
+    enabled: true
+    id: 2
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+  - name: Steven Black's List
+    enabled: true
+    id: 1715425588
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_33.txt
+  - name: WindowsSpyBlocker - Hosts spy rules
+    enabled: true
+    id: 1715425589
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_23.txt
+  - name: HaGeZi's Ultimate Blocklist
+    enabled: true
+    id: 1715425590
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
 auth_attempts: 5
 block_auth_min: 15
 clients:
@@ -119,27 +140,6 @@ filtering:
   safebrowsing_cache_size: 1048576
   safebrowsing_enabled: true
   safesearch_cache_size: 1048576
-filters:
-  - enabled: true
-    id: 1
-    name: AdGuard DNS filter
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
-  - enabled: true
-    id: 2
-    name: AdAway Default Blocklist
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
-  - enabled: true
-    id: 1715425588
-    name: Steven Black's List
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_33.txt
-  - enabled: true
-    id: 1715425589
-    name: WindowsSpyBlocker - Hosts spy rules
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_23.txt
-  - enabled: true
-    id: 1715425590
-    name: HaGeZi's Ultimate Blocklist
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
 http:
   address: 0.0.0.0:3000
   pprof:

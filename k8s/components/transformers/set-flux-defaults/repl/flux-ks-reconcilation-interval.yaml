@@ -1,8 +1,8 @@
 # replace .spec.interval of all Flux Kustomizations with the value of FLUX_RECONCILIATION_INTERVAL from the cluster-param ConfigMap 
 - source:
-    fieldPath: data.FLUX_RECONCILIATION_INTERVAL
     kind: ConfigMap
     name: cluster-param
+    fieldPath: data.FLUX_RECONCILIATION_INTERVAL
   targets:
     - fieldPaths:
         - spec.interval

@@ -8,18 +8,18 @@ spec:
   hostnames:
     - longhorn.example.com
   parentRefs:
-    - group: gateway.networking.k8s.io
-      kind: Gateway
+    - kind: Gateway
       name: internal
       namespace: gateway-api
+      group: gateway.networking.k8s.io
   rules:
-    - backendRefs:
-        - group: ""
-          kind: Service
-          name: longhorn-frontend
-          port: 80
-          weight: 1
-      matches:
+    - matches:
         - path:
             type: PathPrefix
             value: /
+      backendRefs:
+        - kind: Service
+          name: longhorn-frontend
+          group: ""
+          port: 80
+          weight: 1
