@@ -20,3 +20,4 @@ See also
 
 - [terragrunt/README.md](terragrunt/README.md) for the bootstrapping of the Kubernetes cluster by provisioning VMs in Proxmox, installing Talos and deploying core infrastructure such as Cilium CNI and Proxmox CSI setup,
 - [k8s/bootstrap/README.md](k8s/bootstrap/README.md) for deployment of infrastructure components and apps in the Kubernetes cluster,
+- [docs/README.md](docs/README.md) for cross-cutting architecture docs (e.g. the kustomize overlay approach) versus per-folder usage READMEs,
