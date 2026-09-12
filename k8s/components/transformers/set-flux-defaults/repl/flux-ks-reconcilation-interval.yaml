@@ -4,8 +4,8 @@
     name: cluster-param
     fieldPath: data.FLUX_RECONCILIATION_INTERVAL
   targets:
-    - fieldPaths:
-        - spec.interval
-      select:
+    - select:
         apiVersion: kustomize.toolkit.fluxcd.io/v1
         kind: Kustomization
+      fieldPaths:
+        - spec.interval

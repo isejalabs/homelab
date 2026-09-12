@@ -3,14 +3,14 @@
     name: cluster-param
     fieldPath: data.CLUSTER_ENVIRONMENT
   targets:
-    - fieldPaths:
-        - spec.hostnames.*
-      options:
-        delimiter: "-"
-        index: -1
+    - select:
+        kind: HTTPRoute
       # http-redirect-to-https has no hostnames by design - see
       # replace-domain/repl/httproute-replace-domain.yaml
       reject:
         - name: http-redirect-to-https
-      select:
-        kind: HTTPRoute
+      fieldPaths:
+        - spec.hostnames.*
+      options:
+        delimiter: "-"
+        index: -1

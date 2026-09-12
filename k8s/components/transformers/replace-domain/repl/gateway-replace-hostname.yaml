@@ -3,29 +3,29 @@
     name: cluster-param
     fieldPath: data.DOMAIN_TLD
   targets:
-    - fieldPaths:
-        - spec.listeners.*.hostname
-      options:
-        delimiter: "."
-        index: 2
+    - select:
+        kind: Gateway
       # internal-http has no hostname on any listener by design (see its
       # own comment) - a wildcard fieldPath with zero matches is a hard
       # error in kustomize, so it must be excluded here rather than matched
       reject:
         - name: internal-http
-      select:
-        kind: Gateway
+      fieldPaths:
+        - spec.listeners.*.hostname
+      options:
+        delimiter: "."
+        index: 2
 - source:
     kind: ConfigMap
     name: cluster-param
     fieldPath: data.DOMAIN_BASE
   targets:
-    - fieldPaths:
+    - select:
+        kind: Gateway
+      reject:
+        - name: internal-http
+      fieldPaths:
         - spec.listeners.*.hostname
       options:
         delimiter: "."
         index: 1
-      reject:
-        - name: internal-http
-      select:
-        kind: Gateway

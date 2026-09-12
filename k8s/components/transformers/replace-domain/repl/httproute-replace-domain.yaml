@@ -3,29 +3,29 @@
     name: cluster-param
     fieldPath: data.DOMAIN_TLD
   targets:
-    - fieldPaths:
-        - spec.hostnames.*
-      options:
-        delimiter: "."
-        index: 2
+    - select:
+        kind: HTTPRoute
       # http-redirect-to-https has no hostnames by design (it matches all
       # hosts) - a wildcard fieldPath with zero matches is a hard error in
       # kustomize, so it must be excluded here rather than matched
       reject:
         - name: http-redirect-to-https
-      select:
-        kind: HTTPRoute
+      fieldPaths:
+        - spec.hostnames.*
+      options:
+        delimiter: "."
+        index: 2
 - source:
     kind: ConfigMap
     name: cluster-param
     fieldPath: data.DOMAIN_BASE
   targets:
-    - fieldPaths:
+    - select:
+        kind: HTTPRoute
+      reject:
+        - name: http-redirect-to-https
+      fieldPaths:
         - spec.hostnames.*
       options:
         delimiter: "."
         index: 1
-      reject:
-        - name: http-redirect-to-https
-      select:
-        kind: HTTPRoute
