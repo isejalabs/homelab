@@ -1,10 +1,14 @@
 # Networking
 
-Four pieces work together to get a request from a LAN client to a pod: **Cilium** hands out and advertises
-Service/Gateway IPs, **Gateway API** (implemented by Cilium) terminates TLS and routes by hostname,
-**AdGuard + Unbound** resolve DNS for that hostname, and **unifi-controller** manages the physical network
-hardware that Cilium's routes actually ride on. None of these are documented as one story anywhere else in
-the repo — each app's own README is either a bare `kubectl` cheatsheet or nonexistent.
+A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster:
+**Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium)
+terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the
+management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely:
+an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, and a redundant
+pair of **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense
+boxes), DNS, and identity services (Kerberos, LDAP, Active Directory) for the wider network. None of this is
+documented as one story anywhere else in the repo — each in-cluster app's own README is either a bare
+`kubectl` cheatsheet or nonexistent, and the physical-network side isn't in Git at all.
 
 ## End-to-end flow
 
@@ -22,7 +26,7 @@ Unbound  (LoadBalancer Service, e.g. 10.8.8.8 + 10.8.8.11)
    ▼
 AdGuard returns the resolved IP — the Gateway's LB IP (e.g. 10.8.8.80 internal / 10.8.8.83 external)
    ▼
-Cilium's BGP control plane has advertised that /32 from the worker nodes to the physical router
+Cilium's BGP control plane has advertised that /32 from the worker nodes to the OPNsense HA pair
    ▼
 Cilium-implemented Gateway API Gateway — TLS terminated (cert-manager-issued cert), HTTPRoute hostname match
    ▼
@@ -63,11 +67,27 @@ Every `LoadBalancer` Service or Gateway requests a specific address from that po
 (e.g. `192.168.1.253`) gets patched to the real per-env address (e.g. `10.8.8.53`) via `envs/<env>/`
 overlays. Offsets are kept stable across environments so the same app always lands on the same last octet
 (e.g. `.8`/`.11` = unbound, `.53` = adguard, `.80` = internal gateway, `.83` = external gateway) — only the
-`10.8.<N>` block changes per environment.
+`10.8.<N>` block changes per environment. The full set of per-environment pools
+([`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/)):
 
-**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the LAN. Every
-environment's [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml)
-peers from the worker nodes (control-plane nodes are explicitly excluded) to two fixed router addresses:
+| env | pool |
+| --- | --- |
+| `head` | `10.8.1.0/24` |
+| `qa` | `10.8.2.0/24` |
+| `dev` | `10.8.3.0/24` |
+| `src` | `10.8.5.0/24` |
+| `poc` | `10.8.6.0/24` |
+| `rebuild` | `10.8.7.0/24` |
+| `prod` | `10.8.8.0/24` |
+| `dbg` | `10.8.9.0/24` |
+
+(each pool's actual `CiliumLoadBalancerIPPool` block only spans `.8`–`.250` of its `/24`, leaving the low and
+high ends free for infrastructure/reservations.)
+
+**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the rest of the network.
+Every environment's
+[`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) peers from
+the worker nodes (control-plane nodes are explicitly excluded) to two fixed router addresses:
 
 ```yaml
 apiVersion: cilium.io/v2
@@ -91,10 +111,11 @@ spec:
 
 `10.7.8.2`/`10.7.8.3` sit on the same subnet (VLAN, `10.7.8.0/24`) the Talos nodes themselves live on
 (confirmed per-environment in `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, e.g.
-`gateway = "10.7.8.1"`). **Nothing in the repo names these two peers explicitly** — this is inferred, not
-confirmed by a file — but they're almost certainly a redundant pair of routing instances on the physical
-UniFi gateway/router, since that's the only router-layer device in this architecture and it's exactly the
-hardware [`unifi-controller`](#unifi-controller-the-physical-network) manages.
+`gateway = "10.7.8.1"`). These two addresses are **not** documented in this repo — they're a pair of
+[OPNsense](https://opnsense.org/) firewalls/routers running in an HA setup (physical infrastructure entirely
+outside Git); `10.7.8.1` is the standard/virtual gateway IP that VMs and nodes actually route through
+day-to-day, while `.2`/`.3` are the individual OPNsense boxes' own addresses, each peering BGP independently
+so a route stays advertised even if one box is down.
 [`bgp-advertisement.yaml`](../../k8s/infra/kube-system/cilium/base/bgp-advertisement.yaml) advertises every
 `LoadBalancerIP` (Service and Gateway alike) into that BGP session, and
 [`k8s/infra/kube-system/cilium/README.md`](../../k8s/infra/kube-system/cilium/README.md) has captured
@@ -179,42 +200,50 @@ stub-zone:
     stub-addr: 10.7.2.12
 ```
 
-`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're an authoritative source for the `iseja.net`
-zone that lives on physical infrastructure outside this repo.
+`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're the pair of **UCS (Univention Corporate
+Server)** machines (see [below](#physical-network-opnsense-and-ucs)) acting as the authoritative DNS source
+for the `iseja.net` zone, on their own VLAN/L2 segment separate from the cluster's.
 
 Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (preserves the client source IP —
 relevant for AdGuard's per-client filtering rules) and a fixed `io.cilium/lb-ipam-ips` annotation per
 environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached only through the Gateway
 (`adguard.<domain>` → `internal`), never through the DNS-serving LoadBalancer IP.
+[`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) has `dhcp.enabled: false` —
+AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises
+AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
 
-**Gap, not covered anywhere in the repo:** nothing here configures the LAN's DHCP server (or a router
-setting) to actually hand out AdGuard's LB IP as clients' DNS server —
-[`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) even has `dhcp.enabled: false`,
-confirming AdGuard doesn't hand out leases itself. That wiring has to happen manually in the router/UniFi
-controller UI, outside Git.
+## Physical network: OPNsense and UCS
 
-## unifi-controller: the physical network
+Everything in this section is physical infrastructure with no representation in this repo at all — it's
+documented here only because Cilium's BGP config and Unbound's stub-zone both reference it by IP.
 
-[`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/) runs the Ubiquiti UniFi
-Network Controller in-cluster (its own MongoDB — see [`storage.md`](storage.md) for why that volume uses
-proxmox-csi, not Longhorn). It's purely the **management/adoption plane** for the physical UniFi hardware —
-access points, switches, and the router/gateway — not something k8s traffic flows through directly. Its
+**OPNsense** — a pair of [OPNsense](https://opnsense.org/) firewalls/routers in an HA configuration is the
+network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everything else routes through, while
+`10.7.8.2`/`.3` are the two boxes' individual addresses, each independently peering BGP with the cluster's
+worker nodes (see [above](#cilium-lb-ipam-and-bgp-route-advertisement)) so LoadBalancer/Gateway routes stay
+advertised even if one box is down.
+
+**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12`, on their own
+VLAN/L2 segment) provide the network's core infrastructure services: DHCP, DNS (the authoritative source for
+`iseja.net` that Unbound's stub-zone points at), and identity management (Kerberos, LDAP, and Active
+Directory — UCS bundles a Samba/AD-compatible domain controller). Being on a separate VLAN, DHCP requests
+from client VLANs reach UCS via the **DHCP relay** service running on the OPNsense boxes — clients broadcast
+on their local segment, OPNsense relays the request across to UCS's VLAN, and the response is relayed back.
+
+**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its
+own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to either of the above: it's only
+the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows
+through, and not the BGP peer or DHCP/DNS/identity provider. Its
 [README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
-
-The actual link between "physical network" and "cluster networking" is the BGP peering described above: the
-physical router (presumed to be the UniFi gateway hardware, based on unifi-controller being the only thing in
-this repo that manages router-layer equipment — again, inferred, not named explicitly anywhere) is what
-receives Cilium's route advertisements and is therefore what makes a LoadBalancer/Gateway IP reachable from
-the rest of the LAN at all.
 
 ## What's not here
 
-- **No documented DHCP→DNS wiring** (see above) — pointing LAN clients at AdGuard is a manual, outside-Git
-  step.
 - **No WAN-facing ingress path.** The `external` Gateway exists (and gets its own LB IP and cert), but no
   `HTTPRoute` in the repo attaches to it, and there's no Cloudflare Tunnel or other public-ingress mechanism
   anywhere in `k8s/`. Cloudflare's only confirmed role is DNS-01 certificate issuance. Whether `external`'s
-  LB IP is NAT'd/port-forwarded to the internet at the router is a router-config question outside this repo
+  LB IP is NAT'd/port-forwarded to the internet at OPNsense is a router-config question outside this repo
   either way.
 - **ACME staging, not production** — the `ClusterIssuer` currently points at Let's Encrypt's staging
   endpoint, so certificates it issues won't be trusted by real browsers/clients until that's switched over.
+- **The physical network itself (OPNsense, UCS) isn't in Git** — everything in the section above is
+  documented from IP references found in-cluster, not from any config this repo actually owns.
