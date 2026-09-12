@@ -201,9 +201,12 @@ upstream_dns:
   - "[/10.in-addr.arpa/]10.8.8.8 10.9.9.9"
 ```
 
-`10.8.8.8` is Unbound's own prod LB IP — so AdGuard forwards `iseja.net` (and reverse-DNS) queries
-specifically to Unbound, and everything else to Quad9 over DoH. Unbound itself is configured as a validating
-recursive resolver with a stub-zone for the real domain
+`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the
+OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of
+these two `upstream_dns` entries lists Unbound first, then that OPNsense-hosted resolver as a fallback if
+Unbound is unreachable. AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything
+else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for
+the real domain
 ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
 
 ```
@@ -237,7 +240,9 @@ homelab.
 network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everything else routes through, while
 `10.7.8.2`/`.3` are the two boxes' individual addresses, each independently peering BGP with the cluster's
 worker nodes (see [above](#cilium-lb-ipam-and-bgp-route-advertisement)) so LoadBalancer/Gateway routes stay
-advertised even if one box is down.
+advertised even if one box is down. The boxes also run a DNS resolver of their own, reachable at a separate
+virtual IP, `10.9.9.9` — AdGuard's [`upstream_dns`](#dns-adguard--unbound) config lists it as the fallback
+behind Unbound for the internal domain.
 
 **UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are *not* these —
 see below) provide DHCP and identity management (Kerberos, LDAP, and Active Directory — UCS bundles a
