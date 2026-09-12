@@ -6,6 +6,16 @@ differs per environment is: which subset of apps Flux deploys there, how much co
 aggressively updates land on it, and who's allowed to change it and how. This doc ties those axes together
 for all 8: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`.
 
+All 8 environments normally target `main` — there's no per-environment git branch, fork, or other such split.
+The differentiation is entirely declarative: kustomize overlays (`envs/<env>/`, composed via the shared
+[`components/envs/<env>/`](kustomize.md#the-shared-components-layer) layer) for everything Flux reconciles,
+and lean, parameterized Terragrunt units (`terragrunt/<non-prod|prod>/eu-central-1/<env>/`) for the
+infrastructure underneath. The one deliberate exception is the
+[`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill, which *temporarily* points a single
+environment's Flux instance at a feature branch to test an unmerged change live — always a throwaway,
+explicitly-reverted override on top of the normal `main`-tracking setup, never a standing per-environment
+branch.
+
 ## The two axes that actually vary
 
 ### 1. Which apps run there — the Flux `minimal`/full split
@@ -70,8 +80,10 @@ matches that unmerged branch; the only way back in sync is merging it, not rever
 ## Per-environment resource sizing (Terragrunt)
 
 Each environment's `terragrunt/<non-prod|prod>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl` overrides the
-shared [`_envcommon/vehagn-k8s.hcl`](../../terragrunt/_envcommon/vehagn-k8s.hcl) include. `env.hcl` itself is
-trivial (`locals { env = "<name>" }`) — the real differentiation is node topology, sizing tier, and which
+shared [`_envcommon/vehagn-k8s.hcl`](../../terragrunt/_envcommon/vehagn-k8s.hcl) include, which wraps the
+[`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module (the
+actual Proxmox VM + Talos provisioning logic — not vendored into this repo). `env.hcl` itself is trivial
+(`locals { env = "<name>" }`) — the real differentiation is node topology, sizing tier, and which
 Talos/Kubernetes version and module ref each environment tracks:
 
 | env | control-plane + worker nodes | `on_boot` | sizing tier | Talos / Kubernetes | module `source` |
@@ -157,37 +169,46 @@ Every non-prod environment's domain gets an environment prefix via the
   than auto-landing. Minimal app set (infra + diagnostics only), and the only environment with its own extra
   standalone `vms` Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad hoc VM experiments
   beyond the standard cluster module.
-- **`rebuild`** — runs the full app+infra Flux set like `prod`/`qa`/`head`, but is excluded from the
-  `main`-only Terragrunt restriction and carries no special version pinning — consistent with being the
-  environment exercised against `terragrunt/README.md`'s
-  ["Cluster end of lifecycle"](../../terragrunt/README.md#cluster-end-of-lifecycle) destroy/rebuild
-  procedures and [`scripts/tg-state-rm.sh`](../../scripts/tg-state-rm.sh) (this tie is inferred from the
-  name plus the presence of that exact tooling in the same repo — no single comment names `rebuild`
-  explicitly as the target of those procedures, but it's the only full-app-stack environment not otherwise
-  constrained against being torn down and recreated).
-- **`dev`** — the primary always-on development environment. Config changes applied manually (not via Flux
-  auto-merge in the sense `docs/update handling.md` describes), `on_boot=true`, medium sizing, standard
-  1-controlplane + 3-worker topology, minimal app set. The daily driver for iterating on changes not yet
-  bound for `prod`/`qa`, distinguished from `poc` by being long-lived rather than throwaway.
-- **`dbg`** — a debug/investigation scratch environment: smallest topology alongside `src` (1 controlplane +
-  1 worker only, rest of the node pool commented out in Terragrunt), `on_boot=false`, minimal app set.
-  `docs/update handling.md` groups it with `poc` under *"depends on test scenario... testing/investigating a
-  specific application or its specific version, without requiring a full deployment."*
-- **`src`** — for developing the underlying Terraform/Talos module itself, not the apps running on top of
-  it: its `vehagn-k8s` module `source` points at a local, uncommitted checkout of
-  `terraform-proxmox-talos` rather than a git tag — the clearest naming confirmation in the whole set
-  ("src" = source, as in the IaC module's source code). Minimal topology and app set, `on_boot=false`,
-  manually-applied config.
+- **`rebuild`** — exists purely to periodically rehearse disaster recovery: kicked off from time to time to
+  verify the cluster can actually be rebuilt from scratch as `prod` evolves over time, a safety net alongside
+  (data) backups rather than a running app environment in its own right. Sized almost exactly like `prod` —
+  same big-tier worker sizing — with the one deliberate difference being its non-HA, single-controlplane
+  topology (1 + 3 nodes vs. `prod`'s 3 + 3), since rebuild-testing doesn't need HA to prove the rebuild
+  procedure itself works. Runs the full app+infra Flux set like `prod`/`qa`/`head` so the rebuild is tested
+  against the same real workloads, and is excluded from the `main`-only Terragrunt restriction and carries no
+  special version pinning, consistent with being deliberately torn down and recreated — see
+  `terragrunt/README.md`'s ["Cluster end of lifecycle"](../../terragrunt/README.md#cluster-end-of-lifecycle)
+  section and [`scripts/tg-state-rm.sh`](../../scripts/tg-state-rm.sh) for the actual destroy/rebuild
+  procedure this environment exercises.
+- **`dev`** — the primary development environment, `on_boot=true`, medium sizing, standard 1-controlplane +
+  3-worker topology, minimal app set. `docs/update handling.md`'s "manually applied" characterization means,
+  in practice, that `dev` is typically pointed at whatever feature branch is currently under development (via
+  the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill) or used for unit testing — rather
+  than continuously tracking `main` like the always-on full-stack environments — so a person decides when and
+  what to apply, instead of it happening on a merge. Distinguished from `poc` by being long-lived rather than
+  throwaway.
+- **`dbg`** — a dedicated debugging environment, kept separate from `dev` specifically so investigating a bug
+  doesn't collide with or pause `dev`'s own in-progress work — the maintenance/bugfixing track and the
+  enhancement track get their own environments rather than competing for the same one. Smallest topology
+  alongside `src` (1 controlplane + 1 worker only, rest of the node pool commented out in Terragrunt),
+  `on_boot=false`, minimal app set. `docs/update handling.md` groups it with `poc` under *"depends on test
+  scenario... testing/investigating a specific application or its specific version, without requiring a full
+  deployment."*
+- **`src`** — for developing the underlying
+  [`terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module itself, not the
+  apps running on top of it: its `vehagn-k8s` module `source` points at a local, uncommitted checkout of that
+  module rather than a git tag — the clearest naming confirmation in the whole set ("src" = source, as in the
+  IaC module's own source code). Minimal topology and app set, `on_boot=false`, manually-applied config.
 
 ## Summary table
 
 | env | apps | Terragrunt sizing | Flux interval | domain prefix | update strategy | restrictions |
 | --- | --- | --- | --- | --- | --- | --- |
-| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | manual / scenario-dependent | none beyond `track-branch` cleanup |
-| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | manual | none |
+| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | manual / scenario-dependent | dedicated to debugging, kept separate from `dev` |
+| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | manual (often tracks a feature branch via `track-branch`) | none |
 | `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | automerge everything | none |
 | `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | not pinned, not automerged | none |
 | `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | `env:prod`-gated | `main`-only apply; excluded from `track-branch` |
 | `qa` | full | big/medium, 1+3 nodes | 1h | yes | standard automerge | `main`-only apply |
-| `rebuild` | full | big/medium, 1+3 nodes | 10m | yes | standard automerge | none — built for teardown/rebuild |
-| `src` | minimal | small, 1+1 nodes, local module source | 10m | yes | manual | none |
+| `rebuild` | full | big/medium (~`prod`, non-HA), 1+3 nodes | 10m | yes | standard automerge | periodic disaster-recovery rehearsal target |
+| `src` | minimal | small, 1+1 nodes, local module source | 10m | yes | manual | develops `terraform-proxmox-talos` itself |
