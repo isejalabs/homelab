@@ -5,6 +5,9 @@ proxmox-csi step by step**, and proxmox-csi is being kept only where there's a s
 with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending
 on Longhorn's own backup/restore path. So the practical question for a new volume isn't "which is better" but
 "does this volume need the proxmox-csi property badly enough to justify it" — if not, it goes on Longhorn.
+That consolidation is also what's driving [issue #807](https://github.com/isejalabs/homelab/issues/807),
+currently being worked on, to give the cluster consistent, reliable storage provisioning and backup/restore
+in one place, rather than the two different lifecycle stories this doc otherwise has to describe.
 
 ## proxmox-csi — Terragrunt-pinned volumes that survive a cluster rebuild
 
@@ -155,8 +158,15 @@ StorageClass reference. This is the default pattern for any app that needs a vol
 `longhorn-*` class matching its consistency/performance needs, and let Longhorn provision and replicate it.
 Longhorn's own S3-backed `RecurringJob`s
 ([`job-backup-default.yaml`](../../k8s/infra/longhorn-system/longhorn/base/job-backup-default.yaml)) are the
-backup mechanism for this tier — there's no Terragrunt-style state-exclusion/re-import dance for Longhorn
-volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned volumes do.
+backup mechanism for this tier today — there's no Terragrunt-style state-exclusion/re-import dance for
+Longhorn volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned
+volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) is the tracked effort to make this
+more rigorous: it settled on [kopiur](https://github.com/home-operations/kopiur) over
+[VolSync](https://github.com/backube/volsync) as the backup/restore operator, split into the Kubernetes-side
+rollout ([#1127](https://github.com/isejalabs/homelab/issues/1127) — operator, components, StorageClasses),
+the S3 backup target in RustFS ([#1128](https://github.com/isejalabs/homelab/issues/1128)), and the
+1Password credentials kopiur needs to authenticate against it
+([#1129](https://github.com/isejalabs/homelab/issues/1129)).
 
 ## Choosing between them
 
