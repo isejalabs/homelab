@@ -4,23 +4,27 @@ Follow these instructions whenever creating or editing a YAML file — not just 
 
 - **Default rule**: all fields and properties should be sorted alphabetically at every level of the YAML structure, regardless of how deeply nested they are, unless a specific override rule is provided below.
 
-(Adapted from [mirceanton/home-ops](https://github.com/mirceanton/home-ops)'s `.agents/instructions/sorting.md` — the default rule and the two rules directly below are his; everything from "kustomize `kustomization.yaml`/`Component` files" onward is specific to this repo.)
-
 ## Override rules for Kubernetes-related file types
 
-- Whenever they are present at the same level of a YAML structure, these fields should be sorted as follows:
+- **Whenever they are present, these fields lead any mapping, at any level, ahead of everything else in it** — not just a resource's root, but any nested mapping shaped like an object reference too (a kustomize `replacements` `source`/`select`, a Flux `sourceRef`/`roleRef`/`secretKeyRef`, a Gateway API `parentRef`/`backendRef`, a container, an env var, a BGP peer, ...):
   - `apiVersion`
   - `kind`
   - `metadata`
+  - `name` (or `id`, only when `name` isn't present)
+  - `namespace`
   - `spec`
 
-- The items within the `metadata` section should be sorted as follows:
+  Only the fields actually present in a given mapping take part — skip any that are missing rather than leaving a gap for them. Sort everything else in that mapping alphabetically after this list.
+
+  `kind`/`apiVersion` leading `name` matters even outside a full resource: a bare `{kind: ConfigMap, name: cluster-param}` reference should still read "this kind of thing, named this" rather than alphabetical order flipping it to name-first. And `name`/`id` alone (with no `kind`/`apiVersion` in the same mapping) is what makes a plain container, env var, or list entry lead with its own identity — e.g. a container's `image` would otherwise sort before its `name`.
+
+  This is deliberately narrower than "any field that identifies something": a merely-common word like `group` was considered and rejected, since it's ambiguous outside a Gateway API type reference (e.g. `AdGuardHome.yaml`'s `os.group`, an OS group name, has nothing to do with an API group) — `apiVersion`/`kind`/`metadata`/`name`/`id`/`namespace`/`spec` are safe because they're reserved Kubernetes vocabulary that doesn't mean something else.
+
+- The items within the `metadata` section specifically should be sorted as follows (its own, narrower rule — not just alphabetical, since `annotations` would otherwise sort before `labels` before `namespace`):
   - `name`
   - `namespace`
   - `annotations`
   - `labels`
-
-- **`name` (or `id`) leads any mapping it appears in, anywhere** — not just `metadata` above, but any mapping at any depth: a container, an env var, a `Service`/`HTTPRoute` port or backend, a `parentRef`, a BGP peer, a filter entry, etc. It's the field that identifies *which* entry this is, so a reader scanning a list benefits from it being first and in a consistent position even when other, alphabetically-earlier fields are also present (e.g. a container's `image` would otherwise sort before its `name`). Sort everything else in that mapping alphabetically after it. Use `id` in this same leading position only when `name` isn't present in that mapping; if a mapping has neither, this rule doesn't apply and the default alphabetical rule takes over from the top.
 
 ## Gateway API route rules (`HTTPRoute`/`GRPCRoute`/`TCPRoute`/`TLSRoute` `spec.rules`)
 
