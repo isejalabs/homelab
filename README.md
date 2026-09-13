@@ -12,9 +12,13 @@ up-to-date, browsable overview of the current implementation.
 
 ## Principles
 
-- **IaC and [GitOps](https://opengitops.dev/) end to end.** Nothing is clicked into existence — VMs come
-  from OpenTofu/Terragrunt, cluster state comes from Flux reconciling this repo. `git log` is the change
-  history.
+- **IaC and [GitOps](https://opengitops.dev/) end to end, no
+  [snowflakes](https://martinfowler.com/bliki/SnowflakeServer.html).** Nothing is clicked into existence —
+  VMs come from OpenTofu/Terragrunt, cluster state comes from Flux reconciling this repo — and nothing
+  survives only as a hand-tweaked, undocumented one-off: the whole stack can be rebuilt from this repo
+  alone. The `rebuild` environment exists specifically to rehearse that periodically (see
+  [`environments.md`](docs/architecture/environments.md#what-each-environment-is-for)). `git log` is the
+  change history.
 - **Multi-environment, not just prod.** [8 environments](docs/architecture/environments.md) (`dbg`, `dev`,
   `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) exist so infrastructure-level changes — DNS, firewall
   rules, CNI config, anything that could take the network down — get proven out somewhere else first, before
@@ -25,9 +29,6 @@ up-to-date, browsable overview of the current implementation.
   composes from — see [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself). The tradeoff is real:
   this keeps the repo consistent but adds a layer of kustomize indirection — see
   [`docs/architecture/kustomize.md`](docs/architecture/kustomize.md) for how it fits together.
-- **No snowflakes.** Nothing here survives only as a hand-tweaked, undocumented one-off — VMs, cluster, and
-  workloads can all be rebuilt from this repo alone. The `rebuild` environment exists specifically to
-  rehearse that periodically (see [`environments.md`](docs/architecture/environments.md#what-each-environment-is-for)).
 
 ## How it's built
 
@@ -45,9 +46,11 @@ up-to-date, browsable overview of the current implementation.
 ## Staying current
 
 [Renovate](https://docs.renovatebot.com/) opens PRs for dependency/version updates, and
-[Mergify](https://mergify.com/) auto-merges the ones deemed safe (patches, digests, and `head`'s
-always-newest tracking); everything else waits for a human to look at it. There's no GitHub Actions CI
-here — validation is `pre-commit` plus Flux's own reconciliation. See
+[Mergify](https://mergify.com/) auto-merges digest, patch, and minor updates by default — major updates
+always wait for review, and so do the exceptions: packages/paths pinned or flagged `updateStrategy:manual`,
+and prod-specific version promotions (prod can pin its own version separately from `qa`/`base`, so a change
+gets validated in `qa` first and merged into prod deliberately, not automatically). There's no GitHub
+Actions CI here — validation is `pre-commit` plus Flux's own reconciliation. See
 [`docs/update handling.md`](docs/update%20handling.md) for the full policy. Left to its own preferences
 this would rather be a boring, patch-only Debian box than chase every minor release — the environment
 split above is what makes that patience compatible with also wanting to catch breakage early.
