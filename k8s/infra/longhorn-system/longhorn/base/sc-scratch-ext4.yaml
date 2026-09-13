@@ -12,9 +12,6 @@ allowVolumeExpansion: true
 reclaimPolicy: Delete # nothing worth retaining; avoids orphaned scratch volumes
 volumeBindingMode: WaitForFirstConsumer # required for dataLocality: strict-local
 parameters:
-  # No redundancy: skips replica sync entirely, halving write overhead.
-  numberOfReplicas: "1"
-
   # Places the sole replica on the same node as the consuming pod, avoiding
   # any network hop for reads/writes.
   dataLocality: strict-local
@@ -26,6 +23,9 @@ parameters:
   # (longhorn-standard/longhorn-ext4); see longhorn-scratch-xfs for
   # xfs-backed sources (longhorn-xfs/longhorn-fast/longhorn-ha).
   fsType: ext4
+
+  # No redundancy: skips replica sync entirely, halving write overhead.
+  numberOfReplicas: "1"
 
   # Skips per-write revision-counter bookkeeping (used to detect split-brain
   # across replicas). Meaningless with a single replica, and the write it

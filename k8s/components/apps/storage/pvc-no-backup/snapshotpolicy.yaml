@@ -13,15 +13,15 @@ spec:
       mode: Persistent
       storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
     securityContext:
-      runAsUser: ${PUID:=1000}
       runAsGroup: ${PGID:=1000}
+      runAsUser: ${PUID:=1000}
   repository:
     kind: ClusterRepository
     name: fiona
   retention:
-    keepLatest: 3
-    keepHourly: 0
     keepDaily: 7
+    keepHourly: 0
+    keepLatest: 3
     keepWeekly: 4
   sources:
     - pvc:

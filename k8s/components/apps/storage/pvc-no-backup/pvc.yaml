@@ -7,9 +7,9 @@ spec:
   accessModes:
     - ${STORAGE_ACCESSMODES:=ReadWriteOnce}
   dataSourceRef:
-    apiGroup: kopiur.home-operations.com
     kind: Restore
     name: ${APP}
+    apiGroup: kopiur.home-operations.com
   resources:
     requests:
       storage: ${STORAGE_CAPACITY:=5Gi}
