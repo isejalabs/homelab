@@ -167,7 +167,10 @@ excluded from automerge by both renovate and mergify:
   `kubernetes/kubernetes`, `siderolabs/talos`.
 - Paths: `.github/**`, `terragrunt/**`, `tofu/**` — there's no CI in this repo (see
   [`../CLAUDE.md`](../CLAUDE.md)'s PR discipline notes), so a Terragrunt/Terraform change always needs a
-  human to review the `plan` before merging.
+  human to review the `plan` before merging. This is also why these changes get exercised in `qa` before
+  `prod` (see [`environments.md`](architecture/environments.md#what-each-environment-is-for)): unlike a
+  Kustomize/Flux change, which affects at most one app, a bad Terragrunt/Tofu apply is infrastructure-level
+  and can take down the whole cluster (nodes, CNI, control plane).
 
 ## Pending
 

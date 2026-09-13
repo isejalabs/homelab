@@ -137,7 +137,10 @@ Every non-prod environment's domain gets an environment prefix via the
 - **`qa`** — the validation gate immediately before prod: full app+infra Flux set, `1h` interval, and the
   same `main`-checkout-only Terragrunt restriction as prod (`../../CLAUDE.md`: *"`prod` and `qa` may only
   ever be applied from a `main` checkout — no exceptions"*). Changes get exercised here before they're
-  considered safe for `prod`.
+  considered safe for `prod`. Part of why a dedicated environment earns that overhead rather than testing
+  directly in `prod`: Terragrunt/Tofu changes are infrastructure-level, not app-level — a bad one can take
+  down the whole cluster (nodes, CNI, control plane), not just a single app's Flux `Kustomization`, so they
+  need proving out at that layer too, not only via kustomize overlay testing.
 - **`head`** — the bleeding-edge tracking environment: unreleased-tip Terraform module (`ref=HEAD`) and the
   newest Talos/Kubernetes versions of any environment. Runs the full app set, so it's a live,
   continuously-updated real deployment used to catch breakage from new versions early — its
