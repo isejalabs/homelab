@@ -27,19 +27,23 @@ sensible default.
 
 ## Storage classes
 
-| Class | Filesystem | Replicas | Notes |
-|---|---|---|---|
-| `longhorn-standard` | ext4 | 2 | Default general-purpose class |
-| `longhorn-ext4` | ext4 | 2 | Explicit ext4 equivalent of `longhorn-standard` |
-| `longhorn-xfs` | xfs | 2 | General-purpose xfs |
-| `longhorn-fast` | xfs | 1, strict-local | Faster, single-replica -- less durable |
-| `longhorn-ha` | xfs | 3 | More durable than the general-purpose classes |
-| `longhorn-scratch-ext4` | ext4 | 1, strict-local | Staging only -- never use for an app's actual data |
-| `longhorn-scratch-xfs` | xfs | 1, strict-local | Staging only -- never use for an app's actual data |
+The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/
+`longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance
+tradeoffs -- are documented once, as the canonical reference, in
+[`docs/architecture/storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles);
+not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine
+which one to pick -- `longhorn-xfs`/`longhorn-fast`/`longhorn-ha` are all xfs-backed but trade off
+durability/performance differently, so picking one is still a deliberate choice, not something derived
+automatically from "I want xfs."
 
-Filesystem alone doesn't fully determine the primary storage class -- `longhorn-xfs`/`longhorn-fast`/
-`longhorn-ha` are all xfs-backed but trade off durability/performance differently, so picking one is still
-a deliberate choice, not something derived automatically from "I want xfs."
+Two more classes exist purely for the backup mover's disposable staging PVC (`STORAGE_STAGING_CLASS`) --
+not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. Both
+are fast, single-replica, `strict-local`, differing only in filesystem:
+
+| Class | Filesystem | Notes |
+|---|---|---|
+| `longhorn-scratch-ext4` | ext4 | Staging only -- never use for an app's actual data |
+| `longhorn-scratch-xfs` | xfs | Staging only -- never use for an app's actual data |
 
 ## Filesystem pairing
 
