@@ -39,6 +39,21 @@ cd terragrunt/<account>/<region>/<env>/vehagn-k8s
 
 > **TODO** document more
 
+# RustFS buckets/users for kopiur backup
+
+`rustfs-kopiur-backup` provisions, per environment, a RustFS bucket, a policy scoped to it, and a dedicated
+user via [`rustfs-bucket-user`](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-user),
+and writes the resulting credentials (plus a generated `KOPIA_PASSWORD`) into a `kopiur-backup#<env>`
+1Password item via [`onepassword-item`](https://github.com/isejalabs/terraform-modules/tree/main/modules/onepassword-item)
+-- see [`rustfs-kopiur-backup`'s README](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-kopiur-backup)
+for the full mechanism and current caveats. Requires both a `rustfs` and an `onepassword` entry in
+`global-secrets.sops.yaml`.
+
+Units exist for all 8 environments. Only `dev`/`qa`/`rebuild`/`prod` have an active kopiur backup schedule
+on the Kubernetes side (see `isejalabs/homelab#1121`); `dbg`/`head`/`poc`/`src` still get a real bucket and
+1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on
+a schedule.
+
 # Proxmox volume handling
 
 ## Import Proxmox volume
