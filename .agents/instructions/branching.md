@@ -27,14 +27,23 @@ A branch/PR needs an issue number before it exists, so resolve that first:
 Never invent a placeholder issue number, and never open the PR/start committing before the issue exists —
 the branch name depends on it.
 
-## Link the PR back to its issue
+## No feature/bugfix PR merges without a related issue
 
-The branch name carries the issue number, but that alone doesn't close the issue on merge or show the
-link on the issue itself — the PR description has to say so explicitly, e.g. `Closes #123` (or `Fixes`/
-`Resolves`) somewhere in the body. Check this on every PR, not just ones you open yourself: a PR opened
-by other tooling from an `issue/<n>_...` branch (e.g. Claude Code on the web's own "create a PR for this
-branch" flow) has no reason to know about this repo's convention and won't add it — if the body is missing
-a closing keyword for the issue named in the branch, edit it in rather than leaving the link implicit.
+This isn't limited to PRs that already follow the `issue/<n>_...` branch convention above — it's a hard
+requirement for any feature or bugfix PR in this repo, regardless of who or what opened it. The one
+exception is Renovate's own dependency-update PRs, which aren't feature/bugfix work and don't need one.
+
+- The PR body must reference the issue describing the problem it's solving — a closing keyword
+  (`Closes #123`/`Fixes #123`/`Resolves #123`) when this PR is the one that fully resolves the issue, or
+  a plain reference (`Relates to #123`) when it's one step of multi-part work and isn't meant to close the
+  issue yet. Not fully solving the issue in one PR is fine; having no issue behind the PR at all is not.
+- Check this on every PR, not just ones you open yourself: a PR opened by other tooling from an
+  `issue/<n>_...` branch (e.g. Claude Code on the web's own "create a PR for this branch" flow) has no
+  reason to know about this repo's convention and won't add it — if the body is missing a reference to the
+  issue named in the branch, edit it in rather than leaving the link implicit.
+- Before calling any PR mergeable, confirm every issue number it mentions actually exists (open it, don't
+  just trust the number in the text) — a typo'd, wrong-repo, or hallucinated issue number is worse than no
+  reference at all, since it reads as resolved when it isn't.
 
 Per-issue local session-state files (e.g. `.dev/{issue}_SESSION_STATE.md`, as seen in some other repos)
 are not adopted here — see [isejalabs/homelab#1193](https://github.com/isejalabs/homelab/issues/1193)
