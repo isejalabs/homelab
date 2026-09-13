@@ -5,7 +5,6 @@ kind: Kustomization
 namespace: flux-system
 
 resources:
-  - ../../../../../../apps/diag/kopiur-test/flux
   - ../../../../../../apps/dns/adguard/flux
   - ../../../../../../apps/dns/unbound/flux
   - ../../../../../../apps/finances/actualbudget/flux
