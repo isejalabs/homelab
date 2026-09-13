@@ -1,3 +1,6 @@
+See [`docs/architecture/network.md`](../../../../docs/architecture/network.md) for how Cilium's LB IPAM and
+BGP route advertisement fit into the overall networking story.
+
 The CNI is running properly when you see the following output for the `cilium status` command:
 
 ```sh

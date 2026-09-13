@@ -1,3 +1,36 @@
+See [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how SOPS secrets feed into
+Terragrunt (the `*-secrets.sops.yaml` hierarchy consumed by `root.hcl`).
+
+# Folder Structure
+
+Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `root.hcl` merges
+`account.hcl`/`region.hcl`/`env.hcl` locals and SOPS-encrypted `*-secrets.sops.yaml` at each level
+(global → account → region → env → local, each overriding the last), and wires the S3 remote-state backend.
+
+```
+📁 terragrunt
+├── root.hcl                       # top-level config, see above
+├── global-secrets.sops.yaml       # secrets merged in at every level
+├── 📁 _envcommon                    # reusable .hcl includes merged into each module's live config (see _envcommon/README.md)
+│   ├── tf-state-read-role.hcl
+│   ├── vms.hcl
+│   ├── talos-proxmox.hcl
+│   └── vehagn-k8s.hcl
+├── 📁 non-prod                      # account: dbg, dev, head, poc, qa, rebuild, src environments
+│   ├── account.hcl
+│   ├── account-secrets.sops.yaml
+│   └── 📁 eu-central-1                # region
+│       ├── region.hcl
+│       └── 📁 <env>                   # env, e.g. dev, qa, rebuild, ... (poc additionally splits vms/talos-proxmox out of vehagn-k8s)
+│           ├── env.hcl
+│           ├── .envrc                   # exports TG_IAM_ASSUME_ROLE, the env's state-read/write role (direnv-loaded)
+│           ├── 📁 tf-state-read-role      # module: per-env state-read IAM role
+│           └── 📁 vehagn-k8s              # module: provisions the Proxmox VMs and installs Talos
+│               ├── terragrunt.hcl
+│               └── 📁 assets                # generated cluster artifacts (Talos schematic, sealed-secrets cert, ...)
+└── 📁 prod                          # account: prod environment only, same account/region/env/module shape as non-prod
+```
+
 # Directory handling
 
 ```sh
@@ -5,6 +38,21 @@ cd terragrunt/<account>/<region>/<env>/vehagn-k8s
 ```
 
 > **TODO** document more
+
+# RustFS buckets/users for kopiur backup
+
+`rustfs-kopiur-backup` provisions, per environment, a RustFS bucket, a policy scoped to it, and a dedicated
+user via [`rustfs-bucket-user`](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-user),
+and writes the resulting credentials (plus a generated `KOPIA_PASSWORD`) into a `kopiur-backup#<env>`
+1Password item via [`onepassword-item`](https://github.com/isejalabs/terraform-modules/tree/main/modules/onepassword-item)
+-- see [`rustfs-kopiur-backup`'s README](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-kopiur-backup)
+for the full mechanism and current caveats. Requires both a `rustfs` and an `onepassword` entry in
+`global-secrets.sops.yaml`.
+
+Units exist for all 8 environments. Only `dev`/`qa`/`rebuild`/`prod` have an active kopiur backup schedule
+on the Kubernetes side (see `isejalabs/homelab#1121`); `dbg`/`head`/`poc`/`src` still get a real bucket and
+1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on
+a schedule.
 
 # Proxmox volume handling
 

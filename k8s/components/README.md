@@ -1,3 +1,8 @@
+> [!NOTE]
+> For a walkthrough of how these components fit into the overall `base`/`envs/<env>`/`flux` overlay
+> approach, with concrete examples of the `replacements` each transformer uses, see
+> [`docs/architecture/kustomize.md`](../../docs/architecture/kustomize.md).
+
 ## Purpose
 
 One of the main goals of this folder is to provide a set of common components that can be used across multiple applications and environments, reducing duplication and promoting consistency.
