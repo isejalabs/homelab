@@ -27,6 +27,15 @@ A branch/PR needs an issue number before it exists, so resolve that first:
 Never invent a placeholder issue number, and never open the PR/start committing before the issue exists —
 the branch name depends on it.
 
+## Link the PR back to its issue
+
+The branch name carries the issue number, but that alone doesn't close the issue on merge or show the
+link on the issue itself — the PR description has to say so explicitly, e.g. `Closes #123` (or `Fixes`/
+`Resolves`) somewhere in the body. Check this on every PR, not just ones you open yourself: a PR opened
+by other tooling from an `issue/<n>_...` branch (e.g. Claude Code on the web's own "create a PR for this
+branch" flow) has no reason to know about this repo's convention and won't add it — if the body is missing
+a closing keyword for the issue named in the branch, edit it in rather than leaving the link implicit.
+
 Per-issue local session-state files (e.g. `.dev/{issue}_SESSION_STATE.md`, as seen in some other repos)
 are not adopted here — see [isejalabs/homelab#1193](https://github.com/isejalabs/homelab/issues/1193)
 for why and for the open question of what (if anything) should replace them.
