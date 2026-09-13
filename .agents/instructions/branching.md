@@ -27,13 +27,6 @@ A branch/PR needs an issue number before it exists, so resolve that first:
 Never invent a placeholder issue number, and never open the PR/start committing before the issue exists —
 the branch name depends on it.
 
-## Why not per-issue local state files
-
-Some other repos (e.g. [bpg/terraform-provider-proxmox's `CLAUDE.md`](https://github.com/bpg/terraform-provider-proxmox/blob/main/CLAUDE.md))
-keep a `.dev/{issue}_SESSION_STATE.md`-style scratch file per issue to carry context across sessions.
-This repo doesn't (yet) adopt that: sessions here typically run in an ephemeral cloud container that's
-reclaimed between pauses — sometimes after only minutes — so a file that only exists in that container
-wouldn't survive being picked back up later. It would need to be committed to survive, which defeats
-the point of keeping session-scratch content out of the actual change. Revisit this if/when there's a
-place for such state that does survive (e.g. the issue body itself, or PR description checklists per
-the PR discipline section).
+Per-issue local session-state files (e.g. `.dev/{issue}_SESSION_STATE.md`, as seen in some other repos)
+are not adopted here — see [isejalabs/homelab#1193](https://github.com/isejalabs/homelab/issues/1193)
+for why and for the open question of what (if anything) should replace them.
