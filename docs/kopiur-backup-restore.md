@@ -66,7 +66,7 @@ EOF
 
 ### Restore an app from its latest backup
 
-kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation. There's no "roll this existing volume back in place"; restoring means deleting the PVC and letting a fresh one populate. Flux actively reverts manual changes (a scaled-down Deployment gets scaled back up on its next reconcile), so the owning Flux object must be suspended first.
+kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). Flux actively reverts manual changes (a scaled-down Deployment gets scaled back up on its next reconcile), so the owning Flux object must be suspended first.
 
 1. **Determine ownership** — check the Deployment's own labels:
    ```sh
@@ -82,10 +82,17 @@ kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation. T
    ❯ kubectl scale deployment <app> -n <namespace> --replicas=0
    ❯ kubectl wait pod -l app=<app> -n <namespace> --for=delete --timeout=120s
    ```
-4. **Delete the PVC:**
+4. **Delete the PVC *and* the `Restore` object:**
    ```sh
    ❯ kubectl delete pvc <app> -n <namespace>
+   ❯ kubectl delete restore <app> -n <namespace>
    ```
+   Both, not just the PVC -- confirmed live (qa, 2026-09-13): `Restore.status.resolved` pins its snapshot
+   resolution once (`pinnedAt`/`resolution`) and does not re-evaluate it on a later PVC claim. An app's very
+   first deploy resolves to `NoSnapshot` (nothing exists yet) and pins that; deleting only the PVC afterward
+   recreates an *empty* volume again, silently reusing the stale `NoSnapshot` pin instead of picking up a
+   snapshot that was taken in the meantime. Deleting the `Restore` object too forces Flux to recreate it
+   fresh on the next reconcile, so it resolves against whatever snapshots actually exist right now.
 5. **Resume** — this recreates the PVC (populated from the latest snapshot) *and* scales the Deployment back up in the same reconcile, no separate scale-up step needed:
    ```sh
    ❯ flux resume kustomization <name>        # or: flux resume helmrelease <name> -n <namespace>
@@ -96,7 +103,9 @@ kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation. T
    ❯ kubectl get pvc <app> -n <namespace> -w
    ```
 
-The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly, before step 4 (deleting the PVC):
+The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly instead.
+
+**This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-6 above (delete the PVC, resume, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
 
 ```sh
 # find the Snapshot to restore -- reuse "list all available backups" above
@@ -105,17 +114,28 @@ The steps above restore the **latest** backup — the app's `Restore` object (fr
 # point the Restore at that exact Snapshot CR (clears fromPolicy, sets snapshotRef)
 ❯ kubectl patch restore <app> -n <namespace> --type merge \
     -p '{"spec":{"source":{"fromPolicy":null,"snapshotRef":{"name":"<snapshot-name>"}}}}'
+
+# save the PVC's manifest, then delete it -- Flux staying suspended means nothing will recreate it for you
+❯ kubectl get pvc <app> -n <namespace> -o yaml > /tmp/<app>-pvc.yaml
+❯ kubectl delete pvc <app> -n <namespace>
+
+# manually recreate the PVC and scale the app back up -- *not* `flux resume`, which is exactly what
+# would trigger the reconcile conflict above
+❯ kubectl apply -f /tmp/<app>-pvc.yaml
+❯ kubectl scale deployment <app> -n <namespace> --replicas=1
+❯ kubectl get pvc <app> -n <namespace> -w   # wait for Bound, then confirm the data is what you expect
 ```
 
 Two other selectors work too, if a specific `Snapshot` CR isn't handy:
 - `fromPolicy.offset: N` — the Nth-from-latest snapshot in this policy's succession (`0` = latest, `1` = previous, ...).
 - `fromPolicy.asOf: "<RFC3339 timestamp>"` — the newest snapshot at or before that point in time.
 
-After the restore, revert the `Restore` object back to its default (latest) so a future *accidental* PVC loss doesn't silently restore from this now-stale pin:
+Once confirmed, revert the `Restore` object back to its default (latest) so a future *accidental* PVC loss doesn't silently restore from this now-stale pin -- do this **before** resuming, so the live state matches git again and the resume is a clean no-op instead of tripping the same conflict:
 
 ```sh
 ❯ kubectl patch restore <app> -n <namespace> --type merge \
     -p '{"spec":{"source":{"snapshotRef":null,"fromPolicy":{"name":"<app>","offset":0}}}}'
+❯ flux resume kustomization <name>        # or: flux resume helmrelease <name> -n <namespace>
 ```
 
 ### Prune old backups
