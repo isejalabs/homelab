@@ -11,9 +11,13 @@ thing they describe.
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism
   that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`).
   These change rarely and don't belong to any single app/infra folder.
-- **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture",
-  e.g. [`update handling.md`](update%20handling.md), documenting how renovate/labeler/mergify/Flux
-  interact for automated dependency updates.
+- **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
+  - [`update handling.md`](update%20handling.md) — how renovate/labeler/mergify/Flux interact for automated
+    dependency updates.
+  - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class
+    reference for `apps/storage/pvc`/`pvc-no-backup`.
+  - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and
+    day-to-day operational tasks (list/trigger/restore/prune backups).
 - **[`logs/`](logs)** — raw output logs kept as a historical/reference record of past bootstrap runs, not
   narrative documentation.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece

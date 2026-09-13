@@ -42,6 +42,12 @@ So the minimal/full split is purely about **apps**: `dbg`/`dev`/`poc`/`src` are 
 environments (useful for testing cluster mechanics without running the full app stack); `head`/`prod`/`qa`/
 `rebuild` are the ones that actually run the homelab's real applications.
 
+This doesn't line up with kopiur's backup-schedule grouping (see
+[`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md#dormant-environments)) — a separate axis with
+its own 4/4 split, `dbg`/`head`/`poc`/`src` dormant vs. `dev`/`qa`/`rebuild`/`prod` active. `dev` is
+minimal-apps but kopiur-active; `head` is full-apps but kopiur-dormant — the two groupings share three
+members (`dbg`/`poc`/`src`) but disagree on `dev`/`head`, so don't assume one from the other.
+
 ### 2. How updates land
 
 Which git ref an environment's Flux instance reconciles from (normally `main` — see the intro above for
