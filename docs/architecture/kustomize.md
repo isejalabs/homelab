@@ -145,10 +145,12 @@ be included by another `Kustomization`.
 │   └── 📁 ...        # one per environment
 └── 📁 transformers
     ├── 📁 add-labels          # add common labels, e.g. reconcile.fluxcd.io/watch: "Enabled"
+    ├── 📁 kopiur-secret-env   # per-env kopiur 1Password key + bucket name (all 8 envs, not via base)
     ├── 📁 prefix-domain       # dev-app.example.com — env prefix in front of the domain
     ├── 📁 replace-domain      # example.com -> your.sub.domain.com
     ├── 📁 replace-path        # rewrite Flux Kustomization spec.path: .../base -> .../envs/<env>
-    └── 📁 set-flux-defaults   # set Flux Kustomization/HelmRelease reconciliation intervals
+    ├── 📁 set-flux-defaults   # set Flux Kustomization/HelmRelease reconciliation intervals
+    └── 📁 suspend-kopiur-schedule  # force-suspend kopiur backup in dbg/head/poc/src (not via base)
 ```
 
 Every environment's component (e.g. [`components/envs/dev/kustomization.yaml`](../../k8s/components/envs/dev/kustomization.yaml))
@@ -224,6 +226,12 @@ resources of a given `kind`.
   of every Flux `Kustomization` and `HelmRelease`, so each environment can reconcile at a different cadence
   (e.g. `10m` in `dev`, `1h` in `prod`) without every app having to hardcode it.
 - **`replace-path`** (see below) — rewrites `spec.path` on every Flux `Kustomization`.
+- **`kopiur-secret-env`** / **`suspend-kopiur-schedule`** — kopiur backup/restore-specific, included per-env
+  rather than via `../base` (unlike the four above, which every environment gets unconditionally):
+  `kopiur-secret-env` rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket
+  name, included in all 8 environments; `suspend-kopiur-schedule` force-suspends every `SnapshotSchedule`,
+  included only in the 4 environments without an active backup schedule (`dbg`/`head`/`poc`/`src`). See
+  [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for the full mechanism.
 
 ### Flux path rewriting (`replace-path`)
 

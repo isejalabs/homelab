@@ -32,6 +32,8 @@ Retention is GFS-style (`SnapshotPolicy.spec.retention`: `keepLatest` / `keepHou
 
 `dbg`/`head`/`poc`/`src` are throwaway/ephemeral environments that don't need scheduled protection, but should still have storage provisioning behave consistently with the rest of the cluster. Rather than excluding them from the storage components entirely, the [`suspend-kopiur-schedule`](../k8s/components/transformers/suspend-kopiur-schedule) transformer (registered only in those 4 envs' `k8s/components/envs/<env>/kustomization.yaml`) force-patches every `SnapshotSchedule` to `spec.schedule.suspend: true`, regardless of which storage component an app picked. The object stays visible (`kubectl get snapshotschedule` shows `Suspended: true`) rather than disappearing -- "available, not activated," not excluded.
 
+This grouping is its own axis, independent of which apps an environment runs -- see [`docs/architecture/environments.md`](architecture/environments.md#1-which-apps-run-there--the-flux-minimalfull-split) for how it diverges from the apps minimal/full split (`dev` is minimal-apps but kopiur-active; `head` is full-apps but kopiur-dormant).
+
 ## Daily tasks (manual, for now)
 
 > [!NOTE]
