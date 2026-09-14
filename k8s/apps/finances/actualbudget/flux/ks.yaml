@@ -19,5 +19,3 @@ spec:
   postBuild:
     substitute:
       APP: actualbudget
-      PUID: "1001"
-      PGID: "1001"
