@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set -eu
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -13,9 +13,15 @@ SKIP_KINDS='SealedSecret'
 
 K8S_VERSION=$(grep -oP 'K8S_VERSION="\K[^"]+' scripts/upgrade-k8s.sh)
 
+# Listed into a file rather than piped into the while loop below, so the loop runs in the
+# current shell (not a subshell) and `status` set inside it is still visible at `exit $status`.
+list=$(mktemp)
+trap 'rm -f "$list"' EXIT
+find k8s -name kustomization.yaml > "$list"
+
 status=0
 
-while IFS= read -r -d '' kustomization; do
+while IFS= read -r kustomization; do
     dir=$(dirname "$kustomization")
 
     # k8s/components/* are kustomize Components, meant to be pulled in via `components:` by the
@@ -23,7 +29,7 @@ while IFS= read -r -d '' kustomization; do
     case "$dir" in k8s/components/*) continue ;; esac
 
     if ! manifests=$(kubectl kustomize "$dir" 2>&1); then
-        echo -e "${RED}kustomize build failed: $dir${NC}"
+        printf "${RED}kustomize build failed: %s${NC}\n" "$dir"
         echo "$manifests"
         status=1
         continue
@@ -34,12 +40,12 @@ while IFS= read -r -d '' kustomization; do
         -schema-location default \
         -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
         -summary; then
-        echo -e "${RED}kubeconform failed: $dir${NC}"
+        printf "${RED}kubeconform failed: %s${NC}\n" "$dir"
         status=1
         continue
     fi
 
-    echo -e "${GREEN}OK: $dir${NC}"
-done < <(find k8s -name kustomization.yaml -print0)
+    printf "${GREEN}OK: %s${NC}\n" "$dir"
+done < "$list"
 
 exit $status
