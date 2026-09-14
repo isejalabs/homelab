@@ -18,20 +18,8 @@ spec:
       labels:
         app: unifi-controller
     spec:
-      nodeSelector:
-        topology.kubernetes.io/zone: pve4
-      securityContext:
-        runAsNonRoot: false
-        # runAsNonRoot: true
-        # runAsUser: 999
-        # runAsGroup: 999
-        # fsGroup: 999
-        # fsGroupChangePolicy: OnRootMismatch
-        # seccompProfile:
-        #   type: RuntimeDefault
       containers:
         - name: unifi-network-application
-          image: lscr.io/linuxserver/unifi-network-application:10.6.101@sha256:ccadcad5c640c91388d79e66a3751e4de3c9accdcef181f76c142aeca612214d
           env:
             - name: PUID
               value: "999"
@@ -57,13 +45,7 @@ spec:
               value: unifidb
             - name: MONGO_AUTHSOURCE
               value: admin
-          resources:
-            requests:
-              cpu: 50m
-              memory: 500Mi
-            limits:
-              cpu: 1000m
-              memory: 1000Mi
+          image: lscr.io/linuxserver/unifi-network-application:10.6.101@sha256:ccadcad5c640c91388d79e66a3751e4de3c9accdcef181f76c142aeca612214d
           ports:
             # required
             - name: web-admin
@@ -97,9 +79,27 @@ spec:
             - name: unifi-disc
               containerPort: 10001
               protocol: UDP
+          resources:
+            limits:
+              cpu: 1000m
+              memory: 1000Mi
+            requests:
+              cpu: 50m
+              memory: 500Mi
           volumeMounts:
             - name: unifi-controller-data
               mountPath: /config
+      nodeSelector:
+        topology.kubernetes.io/zone: pve4
+      securityContext:
+        runAsNonRoot: false
+        # runAsNonRoot: true
+        # runAsUser: 999
+        # runAsGroup: 999
+        # fsGroup: 999
+        # fsGroupChangePolicy: OnRootMismatch
+        # seccompProfile:
+        #   type: RuntimeDefault
       volumes:
         - name: unifi-controller-data
           persistentVolumeClaim:

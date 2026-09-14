@@ -8,9 +8,9 @@ spec:
   chartRef:
     kind: OCIRepository
     name: sealed-secrets
-  interval: 1h
   install:
     crds: Create
+  interval: 1h
   upgrade:
     crds: CreateReplace
   values:

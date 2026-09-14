@@ -6,6 +6,5 @@ components:
   # do not prefix domain
   # - ../../transformers/prefix-domain   # prefix domain
   - ../../transformers/kopiur-secret-env
-
 resources:
   - cluster-param.yaml

@@ -6,6 +6,5 @@ components:
   - ../../transformers/prefix-domain
   - ../../transformers/kopiur-secret-env
   - ../../transformers/suspend-kopiur-schedule
-
 resources:
   - cluster-param.yaml
