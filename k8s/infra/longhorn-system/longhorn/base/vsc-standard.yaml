@@ -5,3 +5,9 @@ metadata:
   name: longhorn-snapshot
 deletionPolicy: Delete
 driver: driver.longhorn.io
+parameters:
+  # Without this, Longhorn's CSI driver treats an unset `type` as `bak` for backward
+  # compatibility -- a full backup to the configured BackupTarget (S3) on every snapshot,
+  # and a restore-from-backup (another S3 round trip) when it's later restored into a PVC.
+  # `snap` is the actual local, copy-on-write Longhorn snapshot the class name implies.
+  type: snap
