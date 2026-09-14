@@ -1,0 +1,35 @@
+name: "Terragrunt validate"
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  terragrunt-validate:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    env:
+      # Without this, every terragrunt unit downloads its own full copy of every provider it uses (no
+      # shared cache dir exists on a fresh runner) - sharing one keeps network/disk bounded to the
+      # number of distinct providers instead of the number of units.
+      TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.tf-plugin-cache
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+    - id: versions
+      run: |
+        . scripts/terragrunt-versions.sh
+        echo "tofu=$TOFU_VERSION" >> "$GITHUB_OUTPUT"
+        echo "terragrunt=$TERRAGRUNT_VERSION" >> "$GITHUB_OUTPUT"
+    - uses: opentofu/setup-opentofu@a1320f892987e89d278cc92dc5adc984fb93aca4 # v2.0.2
+      with:
+        tofu_version: ${{ steps.versions.outputs.tofu }}
+        tofu_wrapper: false
+    - uses: autero1/action-terragrunt@aefb0a43c4f5503a91fefb307745c4d51c26ed0e # v3.0.2
+      with:
+        terragrunt-version: ${{ steps.versions.outputs.terragrunt }}
+    - run: tofu fmt -check -recursive terragrunt/
+    - run: terragrunt hcl format --check --diff --working-dir terragrunt
+    - run: scripts/terragrunt-validate-all.sh
