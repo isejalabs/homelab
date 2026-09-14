@@ -13,4 +13,5 @@ trap 'rm -rf "$tmp"' EXIT
 curl -fsSL "https://github.com/yannh/kubeconform/releases/download/${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" -o "$tmp/kubeconform.tar.gz"
 echo "${KUBECONFORM_SHA256}  $tmp/kubeconform.tar.gz" | sha256sum -c -
 tar -xzf "$tmp/kubeconform.tar.gz" -C "$tmp" kubeconform
+mkdir -p "$install_dir"
 install -m 0755 "$tmp/kubeconform" "$install_dir/kubeconform"
