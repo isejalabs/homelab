@@ -3,11 +3,6 @@ kind: Kustomization
 
 namespace: adguard
 
-configMapGenerator:
-  - name: adguard-config
-    files:
-      - config/AdGuardHome.yaml
-
 resources:
   - ns.yaml
   - svc.yaml
@@ -15,3 +10,8 @@ resources:
   - secret-users.yaml
   - deployment.yaml
   - http-route.yaml
+configMapGenerator:
+  - name: adguard-config
+    files:
+      - config/AdGuardHome.yaml
+

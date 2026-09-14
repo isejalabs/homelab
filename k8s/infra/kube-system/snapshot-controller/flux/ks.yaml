@@ -5,8 +5,6 @@ kind: Kustomization
 metadata:
   name: snapshot-controller
 spec:
-  dependsOn:
-    - name: infra-ns
   interval: 1h
   path: ./k8s/infra/kube-system/snapshot-controller/base
   prune: true
@@ -15,3 +13,5 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: true
+  dependsOn:
+    - name: infra-ns

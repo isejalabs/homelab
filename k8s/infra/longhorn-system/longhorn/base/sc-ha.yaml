@@ -3,10 +3,7 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: longhorn-ha
-provisioner: driver.longhorn.io
 allowVolumeExpansion: true
-reclaimPolicy: Retain # Retain volume when PVC is deleted
-volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
 parameters:
   # Use XFS for better performance and reliability
   fsType: xfs
@@ -27,3 +24,6 @@ parameters:
 
   # Zone-aware replica placement (requires node labels)
   replicaZoneSoftAntiAffinity: "true"
+provisioner: driver.longhorn.io
+reclaimPolicy: Retain # Retain volume when PVC is deleted
+volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
