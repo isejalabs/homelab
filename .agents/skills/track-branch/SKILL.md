@@ -67,6 +67,18 @@ You can push the commit (to the feature branch) automatically.
 
 ## 3. Apply directly to the live cluster
 
+Before touching the live cluster, check what the environment is actually synced from right now — it
+may already be on `main` as expected, but it could also still be pinned to a different branch left
+over from an earlier, forgotten override that was never reverted:
+
+```sh
+kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
+```
+
+If this isn't `{"name":"refs/heads/main"}`, stop and flag it to the user before proceeding — find out
+what that ref is and whether it's a leftover that should be reverted first, rather than layering a new
+override on top of an unexplained one.
+
 Pushing the branch to GitHub is not enough by itself: the target environment's `GitRepository` is
 still pinned to whatever ref its `flux-instance` `HelmRelease` currently specifies (normally `main`),
 so it will never notice a commit that only exists on another branch. The environment has to be told,
@@ -93,8 +105,8 @@ naming convention used throughout this repo (verify with `kubectl config get-con
 ## 4. Reverting later
 
 Once testing is done and before merging the branch, the override must be undone so the environment
-falls back to tracking `main`. Restore the line to its commented placeholder form (or drop the `ref:`
-line entirely and re-add the comment), commit that (again on the feature branch, not `main` — no
-wording convention exists yet for this commit, so ask the user what message they want rather than
-guessing one), then re-run the same `kubectl apply -k ... --context admin@<env>-homelab` from step 3
+falls back to tracking `main`. Just `git revert` the `tmp(<env>): ...` commit from step 2 — this
+restores the commented placeholder form exactly, needs no wording decision, and keeps the throwaway
+nature of the change visible in history (still on the feature branch, not `main`; push it same as the
+original commit). Then re-run the same `kubectl apply -k ... --context admin@<env>-homelab` from step 3
 so the live cluster actually flips back to `main` immediately rather than waiting to merge.
