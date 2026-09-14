@@ -1,0 +1,13 @@
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    - select:
+        kind: ClusterRepository
+        name: fiona
+      fieldPaths:
+        - spec.backend.s3.bucket
+      options:
+        delimiter: "-"
+        index: 0

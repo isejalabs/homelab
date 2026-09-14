@@ -1,0 +1,46 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/kopiur.home-operations.com/clusterrepository_v1alpha1.json
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: ClusterRepository
+metadata:
+  name: fiona
+spec:
+  allowedNamespaces:
+    all: true
+  backend:
+    s3:
+      auth:
+        secretRef:
+          name: kopiur-repository-secret
+          namespace: kopiur-system
+      bucket: base-kopiur-backup
+      endpoint: fiona.home.iseja.net:9000
+      region: default
+  encryption:
+    passwordSecretRef:
+      name: kopiur-repository-secret
+      namespace: kopiur-system
+      key: KOPIA_PASSWORD
+  maintenance:
+    schedule:
+      full:
+        cron: 0 3 * * *
+        jitter: 1h
+      quick:
+        cron: 0 * * * *
+        jitter: 10m
+  moverDefaults:
+    cache:
+      # Every cache PVC is 5Gi or larger (STORAGE_CAPACITY default, reused for the cache volume). Kopia's
+      # own default budgets are ~5000Mi per cache, bigger than the whole PVC, so the sweeper this
+      # `quick` maintenance schedule runs never has anything to trim and the cache fills the volume.
+      # metadataCacheSizeMb is halved vs. contentCacheSizeMb because kopia's index-blobs cache shares the
+      # same budget. Ported from onedr0p/home-ops after it hit this same bug upstream (see
+      # docs/kopiur-backup-restore.md's Credits & changes from upstream).
+      contentCacheSizeMb: 512
+      metadataCacheSizeMb: 1024
+  parameters:
+    epoch:
+      minDuration: 1h
+  scheduleDefaults:
+    timezone: Europe/Berlin
