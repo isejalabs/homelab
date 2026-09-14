@@ -16,3 +16,8 @@ spec:
   dependsOn:
     - name: gateway-api
     - name: longhorn
+  postBuild:
+    substitute:
+      APP: actualbudget
+      PUID: "1001"
+      PGID: "1001"
