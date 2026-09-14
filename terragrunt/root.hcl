@@ -35,10 +35,22 @@ locals {
     local.environment_vars.locals,
   )
 
+  # Placeholder values for whichever secret_vars keys are actually accessed directly (as opposed to
+  # merely passed through as opaque values) below and in child terragrunt.hcl files. Merged in as the
+  # lowest-priority source, so any real decrypted value at any level always overrides it - this only
+  # takes effect when decryption fails outright (e.g. CI has no SOPS AGE key), letting `validate` still
+  # type-check without needing real secrets, since OpenTofu's object type inference otherwise errors
+  # on an absent attribute rather than treating it as unknown/null.
+  secret_defaults = {
+    state_encryption_passphrase = "ci-placeholder-state-encryption-passphrase"
+    remote_state_iam_usernames  = ["ci-placeholder-iam-username"]
+  }
+
   # Merge all secret variables into a single map, but handle them separately from the plain variables.
   # You can also reference these variables in child modules using syntax:
   #   include.root.locals.secret_vars.<variable_name>
   secret_vars = merge(
+    local.secret_defaults,
     local.global_secret_vars,
     local.account_secret_vars,
     local.region_secret_vars,

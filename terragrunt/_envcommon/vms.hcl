@@ -16,9 +16,23 @@ locals {
   environment_secret_vars = try(yamldecode(sops_decrypt_file(find_in_parent_folders("env-secrets.sops.yaml"))), {})
   local_secret_vars       = try(yamldecode(sops_decrypt_file("local-secrets.sops.yaml")), {})
 
+  # Only used when decryption fails outright (e.g. CI has no SOPS AGE key) - lets `validate` still
+  # type-check without real secrets, since any real value at any level overrides this (lowest priority
+  # in the merge below). Shape matches the `proxmox` variable of terraform-modules//modules/vms
+  # (base_source_url below).
+  secret_defaults = {
+    proxmox = {
+      endpoint  = "https://ci-placeholder:8006"
+      insecure  = true
+      username  = "ci-placeholder"
+      api_token = "ci-placeholder"
+    }
+  }
+
   # Merge all secret variables into a single map
   # Lower level variables will override higher level variables due to the merge function
   secret_vars = merge(
+    local.secret_defaults,
     local.global_secret_vars,
     local.account_secret_vars,
     local.region_secret_vars,
