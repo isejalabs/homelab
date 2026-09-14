@@ -268,9 +268,12 @@ Today this is used to bootstrap Connect's own credentials (the `ExternalSecret`s
 [`k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml)
 pull the `1password` item out of the `K8S` vault) — there's a bit of a bootstrapping loop here too: Connect
 needs a `Secret` to start, and ESO needs Connect running to produce that `Secret`, which is exactly what the
-`op inject` bridge above breaks by seeding it once from outside the cluster. No app-level `ExternalSecret` has
-been added yet, but the pattern (define an `ExternalSecret` pointing at a `1Password` vault item under
-`ClusterSecretStore: onepassword-connect`) is the one to follow when one is.
+`op inject` bridge above breaks by seeding it once from outside the cluster. The first real app-level use of
+this pattern is `kopiur-secret`'s `ExternalSecret`
+([`k8s/components/apps/kopiur/secret/externalsecret.yaml`](../../k8s/components/apps/kopiur/secret/externalsecret.yaml)):
+pulled into every namespace that uses `apps/storage/pvc`/`pvc-no-backup` (see
+[`storage.md`](storage.md) and [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)), and rewritten
+per-environment by the `kopiur-secret-env` transformer rather than hardcoded per app.
 
 ### Choosing between them
 

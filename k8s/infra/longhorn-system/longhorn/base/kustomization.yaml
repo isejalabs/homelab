@@ -10,6 +10,8 @@ resources:
   - sc-ext4.yaml
   - sc-fast.yaml
   - sc-ha.yaml
+  - sc-scratch-ext4.yaml
+  - sc-scratch-xfs.yaml
   - sc-standard.yaml
   - sc-xfs.yaml
   - vsc-standard.yaml

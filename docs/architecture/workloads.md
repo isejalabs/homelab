@@ -48,6 +48,8 @@ for the full bootstrap walkthrough; this table only says which ones.
 | `common` | [`ns`](../../k8s/infra/common/ns/) | Namespace-registration aggregator — creates the namespaces every other infra unit below deploys into (`_ns/` folders throughout `k8s/infra/` are inputs to this one unit, not standalone entries) | no — Flux-only | minimal |
 | `longhorn-system` | [`longhorn-core`](../../k8s/infra/longhorn-system/longhorn-core/) | [Longhorn](https://longhorn.io/) distributed block storage engine (see [`storage.md`](storage.md)) | no — Flux-only | optional |
 | `longhorn-system` | [`longhorn`](../../k8s/infra/longhorn-system/longhorn/) | Longhorn's `StorageClass`es, `VolumeSnapshotClass`, and backup/trim/snapshot jobs — companion to `longhorn-core` | no — Flux-only | optional |
+| `kopiur-system` | [`kopiur`](../../k8s/infra/kopiur-system/kopiur/) | [kopiur](https://github.com/home-operations/kopiur) backup/restore operator, kopia-based (see [`storage.md`](storage.md) and [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)) | no — Flux-only | optional |
+| `kopiur-system` | [`kopiur-repository`](../../k8s/infra/kopiur-system/kopiur-repository/) | `fiona`, kopiur's `ClusterRepository` pointing at this cluster's S3-compatible NAS, one bucket per environment | no — Flux-only | optional |
 
 ### CRDs-only, not actually deployed
 

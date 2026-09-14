@@ -21,6 +21,8 @@ A personal, IaC-driven homelab: Proxmox VMs → Talos Linux → Kubernetes, prov
   - `replace-domain` / `prefix-domain` — swap the placeholder `example.com` for the real domain (and prefix per-env, e.g. `dev-app.example.com`) across Ingress/HTTPRoute/TLSRoute/Gateway/Certificate resources.
   - `add-labels` — adds common labels (e.g. `reconcile.fluxcd.io/watch: "Enabled"`).
   - `set-flux-defaults` — sets default Flux `Kustomization`/`HelmRelease` reconciliation intervals.
+  - `kopiur-secret-env` — rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket name (both otherwise stated once, generically, in `base/`).
+  - `suspend-kopiur-schedule` — force-suspends every `SnapshotSchedule` in environments without an active kopiur backup schedule (`dbg`/`head`/`poc`/`src`), regardless of which storage component an app picked.
   See `k8s/components/README.md` for the folder structure.
 - `scripts/` — helper shell scripts: `sops-encrypt-all.sh`/`sops-decrypt-all.sh` (bulk SOPS operations), `tg-state-rm.sh` (remove dangling/volume Terragrunt state before destroy), `volume-remove-state.sh`, `upgrade-k8s.sh`.
 - `_attic/`, `ZZ.bak/` — retired/old material, not part of the active implementation.
