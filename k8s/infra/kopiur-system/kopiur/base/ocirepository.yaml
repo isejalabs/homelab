@@ -11,4 +11,5 @@ spec:
     operation: copy
   ref:
     tag: 0.10.7
+    digest: sha256:f7661406f53d319930cbdd04c28cf4063cacd82dd8a438d2d0cc2858c4041563
   url: oci://ghcr.io/home-operations/charts/kopiur
