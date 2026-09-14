@@ -18,6 +18,11 @@ status=0
 while IFS= read -r cfg; do
     dir=$(dirname "$cfg")
 
+    # `src` is docs/architecture/environments.md's dedicated environment for developing a Terraform module
+    # itself: its units point `source` at an uncommitted local checkout of that module (sibling to this
+    # repo on disk), which by design never exists in a fresh clone - nothing to validate here in CI.
+    case "$dir" in terragrunt/*/*/src/*) continue ;; esac
+
     if ! out=$(terragrunt run --non-interactive --working-dir "$dir" -- init -backend=false -input=false 2>&1); then
         printf "${RED}terragrunt init failed: %s${NC}\n" "$dir"
         echo "$out"
