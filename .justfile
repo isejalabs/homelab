@@ -12,8 +12,8 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 # Bootstrap cluster CRDs and apps
 mod bootstrap "k8s/bootstrap"
 
-# kopiur backup/restore maintenance recipes
-mod kopiur "kopiur.just"
+# App backup/restore maintenance recipes
+mod backup "backup"
 
 [private]
 logstep stage msg:

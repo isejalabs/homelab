@@ -54,7 +54,7 @@ NS=""
 DEPLOY=""
 while [ $# -gt 0 ]; do
     case "$1" in
-        -e | --env)
+        -e | --environment)
             ENV="$2"
             shift 2
             ;;
@@ -81,7 +81,7 @@ done
 case "${ENV}" in
     dbg | dev | head | poc | prod | qa | rebuild | src) ;;
     *)
-        printf "${RED}ERROR: -e/--env must be one of dbg|dev|head|poc|prod|qa|rebuild|src (got: '%s')${NC}\n" "${ENV}" >&2
+        printf "${RED}ERROR: -e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src (got: '%s')${NC}\n" "${ENV}" >&2
         exit 1
         ;;
 esac

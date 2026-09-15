@@ -37,7 +37,7 @@ This grouping is its own axis, independent of which apps an environment runs -- 
 ## Daily tasks (manual, for now)
 
 > [!NOTE]
-> A `just kopiur::*` recipe set (`snapshots`/`backup`/`backup-all`/`restore`) wraps exactly the commands below — see `kopiur.just`. The manual equivalent is still worth knowing, both to understand what the recipes actually do and for anything they don't cover (e.g. restoring a specific older snapshot, below).
+> A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`) wraps exactly the commands below — see `backup/kopiur.just`. The manual equivalent is still worth knowing, both to understand what the recipes actually do and for anything they don't cover (e.g. restoring a specific older snapshot, below).
 
 ### List all available backups (snapshots) of an app
 
