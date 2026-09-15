@@ -4,4 +4,4 @@
 # shellcheck disable=SC2034 # consumed by whatever sources this file, not this file itself
 HELM_VERSION="v4.2.4" # renovate: github-releases=helm/helm
 # shellcheck disable=SC2034
-HELMFILE_VERSION="v1.7.4" # renovate: github-releases=helmfile/helmfile
+HELMFILE_VERSION="v1.8.0" # renovate: github-releases=helmfile/helmfile
