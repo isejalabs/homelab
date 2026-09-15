@@ -1,9 +1,6 @@
 #!/bin/sh
 set -eu
 
-RED='\033[1;31m'
-NC='\033[0m'
-
 usage() {
     echo "Usage: $(basename "$0") [-e <env>] -n <ns> <app>" >&2
     exit 1
@@ -24,7 +21,7 @@ while [ $# -gt 0 ]; do
             ;;
         -h | --help) usage ;;
         -*)
-            printf "${RED}ERROR: unknown flag: %s${NC}\n" "$1" >&2
+            just log error "unknown flag" "flag" "$1"
             usage
             ;;
         *)
@@ -38,19 +35,19 @@ if [ -n "${ENV}" ]; then
     case "${ENV}" in
         dbg | dev | head | poc | prod | qa | rebuild | src) ;;
         *)
-            printf "${RED}ERROR: -e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src (got: '%s')${NC}\n" "${ENV}" >&2
+            just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
             exit 1
             ;;
     esac
 fi
 
 if [ -z "${NS}" ]; then
-    printf "${RED}ERROR: -n/--namespace is required${NC}\n" >&2
+    just log fatal "-n/--namespace is required"
     exit 1
 fi
 
 if [ -z "${APP}" ]; then
-    printf "${RED}ERROR: app name is required${NC}\n" >&2
+    just log error "app name is required"
     usage
 fi
 

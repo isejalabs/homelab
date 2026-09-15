@@ -1,11 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-CYAN='\033[1;36m'
-GREEN='\033[1;32m'
-RED='\033[1;31m'
-NC='\033[0m'
-
 usage() {
     echo "Usage: $(basename "$0") [-e <env>] (-n <ns> | -A) [--all] [<app>]" >&2
     exit 1
@@ -36,7 +31,7 @@ while [ $# -gt 0 ]; do
             ;;
         -h | --help) usage ;;
         -*)
-            printf "${RED}ERROR: unknown flag: %s${NC}\n" "$1" >&2
+            just log error "unknown flag" "flag" "$1"
             usage
             ;;
         *)
@@ -50,33 +45,33 @@ if [ -n "${ENV}" ]; then
     case "${ENV}" in
         dbg | dev | head | poc | prod | qa | rebuild | src) ;;
         *)
-            printf "${RED}ERROR: -e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src (got: '%s')${NC}\n" "${ENV}" >&2
+            just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
             exit 1
             ;;
     esac
 fi
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
-    printf "${RED}ERROR: -n/--namespace and -A/--all-namespaces are mutually exclusive${NC}\n" >&2
+    just log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
     exit 1
 fi
 if [ "${ALL_NS}" -eq 0 ] && [ -z "${NS}" ]; then
-    printf "${RED}ERROR: one of -n/--namespace or -A/--all-namespaces is required${NC}\n" >&2
+    just log fatal "one of -n/--namespace or -A/--all-namespaces is required"
     exit 1
 fi
 
 if [ "${ALL}" -eq 1 ] && [ -n "${APP}" ]; then
-    printf "${RED}ERROR: <app> and --all are mutually exclusive${NC}\n" >&2
+    just log fatal "<app> and --all are mutually exclusive"
     exit 1
 fi
 if [ "${ALL}" -eq 0 ] && [ -z "${APP}" ]; then
-    printf "${RED}ERROR: an app name is required unless --all is given${NC}\n" >&2
+    just log fatal "an app name is required unless --all is given"
     exit 1
 fi
 # Matches kubectl's own rule that a named resource can't be fetched with
 # -A/--all-namespaces (only a list-style query can span every namespace).
 if [ "${ALL}" -eq 0 ] && [ "${ALL_NS}" -eq 1 ]; then
-    printf "${RED}ERROR: -A/--all-namespaces requires --all -- a single named app cannot be looked up across every namespace${NC}\n" >&2
+    just log fatal "-A/--all-namespaces requires --all -- a single named app cannot be looked up across every namespace"
     exit 1
 fi
 
@@ -89,11 +84,11 @@ backup_one() {
     local app="$1" ns="$2"
 
     if ! kubectl "${CTX_ARGS[@]}" get snapshotpolicy "${app}" -n "${ns}" >/dev/null 2>&1; then
-        printf "${RED}ERROR: SnapshotPolicy '%s' not found in namespace '%s'${NC}\n" "${app}" "${ns}" >&2
+        just log error "SnapshotPolicy not found" "app" "${app}" "namespace" "${ns}"
         return 1
     fi
 
-    printf "${CYAN}Triggering a manual snapshot for %s in %s...${NC}\n" "${app}" "${ns}"
+    just log info "Triggering a manual snapshot" "app" "${app}" "namespace" "${ns}"
     local name
     name=$(kubectl "${CTX_ARGS[@]}" create -o jsonpath='{.metadata.name}' -f - <<EOF
 apiVersion: kopiur.home-operations.com/v1alpha1
@@ -107,7 +102,7 @@ spec:
   description: "manual backup via just backup::kopiur::create"
 EOF
     )
-    echo "  ${app}/${ns}: created ${name}"
+    just log info "created Snapshot" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
 
     local phase=""
     for _ in $(seq 1 60); do
@@ -115,7 +110,7 @@ EOF
         if [ "${phase}" = "Succeeded" ]; then
             break
         elif [ "${phase}" = "Failed" ]; then
-            printf "${RED}ERROR: %s/%s snapshot failed. Last log line:${NC}\n" "${app}" "${ns}"
+            just log error "snapshot failed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
             kubectl "${CTX_ARGS[@]}" get snapshot "${name}" -n "${ns}" -o jsonpath='{.status.logTail}'
             echo
             return 1
@@ -124,13 +119,13 @@ EOF
     done
 
     if [ "${phase}" != "Succeeded" ]; then
-        printf "${RED}ERROR: timed out waiting for %s/%s snapshot %s to complete (last phase: %s)${NC}\n" "${app}" "${ns}" "${name}" "${phase:-unknown}" >&2
+        just log error "timed out waiting for snapshot to complete" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "last_phase" "${phase:-unknown}"
         return 1
     fi
 
     local stats
     stats=$(kubectl "${CTX_ARGS[@]}" get snapshot "${name}" -n "${ns}" -o jsonpath='{.status.stats}')
-    printf "${GREEN}%s/%s backup completed: %s (%s)${NC}\n" "${app}" "${ns}" "${name}" "${stats}"
+    just log info "backup completed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "stats" "${stats}"
 }
 
 if [ "${ALL}" -eq 0 ]; then
@@ -146,11 +141,11 @@ else
 fi
 
 if [ -z "${POLICIES}" ]; then
-    printf "${RED}ERROR: no SnapshotPolicies found${NC}\n" >&2
+    just log fatal "no SnapshotPolicies found"
     exit 1
 fi
 
-printf "${CYAN}Triggering backups for all apps...${NC}\n"
+just log info "Triggering backups for all apps..."
 
 PIDS=()
 KEYS=()
@@ -169,9 +164,8 @@ for i in "${!PIDS[@]}"; do
 done
 
 if [ ${#FAILED[@]} -gt 0 ]; then
-    printf "${RED}Failed backups:${NC}\n"
-    printf '  %s\n' "${FAILED[@]}"
+    just log error "failed backups" "apps" "${FAILED[*]}"
     exit 1
 fi
 
-printf "${GREEN}All backups completed successfully.${NC}\n"
+just log info "All backups completed successfully."

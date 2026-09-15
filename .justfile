@@ -13,7 +13,7 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 mod bootstrap "k8s/bootstrap"
 
 # App backup/restore maintenance recipes
-mod backup "backup"
+mod backup "scripts/backup.just"
 
 [private]
 logstep stage msg:
