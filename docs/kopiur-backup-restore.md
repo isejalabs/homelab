@@ -34,12 +34,17 @@ Retention is GFS-style (`SnapshotPolicy.spec.retention`: `keepLatest` / `keepHou
 
 This grouping is its own axis, independent of which apps an environment runs -- see [`docs/architecture/environments.md`](architecture/environments.md#1-which-apps-run-there--the-flux-minimalfull-split) for how it diverges from the apps minimal/full split (`dev` is minimal-apps but kopiur-active; `head` is full-apps but kopiur-dormant).
 
-## Daily tasks (manual, for now)
+## Daily tasks
 
-> [!NOTE]
-> A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`) wraps exactly the commands below — see `scripts/kopiur.just`. The manual equivalent is still worth knowing, both to understand what the recipes actually do and for anything they don't cover (e.g. restoring a specific older snapshot, below).
+A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`, in `scripts/kopiur.just`) wraps the commands below for the common cases. Each subsection shows both: the recipe first, then the manual equivalent it runs -- the manual form is still worth knowing, both to understand what the recipe actually does and for anything it doesn't cover (restoring a *specific older* snapshot rather than the latest, and pruning, below, are manual-only).
 
 ### List all available backups (snapshots) of an app
+
+```sh
+❯ just backup::kopiur::list <app> -n <namespace>              # -e <env> optional, defaults to the current kubecontext
+```
+
+Manual equivalent:
 
 ```sh
 ❯ kubectl get snapshot -n <namespace> -l kopiur.home-operations.com/config=<app> \
@@ -47,6 +52,12 @@ This grouping is its own axis, independent of which apps an environment runs -- 
 ```
 
 ### Trigger a manual backup
+
+```sh
+❯ just backup::kopiur::create <app> -n <namespace>            # -e <env> optional; --all backs up every app in scope instead of one
+```
+
+Manual equivalent:
 
 ```sh
 ❯ kubectl create -f - <<EOF
@@ -65,6 +76,12 @@ EOF
 ```
 
 ### Restore an app from its latest backup
+
+```sh
+❯ just backup::kopiur::restore <app> -e <env> -n <namespace>
+```
+
+This runs steps 1-7 below end to end: detects whether the app is plain-manifest or Helm-based from the Deployment's own Flux labels, suspends the right object, scales down, deletes the PVC *and* the `Restore` object, resumes (force-reconciling the PVC's own owning Kustomization too if it differs from the Deployment's, for a Helm-based app), scales back up explicitly, and waits for the new PVC to bind. `-e/--environment` is required here (unlike `list`/`create`), since this is the destructive operation where an explicit target matters most. The manual steps are worth understanding regardless -- for restoring a *specific older* snapshot rather than the latest, which the recipe doesn't cover, see below.
 
 kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). The owning Flux object must be suspended first, or Flux fights the manual scale-down in step 3.
 
