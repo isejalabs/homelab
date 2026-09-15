@@ -16,3 +16,7 @@ spec:
   dependsOn:
     - name: gateway-api
     - name: longhorn
+  postBuild:
+    substitute:
+      APP: actualbudget
+      STORAGE_CAPACITY: 1Gi

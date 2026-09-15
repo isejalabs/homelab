@@ -4,6 +4,9 @@ kind: Kustomization
 # only default namespace is supported by this helm chart, so we do not specify it
 namespace: actualbudget
 
+components:
+  - ../../../../components/apps/storage/pvc
+
 resources:
   - ns.yaml
   - helmrelease.yaml

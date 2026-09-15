@@ -21,8 +21,17 @@ spec:
 
     persistence:
       enabled: true
-      size: 1Gi
-      storageClass: longhorn-standard
+      existingClaim: ${APP}
+
+    # chart defaults to uid/gid 1001; pinned to 1000 here to match the kopiur
+    # storage component's own PUID/PGID default, so the mover and the app
+    # agree on file ownership without either side needing an override
+    podSecurityContext:
+      fsGroup: 1000
+
+    securityContext:
+      runAsUser: 1000
+      runAsGroup: 1000
 
     strategy:
       type: Recreate
