@@ -32,6 +32,10 @@ output.workaround
 *.qcow2
 *.raw
 
+# Python
+__pycache__/
+*.pyc
+
 # Misc
 *.cert
 *.key
