@@ -41,8 +41,10 @@ A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`, in `scripts/ko
 ### List all available backups (snapshots) of an app
 
 ```sh
-❯ just backup::kopiur::list <app> -n <namespace>              # -e <env> optional, defaults to the current kubecontext
+❯ just backup::kopiur::list <app> -n <namespace>              # -e <env> optional; drop <app> to list every app; -n <namespace>|-A required
 ```
+
+`<app>` is optional (omit it to list every app's snapshots) and namespace scope is `-n <namespace>` or `-A` for every namespace, same as `create` below. The `NAMESPACE`/`APP` columns only appear when that axis isn't already fixed by a flag.
 
 Manual equivalent:
 

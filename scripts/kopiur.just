@@ -5,9 +5,15 @@ set quiet
 set script-interpreter := ['bash', '-euo', 'pipefail']
 set shell := ['bash', '-euo', 'pipefail', '-c']
 
-[doc('List kopiur snapshots for an app (-n <ns> required; -e/--environment optional, defaults to the current kubecontext)')]
-list app *flags:
-    "{{ justfile_directory() }}/scripts/kopiur-list.sh" {{ app }} {{ flags }}
+[doc('List kopiur snapshots, for one app or every app in scope (-n <ns>|-A required; app optional; -e/--environment optional, defaults to the current kubecontext)')]
+[arg('environment', short='e', long='environment')]
+[arg('namespace', short='n', long='namespace')]
+[arg('all_namespaces', short='A', long='all-namespaces', value='true')]
+list app="" environment="" namespace="" all_namespaces="false":
+    "{{ justfile_directory() }}/scripts/kopiur-list.sh" {{ app }} \
+        {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \
+        {{ if namespace != "" { "-n" } else { "" } }} {{ namespace }} \
+        {{ if all_namespaces == "true" { "-A" } else { "" } }}
 
 [doc('Trigger a manual kopiur backup: one named app, or every app in scope with --all (-n <ns>|-A required; -e/--environment optional, defaults to the current kubecontext)')]
 [arg('environment', short='e', long='environment')]
