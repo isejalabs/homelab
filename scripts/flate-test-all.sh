@@ -2,6 +2,10 @@
 
 set -eu
 
+# home-operations/flate/action sets FLATE_BASE (default: the repo's default branch) to enable its
+# changed-only mode. This check always validates the full tree per env, not just a PR's diff, so unset it.
+unset FLATE_BASE
+
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
