@@ -12,5 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - uses: home-operations/flate/action@631b76b69c4e58c6f4d1cb01e23616fa61aebafa # v0.6.5
+    - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
+      with:
+        install_args: github:home-operations/flate
     - run: scripts/flate-test-all.sh
