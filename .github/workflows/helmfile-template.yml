@@ -1,0 +1,29 @@
+name: "Helmfile template"
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  helmfile-template:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - id: versions
+      run: |
+        . scripts/helmfile-versions.sh
+        echo "helm=$HELM_VERSION" >> "$GITHUB_OUTPUT"
+        echo "helmfile=$HELMFILE_VERSION" >> "$GITHUB_OUTPUT"
+    - uses: helmfile/helmfile-action@1f44bcb43e5fb17ecb2685d8b6081ec5f6aa5fcf # v2.4.7
+      with:
+        helmfile-args: --version
+        helmfile-version: ${{ steps.versions.outputs.helmfile }}
+        helm-version: ${{ steps.versions.outputs.helm }}
+        # helm-diff isn't needed for `template`
+        helm-plugins: ''
+    - run: scripts/install-yq.sh "$HOME/.local/bin"
+    - run: echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+    - run: scripts/helmfile-template-all.sh
