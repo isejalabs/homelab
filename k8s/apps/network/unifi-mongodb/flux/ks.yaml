@@ -19,6 +19,8 @@ spec:
       PGID: "999"
       PUID: "999"
       STORAGE_CAPACITY: 800M
+      STORAGE_CLASS: longhorn-xfs
+      STORAGE_STAGING_CLASS: longhorn-scratch-xfs
   dependsOn:
     - name: cilium
     - name: proxmox-csi
