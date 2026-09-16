@@ -1,7 +1,7 @@
 # Secrets management
 
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is
-mechanical, not stylistic: **SOPS** for anything that has to exist *before* a Kubernetes cluster and Flux are
+mechanical, not stylistic: **SOPS** for anything that has to exist _before_ a Kubernetes cluster and Flux are
 running, and **sealed-secrets** / **1Password + External Secrets Operator (ESO)** for anything a running
 cluster reconciles from Git afterwards. A one-time bridge (`op inject`) connects the two during bootstrap.
 
@@ -21,18 +21,18 @@ configured in [`.sops.yaml`](../../.sops.yaml):
 ```yaml
 creation_rules:
   # partially (key) encrypted file
-  - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
+  - age: "age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9"
     path_regex: (kubernetes|talos|clusters)/.*\.sops\.ya?ml
     encrypted_regex: "((?i)(^trusted|^secrets|^trustdinfo|^cluster|.[pP]assword|crt|key|^data$|^stringData))"
-  - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
+  - age: "age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9"
     path_regex: (tofu|terraform|terragrunt)/.*\.auto\.tfvars(\.json)?
-  - age: 'age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9'
+  - age: "age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9"
     path_regex: .*-secrets\.ya?ml
 ```
 
 Three rules, one recipient:
 
-- `(kubernetes|talos|clusters)/*.sops.yaml` — **partial** encryption (only values whose *key* matches
+- `(kubernetes|talos|clusters)/*.sops.yaml` — **partial** encryption (only values whose _key_ matches
   `encrypted_regex` get encrypted; everything else stays plaintext for readability). This targets Talos
   machine-config-style secrets; no file matching this rule exists in the repo yet, so treat it as reserved
   for future use rather than something to go looking for today.
@@ -49,19 +49,19 @@ diff of an encrypted file still reviewable:
 ```yaml
 # terragrunt/global-secrets.sops.yaml (structure; values redacted)
 proxmox:
-    cluster_name: ENC[AES256_GCM,data:...,type:str]
-    endpoint: ENC[AES256_GCM,data:...,type:str]
-    insecure: ENC[AES256_GCM,data:...,type:bool]
-    username: ENC[AES256_GCM,data:...,type:str]
+  cluster_name: ENC[AES256_GCM,data:...,type:str]
+  endpoint: ENC[AES256_GCM,data:...,type:str]
+  insecure: ENC[AES256_GCM,data:...,type:bool]
+  username: ENC[AES256_GCM,data:...,type:str]
 proxmox_api_token: ENC[AES256_GCM,data:...,type:str]
 sops:
-    age:
-      - recipient: age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9
-        enc: |
-          -----BEGIN AGE ENCRYPTED FILE-----...
-    lastmodified: "..."
-    mac: ENC[...]
-    version: 3.11.0
+  age:
+    - recipient: age1247uvu7q0r842e78xxk5zt0yz0luh90zvsvzdzxdt6ql8xt76ygszj8eq9
+      enc: |
+        -----BEGIN AGE ENCRYPTED FILE-----...
+  lastmodified: "..."
+  mac: ENC[...]
+  version: 3.11.0
 ```
 
 **Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead:
@@ -135,14 +135,14 @@ stringData:
     op://K8S/1password/OP_CONNECT_TOKEN
 ```
 
-Because it *looks* like a plaintext `Secret`, the `forbid-secrets` pre-commit hook would normally reject it —
+Because it _looks_ like a plaintext `Secret`, the `forbid-secrets` pre-commit hook would normally reject it —
 it's named `s3cr3t.yaml` (not `secret.yaml`) specifically to dodge that filename heuristic, and is the one
 deliberate, explicit exception carved out in
 [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml):
 
 ```yaml
 - id: forbid-secrets
-  exclude: ^k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml$  # allow committing this file, but not others
+  exclude: ^k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml$ # allow committing this file, but not others
 ```
 
 The `core` stage of `just bootstrap::cluster --env <env>` (see
@@ -161,7 +161,7 @@ references against the real `K8S` 1Password vault and creates the two Kubernetes
 
 Both controllers are installed the same two-stage way as everything else foundational in this repo: first by
 the bootstrap helmfile ([`k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl`](../../k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl))
-so they're healthy *before* Flux starts reconciling anything, then handed off to Flux's own `Kustomization`
+so they're healthy _before_ Flux starts reconciling anything, then handed off to Flux's own `Kustomization`
 for ongoing management — which is exactly why, per the convention in [`../../CLAUDE.md`](../../CLAUDE.md),
 neither one's Flux `Kustomization` ever gets a `dependsOn` pointing at it: bootstrap ordering already
 guarantees it.

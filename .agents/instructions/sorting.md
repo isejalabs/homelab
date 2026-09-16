@@ -45,7 +45,7 @@ Anything else on the rule (e.g. `timeouts`, `sessionPersistence`) sorts alphabet
 
 ## kustomize `replacements[].targets[]` entries
 
-Each entry in a `replacements[]` item's `targets[]` list should have `select` lead, with `reject` (its exception list, when present) immediately following — both narrow down *what* is targeted, ahead of `fieldPaths`/`options`, which stay alphabetical after them:
+Each entry in a `replacements[]` item's `targets[]` list should have `select` lead, with `reject` (its exception list, when present) immediately following — both narrow down _what_ is targeted, ahead of `fieldPaths`/`options`, which stay alphabetical after them:
 
 ```yaml
 targets:
@@ -60,7 +60,7 @@ targets:
       index: 2
 ```
 
-Same reading-order principle as `spec.rules` above: `select`/`reject` narrow down *what* is targeted before `fieldPaths`/`options` describe the mechanics of the replacement — alphabetical order would otherwise bury the selector (and split it from its own exceptions) behind the fields it applies to.
+Same reading-order principle as `spec.rules` above: `select`/`reject` narrow down _what_ is targeted before `fieldPaths`/`options` describe the mechanics of the replacement — alphabetical order would otherwise bury the selector (and split it from its own exceptions) behind the fields it applies to.
 
 ## kustomize `kustomization.yaml`/`Component` files
 
@@ -99,9 +99,9 @@ Rationale:
 - `namespace` and other simple global modifiers first — cheap to read, and generators/patches below may depend on them (e.g. `configMapGenerator` needs `namespace` to already be set).
 - `components` before `resources`: the shared, reusable layer every overlay builds on is sourced first; this unit's own specifics are layered on top of it — not the other way round.
 - Generators (`configMapGenerator`/`secretGenerator`/`generatorOptions`) after `resources`: they produce additional operands the same way `resources` does, just synthesized rather than authored, so group them with what they're adjacent to.
-- `patches` last, before `replacements`/`transformers`: patches apply against the *whole* resource set (components + resources + generated), so they're ordered after everything they might target.
+- `patches` last, before `replacements`/`transformers`: patches apply against the _whole_ resource set (components + resources + generated), so they're ordered after everything they might target.
 
-Do not follow `sigs.k8s.io/kustomize`'s Go struct field order (`api/types/kustomization.go`) for this — it interleaves several deprecated fields (`bases`, `patchesStrategicMerge`, `imageTags`, `vars`) and puts modifiers *before* operands and `patches` *before* `resources`/`components`, which reads backwards for a human skimming the file. It's fine as a last-resort tie-breaker for a field not listed above, never as the primary convention.
+Do not follow `sigs.k8s.io/kustomize`'s Go struct field order (`api/types/kustomization.go`) for this — it interleaves several deprecated fields (`bases`, `patchesStrategicMerge`, `imageTags`, `vars`) and puts modifiers _before_ operands and `patches` _before_ `resources`/`components`, which reads backwards for a human skimming the file. It's fine as a last-resort tie-breaker for a field not listed above, never as the primary convention.
 
 ### List entries within a section
 

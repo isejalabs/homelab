@@ -15,4 +15,3 @@ templates:
     values:
       - ../../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/base/values.yaml
       - ../../../infra/{{ .Release.Namespace }}/{{ .Release.Name }}/envs/{{ .Environment.Name }}/values.yaml
-

@@ -1,5 +1,5 @@
 {
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
       description: "append a test plan checklist to major update PRs, since these are the ones most likely to need manual verification before merging",

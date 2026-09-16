@@ -23,4 +23,3 @@ configMapGenerator:
   - name: unbound-zones
     files:
       - config/zones.d/unbound-iseja.conf
-

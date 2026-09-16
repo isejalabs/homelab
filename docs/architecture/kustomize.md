@@ -100,7 +100,7 @@ at that new ConfigMap ([`k8s/apps/dns/adguard/envs/qa/kustomization.yaml`](../..
 
 ```yaml
 # envs/qa/kustomization.yaml
-namespace: adguard   # needed for the configMapGenerator below to land in the right namespace
+namespace: adguard # needed for the configMapGenerator below to land in the right namespace
 components:
   - ../../../../../components/envs/qa
 resources:
@@ -178,7 +178,7 @@ data:
 resources:
   - cluster-param.yaml
 components:
-  - ../base                          # configures domain replacement, labels, path rewriting, flux defaults
+  - ../base # configures domain replacement, labels, path rewriting, flux defaults
   - ../../transformers/prefix-domain
 ```
 

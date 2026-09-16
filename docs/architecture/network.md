@@ -41,7 +41,7 @@ on the two Cilium features everything else here depends on:
 
 ```yaml
 ipam:
-  mode: kubernetes   # pod IPAM — separate from LB-IPAM below
+  mode: kubernetes # pod IPAM — separate from LB-IPAM below
 gatewayAPI:
   enabled: true
 bgpControlPlane:
@@ -71,16 +71,16 @@ overlays. Offsets are kept stable across environments so the same app always lan
 `10.8.<N>` block changes per environment. The full set of per-environment pools
 ([`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/)):
 
-| env | pool |
-| --- | --- |
-| `head` | `10.8.1.0/24` |
-| `qa` | `10.8.2.0/24` |
-| `dev` | `10.8.3.0/24` |
-| `src` | `10.8.5.0/24` |
-| `poc` | `10.8.6.0/24` |
+| env       | pool          |
+| --------- | ------------- |
+| `head`    | `10.8.1.0/24` |
+| `qa`      | `10.8.2.0/24` |
+| `dev`     | `10.8.3.0/24` |
+| `src`     | `10.8.5.0/24` |
+| `poc`     | `10.8.6.0/24` |
 | `rebuild` | `10.8.7.0/24` |
-| `prod` | `10.8.8.0/24` |
-| `dbg` | `10.8.9.0/24` |
+| `prod`    | `10.8.8.0/24` |
+| `dbg`     | `10.8.9.0/24` |
 
 (each pool's actual `CiliumLoadBalancerIPPool` block only spans `.8`–`.250` of its `/24`, leaving the low and
 high ends free for infrastructure/reservations.)
@@ -91,7 +91,7 @@ and the choice matters here for a specific reason: the `10.8.0.0/16` range those
 nodes' own network interfaces actually sit in — a VLAN dedicated solely to cluster nodes, isolated from every
 other VLAN/net on the network (DMZ, LAN, other servers, ...). No node has an interface anywhere in
 `10.8.0.0/16` at all. L2 announcement (Cilium's other LB-IP mechanism, gratuitous-ARP-based) requires the
-advertised IP to sit in the *same* L2 segment as the node advertising it — it couldn't work across that
+advertised IP to sit in the _same_ L2 segment as the node advertising it — it couldn't work across that
 subnet boundary. BGP has no such requirement: it's a routing-layer (L3) protocol, so any node can advertise a
 route for any `10.8.x.x/32` IP regardless of what subnet its own interface lives in, and the router (OPNsense,
 below) just adds that route to its table like any other. That's what makes the LB-IP address space fully
@@ -141,11 +141,11 @@ No `GatewayClass` resource exists in the repo — `gatewayAPI.enabled: true` mak
 one automatically (`gatewayClassName: cilium` on every `Gateway`).
 [`k8s/infra/gateway-api/gateway/base/`](../../k8s/infra/gateway-api/gateway/base/) defines three:
 
-| Gateway | Listener | LB IP (prod) | Purpose |
-| --- | --- | --- | --- |
-| `internal` | HTTPS:443 | `10.8.8.80` (shared) | main entry point for every app's `HTTPRoute` |
-| `internal-http` | HTTP:80 | `10.8.8.80` (shared) | HTTP→HTTPS redirect only |
-| `external` | HTTPS:443 | `10.8.8.83` | reserved for public-facing routes (see [gap](#whats-not-here) below) |
+| Gateway         | Listener  | LB IP (prod)         | Purpose                                                              |
+| --------------- | --------- | -------------------- | -------------------------------------------------------------------- |
+| `internal`      | HTTPS:443 | `10.8.8.80` (shared) | main entry point for every app's `HTTPRoute`                         |
+| `internal-http` | HTTP:80   | `10.8.8.80` (shared) | HTTP→HTTPS redirect only                                             |
+| `external`      | HTTPS:443 | `10.8.8.83`          | reserved for public-facing routes (see [gap](#whats-not-here) below) |
 
 `internal` and `internal-http` deliberately **share one LB IP** via `io.cilium/lb-ipam-sharing-key`, split
 into two separate `Gateway` objects instead of one Gateway with two listeners —
@@ -244,7 +244,7 @@ advertised even if one box is down. The boxes also run a DNS resolver of their o
 virtual IP, `10.9.9.9` — AdGuard's [`upstream_dns`](#dns-adguard--unbound) config lists it as the fallback
 behind Unbound for the internal domain.
 
-**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are *not* these —
+**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are _not_ these —
 see below) provide DHCP and identity management (Kerberos, LDAP, and Active Directory — UCS bundles a
 Samba/AD-compatible domain controller) for the network, plus DNS scoped specifically to the
 `dir.iseja.net`/`home.iseja.net` subdomains (not the `iseja.net` root zone itself). Being on their own VLAN,
@@ -253,7 +253,7 @@ clients broadcast on their local segment, OPNsense relays the request across to 
 is relayed back.
 
 **The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a
-*separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone
+_separate_ pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone
 itself, distinct from UCS's subdomain-scoped DNS role. Not yet migrated into Kubernetes.
 
 **unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its

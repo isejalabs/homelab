@@ -22,7 +22,7 @@ spec:
           image: docker.io/madnuttah/unbound:1.26.0-1-quic@sha256:7078e62ecd3f652af3c2e107d63bbf505bd3046f9d9b4a45d40367f6ea342ce8
           livenessProbe:
             exec:
-              command: ['/usr/local/unbound/sbin/healthcheck.sh']
+              command: ["/usr/local/unbound/sbin/healthcheck.sh"]
           ports:
             - name: dns-tcp
               containerPort: 5335

@@ -98,7 +98,6 @@ prod-work-03.home.iseja.net   64528     10.8.8.11/32   0.0.0.0   238h55m14s   [{
                               64528     10.8.8.83/32   0.0.0.0   238h55m14s   [{Origin: i} {Nexthop: 0.0.0.0}]
 ```
 
-
 Alternatively to the `cilium` command, you can check for the CNI being ready by checking the status of the cilium pods in the `kube-system` namespace.
 
 ```sh

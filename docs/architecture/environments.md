@@ -1,6 +1,6 @@
 # Environments
 
-Every environment shares the same overlay structure ([`kustomize.md`](kustomize.md)) — the same apps *could*
+Every environment shares the same overlay structure ([`kustomize.md`](kustomize.md)) — the same apps _could_
 run anywhere, and every environment has identical `envs/<env>/` folders throughout the repo. What actually
 differs per environment is: which subset of apps Flux deploys there, how much compute it gets, how
 aggressively updates land on it, and who's allowed to change it and how. This doc ties those axes together
@@ -11,7 +11,7 @@ The differentiation is entirely declarative: kustomize overlays (`envs/<env>/`, 
 [`components/envs/<env>/`](kustomize.md#the-shared-components-layer) layer) for everything Flux reconciles,
 and lean, parameterized Terragrunt units (`terragrunt/<non-prod|prod>/eu-central-1/<env>/`) for the
 infrastructure underneath. The one deliberate exception is the
-[`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill, which *temporarily* points a single
+[`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill, which _temporarily_ points a single
 environment's Flux instance at a feature branch to test an unmerged change live — always a throwaway,
 explicitly-reverted override on top of the normal `main`-tracking setup, never a standing per-environment
 branch.
@@ -23,9 +23,9 @@ branch.
 [`k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`](../../k8s/bootstrap/cluster/flux/envs/) points
 each environment at one of two Flux resource sets:
 
-| Set | Environments | Apps deployed |
-| --- | --- | --- |
-| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
+| Set                               | Environments                    | Apps deployed                                                                                                                                                                                                                                                              |
+| --------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sets/minimal`                    | `dbg`, `dev`, `poc`, `src`      | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only                                                                                                                                      |
 | `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/) |
 
 Every environment still gets the **full infra set** either way —
@@ -34,7 +34,7 @@ includes infra unconditionally, with the reasoning inline:
 
 ```yaml
 resources:
-  - ../infra  # use full set for having all CSI options for, e.g., development of new apps
+  - ../infra # use full set for having all CSI options for, e.g., development of new apps
   - ../apps/minimal
 ```
 
@@ -55,7 +55,7 @@ Which git ref an environment's Flux instance reconciles from (normally `main` �
 that environment's overlay get automerged are both covered in full in
 [`docs/update handling.md`](../update%20handling.md), not duplicated here — that doc owns the update-handling
 story end to end (labels, mergify/renovate rules, per-app version pinning), this one owns what each
-environment structurally *is*.
+environment structurally _is_.
 
 One structural fact worth stating here because it isn't about renovate automerge at all: `terragrunt apply`
 against `prod` or `qa` may only ever run from a `main` checkout, no exceptions — see
@@ -72,16 +72,16 @@ actual Proxmox VM + Talos provisioning logic — not vendored into this repo). `
 (`locals { env = "<name>" }`) — the real differentiation is node topology, sizing tier, and which
 Talos/Kubernetes version and module ref each environment tracks:
 
-| env | control-plane + worker nodes | `on_boot` | sizing tier | Talos / Kubernetes | module `source` |
-| --- | --- | --- | --- | --- | --- |
-| `dbg` | 1 + 1 (rest commented out) | `false` | small | pinned (same as most) | git tag |
-| `dev` | 1 + 3 | `true` | medium | pinned (same as most) | git tag |
-| `head` | 1 + 3 | `false` | big | **newest** (ahead of everyone else) | `ref=HEAD` (module's unreleased tip) |
-| `poc` | 1 + 2 (+ its own extra `vms` module) | `false` | small | pinned (same as most) | git tag |
-| `prod` | **3 + 3** (only full-HA control plane) | `true` | big | own separately-pinned version | git tag; real domain hardcoded, not the envcommon placeholder |
-| `qa` | 1 + 3 | `true` | big/medium | pinned (same as most) | git tag |
-| `rebuild` | 1 + 3 | `false` | big/medium | pinned (same as most) | git tag |
-| `src` | 1 + 1 | `false` | small | pinned (same as most) | **local filesystem path** — an uncommitted checkout of the module's own source |
+| env       | control-plane + worker nodes           | `on_boot` | sizing tier | Talos / Kubernetes                  | module `source`                                                                |
+| --------- | -------------------------------------- | --------- | ----------- | ----------------------------------- | ------------------------------------------------------------------------------ |
+| `dbg`     | 1 + 1 (rest commented out)             | `false`   | small       | pinned (same as most)               | git tag                                                                        |
+| `dev`     | 1 + 3                                  | `true`    | medium      | pinned (same as most)               | git tag                                                                        |
+| `head`    | 1 + 3                                  | `false`   | big         | **newest** (ahead of everyone else) | `ref=HEAD` (module's unreleased tip)                                           |
+| `poc`     | 1 + 2 (+ its own extra `vms` module)   | `false`   | small       | pinned (same as most)               | git tag                                                                        |
+| `prod`    | **3 + 3** (only full-HA control plane) | `true`    | big         | own separately-pinned version       | git tag; real domain hardcoded, not the envcommon placeholder                  |
+| `qa`      | 1 + 3                                  | `true`    | big/medium  | pinned (same as most)               | git tag                                                                        |
+| `rebuild` | 1 + 3                                  | `false`   | big/medium  | pinned (same as most)               | git tag                                                                        |
+| `src`     | 1 + 1                                  | `false`   | small       | pinned (same as most)               | **local filesystem path** — an uncommitted checkout of the module's own source |
 
 Two entries are worth calling out because they're structural, not just sizing choices:
 
@@ -108,10 +108,10 @@ Two entries are worth calling out because they're structural, not just sizing ch
 `FLUX_RECONCILIATION_INTERVAL`, applied to every Flux `Kustomization`/`HelmRelease` by the
 [`set-flux-defaults`](kustomize.md#transformers-and-replacements) transformer:
 
-| env | interval |
-| --- | --- |
-| `dbg`, `dev`, `poc`, `rebuild`, `src` | `10m` |
-| `head`, `prod`, `qa` | `1h` |
+| env                                   | interval |
+| ------------------------------------- | -------- |
+| `dbg`, `dev`, `poc`, `rebuild`, `src` | `10m`    |
+| `head`, `prod`, `qa`                  | `1h`     |
 
 This grouping doesn't line up with the app-deployment split above — it's its own axis, and no comment in the
 repo states the rationale explicitly. The most plausible reading (flagged here as inferred,
@@ -134,15 +134,15 @@ Every non-prod environment's domain gets an environment prefix via the
   pinned Talos/Kubernetes version, the real (unprefixed) domain, the full app+infra Flux set, and the `1h`
   reconciliation interval. It's the one environment excluded from the
   [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill's live-cluster testing entirely (line
-  16: *"one or more of `dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src` (not `prod`)"*), baked into the
+  16: _"one or more of `dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src` (not `prod`)"_), baked into the
   manifests themselves, not just convention —
   [`k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml`](../../k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml)
   has no commented-out `ref:` override placeholder at all, unlike every other environment's copy of that
   file. See [`docs/update handling.md`](../update%20handling.md) for how prod's dependency-update policy
   differs from the others.
 - **`qa`** — the validation gate immediately before prod: full app+infra Flux set, `1h` interval, and the
-  same `main`-checkout-only Terragrunt restriction as prod (`../../CLAUDE.md`: *"`prod` and `qa` may only
-  ever be applied from a `main` checkout — no exceptions"*). Changes get exercised here before they're
+  same `main`-checkout-only Terragrunt restriction as prod (`../../CLAUDE.md`: _"`prod` and `qa` may only
+  ever be applied from a `main` checkout — no exceptions"_). Changes get exercised here before they're
   considered safe for `prod`. Part of why a dedicated environment earns that overhead rather than testing
   directly in `prod`: Terragrunt/Tofu changes are infrastructure-level, not app-level — a bad one can take
   down the whole cluster (nodes, CNI, control plane), not just a single app's Flux `Kustomization`, so they
@@ -190,13 +190,13 @@ Every non-prod environment's domain gets an environment prefix via the
 Dependency-update/automerge policy per environment is deliberately not a column here — see
 [`docs/update handling.md`](../update%20handling.md) for that axis.
 
-| env | apps | Terragrunt sizing | Flux interval | domain prefix | restrictions |
-| --- | --- | --- | --- | --- | --- |
-| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | dedicated to debugging, kept separate from `dev` |
-| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | often tracks a feature branch via `track-branch` |
-| `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | none |
-| `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | none |
-| `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | `main`-only apply; excluded from `track-branch` |
-| `qa` | full | big/medium, 1+3 nodes | 1h | yes | `main`-only apply |
-| `rebuild` | full | big/medium (~`prod`, non-HA), 1+3 nodes | 10m | yes | periodic disaster-recovery rehearsal target |
-| `src` | minimal | small, 1+1 nodes, local module source | 10m | yes | develops `terraform-proxmox-talos` itself |
+| env       | apps    | Terragrunt sizing                       | Flux interval | domain prefix | restrictions                                     |
+| --------- | ------- | --------------------------------------- | ------------- | ------------- | ------------------------------------------------ |
+| `dbg`     | minimal | small, 1+1 nodes, `on_boot=false`       | 10m           | yes           | dedicated to debugging, kept separate from `dev` |
+| `dev`     | minimal | medium, 1+3 nodes, `on_boot=true`       | 10m           | yes           | often tracks a feature branch via `track-branch` |
+| `head`    | full    | big, newest Talos/K8s, `ref=HEAD`       | 1h            | yes           | none                                             |
+| `poc`     | minimal | small, 1+2 nodes + extra `vms` module   | 10m           | yes           | none                                             |
+| `prod`    | full    | big, 3+3 HA nodes, own pinned version   | 1h            | **no**        | `main`-only apply; excluded from `track-branch`  |
+| `qa`      | full    | big/medium, 1+3 nodes                   | 1h            | yes           | `main`-only apply                                |
+| `rebuild` | full    | big/medium (~`prod`, non-HA), 1+3 nodes | 10m           | yes           | periodic disaster-recovery rehearsal target      |
+| `src`     | minimal | small, 1+1 nodes, local module source   | 10m           | yes           | develops `terraform-proxmox-talos` itself        |

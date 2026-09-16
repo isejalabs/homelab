@@ -9,4 +9,3 @@ spec:
     kind: OCIRepository
     name: metrics-server
   interval: 1h
-

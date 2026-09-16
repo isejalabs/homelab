@@ -3,7 +3,7 @@ on:
   pull_request:
   push:
     branches:
-    - main
+      - main
 
 jobs:
   terragrunt-validate:
@@ -16,11 +16,11 @@ jobs:
       # number of distinct providers instead of the number of units.
       TF_PLUGIN_CACHE_DIR: ${{ github.workspace }}/.tf-plugin-cache
     steps:
-    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-    - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
-    - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
-      with:
-        install_args: opentofu terragrunt
-    - run: tofu fmt -check -recursive terragrunt/
-    - run: terragrunt hcl format --check --diff --working-dir terragrunt
-    - run: scripts/terragrunt-validate-all.sh
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
+      - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
+        with:
+          install_args: opentofu terragrunt
+      - run: tofu fmt -check -recursive terragrunt/
+      - run: terragrunt hcl format --check --diff --working-dir terragrunt
+      - run: scripts/terragrunt-validate-all.sh

@@ -29,15 +29,15 @@ thing they describe.
 
 ## Architecture docs
 
-| Doc | Status | Covers |
-| --- | --- | --- |
-| [`architecture/kustomize.md`](architecture/kustomize.md) | done | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
-| [`architecture/secrets.md`](architecture/secrets.md) | done | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
-| `architecture/terraform-bootstrap.md` | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
-| [`architecture/environments.md`](architecture/environments.md) | done | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
-| [`architecture/network.md`](architecture/network.md) | done | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS), and unifi-controller fit together |
-| [`architecture/storage.md`](architecture/storage.md) | done | Longhorn vs proxmox-csi, and when each is used |
-| [`architecture/workloads.md`](architecture/workloads.md) | done | catalog of every app/infra component deployed, what it is, and how it's installed |
+| Doc                                                            | Status                                                            | Covers                                                                                                                                  |
+| -------------------------------------------------------------- | ----------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| [`architecture/kustomize.md`](architecture/kustomize.md)       | done                                                              | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
+| [`architecture/secrets.md`](architecture/secrets.md)           | done                                                              | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story                      |
+| `architecture/terraform-bootstrap.md`                          | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem                                                                    |
+| [`architecture/environments.md`](architecture/environments.md) | done                                                              | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`)                                     |
+| [`architecture/network.md`](architecture/network.md)           | done                                                              | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS), and unifi-controller fit together                                             |
+| [`architecture/storage.md`](architecture/storage.md)           | done                                                              | Longhorn vs proxmox-csi, and when each is used                                                                                          |
+| [`architecture/workloads.md`](architecture/workloads.md)       | done                                                              | catalog of every app/infra component deployed, what it is, and how it's installed                                                       |
 
 Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document
 cluster settings and procedures").

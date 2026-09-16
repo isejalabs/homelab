@@ -1,11 +1,16 @@
 # 2025-09-01
+
 ## env - qa
+
 ```sh
 ❯ k config use-context admin@qa-homelab
 Switched to context "admin@qa-homelab".
 ```
+
 ## core
+
 ### 1st run
+
 ```sh
 ❯ kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 Warning: resource namespaces/cilium-secrets is missing the kubectl.kubernetes.io/last-applied-configuration annotation which is required by kubectl apply. kubectl apply should only be used on resources created declaratively by either kubectl create --save-config or kubectl apply. The missing annotation will be patched automatically.
@@ -118,7 +123,9 @@ ensure CRDs are installed first
 resource mapping not found for name: "cilium-peer" namespace: "" from "STDIN": no matches for kind "CiliumBGPPeerConfig" in version "cilium.io/v2"
 ensure CRDs are installed first
 ```
+
 ### 2nd run
+
 ```sh
 ❯ kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 namespace/cilium-secrets unchanged
@@ -187,8 +194,11 @@ ensure CRDs are installed first
 resource mapping not found for name: "cilium-peer" namespace: "" from "STDIN": no matches for kind "CiliumBGPPeerConfig" in version "cilium.io/v2"
 ensure CRDs are installed first
 ```
+
 ### 3rd run
+
 3rd run not needed, as `bgp` resources are configured already in 2nd run properly (cf. `unchanged`)
+
 ```sh
 ❯ kustomize build --enable-helm k8s/core/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 namespace/cilium-secrets unchanged
@@ -254,8 +264,11 @@ ciliumbgppeerconfig.cilium.io/cilium-peer created
 ciliuml2announcementpolicy.cilium.io/default-l2-announcement-policy unchanged
 ciliumloadbalancerippool.cilium.io/bgp-pool unchanged
 ```
+
 ## infra
+
 ### 1st run
+
 ```sh
 ❯ kustomize build --enable-helm k8s/infra/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 namespace/cert-manager created
@@ -335,7 +348,9 @@ ensure CRDs are installed first
 resource mapping not found for name: "cloudflare-cluster-issuer" namespace: "" from "STDIN": no matches for kind "ClusterIssuer" in version "cert-manager.io/v1"
 ensure CRDs are installed first
 ```
+
 ### 2nd run
+
 ```sh
 ❯ kustomize build --enable-helm k8s/infra/_envs/$(kubectl config current-context | cut -d "@" -f 2 | cut -d "-" -f 1) | kubectl apply -f -
 namespace/cert-manager unchanged
@@ -398,10 +413,13 @@ service/cert-manager-webhook unchanged
 deployment.apps/cert-manager unchanged
 deployment.apps/cert-manager-cainjector unchanged
 ```
+
 ## CSI
+
 ```sh
 ❯ kubectl get csistoragecapacities -ocustom-columns=CLASS:.storageClassName,AVAIL:.capacity,ZONE:.nodeTopology.matchLabels -A
 CLASS         AVAIL         ZONE
 proxmox-csi   260186996Ki   map[topology.kubernetes.io/region:iseja-lab topology.kubernetes.io/zone:pve3]
 proxmox-csi   221595268Ki   map[topology.kubernetes.io/region:iseja-lab topology.kubernetes.io/zone:pve1]
 proxmox-csi   149691660Ki   map[topology.kubernetes.io/region:iseja-lab topology.kubernetes.io/zone:pve4]
+```

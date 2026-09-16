@@ -92,6 +92,7 @@ CLUSTER="dev-homelab"; talosctl config remove ${CLUSTER}; kubectl config delete-
 Once cluster is up, import its configs.
 
 ### talosconfig
+
 ```sh
 talosctl config merge .terragrunt-cache/**/output/talos-config.yaml
 ```
@@ -110,10 +111,9 @@ cp ~/.kube/config ~/.kube/config.bak && KUBECONFIG=~/.kube/config:output/kube-co
 
 # Cluster end of lifecycle
 
-
 ## Delete dangling states
 
-Needed because of e.g. problematic `module.talos.data.talos_cluster_health.this`.  Also helps when destroying a cluster that is shut down.
+Needed because of e.g. problematic `module.talos.data.talos_cluster_health.this`. Also helps when destroying a cluster that is shut down.
 
 ```sh
 terragrunt state rm 'module.sealed_secrets.kubernetes_namespace.sealed-secrets'

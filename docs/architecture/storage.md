@@ -92,7 +92,7 @@ for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); d
 state — the k8s-side `persistent-volume` entries, `sealed_secrets`, `talos.*`, and the proxmox-csi
 namespace/secret — so a destroy doesn't hang or fail on stale references;
 [`scripts/volume-remove-state.sh`](../../scripts/volume-remove-state.sh) does the narrower proxmox-volume-only
-version, with the comment *"allows re-using them upon re-creating the cluster (needs state import then)"*.)
+version, with the comment _"allows re-using them upon re-creating the cluster (needs state import then)"_.)
 The disk (and its data — MongoDB's data directory, in the unifi-controller example) physically survives the
 teardown. On rebuild, [`terragrunt/README.md`](../../terragrunt/README.md#import-proxmox-volume)'s import
 commands above re-attach the surviving Proxmox disk plus a fresh `PersistentVolume` object to the new
@@ -119,13 +119,13 @@ in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhor
 sharing `provisioner: driver.longhorn.io`, `reclaimPolicy: Retain`, `volumeBindingMode: WaitForFirstConsumer`,
 `allowVolumeExpansion: true` — only the `parameters:` differ:
 
-| StorageClass | fsType | replicas | notes |
-| --- | --- | --- | --- |
-| `longhorn-standard` | ext4 | 2 | general-purpose |
-| `longhorn-ext4` | ext4 | 2 | same profile, explicit ext4 |
-| `longhorn-xfs` | xfs | 2 | same profile, xfs |
-| `longhorn-fast` | xfs | 1 | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
-| `longhorn-ha` | xfs | 3 | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
+| StorageClass        | fsType | replicas | notes                                                                                     |
+| ------------------- | ------ | -------- | ----------------------------------------------------------------------------------------- |
+| `longhorn-standard` | ext4   | 2        | general-purpose                                                                           |
+| `longhorn-ext4`     | ext4   | 2        | same profile, explicit ext4                                                               |
+| `longhorn-xfs`      | xfs    | 2        | same profile, xfs                                                                         |
+| `longhorn-fast`     | xfs    | 1        | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
+| `longhorn-ha`       | xfs    | 3        | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience          |
 
 The sixth, **`longhorn`**, is not defined in that `base/` folder at all — it's created automatically by the
 Longhorn Helm chart itself (`longhorn-core`'s
@@ -144,7 +144,7 @@ override that default themselves — [`sc-standard.yaml`](../../k8s/infra/longho
 explicitly sets its own annotation to `storageclass.kubernetes.io/is-default-class: "false"` despite the
 name "standard" inviting the assumption it's the default — so a PVC that names no `storageClassName` at all
 lands on `longhorn` (replica count 1), not on `longhorn-standard` (replica count 2). Real usage example, one
-of the five *named* classes (not the implicit default), from
+of the five _named_ classes (not the implicit default), from
 [`k8s/apps/finances/actualbudget/base/helmrelease.yaml`](../../k8s/apps/finances/actualbudget/base/helmrelease.yaml):
 
 ```yaml

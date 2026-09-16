@@ -14,4 +14,3 @@ configMapGenerator:
   - name: adguard-config
     files:
       - config/AdGuardHome.yaml
-

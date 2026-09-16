@@ -12,7 +12,7 @@ spec:
       storage: 333Mi
   storageClassName: longhorn-fast
   # volumeName: *name   # does not work unless pv and volume get pre-provisioned with that specified name
-                        # -- otherwise dynamic provisioning creates a volume with pvc-UUID name
+  # -- otherwise dynamic provisioning creates a volume with pvc-UUID name
 ---
 apiVersion: v1
 kind: Pod

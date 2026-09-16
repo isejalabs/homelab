@@ -2,7 +2,7 @@
 
 See [`docs/architecture/environments.md`](architecture/environments.md) for what each environment is for and
 how they differ structurally (sizing, which apps run, Flux reconciliation interval, ...). This doc only
-covers how *package-update* PRs get created, labeled, and merged — and, separately, how a Flux instance
+covers how _package-update_ PRs get created, labeled, and merged — and, separately, how a Flux instance
 decides what ref to reconcile from in the first place.
 
 ## Overview
@@ -14,7 +14,7 @@ decides what ref to reconcile from in the first place.
   and [`.github/renovate/`](../.github/renovate/)).
 - **labeler**: labels PRs from the paths they touch — `env:<env>` from which `k8s/**/envs/<env>/**` or
   `terragrunt/*/*/<env>/**` paths changed, `area:*` from which top-level folder changed (see
-  [`.github/labeler.yml`](../.github/labeler.yml)). These labels describe *what a PR touches*, not who it's
+  [`.github/labeler.yml`](../.github/labeler.yml)). These labels describe _what a PR touches_, not who it's
   "for" — a PR only gets `env:prod` because it happens to edit something under an `envs/prod/` folder.
 - **mergify**: merges PRs automatically based on the labels above (see
   [`.github/mergify.yml`](../.github/mergify.yml)).
@@ -33,7 +33,7 @@ decides what ref to reconcile from in the first place.
   the kind of update.
 - `updateStrategy:manual`: excluded from automerging — critical packages, or paths that always need review
   (`.github/**`, `terragrunt/**`, `tofu/**`).
-- `updateStrategy:pinWatch`: this package is pinned to an older version everywhere *except* `head`/`poc`
+- `updateStrategy:pinWatch`: this package is pinned to an older version everywhere _except_ `head`/`poc`
   (which track the newest release as a "watch" for when it's safe to unpin elsewhere) — see
   [Non-standard update strategies](#non-standard-update-strategies).
 - `env:head`, `env:qa`, `env:dev`, `env:prod`, `env:dbg`, `env:poc`, `env:rebuild`, `env:src`, `env:base`:
@@ -93,7 +93,7 @@ Automerging only ever applies to `pr-type:renovate` PRs — a human-authored PR 
       - label!=updateStrategy:pinWatch
       - label!=env:prod
   ```
-  `env:head` automerges *unconditionally* — any update type, any area, even ones normally excluded by
+  `env:head` automerges _unconditionally_ — any update type, any area, even ones normally excluded by
   `updateStrategy:manual`. Every other environment gets `minor` updates automerged unless the PR is flagged
   `updateStrategy:manual`/`:pinWatch`, or carries `env:prod` (see next section for why prod is carved out
   here specifically, rather than every non-head environment being equally eligible).
@@ -113,7 +113,7 @@ and both illustrate the point cleanly:
 
 - **cilium** — `k8s/infra/kube-system/cilium/envs/head/ocirepository.yaml` patches its own `ref.tag`/digest
   to a newer release (`1.20.1` vs. `base`'s `1.18.13`, at time of writing), while
-  `envs/prod/ocirepository.yaml` also exists as its own separate patch but currently pins the *same* version
+  `envs/prod/ocirepository.yaml` also exists as its own separate patch but currently pins the _same_ version
   as `base` (`1.18.13`).
 - **longhorn-core** — `k8s/infra/longhorn-system/longhorn-core/envs/prod/helm-version.yaml` similarly patches
   its own `HelmRelease.spec.chart.spec.version`, again currently matching `base`.
@@ -121,7 +121,7 @@ and both illustrate the point cleanly:
 This is the mechanism issue-tracked as "an app can track a version in prod separately, on an optional basis":
 **most often prod's own patch is identical to `base` (and therefore to `qa`, which also inherits `base`)** —
 the override exists in the file tree but isn't being used to diverge from anything. Its value shows up the
-moment someone *wants* to diverge: because `envs/prod/ocirepository.yaml` is its own file, renovate treats a
+moment someone _wants_ to diverge: because `envs/prod/ocirepository.yaml` is its own file, renovate treats a
 version bump there as its own package instance with its own PR, separate from the PR that bumps `base/`'s
 (and therefore `qa`'s) version. That PR picks up `env:prod` from labeler (it touches `k8s/**/envs/prod/**`),
 and the mergify rule above explicitly excludes `env:prod` from automerge — so it always needs a human to
@@ -144,19 +144,19 @@ update-handling-specific behavior):
   the newest available version of those packages, functioning as an early-warning signal for breakage before
   it reaches anywhere else.
 - **`poc`** shares that same pin exemption (also tracking the newest version of those four packages) but is
-  *not* automerged — its renovate PRs are deliberately left open as a standing "reminder" that a newer
+  _not_ automerged — its renovate PRs are deliberately left open as a standing "reminder" that a newer
   version exists, labeled `updateStrategy:pinWatch`, rather than landing automatically like `head`'s.
 
 ### Non-standard update strategies
 
-| Package | Update strategy | Description |
-| --- | --- | --- |
-| `quay.io/cilium/charts/cilium` | Pin previous minor, manual | Pinned to the previous minor (`<=1.18`) for stability — a critical cluster component where even `patch` updates have caused issues before (e.g. [#725](https://github.com/isejalabs/homelab/issues/725)); `head`/`poc` track `>=1.18` instead, labeled `updateStrategy:pinWatch`. |
-| `github.com/isejalabs/terraform-proxmox-talos` | Manual | No automated updates at all — applied manually via `terragrunt`/`tofu` after bumping the version, since it provisions the cluster's own VMs/Talos install. |
-| `kubernetes-sigs/gateway-api` | Pin minor | Pinned to `<=1.4` for `cilium` compatibility; `head`/`poc` track `>=1.4`. |
-| `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.34` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.34`. |
-| `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
-| `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
+| Package                                        | Update strategy            | Description                                                                                                                                                                                                                                                                       |
+| ---------------------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `quay.io/cilium/charts/cilium`                 | Pin previous minor, manual | Pinned to the previous minor (`<=1.18`) for stability — a critical cluster component where even `patch` updates have caused issues before (e.g. [#725](https://github.com/isejalabs/homelab/issues/725)); `head`/`poc` track `>=1.18` instead, labeled `updateStrategy:pinWatch`. |
+| `github.com/isejalabs/terraform-proxmox-talos` | Manual                     | No automated updates at all — applied manually via `terragrunt`/`tofu` after bumping the version, since it provisions the cluster's own VMs/Talos install.                                                                                                                        |
+| `kubernetes-sigs/gateway-api`                  | Pin minor                  | Pinned to `<=1.4` for `cilium` compatibility; `head`/`poc` track `>=1.4`.                                                                                                                                                                                                         |
+| `kubernetes/kubernetes`                        | Pin minor, manual          | Pinned to `<=1.34` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.34`.                                                                                                    |
+| `docker.io/mongo`                              | Pin minor                  | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`.                                                                                                                                                          |
+| `siderolabs/talos`                             | Manual                     | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above.                                                                                                                                                                             |
 
 ### Excluded packages and paths from auto-merging
 

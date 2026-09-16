@@ -2,10 +2,10 @@ apiVersion: longhorn.io/v1beta2
 kind: Volume
 metadata:
   name: &name test-longhorn-volume-all-params
-#     recurring-job-group.longhorn.io/default: enabled
-#     setting.longhorn.io/remove-snapshots-during-filesystem-trim: ignored
-#     setting.longhorn.io/replica-auto-balance: ignored
-#     setting.longhorn.io/snapshot-data-integrity: ignored
+  #     recurring-job-group.longhorn.io/default: enabled
+  #     setting.longhorn.io/remove-snapshots-during-filesystem-trim: ignored
+  #     setting.longhorn.io/replica-auto-balance: ignored
+  #     setting.longhorn.io/snapshot-data-integrity: ignored
   namespace: longhorn
   labels:
     backup-target: default

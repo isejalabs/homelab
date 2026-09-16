@@ -1,5 +1,4 @@
 ---
-
 environments:
   # Bootstrap-local only - not one of the repo-wide 8 environments (k8s/components/envs, terragrunt/, etc.).
   # Used solely to select a kubeContext/values scope for validating the apps helmfile against an ephemeral

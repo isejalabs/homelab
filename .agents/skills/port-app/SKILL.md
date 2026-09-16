@@ -11,6 +11,7 @@ layout (`kubernetes/apps/<namespace>/<component>/app/*.yaml` + `ks.yaml`) into t
 
 Ground-truth examples already in this repo's history — re-read these with `git show <sha>` if you
 need to see real diffs, don't guess:
+
 - `3be1689119a5c82bdbe69402aa171cc83e50b344` — `external-secrets` + `onepassword-connect` (two
   components sharing one namespace; the canonical simple case).
 - `7a47dfc708b749e41c1ae68efd1ebdc0da1fd50d` — `flux-instance` + `flux-operator` (large migration
@@ -21,6 +22,7 @@ need to see real diffs, don't guess:
 ## 0. Resolve inputs
 
 Ask (or infer from the request) before starting:
+
 1. **Source**: `owner/repo` (default `onedr0p/home-ops`) + path under `kubernetes/apps/<namespace>/<component>`.
 2. **Destination area**: `k8s/infra/<namespace>/<component>` (cluster infrastructure/controllers) or
    `k8s/apps/<category>/<component>` (end-user workloads). If ambiguous, ask — infra namespaces are
@@ -32,10 +34,12 @@ Ask (or infer from the request) before starting:
    like `dbg`); ask if unsure for apps.
 
 Fetch the source tree without needing `gh auth` (this environment's `gh` may lack credentials):
+
 ```sh
 curl -s "https://api.github.com/repos/<owner>/<repo>/git/trees/main?recursive=1" \
   | python3 -c "import json,sys; [print(t['path']) for t in json.load(sys.stdin)['tree'] if t['path'].startswith('kubernetes/apps/<namespace>/<component>')]"
 ```
+
 Fetch individual files with `curl -s https://raw.githubusercontent.com/<owner>/<repo>/main/<path>`.
 
 ## 1. Detect multi-component sources ("app" + extra subfolders)
@@ -50,6 +54,7 @@ multi-document YAML with two `Kustomization` objects (`kopiur` → `.../kopiur/a
 → `.../kopiur/repository`, the second `dependsOn: [{name: kopiur}]`). In this repo that becomes two
 **separate** directories, each with its own `flux/ks.yaml` (this repo never uses multi-document
 `ks.yaml` files — one Flux Kustomization per component directory):
+
 - `k8s/infra/kopiur-system/kopiur/` (from `app/`)
 - `k8s/infra/kopiur-system/kopiur-repository/` (from `repository/`, `dependsOn: kopiur`)
 
@@ -58,6 +63,7 @@ If the source component has no subfolders other than `app`, there's just one des
 ## 2. What to carry over vs. drop
 
 Copy every manifest file from `app/` (or the extra subfolder) as-is **except**:
+
 - `kustomization.yaml` — always rewritten, see step 3.
 - Any file whose only purpose is wiring into a source-repo-only shared component (e.g. a
   `GrafanaDashboard`/`PrometheusRule`/`PodMonitor`/`Receiver`/`ExternalSecret` that exists solely to
@@ -83,6 +89,7 @@ those while porting an unrelated component).
 For each destination component (`k8s/<infra|apps>/<namespace-or-category>/<component>/`):
 
 **`base/kustomization.yaml`** — copy source `app/kustomization.yaml` resources list, but:
+
 - add an explicit `namespace: <namespace>` field (the source relies on its parent aggregator
   kustomization for this; this repo doesn't have one per-namespace, so every component's `base/`
   must set it itself).
@@ -129,6 +136,7 @@ resources:
 ```
 
 **`flux/ks.yaml`** — derive from the source's `ks.yaml` entry for this subfolder:
+
 - `metadata.name` = the destination component's directory name (e.g. `kopiur-repository`, not `kopiur`).
 - `spec.path` = `./k8s/<infra|apps>/<namespace-or-category>/<component>/base` — **always ends in
   `/base`**, never `/envs/<env>`. The per-environment path rewrite happens automatically later via the
@@ -211,11 +219,12 @@ to the component's `base/` and list it first in `base/kustomization.yaml`'s `res
 
 Append (alphabetically, by full relative path) one line per new component's `flux/` directory to the
 chosen set file:
+
 - infra: `k8s/bootstrap/cluster/flux/sets/infra/{minimal,optional}/kustomization.yaml`
 - apps: `k8s/bootstrap/cluster/flux/sets/apps/{minimal,optional}/kustomization.yaml`
 
 ```yaml
-  - ../../../../../../infra/<namespace>/<component>/flux
+- ../../../../../../infra/<namespace>/<component>/flux
 ```
 
 (six `../` levels for infra/apps sets — count the existing entries in the target file to confirm depth
@@ -224,7 +233,7 @@ rather than assuming.)
 ## 7. Special case: bootstrap-time secrets (rare — flag, don't auto-apply)
 
 If (and only if) the ported component is itself part of the secrets-bootstrap chain — i.e. it needs a
-`Secret` to exist *before* External Secrets Operator / the `ClusterSecretStore` can resolve `op://`
+`Secret` to exist _before_ External Secrets Operator / the `ClusterSecretStore` can resolve `op://`
 references for it, a chicken-and-egg problem — this repo has a documented escape hatch
 (`k8s/bootstrap/kustomize/personal/<component>/{kustomization.yaml,s3cr3t.yaml}`, injected via `op
 inject` during `just bootstrap::cluster`, registered in `k8s/bootstrap/kustomize/personal/kustomization.yaml`
@@ -242,6 +251,7 @@ kustomize build k8s/infra/<namespace>/<component>/flux
 kustomize build k8s/infra/common/ns/base   # if you touched namespace registration
 kustomize build k8s/bootstrap/cluster/flux/sets/infra/minimal   # or whichever set you edited
 ```
+
 Run `pre-commit run --files <changed files>` if pre-commit is installed. Don't commit unless asked —
 present the new file tree and a short summary, follow this repo's Conventional Commits + path-scope
 convention (see root `CLAUDE.md`) for the message, e.g. `feat: <component>` or

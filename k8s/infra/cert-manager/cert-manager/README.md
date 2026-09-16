@@ -8,7 +8,6 @@ NAME   READY   SECRET   AGE
 cert   True    cert     1m
 ```
 
-
 ```sh
 k describe -n cert-manager secrets
 

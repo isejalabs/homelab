@@ -13,6 +13,7 @@ a time via a commented-out placeholder already present in each env overlay.
 ## 0. Resolve inputs
 
 Ask only for what the request doesn't already say:
+
 1. **Environment(s)**: one or more of `dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src` (not `prod`).
    Never default this silently — always ask which env(s) to target unless the request already names
    them (e.g. "track the current branch in qa", "change dev to track branch X").
@@ -26,16 +27,16 @@ File: `k8s/infra/flux-system/flux-instance/envs/<env>/helmrelease.yaml`. It has 
 line under `spec.values.instance.sync` (or an already-active one from a prior override):
 
 ```yaml
-      sync:
-        path: "k8s/bootstrap/cluster/flux/envs/<env>"
-        # Uncomment f. line to use a specific branch for this environment
-        # ref: "refs/heads/issue/123_XY-branch"
+sync:
+  path: "k8s/bootstrap/cluster/flux/envs/<env>"
+  # Uncomment f. line to use a specific branch for this environment
+  # ref: "refs/heads/issue/123_XY-branch"
 ```
 
 Set it to:
 
 ```yaml
-        ref: "refs/heads/<branch>"
+ref: "refs/heads/<branch>"
 ```
 
 Only touch the `ref:` line — leave `path:`, `interval:` (where present), and the explanatory comment
@@ -58,7 +59,7 @@ be reverted once testing is done — do not fold it into a real `feat`/`fix`/`ch
 tmp(<env>): track dev branch
 ```
 
-Note: the subject is a fixed phrase — "dev branch" here means *a development/testing branch*, not
+Note: the subject is a fixed phrase — "dev branch" here means _a development/testing branch_, not
 literally the `dev` environment. Don't reword it to name the actual branch or environment; two prior
 commits (`tmp(dev): track dev branch`, `tmp(qa): track dev branch`) established this exact wording as
 the convention.
@@ -96,7 +97,7 @@ rewrites the environment's `GitRepository.spec.ref` to match. Confirm it took:
 kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
 ```
 
-Expect `{"name":"refs/heads/<branch>"}`. The `GitRepository`'s *status* (last stored revision) only
+Expect `{"name":"refs/heads/<branch>"}`. The `GitRepository`'s _status_ (last stored revision) only
 catches up on its next reconcile interval (typically 1m) — don't mistake a stale status for failure.
 
 Run this `kubectl apply -k` for every environment being switched. `admin@<env>-homelab` is the kubectx

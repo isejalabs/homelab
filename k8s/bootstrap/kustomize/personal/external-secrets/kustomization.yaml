@@ -5,4 +5,4 @@ kind: Kustomization
 namespace: external-secrets
 
 resources:
-  - s3cr3t.yaml   # intentionally using another file name to circumvent pre-commit hook that prevents committing secrets in the repo
+  - s3cr3t.yaml # intentionally using another file name to circumvent pre-commit hook that prevents committing secrets in the repo

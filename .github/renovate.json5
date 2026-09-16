@@ -13,7 +13,7 @@
     "github>isejalabs/homelab//.github/renovate/schedule.json5",
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
-  rebaseWhen: 'conflicted',
+  rebaseWhen: "conflicted",
   ignorePaths: ["_attic/**"],
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
@@ -30,13 +30,7 @@
   customManagers: [
     {
       customType: "regex",
-      managerFilePatterns: [
-        "/\\.hcl$/",
-        "/\\.tf$/",
-        "/\\.tftpl$/",
-        "/\\.yaml$/",
-        "/\\.sh$/",
-      ],
+      managerFilePatterns: ["/\\.hcl$/", "/\\.tf$/", "/\\.tftpl$/", "/\\.yaml$/", "/\\.sh$/"],
       matchStrings: [
         "(?<currentValue>[\\w+\\.\\-]*)['\",;]*\\s*#\\s?renovate: (?<datasource>\\S+)=(?<depName>\\S+)\\s?(registry=(?<registryUrl>\\S+))?\\s?(versioning=(?<versioning>\\S+))?",
       ],
@@ -44,22 +38,16 @@
     {
       customType: "regex",
       managerFilePatterns: ["/(^|/)kustomization\\.ya?ml$/"],
-      matchStrings: [
-        "https://github\\.com/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/",
-      ],
+      matchStrings: ["https://github\\.com/(?<depName>.*/.*?)/releases/download/(?<currentValue>.*?)/"],
       datasourceTemplate: "github-releases",
     },
     {
       customType: "regex",
       managerFilePatterns: ["/(^|/)kustomization\\.ya?ml$/"],
-      matchStrings: [
-        "https://raw\\.githubusercontent\\.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/",
-      ],
+      matchStrings: ["https://raw\\.githubusercontent\\.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/"],
       datasourceTemplate: "github-tags",
     },
   ],
   commitMessageAction: "{{{updateType}}}",
-  addLabels: [
-    "pr-type:renovate"
-  ],
+  addLabels: ["pr-type:renovate"],
 }
