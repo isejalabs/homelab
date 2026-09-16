@@ -7,6 +7,10 @@
 # CRD-wait ordering works, so they're disabled here rather than reused unmodified.
 bgpControlPlane:
   enabled: false
+# BPF masquerade (enabled in base values) requires NodePort, which kubeProxyReplacement: false below
+# disables - iptables-based masquerading (the chart's own default under that mode) takes over instead.
+bpf:
+  masquerade: false
 # The base cgroup config assumes Talos already mounts cgroupv2 at hostRoot itself (cgroup.autoMount.enabled:
 # false in k8s/infra/kube-system/cilium/base/values.yaml) - a kind node doesn't, so leave autoMount at the
 # chart's own default (true) instead of inheriting that assumption.
