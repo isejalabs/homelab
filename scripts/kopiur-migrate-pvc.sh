@@ -127,6 +127,12 @@ kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
 JOB="${NEW_PVC}-migrate"
+# Some old PVCs (proxmox-csi) are pinned to a specific node/zone and can't
+# be attached anywhere else -- schedule the copy job the same place the app
+# itself runs, or the attach hangs/fails outright trying to move the disk.
+NODE_SELECTOR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.template.spec.nodeSelector}' 2>/dev/null || true)
+NODE_SELECTOR="${NODE_SELECTOR:-{\}}"
+
 just log info "Running copy job" "step" "3/5" "job" "${JOB}" "from" "${OLD_PVC}" "to" "${NEW_PVC}" "uid" "${UID_}" "gid" "${GID_}"
 kubectl --context "${CTX}" delete job "${JOB}" -n "${NS}" --ignore-not-found --wait=true
 kubectl --context "${CTX}" apply -n "${NS}" -f - <<EOF
@@ -140,6 +146,7 @@ spec:
   template:
     spec:
       restartPolicy: Never
+      nodeSelector: ${NODE_SELECTOR}
       securityContext:
         runAsUser: ${UID_}
         runAsGroup: ${GID_}
