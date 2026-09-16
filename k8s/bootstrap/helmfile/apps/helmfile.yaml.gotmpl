@@ -23,6 +23,11 @@ defaultInherit:
 releases:
   - name: cilium
     namespace: kube-system
+    labels:
+      # Selects the subset of releases exercised by bootstrap-apps-test.yml against an ephemeral kind
+      # cluster - excludes onepassword-connect (can't reach Ready without real 1Password credentials) and
+      # flux-instance (its values hardcode the real GitRepository sync target, see #1209).
+      ci: "true"
     hooks:
       # Wait for CRDs to be available
       - command: kubectl
@@ -46,14 +51,24 @@ releases:
           - values
       # get them from values.yaml file instead
       - template: values-from-values-yaml-file
+    values:
+      # CI's kind cluster isn't Talos and doesn't run the homelab's BGP/egress-gateway/Gateway API setup -
+      # override those bits only for bootstrap-apps-test.yml, layered on top of the inherited values above.
+      {{ if eq .Environment.Name "ci" }}
+      - ../ci/cilium-values.yaml
+      {{ end }}
 
   - name: sealed-secrets
     namespace: sealed-secrets
+    labels:
+      ci: "true"
     needs:
       - kube-system/cilium
 
   - name: external-secrets
     namespace: external-secrets
+    labels:
+      ci: "true"
     needs:
       - kube-system/cilium
 
@@ -89,11 +104,15 @@ releases:
 
   - name: cert-manager
     namespace: cert-manager
+    labels:
+      ci: "true"
     needs:
       - sealed-secrets/sealed-secrets
 
   - name: flux-operator
     namespace: flux-system
+    labels:
+      ci: "true"
     needs:
       - cert-manager/cert-manager
 
