@@ -1,13 +1,24 @@
 repos:
-# only works for kubernetes secrets
-- repo: https://github.com/onedr0p/sops-pre-commit
-  rev: v2.1.0
-  hooks:
-  - id: forbid-secrets
-    exclude: ^k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml$  # allow committing this file, but not others
-- repo: https://github.com/voldy/validate-sops
-  rev: 'v0.1.1'  # Use the latest commit SHA or tag
-  hooks:
-  - id: validate-sops
-    # Adjust based on your file(s) location and type(s)
-    files: '.+\.sops\.(ya?ml|json|env)$'
+  # only works for kubernetes secrets
+  - repo: https://github.com/onedr0p/sops-pre-commit
+    rev: v2.1.0
+    hooks:
+      - id: forbid-secrets
+        exclude: ^k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml$ # allow committing this file, but not others
+  - repo: https://github.com/voldy/validate-sops
+    rev: "v0.1.1" # Use the latest commit SHA or tag
+    hooks:
+      - id: validate-sops
+        # Adjust based on your file(s) location and type(s)
+        files: '.+\.sops\.(ya?ml|json|env)$'
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v3.1.0
+    hooks:
+      - id: prettier
+        additional_dependencies:
+          - prettier@3.9.6
+        args:
+          - --config
+          - .ci/prettier/.prettierrc.yaml
+          - --ignore-path
+          - .ci/prettier/.prettierignore
