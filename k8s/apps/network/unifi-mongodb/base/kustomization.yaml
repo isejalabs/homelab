@@ -8,7 +8,6 @@ components:
 
 resources:
   - ns.yaml
-  - pvc-db.yaml
   - db-secret.unencrypted.yaml.example
   - deployment.yaml
   - svc.yaml

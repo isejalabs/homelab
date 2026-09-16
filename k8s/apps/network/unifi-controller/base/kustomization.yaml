@@ -8,6 +8,5 @@ components:
 
 resources:
   - ns.yaml
-  - pvc-frontend.yaml
   - deployment-frontend.yaml
   - svc-frontend.yaml

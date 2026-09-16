@@ -103,6 +103,6 @@ spec:
       volumes:
         - name: unifi-controller-data
           persistentVolumeClaim:
-            claimName: unifi-controller-data
+            claimName: ${APP}
 #    volumes:
 #      - /srv/docker-compose/hosts/unifi/data:/config
