@@ -12,6 +12,9 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 # Bootstrap cluster CRDs and apps
 mod bootstrap "k8s/bootstrap"
 
+# App backup/restore maintenance recipes
+mod backup "scripts/backup.just"
+
 [private]
 logstep stage msg:
     just log debug "Running step... {{msg}}" "stage" "{{ stage }}"
