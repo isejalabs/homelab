@@ -3,10 +3,10 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: unifi-controller
+  name: unifi-mongodb
 spec:
   interval: 1h
-  path: ./k8s/apps/network/unifi-controller/base
+  path: ./k8s/apps/network/unifi-mongodb/base
   prune: true
   sourceRef:
     kind: GitRepository
@@ -15,13 +15,11 @@ spec:
   wait: true
   postBuild:
     substitute:
-      APP: unifi-controller
+      APP: unifi-mongodb
       PGID: "999"
       PUID: "999"
-      STORAGE_CAPACITY: 500M
+      STORAGE_CAPACITY: 800M
   dependsOn:
     - name: cilium
-    - name: gateway-api
     - name: proxmox-csi
     - name: sealed-secrets
-    - name: unifi-mongodb

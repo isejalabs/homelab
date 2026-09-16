@@ -10,3 +10,4 @@ resources:
   - ../../../../../../apps/finances/actualbudget/flux
   - ../../../../../../apps/monitoring/checkmk-agent/flux
   - ../../../../../../apps/network/unifi-controller/flux
+  - ../../../../../../apps/network/unifi-mongodb/flux

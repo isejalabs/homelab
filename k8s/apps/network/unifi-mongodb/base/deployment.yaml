@@ -3,9 +3,6 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mongodb
-  annotations:
-    # See pvc-db.yaml -- prune-safe ahead of the unifi-mongodb split (#1270).
-    kustomize.toolkit.fluxcd.io/prune: disabled
   labels:
     app: mongodb
 spec:

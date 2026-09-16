@@ -3,19 +3,11 @@ kind: Kustomization
 
 namespace: unifi
 
+components:
+  - ../../../../components/apps/storage/pvc
+
 resources:
   - ns.yaml
-  - pvc-db.yaml
   - pvc-frontend.yaml
-  # using .yaml.example extension for circumventing unencrypted secret pre-commit check
-  - db-secret.unencrypted.yaml.example
-  - deployment-db.yaml
   - deployment-frontend.yaml
-  - svc-db.yaml
   - svc-frontend.yaml
-  - db-secret.sealed.yaml
-
-configMapGenerator:
-  - name: mongodb-init
-    files:
-      - assets/init-mongo.sh
