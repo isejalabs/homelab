@@ -22,6 +22,19 @@ CLUSTER_NAME=bootstrap-apps-ci
 KUBE_CONTEXT=admin@ci-homelab
 
 cleanup() {
+    exit_code=$?
+    if [ "$exit_code" -ne 0 ]; then
+        echo "=== Diagnostics (exit $exit_code) ==="
+        kubectl --context "$KUBE_CONTEXT" get pods -A -o wide || true
+        kubectl --context "$KUBE_CONTEXT" get pods -A --no-headers 2>/dev/null \
+            | awk '$4 != "Running" && $4 != "Completed" { print $1, $2 }' \
+            | while read -r ns pod; do
+                echo "--- describe $ns/$pod ---"
+                kubectl --context "$KUBE_CONTEXT" describe pod -n "$ns" "$pod" || true
+                echo "--- logs $ns/$pod ---"
+                kubectl --context "$KUBE_CONTEXT" logs -n "$ns" "$pod" --all-containers --tail=200 || true
+            done
+    fi
     kind delete cluster --name "$CLUSTER_NAME" >/dev/null 2>&1 || true
 }
 trap cleanup EXIT

@@ -28,6 +28,7 @@ releases:
       # cluster - excludes onepassword-connect (can't reach Ready without real 1Password credentials) and
       # flux-instance (its values hardcode the real GitRepository sync target, see #1209).
       ci: "true"
+    {{ if ne .Environment.Name "ci" }}
     hooks:
       # Wait for CRDs to be available
       - command: kubectl
@@ -44,6 +45,12 @@ releases:
         events:
           - postsync
         showlogs: true
+    {{ end }}
+    {{ if eq .Environment.Name "ci" }}
+    # bootstrap-apps-test.yml's kind cluster pulls chart images over the runner's network and has no
+    # pre-warmed cache, so give it more headroom than the 5m Helm default before --wait gives up.
+    timeout: 600
+    {{ end }}
     inherit:
       # do not inherit values from HelmRelease...
       - template: values-from-helmrelease

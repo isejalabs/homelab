@@ -7,6 +7,12 @@
 # CRD-wait ordering works, so they're disabled here rather than reused unmodified.
 bgpControlPlane:
   enabled: false
+# The base cgroup config assumes Talos already mounts cgroupv2 at hostRoot itself (cgroup.autoMount.enabled:
+# false in k8s/infra/kube-system/cilium/base/values.yaml) - a kind node doesn't, so leave autoMount at the
+# chart's own default (true) instead of inheriting that assumption.
+cgroup:
+  autoMount:
+    enabled: true
 egressGateway:
   enabled: false
 gatewayAPI:
@@ -15,3 +21,7 @@ k8sServiceHost: null
 k8sServicePort: null
 # Let kind's own kube-proxy handle service routing instead of replicating Talos's kube-proxy-free setup.
 kubeProxyReplacement: false
+# A single-node kind cluster gains nothing from 2 operator replicas and it's one more thing that can fail
+# to become Ready within the CI timeout.
+operator:
+  replicas: 1
