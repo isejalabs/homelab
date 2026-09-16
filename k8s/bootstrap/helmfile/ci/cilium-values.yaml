@@ -1,0 +1,31 @@
+---
+# Overrides for k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl's cilium release, applied only when
+# .Environment.Name == "ci" (bootstrap-apps-test.yml). The base values in
+# k8s/infra/kube-system/cilium/base/values.yaml are Talos-specific (k8sServiceHost/k8sServicePort point at
+# Talos's local apid proxy, which doesn't exist on a plain kind cluster) and homelab-specific (BGP, egress
+# gateway, Gateway API) - none of which matter for validating that the chart installs and the hook-based
+# CRD-wait ordering works, so they're disabled here rather than reused unmodified.
+bgpControlPlane:
+  enabled: false
+# BPF masquerade (enabled in base values) requires NodePort, which kubeProxyReplacement: false below
+# disables - iptables-based masquerading (the chart's own default under that mode) takes over instead.
+bpf:
+  masquerade: false
+# The base cgroup config assumes Talos already mounts cgroupv2 at hostRoot itself (cgroup.autoMount.enabled:
+# false in k8s/infra/kube-system/cilium/base/values.yaml) - a kind node doesn't, so leave autoMount at the
+# chart's own default (true) instead of inheriting that assumption.
+cgroup:
+  autoMount:
+    enabled: true
+egressGateway:
+  enabled: false
+gatewayAPI:
+  enabled: false
+k8sServiceHost: null
+k8sServicePort: null
+# Let kind's own kube-proxy handle service routing instead of replicating Talos's kube-proxy-free setup.
+kubeProxyReplacement: false
+# A single-node kind cluster gains nothing from 2 operator replicas and it's one more thing that can fail
+# to become Ready within the CI timeout.
+operator:
+  replicas: 1

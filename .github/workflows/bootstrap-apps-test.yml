@@ -1,0 +1,18 @@
+name: "Bootstrap apps test"
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  bootstrap-apps-test:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
+      with:
+        install_args: kind helm helmfile kubectl yq
+    - run: scripts/bootstrap-apps-ci-test.sh

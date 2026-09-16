@@ -176,6 +176,39 @@ url = "https://github.com/charmbracelet/gum/releases/download/v2.0.1/gum_2.0.1_W
 url_api = "https://api.github.com/repos/charmbracelet/gum/releases/assets/556563050"
 provenance = "cosign"
 
+[[tools.helm]]
+version = "4.3.0"
+backend = "aqua:helm/helm"
+specifiers = ["4.3.0"]
+
+[tools.helm."platforms.linux-arm64"]
+checksum = "sha256:31c5794dd55c66a51e6b7d2e2ac7a114ae8b1de41ff1d9ba51748ac973b06a08"
+url = "https://get.helm.sh/helm-v4.3.0-linux-arm64.tar.gz"
+
+[tools.helm."platforms.linux-arm64-musl"]
+checksum = "sha256:31c5794dd55c66a51e6b7d2e2ac7a114ae8b1de41ff1d9ba51748ac973b06a08"
+url = "https://get.helm.sh/helm-v4.3.0-linux-arm64.tar.gz"
+
+[tools.helm."platforms.linux-x64"]
+checksum = "sha256:86584a54def73570558f66f5111cc53dfed56689637ae32c1201205d494f54fb"
+url = "https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz"
+
+[tools.helm."platforms.linux-x64-musl"]
+checksum = "sha256:86584a54def73570558f66f5111cc53dfed56689637ae32c1201205d494f54fb"
+url = "https://get.helm.sh/helm-v4.3.0-linux-amd64.tar.gz"
+
+[tools.helm."platforms.macos-arm64"]
+checksum = "sha256:d3870437e1e95b67f8edbde964156c84a26503f560821d40c542441658934fba"
+url = "https://get.helm.sh/helm-v4.3.0-darwin-arm64.tar.gz"
+
+[tools.helm."platforms.macos-x64"]
+checksum = "sha256:347a784877e0e20eac865e8d1c36a80f6bb0861d6f29abd34defb6570ef95d92"
+url = "https://get.helm.sh/helm-v4.3.0-darwin-amd64.tar.gz"
+
+[tools.helm."platforms.windows-x64"]
+checksum = "sha256:551b0065fdfae8ba74ddac3a213e46e0144188cacf997ae1002f508af169728e"
+url = "https://get.helm.sh/helm-v4.3.0-windows-amd64.tar.gz"
+
 [[tools.helmfile]]
 version = "1.8.0"
 backend = "aqua:helmfile/helmfile"
@@ -302,6 +335,46 @@ url_api = "https://api.github.com/repos/casey/just/releases/assets/500510084"
 checksum = "sha256:759f16fb7aa17c5c8b9594b6d4a8c1a6630dfd042cf2b3ff84841454d3d188dc"
 url = "https://github.com/casey/just/releases/download/1.58.0/just-1.58.0-x86_64-pc-windows-msvc.zip"
 url_api = "https://api.github.com/repos/casey/just/releases/assets/500511374"
+
+[[tools.kind]]
+version = "0.33.0"
+backend = "aqua:kubernetes-sigs/kind"
+specifiers = ["0.33.0"]
+
+[tools.kind."platforms.linux-arm64"]
+checksum = "sha256:20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-arm64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396478"
+
+[tools.kind."platforms.linux-arm64-musl"]
+checksum = "sha256:20022bee6cfcd5086cb7234d218e3454e6090022f2a8f55d1fa7fcf42c3867a2"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-arm64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396478"
+
+[tools.kind."platforms.linux-x64"]
+checksum = "sha256:aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396433"
+
+[tools.kind."platforms.linux-x64-musl"]
+checksum = "sha256:aee6151561422756b764a4ae28e7f44cda5af5a9eead3cc9985112b1de8d8e0d"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-linux-amd64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396433"
+
+[tools.kind."platforms.macos-arm64"]
+checksum = "sha256:0c8c7dbe5e23594a198b786c4bc13dacc101fa6196b0cb0b23a1ca44e61f4b4f"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-darwin-arm64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396417"
+
+[tools.kind."platforms.macos-x64"]
+checksum = "sha256:5a99f26f57246dc9319dd294803313197a0f34d33c525b3ea8b655db5916ece0"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-darwin-amd64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396367"
+
+[tools.kind."platforms.windows-x64"]
+checksum = "sha256:4b22adaa135368c5a465d56bbd8e520cbea87272a06ca00b6078e7b81515c9fc"
+url = "https://github.com/kubernetes-sigs/kind/releases/download/v0.33.0/kind-windows-amd64"
+url_api = "https://api.github.com/repos/kubernetes-sigs/kind/releases/assets/531396499"
 
 [[tools.kubeconform]]
 version = "0.8.0"
