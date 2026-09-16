@@ -27,5 +27,8 @@ sops = "3.13.3"
 # CI cross-resource Flux validation (flate-test.yml)
 "github:home-operations/flate" = "0.6.5"
 
+# CI pre-commit hooks (pre-commit.yml)
+pre-commit = "4.6.2"
+
 [settings]
 lockfile = true
