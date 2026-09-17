@@ -1,4 +1,9 @@
 #!/bin/sh
+# Runs `terragrunt init -backend=false` + `terragrunt validate` against every terragrunt unit under
+# terragrunt/, to catch a syntax/type error before it's hit for real by a live `terragrunt plan`/`apply`.
+#
+# Usage: scripts/terragrunt-validate-all.sh
+# Takes no arguments; run from the repo root (invoked by the terragrunt-validate CI workflow).
 
 set -eu
 
@@ -15,6 +20,8 @@ find terragrunt -name terragrunt.hcl -not -path '*/.terragrunt-cache/*' > "$list
 
 status=0
 
+# Inits and validates every unit, tracking the worst exit status across all of them rather than bailing on
+# the first failure, so one bad unit doesn't hide problems in the rest.
 while IFS= read -r cfg; do
     dir=$(dirname "$cfg")
 

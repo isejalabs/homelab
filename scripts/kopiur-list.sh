@@ -1,4 +1,11 @@
 #!/bin/sh
+# Lists kopiur Snapshot CRs, for one app or every app in scope, as a custom-columns kubectl table -
+# a thin wrapper around `kubectl get snapshot` that only adds the columns/filters that are actually useful.
+#
+# Usage: scripts/kopiur-list.sh [-e <env>] (-n <ns> | -A) [<app>]
+# -n/--namespace and -A/--all-namespaces are mutually exclusive; exactly one is required.
+# -e/--environment selects the kubecontext; omit it to use whatever context is already current.
+# <app> filters to that app's Snapshots via the kopiur.home-operations.com/config label; omit it to list all.
 set -eu
 
 usage() {

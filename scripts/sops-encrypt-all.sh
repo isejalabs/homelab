@@ -1,9 +1,20 @@
 #!/bin/bash
+# Re-encrypts every plaintext file matched by a `path_regex:` entry in .sops.yaml into its *.sops.yaml
+# sibling, skipping any pair whose existing encrypted sibling already decrypts to matching content, so a
+# bulk re-encrypt only touches files that actually changed. The counterpart to sops-decrypt-all.sh.
+#
+# Usage: scripts/sops-encrypt-all.sh
+# Takes no arguments; run from the repo root. Always overwrites a stale *.sops.yaml (no -f/--force gate,
+# unlike sops-decrypt-all.sh) since re-encrypting can't lose local plaintext edits the way decrypting can.
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
+# Each path_regex from .sops.yaml is used as a find(1) regex to locate the plaintext files it covers. A rule
+# written against the encrypted filename (containing a literal ".sops", e.g. matching "*.sops.yaml") has that
+# substring stripped so it resolves to the plaintext name instead; a rule already written against the
+# plaintext name (e.g. "*-secrets.yaml") passes through unchanged.
 while IFS= read -r path; do
     path=${path/.sops/ }
     find . -regextype egrep -regex ".*/$path" -type f | while IFS= read -r file; do

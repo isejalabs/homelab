@@ -1,4 +1,11 @@
 #!/bin/bash
+# Decrypts every *.sops.yaml in the repo into its plaintext sibling (<name>.yaml), skipping any file whose
+# existing plaintext sibling already matches the decrypted content, so a bulk re-decrypt doesn't needlessly
+# touch files an editor/IDE might have open. The counterpart to sops-encrypt-all.sh.
+#
+# Usage: scripts/sops-decrypt-all.sh [-f|--force]
+# Without -f/--force, a plaintext sibling that differs from the decrypted content is left alone (with a
+# warning) rather than overwritten, to avoid silently discarding local plaintext edits.
 
 GREEN='\033[0;32m'
 RED='\033[0;31m'
@@ -6,6 +13,7 @@ NC='\033[0m'
 
 force=false
 
+# Parses -f/--force; any other flag is a usage error.
 while [[ $# -gt 0 ]]; do
     key="$1"
     case $key in
@@ -20,6 +28,7 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Finds every *.sops.yaml file in the repo and decrypts each one in turn.
 find . -regextype egrep -regex "\.\/.+\/.*.sops.yaml" -type f | while IFS= read -r file; do
     decrypted_file="${file%.sops.yaml}.yaml"
 

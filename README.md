@@ -65,6 +65,8 @@ split above is what makes that patience compatible with also wanting to catch br
   `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows.
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
+- [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state
+  cleanup, and kopiur backup/restore scripts.
 - `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in
   this repo; also a decent map of the layout for humans.
 
