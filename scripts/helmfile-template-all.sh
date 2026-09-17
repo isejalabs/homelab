@@ -7,9 +7,8 @@
 
 set -eu
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
 
 status=0
 
@@ -22,13 +21,13 @@ envs=$(yq -r '.environments | keys | .[]' k8s/bootstrap/helmfile/base/environmen
 for target in crds apps; do
     for env in $envs; do
         if ! out=$(helmfile -f "k8s/bootstrap/helmfile/$target" -e "$env" template -q 2>&1); then
-            printf "${RED}helmfile template failed: %s/%s${NC}\n" "$target" "$env"
-            echo "$out"
+            log_debug_output "$out"
+            just log error "helmfile template failed" "target" "$target" "env" "$env"
             status=1
             continue
         fi
 
-        printf "${GREEN}OK: %s/%s${NC}\n" "$target" "$env"
+        just log info "OK" "target" "$target" "env" "$env"
     done
 done
 

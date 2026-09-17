@@ -7,9 +7,8 @@
 # Without -f/--force, a plaintext sibling that differs from the decrypted content is left alone (with a
 # warning) rather than overwritten, to avoid silently discarding local plaintext edits.
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
 
 force=false
 
@@ -22,7 +21,7 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     *)
-        echo "Unknown option: $1"
+        just log fatal "unknown option" "flag" "$1"
         exit 1
         ;;
     esac
@@ -39,13 +38,13 @@ find . -regextype egrep -regex "\.\/.+\/.*.sops.yaml" -type f | while IFS= read 
 
         # Compare the decrypted version with the existing decrypted file
         if cmp -s "$decrypted_file" "$decrypted_temp"; then
-            echo -e "${GREEN}No changes detected. Skipping decryption for file: $file${NC}"
+            just log info "no changes detected, skipping decryption" "file" "$file"
         else
             if [ "$force" = true ]; then
                 mv "$decrypted_temp" "$decrypted_file"
-                echo -e "${RED}File replaced with the decrypted content: $decrypted_file${NC}"
+                just log warn "file replaced with decrypted content" "file" "$decrypted_file"
             else
-                echo -e "${RED}Changes detected. Use -f or --force flag to overwrite $file${NC}"
+                just log warn "changes detected, use -f/--force to overwrite" "file" "$file"
             fi
         fi
 
@@ -54,7 +53,7 @@ find . -regextype egrep -regex "\.\/.+\/.*.sops.yaml" -type f | while IFS= read 
         fi
     else
         # No decrypted file exists, decrypt and create it
-        echo -e "${RED}Decrypting file: $file${NC}"
+        just log info "decrypting" "file" "$file"
         sops --decrypt "$file" >"$decrypted_file"
     fi
 done

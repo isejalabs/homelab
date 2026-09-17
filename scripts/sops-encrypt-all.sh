@@ -7,9 +7,8 @@
 # Takes no arguments; run from the repo root. Always overwrites a stale *.sops.yaml (no -f/--force gate,
 # unlike sops-decrypt-all.sh) since re-encrypting can't lose local plaintext edits the way decrypting can.
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
 
 # Each path_regex from .sops.yaml is used as a find(1) regex to locate the plaintext files it covers. A rule
 # written against the encrypted filename (containing a literal ".sops", e.g. matching "*.sops.yaml") has that
@@ -27,16 +26,16 @@ while IFS= read -r path; do
 
             # Compare the decrypted version with the file on disk
             if cmp -s "$file" "$decrypted_temp"; then
-                echo -e "${GREEN}No changes detected. Skipping encryption for file: $file${NC}"
+                just log info "no changes detected, skipping encryption" "file" "$file"
             else
-                echo -e "${RED}Changes detected. Re-encrypting file: $file${NC}"
+                just log info "changes detected, re-encrypting" "file" "$file"
                 sops --encrypt "$file" >"$encrypted_file"
             fi
 
             rm "$decrypted_temp"
         else
             # No encrypted version exists, encrypt the file
-            echo -e "${RED}Encrypting file: $file${NC}"
+            just log info "encrypting (no existing encrypted sibling)" "file" "$file"
             sops --encrypt "$file" >"$encrypted_file"
         fi
     done
