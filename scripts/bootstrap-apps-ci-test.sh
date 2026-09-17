@@ -1,9 +1,10 @@
 #!/bin/sh
-
-set -eu
-
 # Validates the k8s/bootstrap/helmfile "apps" stage (see k8s/bootstrap/mod.just's `apps` recipe) against a
 # throwaway kind cluster, standing in for `just bootstrap::cluster` without touching a real environment.
+#
+# Usage: scripts/bootstrap-apps-ci-test.sh
+# Takes no arguments; run from the repo root (invoked by the bootstrap-apps-ci-test CI workflow). Creates
+# and always tears down its own kind cluster, so it's also safe to run locally.
 #
 # Scope, and why (see #1209):
 # - The `core` recipe's namespace-creation step is skipped: it hard-references the real per-environment
@@ -18,9 +19,13 @@ set -eu
 #   GitRepository sync target - installing it for real would make flux-operator start reconciling the entire
 #   live k8s/infra/k8s/apps tree against this throwaway cluster.
 
+set -eu
+
 CLUSTER_NAME=bootstrap-apps-ci
 KUBE_CONTEXT=admin@ci-homelab
 
+# Dumps pod status/describe/logs for anything not Running/Completed on failure, then always tears down the
+# kind cluster (registered via `trap ... EXIT` below, so this runs whether the script succeeded or failed).
 cleanup() {
     exit_code=$?
     if [ "$exit_code" -ne 0 ]; then
@@ -39,6 +44,8 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# CNI is left uninstalled here since the apps stage only cares about the helm releases below, not networking;
+# Cilium itself is one of those releases in a real bootstrap, but it's not needed for this validation.
 kind create cluster --name "$CLUSTER_NAME" --config - <<'EOF'
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -46,6 +53,8 @@ networking:
   disableDefaultCNI: true
 EOF
 
+# kind names its context "kind-<cluster>" by default; renamed to match KUBE_CONTEXT so the diagnostics/
+# cleanup logic above and the helmfile/kubectl calls below all address the same, real-looking context.
 kubectl config rename-context "kind-$CLUSTER_NAME" "$KUBE_CONTEXT"
 
 # CRDs stage - same command as k8s/bootstrap/mod.just's `core` recipe.

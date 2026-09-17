@@ -1,6 +1,16 @@
 #!/bin/sh
+# Removes from Terragrunt state every resource that would otherwise block `terragrunt destroy` when the
+# cluster is unreachable (nodes shut down, or already gone) - resources whose provider needs to actually
+# talk to a live Kubernetes API to compute a destroy plan (in-cluster k8s_* resources, and Talos resources
+# that depend on node connectivity). This only forgets them from state; it never deletes the real objects,
+# so it's meant for a cluster that's being torn down anyway, not a live one.
+#
+# Usage: scripts/tg-state-rm.sh
+# Run from the terragrunt unit directory whose state should be pruned (same convention as a bare
+# `terragrunt state rm`/`terragrunt destroy`) - not from the repo root.
 
-# remove everything which would block a destroy command when the cluster is not functional or nodes shut down
+# module.volumes.module.persistent-volume.* covers a variable number of per-app persistent-volume submodules
+# (one per app-owned volume), so these are discovered via `state list` rather than named individually below.
 for i in $(terragrunt state list | grep module.volumes.module.persistent-volume); do terragrunt state rm "$i"; done
 terragrunt state rm 'module.sealed_secrets.kubernetes_namespace.sealed-secrets'
 terragrunt state rm 'module.sealed_secrets.kubernetes_secret.sealed-secrets-key'

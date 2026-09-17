@@ -1,4 +1,11 @@
 #!/bin/bash
+# Triggers a manual kopiur Snapshot for one app, or every app with an active SnapshotPolicy in scope
+# (--all), and waits for each triggered Snapshot to reach a terminal phase before reporting success/failure.
+#
+# Usage: scripts/kopiur-create.sh [-e <env>] (-n <ns> | -A) [--all] [<app>]
+# <app> and --all are mutually exclusive; -n/--namespace and -A/--all-namespaces are mutually exclusive;
+# -A/--all-namespaces requires --all (a single named app can't be looked up across every namespace).
+# -e/--environment selects the kubecontext; omit it to use whatever context is already current.
 set -euo pipefail
 
 usage() {
@@ -80,6 +87,9 @@ if [ -n "${ENV}" ]; then
     CTX_ARGS=(--context "admin@${ENV}-homelab")
 fi
 
+# Creates a Snapshot CR for a single app/namespace, polls its .status.phase until it's terminal, and prints
+# the resulting stats (or the failing Snapshot's log tail). Returns non-zero on any failure so callers -
+# both the single-app path and the --all parallel loop below - can track success/failure per app.
 backup_one() {
     local app="$1" ns="$2"
 

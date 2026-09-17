@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """Check k8s/**/*.yaml against a subset of .agents/instructions/sorting.md.
 
+Usage: scripts/check-sorting.py
+Takes no arguments; run from the repo root (invoked by the check-sorting CI workflow). Walks every
+k8s/**/*.yaml file, prints one violation per offending mapping, and exits non-zero if any are found.
+
 Only checks that these fields, whichever are actually present, come first in
 a mapping and in this relative order - nothing is asserted about the keys
 that follow them:
@@ -28,6 +32,9 @@ LEADING_FIELDS = ["apiVersion", "kind", "metadata", "name", "id", "namespace", "
 METADATA_FIELDS = ["name", "namespace", "annotations", "labels"]
 
 
+# Builds the ordered subset of LEADING_FIELDS/METADATA_FIELDS that's actually present in `keys`, in the
+# order those fields must appear. `name`/`id` are mutually exclusive (a resource has one or the other), so
+# whichever one isn't present in this mapping is dropped rather than asserted absent-but-ordered.
 def leading_prefix(keys, is_metadata):
     if is_metadata:
         fields = METADATA_FIELDS
@@ -37,6 +44,8 @@ def leading_prefix(keys, is_metadata):
     return [f for f in fields if f in keys]
 
 
+# Compares the mapping's actual leading keys against the wanted prefix computed above; only the leading
+# slice is checked, so nothing is asserted about key order past that point.
 def check_mapping_order(mapping, path, is_metadata, errors):
     keys = list(mapping.keys())
     want = leading_prefix(keys, is_metadata)
@@ -45,6 +54,9 @@ def check_mapping_order(mapping, path, is_metadata, errors):
         errors.append(f"{path}: leading keys out of order\n    got:  {got}\n    want: {want}")
 
 
+# Recurses through every mapping/list in a parsed YAML document, checking each mapping's leading-key order
+# along the way. `parent_key` carries the key this value was found under, so a mapping nested directly under
+# a `metadata:` key is checked against METADATA_FIELDS instead of the general LEADING_FIELDS rule.
 def walk(value, path, parent_key, errors):
     if isinstance(value, dict):
         check_mapping_order(value, path, parent_key == "metadata", errors)
