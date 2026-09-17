@@ -22,9 +22,9 @@ spec:
         - name: unifi-network-application
           env:
             - name: PUID
-              value: "999"
+              value: "1000"
             - name: PGID
-              value: "999"
+              value: "1000"
             - name: TZ
               value: Europe/Berlin
             - name: MONGO_USER

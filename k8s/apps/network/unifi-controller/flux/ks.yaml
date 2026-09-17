@@ -16,8 +16,6 @@ spec:
   postBuild:
     substitute:
       APP: unifi-controller
-      PGID: "999"
-      PUID: "999"
       STORAGE_CAPACITY: 500M
   dependsOn:
     - name: cilium

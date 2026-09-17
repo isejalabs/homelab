@@ -14,6 +14,10 @@ spec:
     namespace: flux-system
   wait: true
   postBuild:
+    # PGID/PUID pinned to 999, not the storage component's 1000 default: the
+    # official mongo image hardcodes its "mongodb" system user to uid/gid 999
+    # and ignores PUID/PGID env vars entirely, so the mover has to match that
+    # fixed, non-configurable ownership instead of the usual default.
     substitute:
       APP: unifi-mongodb
       PGID: "999"
