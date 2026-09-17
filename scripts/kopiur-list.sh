@@ -8,6 +8,9 @@
 # <app> filters to that app's Snapshots via the kopiur.home-operations.com/config label; omit it to list all.
 set -eu
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 usage() {
     echo "Usage: $(basename "$0") [-e <env>] (-n <ns> | -A) [<app>]" >&2
     exit 1
@@ -32,10 +35,7 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         -h | --help) usage ;;
-        -*)
-            just log error "unknown flag" "flag" "$1"
-            usage
-            ;;
+        -*) unknown_flag "$1" ;;
         *)
             APP="$1"
             shift
@@ -43,15 +43,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ -n "${ENV}" ]; then
-    case "${ENV}" in
-        dbg | dev | head | poc | prod | qa | rebuild | src) ;;
-        *)
-            just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
-            exit 1
-            ;;
-    esac
-fi
+[ -n "${ENV}" ] && validate_environment "${ENV}"
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
     just log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
@@ -63,13 +55,11 @@ if [ "${ALL_NS}" -eq 0 ] && [ -z "${NS}" ]; then
 fi
 
 # CTX_ARGS is either empty or exactly "--context admin@<env>-homelab" (env is
-# validated above against a fixed enum) -- deliberately word-split below to
-# contribute zero args to kubectl when environment wasn't given, falling back
-# to whatever the current kubecontext already is.
+# validated above) -- deliberately word-split below to contribute zero args to
+# kubectl when environment wasn't given, falling back to whatever the current
+# kubecontext already is.
 CTX_ARGS=""
-if [ -n "${ENV}" ]; then
-    CTX_ARGS="--context admin@${ENV}-homelab"
-fi
+[ -n "${ENV}" ] && CTX_ARGS="--context $(kubecontext_for_environment "${ENV}")"
 
 NS_ARGS="-n ${NS}"
 [ "${ALL_NS}" -eq 1 ] && NS_ARGS="-A"

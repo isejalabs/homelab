@@ -37,6 +37,9 @@
 # which kind of object owns the Deployment.
 set -eu
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 usage() {
     echo "Usage: $(basename "$0") -e <env> -n <ns> [--deploy <name>] <app>" >&2
     exit 1
@@ -62,10 +65,7 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         -h | --help) usage ;;
-        -*)
-            just log error "unknown flag" "flag" "$1"
-            usage
-            ;;
+        -*) unknown_flag "$1" ;;
         *)
             APP="$1"
             shift
@@ -76,13 +76,7 @@ done
 # -e/--environment must resolve to a real "admin@<env>-homelab" kubecontext (see CTX below) - unlike
 # kopiur-list.sh/kopiur-create.sh, there's no "fall back to whatever context is current" mode here, since
 # a restore is destructive enough that the target cluster should always be named explicitly.
-case "${ENV}" in
-    dbg | dev | head | poc | prod | qa | rebuild | src) ;;
-    *)
-        just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
-        exit 1
-        ;;
-esac
+validate_environment "${ENV}"
 
 if [ -z "${NS}" ]; then
     just log fatal "-n/--namespace is required"
@@ -97,7 +91,7 @@ fi
 # DEPLOY defaults to the app name, since that's true for the overwhelming majority of apps; --deploy only
 # needs to be passed when a chart names its Deployment differently from the app/release name.
 DEPLOY="${DEPLOY:-${APP}}"
-CTX="admin@${ENV}-homelab"
+CTX=$(kubecontext_for_environment "${ENV}")
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
     just log fatal "PVC not found" "app" "${APP}" "namespace" "${NS}"
