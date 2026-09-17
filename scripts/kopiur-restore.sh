@@ -46,6 +46,7 @@ APP=""
 ENV=""
 NS=""
 DEPLOY=""
+# Parses -e/--environment, -n/--namespace and --deploy; the first bare (non-flag) argument is the app name.
 while [ $# -gt 0 ]; do
     case "$1" in
         -e | --environment)
@@ -72,6 +73,9 @@ while [ $# -gt 0 ]; do
     esac
 done
 
+# -e/--environment must resolve to a real "admin@<env>-homelab" kubecontext (see CTX below) - unlike
+# kopiur-list.sh/kopiur-create.sh, there's no "fall back to whatever context is current" mode here, since
+# a restore is destructive enough that the target cluster should always be named explicitly.
 case "${ENV}" in
     dbg | dev | head | poc | prod | qa | rebuild | src) ;;
     *)
@@ -90,6 +94,8 @@ if [ -z "${APP}" ]; then
     usage
 fi
 
+# DEPLOY defaults to the app name, since that's true for the overwhelming majority of apps; --deploy only
+# needs to be passed when a chart names its Deployment differently from the app/release name.
 DEPLOY="${DEPLOY:-${APP}}"
 CTX="admin@${ENV}-homelab"
 
@@ -103,15 +109,23 @@ if ! kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" >/dev/null
     exit 1
 fi
 
+# Captured up front so step 5 can scale back to exactly what it was, rather than a hardcoded 1 - restoring
+# a PVC shouldn't also silently reset an app that was deliberately scaled to e.g. 2+ replicas.
 ORIG_REPLICAS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.replicas}')
 
+# Determines which kind of Flux object owns the Deployment (see header comment) - exactly one of HR/KS ends
+# up non-empty, and that's what the suspend/resume branch below acts on.
 HR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/name}' 2>/dev/null || true)
 KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.kustomize\.toolkit\.fluxcd\.io/name}' 2>/dev/null || true)
 
+# The PVC's own owning Kustomization, read before it's deleted below (its labels naturally disappear along
+# with it) - needed for the Helm-based case (see header comment), where it can differ from KS above.
 PVC_KS=$(kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o jsonpath='{.metadata.labels.kustomize\.toolkit\.fluxcd\.io/name}' 2>/dev/null || true)
 PVC_KS_NS=$(kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o jsonpath='{.metadata.labels.kustomize\.toolkit\.fluxcd\.io/namespace}' 2>/dev/null || true)
 PVC_KS_NS="${PVC_KS_NS:-flux-system}"
 
+# Suspends whichever Flux object owns the Deployment, so it can't fight the manual scale-down/PVC-delete
+# steps below, and defines `resume` (called in step 4) to resume that same object afterward.
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
     just log info "Suspending HelmRelease" "step" "1/6" "helmrelease" "${HR}" "namespace" "${HR_NS}"
@@ -130,14 +144,21 @@ else
     exit 1
 fi
 
+# Scaling to 0 (rather than deleting the Deployment) and waiting for its pods to actually terminate is what
+# lets the PVC below be deleted cleanly - a still-mounted PVC can't be deleted.
 just log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${APP}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
+# Both the PVC and its Restore object must go together (see header comment) so kopiur re-resolves a fresh
+# snapshot on recreation instead of reusing whatever it pinned the first time.
 just log info "Deleting PVC and Restore object" "step" "3/6" "app" "${APP}" "namespace" "${NS}"
 kubectl --context "${CTX}" delete pvc "${APP}" -n "${NS}" --wait=true
 kubectl --context "${CTX}" delete restore "${APP}" -n "${NS}" --wait=true
 
+# Resumes the HelmRelease/Kustomization suspended in step 1, then, for the Helm-based case, also
+# force-reconciles the PVC's own owning Kustomization (see header comment) since resuming the HelmRelease
+# alone doesn't touch it.
 just log info "Resuming" "step" "4/6" "deployment" "${DEPLOY}"
 resume
 if [ -n "${PVC_KS}" ] && [ "${PVC_KS}" != "${KS}" ]; then
@@ -157,6 +178,9 @@ fi
 just log info "Scaling back up" "step" "5/6" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas="${ORIG_REPLICAS}"
 
+# Polls up to 5 minutes (60 * 5s) for the recreated PVC to reach Bound - the real signal that the populator
+# finished restoring from the snapshot, since neither `flux resume`/`reconcile` nor `kubectl scale` above
+# block on that.
 just log info "Waiting for the new PVC to bind (populating from the latest snapshot)" "step" "6/6"
 PHASE=""
 for _ in $(seq 1 60); do
