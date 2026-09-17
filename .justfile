@@ -21,7 +21,9 @@ logstep stage msg:
 
 [private]
 log lvl msg *args:
-    gum log -t rfc3339 -s -l "{{ lvl }}" "{{ msg }}" {{ args }}
+    # `--` stops gum's own flag parsing before msg/args, so a message that happens to start with a dash
+    # (e.g. "-e/--environment must be one of...") isn't misread as a gum flag - see #1275.
+    gum log -t rfc3339 -s -l "{{ lvl }}" -- "{{ msg }}" {{ args }}
 
 [private]
 template file *args:

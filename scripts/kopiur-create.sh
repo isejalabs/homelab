@@ -8,6 +8,9 @@
 # -e/--environment selects the kubecontext; omit it to use whatever context is already current.
 set -euo pipefail
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 usage() {
     echo "Usage: $(basename "$0") [-e <env>] (-n <ns> | -A) [--all] [<app>]" >&2
     exit 1
@@ -37,10 +40,7 @@ while [ $# -gt 0 ]; do
             shift
             ;;
         -h | --help) usage ;;
-        -*)
-            just log error "unknown flag" "flag" "$1"
-            usage
-            ;;
+        -*) unknown_flag "$1" ;;
         *)
             APP="$1"
             shift
@@ -48,15 +48,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-if [ -n "${ENV}" ]; then
-    case "${ENV}" in
-        dbg | dev | head | poc | prod | qa | rebuild | src) ;;
-        *)
-            just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
-            exit 1
-            ;;
-    esac
-fi
+[ -n "${ENV}" ] && validate_environment "${ENV}"
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
     just log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
@@ -84,7 +76,7 @@ fi
 
 CTX_ARGS=()
 if [ -n "${ENV}" ]; then
-    CTX_ARGS=(--context "admin@${ENV}-homelab")
+    CTX_ARGS=(--context "$(kubecontext_for_environment "${ENV}")")
 fi
 
 # Creates a Snapshot CR for a single app/namespace, polls its .status.phase until it's terminal, and prints
