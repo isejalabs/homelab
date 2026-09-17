@@ -1,0 +1,31 @@
+---
+# yaml-language-server: $schema=https://kubernetes-schemas.pages.dev/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: unifi-mongodb
+spec:
+  interval: 1h
+  path: ./k8s/apps/network/unifi-mongodb/base
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  wait: true
+  postBuild:
+    # PGID/PUID pinned to 999, not the storage component's 1000 default: the
+    # official mongo image hardcodes its "mongodb" system user to uid/gid 999
+    # and ignores PUID/PGID env vars entirely, so the mover has to match that
+    # fixed, non-configurable ownership instead of the usual default.
+    substitute:
+      APP: unifi-mongodb
+      PGID: "999"
+      PUID: "999"
+      STORAGE_CAPACITY: 2Gi
+      STORAGE_CLASS: longhorn-xfs
+      STORAGE_STAGING_CLASS: longhorn-scratch-xfs
+  dependsOn:
+    - name: cilium
+    - name: proxmox-csi
+    - name: sealed-secrets

@@ -13,8 +13,13 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: true
+  postBuild:
+    substitute:
+      APP: unifi-controller
+      STORAGE_CAPACITY: 500M
   dependsOn:
     - name: cilium
     - name: gateway-api
     - name: proxmox-csi
     - name: sealed-secrets
+    - name: unifi-mongodb

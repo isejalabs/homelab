@@ -91,4 +91,4 @@ spec:
             name: mongodb-init
         - name: mongodb-data
           persistentVolumeClaim:
-            claimName: mongodb-data
+            claimName: ${APP}
