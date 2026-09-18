@@ -7,10 +7,19 @@
 # docs/kopiur-backup-restore.md's "restore a specific older snapshot" procedure confirms live that patching
 # a Restore's own spec.source forces it to re-resolve on the next PVC claim, even though the object itself
 # isn't recreated. This script uses the same lever in the opposite direction: it points spec.source.fromPolicy
-# at a policy name that can never match a real Snapshot (nothing is named "<app>-bypass-restore"), so the
-# next PVC claim resolves NoSnapshot and -- since every Restore this repo generates sets
+# at a throwaway SnapshotPolicy, created here specifically so it can never have a real Snapshot under it, so
+# the next PVC claim resolves NoSnapshot and -- since every Restore this repo generates sets
 # spec.policy.onMissingSnapshot: Continue -- binds an empty volume, exactly like an app's very first deploy.
-# The app's actual snapshots are never touched.
+# The app's actual snapshots (and its real SnapshotPolicy) are never touched.
+#
+# fromPolicy.name has to reference a SnapshotPolicy that actually *exists* -- kopiur derives the repository
+# connection from it and won't even attempt resolution otherwise (Restore just stalls on "waiting for
+# SnapshotPolicy ... to exist" forever, confirmed live rebuild/unifi-mongodb, 2026-09-18). A policy name with
+# no matching object is not the same as a policy with no matching Snapshots, which is what earlier revisions
+# of this script assumed. So a minimal SnapshotPolicy is created under the bogus name before the Restore is
+# repointed at it: same repository as the app's real one (fiona), and a source PVC name guaranteed not to
+# exist (spec.sources requires at least one entry, but nothing ever reads it back -- no SnapshotSchedule
+# references this throwaway policy, so nothing ever tries to snapshot that nonexistent PVC either).
 #
 # Flux must stay suspended for the whole bypass window, not just during the delete/recreate step: resuming
 # it early would reconcile the Restore object back to its git-declared (real) policy name before the empty
@@ -102,13 +111,13 @@ KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpat
 
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
-    just log info "Suspending HelmRelease" "step" "1/8" "helmrelease" "${HR}" "namespace" "${HR_NS}"
+    just log info "Suspending HelmRelease" "step" "1/9" "helmrelease" "${HR}" "namespace" "${HR_NS}"
     flux --context "${CTX}" suspend helmrelease "${HR}" -n "${HR_NS}"
     resume() {
         flux --context "${CTX}" resume helmrelease "${HR}" -n "${HR_NS}"
     }
 elif [ -n "${KS}" ]; then
-    just log info "Suspending Kustomization" "step" "1/8" "kustomization" "${KS}"
+    just log info "Suspending Kustomization" "step" "1/9" "kustomization" "${KS}"
     flux --context "${CTX}" suspend kustomization "${KS}"
     resume() {
         flux --context "${CTX}" resume kustomization "${KS}"
@@ -118,31 +127,58 @@ else
     exit 1
 fi
 
-just log info "Scaling down" "step" "2/8" "deployment" "${DEPLOY}" "namespace" "${NS}"
+just log info "Scaling down" "step" "2/9" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
-# Points the Restore at a policy name that can never match a real Snapshot, so the next PVC claim below
-# resolves NoSnapshot instead of the app's real latest backup. Existing Snapshot/backup data is untouched.
-just log info "Pointing Restore at a bypass policy (no snapshots exist under this name)" "step" "3/8" "app" "${APP}" "bogus_policy" "${BOGUS_POLICY}"
+# Same repository as the app's real SnapshotPolicy, so kopiur can still derive/verify the backend connection;
+# the source PVC name is guaranteed not to exist, and nothing (no SnapshotSchedule) ever references this
+# policy to try snapshotting it anyway -- it exists purely so fromPolicy.name below resolves to a real object
+# with zero matching Snapshots, not to ever actually back anything up.
+just log info "Creating a throwaway SnapshotPolicy for the bypass" "step" "3/9" "bogus_policy" "${BOGUS_POLICY}"
+kubectl --context "${CTX}" apply -f - <<EOF
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: SnapshotPolicy
+metadata:
+  name: ${BOGUS_POLICY}
+  namespace: ${NS}
+spec:
+  repository:
+    kind: ClusterRepository
+    name: fiona
+  sources:
+    - pvc:
+        name: ${BOGUS_POLICY}-nonexistent
+EOF
+
+# Points the Restore at that throwaway policy, so the next PVC claim below resolves NoSnapshot instead of the
+# app's real latest backup. Existing Snapshot/backup data and the app's real SnapshotPolicy are untouched.
+just log info "Pointing Restore at the bypass policy" "step" "4/9" "app" "${APP}" "bogus_policy" "${BOGUS_POLICY}"
 kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
     -p "{\"spec\":{\"source\":{\"fromPolicy\":{\"name\":\"${BOGUS_POLICY}\",\"offset\":0}}}}"
 
 # Flux stays suspended, so the PVC has to be recreated manually rather than relying on a reconcile -- dump
-# it first so the recreated PVC matches what git/Flux already declared (size, storageClass, etc.).
+# it first so the recreated PVC matches what git/Flux already declared (size, storageClass, etc.). The dump
+# must have its binding-related fields stripped before being reapplied: a Bound PVC's own `get -o yaml`
+# includes spec.volumeName pinned to its *current* PV, and reapplying that verbatim recreates a PVC statically
+# pinned to that same (by then Released, not Available -- storage-class reclaimPolicy is Retain) PV instead of
+# going through fresh dynamic provisioning, which never reaches the CSI populator/Restore at all and leaves
+# the PVC stuck in phase Lost. Confirmed live (rebuild, unifi-mongodb, 2026-09-18).
 TMP_PVC=$(mktemp)
 trap 'rm -f "${TMP_PVC}"' EXIT
-just log info "Deleting and recreating the PVC against the bypass policy" "step" "4/8" "app" "${APP}" "namespace" "${NS}"
-kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o yaml >"${TMP_PVC}"
+just log info "Deleting and recreating the PVC against the bypass policy" "step" "5/9" "app" "${APP}" "namespace" "${NS}"
+kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o json \
+    | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.finalizers, .metadata.annotations, .spec.volumeName, .status)' \
+        >"${TMP_PVC}"
 kubectl --context "${CTX}" delete pvc "${APP}" -n "${NS}" --wait=true
 kubectl --context "${CTX}" apply -f "${TMP_PVC}"
 
 # WaitForFirstConsumer storage classes only bind once something tries to mount the PVC -- scale back up
 # before waiting for Bound, same reasoning as kopiur-restore.sh.
-just log info "Scaling back up" "step" "5/8" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
+just log info "Scaling back up" "step" "6/9" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas="${ORIG_REPLICAS}"
 
-just log info "Waiting for the blank PVC to bind" "step" "6/8"
+just log info "Waiting for the blank PVC to bind" "step" "7/9"
 PHASE=""
 for _ in $(seq 1 60); do
     PHASE=$(kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
@@ -152,18 +188,19 @@ for _ in $(seq 1 60); do
 done
 
 if [ "${PHASE}" != "Bound" ]; then
-    just log fatal "PVC did not reach Bound within the timeout -- check manually. Flux is still suspended and the Restore is still pointed at the bypass policy; fix up and resume manually" "last_phase" "${PHASE:-unknown}" "kustomization_or_helmrelease" "${KS}${HR}"
+    just log fatal "PVC did not reach Bound within the timeout -- check manually. Flux is still suspended, the Restore is still pointed at the bypass policy, and the throwaway SnapshotPolicy ${BOGUS_POLICY} still exists; fix up and resume manually" "last_phase" "${PHASE:-unknown}" "kustomization_or_helmrelease" "${KS}${HR}"
     exit 1
 fi
 
-just log info "Blank volume is bound and ${DEPLOY} is back up. Go do the data import now (e.g. the app's own import/export tooling)." "step" "7/8"
+just log info "Blank volume is bound and ${DEPLOY} is back up. Go do the data import now (e.g. the app's own import/export tooling)." "step" "8/9"
 printf 'Press Enter once the import is done, to restore normal restore-on-loss wiring and resume Flux: '
 # shellcheck disable=SC2034 # the read value itself is unused, only the pause matters
 read -r _confirm
 
-just log info "Reverting Restore to its normal policy and resuming Flux" "step" "8/8" "app" "${APP}"
+just log info "Reverting Restore to its normal policy, cleaning up the throwaway SnapshotPolicy, and resuming Flux" "step" "9/9" "app" "${APP}"
 kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
     -p "{\"spec\":{\"source\":{\"fromPolicy\":{\"name\":\"${APP}\",\"offset\":0}}}}"
+kubectl --context "${CTX}" delete snapshotpolicy "${BOGUS_POLICY}" -n "${NS}"
 resume
 
 just log info "Done."

@@ -142,8 +142,15 @@ The steps above restore the **latest** backup — the app's `Restore` object (fr
 ❯ kubectl patch restore <app> -n <namespace> --type merge \
     -p '{"spec":{"source":{"fromPolicy":null,"snapshotRef":{"name":"<snapshot-name>"}}}}'
 
-# save the PVC's manifest, then delete it -- Flux staying suspended means nothing will recreate it for you
-❯ kubectl get pvc <app> -n <namespace> -o yaml > /tmp/<app>-pvc.yaml
+# save the PVC's manifest (stripped of its binding-related fields -- reapplying a Bound PVC's raw `get -o yaml`
+# verbatim pins spec.volumeName to its *current* PV, so the recreated PVC statically binds to that same PV
+# instead of going through fresh dynamic provisioning; since the storage class here is reclaimPolicy: Retain,
+# that PV is Released, not Available, once the PVC below is deleted, and the recreated PVC gets stuck in phase
+# Lost instead of ever reaching the CSI populator. Confirmed live, 2026-09-18), then delete it -- Flux staying
+# suspended means nothing will recreate it for you
+❯ kubectl get pvc <app> -n <namespace> -o json \
+    | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.finalizers, .metadata.annotations, .spec.volumeName, .status)' \
+    > /tmp/<app>-pvc.yaml
 ❯ kubectl delete pvc <app> -n <namespace>
 
 # manually recreate the PVC and scale the app back up -- *not* `flux resume`, which is exactly what
