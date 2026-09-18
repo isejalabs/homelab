@@ -94,7 +94,7 @@ DEPLOY="${DEPLOY:-${APP}}"
 CTX=$(kubecontext_for_environment "${ENV}")
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "PVC not found" "app" "${APP}" "namespace" "${NS}"
+    just log fatal "PVC not found -- <app> is the storage/kopiur name (same as the PVC itself), not necessarily the Deployment name; if this app's Deployment is named differently, pass --deploy too (e.g. unifi-mongodb's Deployment is named mongodb)" "app" "${APP}" "namespace" "${NS}" "deploy" "${DEPLOY}"
     exit 1
 fi
 
