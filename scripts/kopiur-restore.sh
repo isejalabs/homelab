@@ -142,7 +142,7 @@ fi
 # lets the PVC below be deleted cleanly - a still-mounted PVC can't be deleted.
 just log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
-kubectl --context "${CTX}" wait pod -l app="${APP}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
+kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
 # Both the PVC and its Restore object must go together (see header comment) so kopiur re-resolves a fresh
 # snapshot on recreation instead of reusing whatever it pinned the first time.
