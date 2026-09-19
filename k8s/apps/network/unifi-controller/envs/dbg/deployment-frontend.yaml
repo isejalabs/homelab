@@ -9,4 +9,4 @@ spec:
   template:
     spec:
       nodeSelector:
-        topology.kubernetes.io/zone: pve5
+        topology.kubernetes.io/zone: pve6
