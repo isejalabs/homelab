@@ -94,7 +94,7 @@ DEPLOY="${DEPLOY:-${APP}}"
 CTX=$(kubecontext_for_environment "${ENV}")
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "PVC not found" "app" "${APP}" "namespace" "${NS}"
+    just log fatal "PVC not found -- <app> is the storage/kopiur name (same as the PVC itself), not necessarily the Deployment name; if this app's Deployment is named differently, pass --deploy too (e.g. unifi-mongodb's Deployment is named mongodb)" "app" "${APP}" "namespace" "${NS}" "deploy" "${DEPLOY}"
     exit 1
 fi
 
@@ -142,7 +142,7 @@ fi
 # lets the PVC below be deleted cleanly - a still-mounted PVC can't be deleted.
 just log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
-kubectl --context "${CTX}" wait pod -l app="${APP}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
+kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
 # Both the PVC and its Restore object must go together (see header comment) so kopiur re-resolves a fresh
 # snapshot on recreation instead of reusing whatever it pinned the first time.
