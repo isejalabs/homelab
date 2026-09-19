@@ -7,9 +7,8 @@
 
 set -eu
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
 
 # `terragrunt validate` alone always configures the real S3 backend first (and fails without cloud
 # creds/state access), so each unit is init'd with `-backend=false` before validating - this checks
@@ -31,20 +30,20 @@ while IFS= read -r cfg; do
     case "$dir" in terragrunt/*/*/src/*) continue ;; esac
 
     if ! out=$(terragrunt run --non-interactive --working-dir "$dir" -- init -backend=false -input=false 2>&1); then
-        printf "${RED}terragrunt init failed: %s${NC}\n" "$dir"
-        echo "$out"
+        log_debug_output "$out"
+        just log error "terragrunt init failed" "unit" "$dir"
         status=1
         continue
     fi
 
     if ! out=$(terragrunt run --non-interactive --working-dir "$dir" -- validate -no-color 2>&1); then
-        printf "${RED}terragrunt validate failed: %s${NC}\n" "$dir"
-        echo "$out"
+        log_debug_output "$out"
+        just log error "terragrunt validate failed" "unit" "$dir"
         status=1
         continue
     fi
 
-    printf "${GREEN}OK: %s${NC}\n" "$dir"
+    just log info "OK" "unit" "$dir"
 done < "$list"
 
 exit $status

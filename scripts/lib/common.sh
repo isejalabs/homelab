@@ -1,8 +1,7 @@
 # shellcheck shell=sh
-# Shared helpers for scripts that need to validate an environment identifier, build the kubecontext for one,
-# or report an unrecognized flag -- logic that was previously duplicated across kopiur-create.sh,
-# kopiur-list.sh, and kopiur-restore.sh. Sourced, not executed directly, and POSIX `sh` only (both `sh` and
-# `bash` callers source it) -- see #1275.
+# Shared helpers for scripts/'s own scripts: environment validation, kubecontext construction, unrecognized-
+# flag handling, and logging a captured subprocess's output at `debug` level. Sourced, not executed directly,
+# and POSIX `sh` only (both `sh` and `bash` callers source it) -- see #1275.
 #
 # Usage (from a script living directly under scripts/):
 #   SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -42,4 +41,14 @@ kubecontext_for_environment() {
 unknown_flag() {
     just log error "unknown flag" "flag" "$1"
     usage
+}
+
+# Emits each line of $1 (typically a captured subprocess's combined stdout/stderr) as its own `debug`-level
+# gum log line. Calls gum directly rather than going through the `just log` wrapper: `just`'s own template
+# substitution mangles embedded double-quote characters, and gum log collapses embedded newlines within a
+# single message into one unreadable run-on line -- splitting into one gum log call per line sidesteps both.
+log_debug_output() {
+    printf '%s\n' "$1" | while IFS= read -r line; do
+        gum log -t rfc3339 -s -l debug -- "$line"
+    done
 }
