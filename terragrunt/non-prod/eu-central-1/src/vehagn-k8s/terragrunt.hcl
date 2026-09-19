@@ -123,7 +123,7 @@ inputs = {
     #   # update        = true
     # }
     # "${local.env}-ctrl-03.${local.domain}" = {
-    #   host_node     = "pve5"
+    #   host_node     = "pve6"
     #   machine_type  = "controlplane"
     #   ip            = "10.7.8.153"
     #   vm_id         = 7008153
