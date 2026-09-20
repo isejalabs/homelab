@@ -3,4 +3,4 @@
 # Sourced by CI to pin the `renovate` npm package version whose bundled
 # `renovate-config-validator` binary validates .github/renovate*.
 # shellcheck disable=SC2034
-RENOVATE_VERSION="44.95.0" # renovate: npm=renovate
+RENOVATE_VERSION="44.96.0" # renovate: npm=renovate
