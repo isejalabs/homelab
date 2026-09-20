@@ -19,32 +19,23 @@ list_environments() {
     find "${REPO_ROOT}/k8s/components/envs" -mindepth 1 -maxdepth 1 -type d ! -name base -exec basename {} \; | sort
 }
 
-# Exits fatal (via `just log`) unless $1 is one of list_environments' entries. Also rejects an empty $1 (an
-# omitted -e/--environment), rather than silently treating it as valid -- an earlier space-joined `case`
-# pattern (`*" ${env} "*` against `list_environments | tr '\n' ' '`) accidentally matched an empty env against
-# the trailing double space that construction left at the end of the joined string (one space from tr
-# converting the list's own trailing newline, one from the pattern's own literal padding), letting a missing
-# -e slip through uncaught into whatever called this. Confirmed live, 2026-09-18 (#1287 review). grep -Fx
-# against one-environment-per-line output has no equivalent padding/substring pitfall.
+# Exits fatal (via `just log`) unless $1 is one of list_environments' entries.
 validate_environment() {
     env="$1"
-    if ! list_environments | grep -qFx "${env}"; then
-        just log fatal "-e/--environment must be one of: $(list_environments | paste -sd ' ' -)" "got" "${env}"
-        exit 1
-    fi
+    case " $(list_environments | tr '\n' ' ') " in
+        *" ${env} "*) ;;
+        *)
+            just log fatal "-e/--environment must be one of: $(list_environments | paste -sd ' ' -)" "got" "${env}"
+            exit 1
+            ;;
+    esac
 }
 
 # Prints the kubecontext name for an environment, following the convention every Talos-generated kubeconfig
 # in this repo uses ("admin@<env>-homelab"). Prints nothing for an empty/unset environment, so callers can
-# use this unconditionally and fall back to whatever kubecontext is already current. Always returns 0, even
-# then -- otherwise `CTX=$(kubecontext_for_environment "")` becomes a failing simple command under `set -e`,
-# silently killing any caller that (like kopiur-restore.sh/kopiur-bypass-restore.sh) doesn't already guard
-# every call site with `[ -n "${ENV}" ] &&` the way kopiur-list.sh/kopiur-create.sh do. Confirmed live,
-# 2026-09-18 (#1287 review) -- masked at the time by the validate_environment bug above letting an empty env
-# reach this function at all in scripts that call validate_environment unconditionally first.
+# use this unconditionally and fall back to whatever kubecontext is already current.
 kubecontext_for_environment() {
     [ -n "$1" ] && printf 'admin@%s-homelab' "$1"
-    return 0
 }
 
 # Shared body for an unrecognized flag's `-*)` case arm: logs it, then defers to the caller's own usage().
