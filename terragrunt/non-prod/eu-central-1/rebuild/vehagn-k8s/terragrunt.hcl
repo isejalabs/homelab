@@ -123,7 +123,7 @@ inputs = {
     #   # update        = true
     # }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve6"
       machine_type  = "controlplane"
       ip            = "10.7.8.173"
       vm_id         = 7008173
@@ -164,7 +164,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve6"
       machine_type  = "worker"
       ip            = "10.7.8.176"
       vm_id         = 7008176
@@ -184,18 +184,6 @@ inputs = {
   }
 
   volumes = {
-    pv-mongodb = {
-      node      = "pve5"
-      size      = include.envcommon.locals.pv-mongodb_size
-      vmid      = local.storage_vmid
-      datastore = local.datastore
-    }
-    pv-unifi = {
-      node      = "pve5"
-      size      = include.envcommon.locals.pv-unifi_size
-      vmid      = local.storage_vmid
-      datastore = local.datastore
-    }
     longhorn = {
       size = include.envcommon.locals.disk_longhorn-medium
       type = "disk"

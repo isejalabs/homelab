@@ -30,3 +30,15 @@ create app="" environment="" namespace="" all_namespaces="false" all="false":
 [doc('Restore an app from its latest kopiur snapshot (-e/--environment -n <ns> required; deletes and repopulates its PVC)')]
 restore app *flags:
     "{{ justfile_directory() }}/scripts/kopiur-restore.sh" {{ app }} {{ flags }}
+
+[doc('Give an app a blank PVC, bypassing (not deleting) its existing kopiur backups, for importing data by other means (e.g. from another environment) -- interactive: waits for confirmation before restoring normal restore-on-loss wiring (-e/--environment -n <ns> required)')]
+bypass-restore app *flags:
+    "{{ justfile_directory() }}/scripts/kopiur-bypass-restore.sh" {{ app }} {{ flags }}
+
+[doc('Migrate an app from an old (e.g. proxmox-csi) PVC onto its new kopiur-managed PVC (-e/--environment -n <ns> --old-pvc required)')]
+migrate new_pvc *flags:
+    "{{ justfile_directory() }}/scripts/kopiur-migrate-pvc.sh" {{ new_pvc }} {{ flags }}
+
+[doc('Convert an existing kopiur-managed PVC onto a different StorageClass in place, e.g. ext4 -> xfs (-e/--environment -n <ns> --storage-class required)')]
+convert-storage-class pvc *flags:
+    "{{ justfile_directory() }}/scripts/kopiur-convert-storageclass.sh" {{ pvc }} {{ flags }}

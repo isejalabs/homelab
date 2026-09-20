@@ -22,9 +22,9 @@ spec:
         - name: unifi-network-application
           env:
             - name: PUID
-              value: "999"
+              value: "1000"
             - name: PGID
-              value: "999"
+              value: "1000"
             - name: TZ
               value: Europe/Berlin
             - name: MONGO_USER
@@ -45,7 +45,7 @@ spec:
               value: unifidb
             - name: MONGO_AUTHSOURCE
               value: admin
-          image: lscr.io/linuxserver/unifi-network-application:10.6.101@sha256:ccadcad5c640c91388d79e66a3751e4de3c9accdcef181f76c142aeca612214d
+          image: lscr.io/linuxserver/unifi-network-application:10.6.106@sha256:7f15f34937ce928b36d915a0ad4ab6a915a0c34e87affa10c47d09ad1341b848
           ports:
             # required
             - name: web-admin
@@ -89,8 +89,6 @@ spec:
           volumeMounts:
             - name: unifi-controller-data
               mountPath: /config
-      nodeSelector:
-        topology.kubernetes.io/zone: pve4
       securityContext:
         runAsNonRoot: false
         # runAsNonRoot: true
@@ -103,6 +101,6 @@ spec:
       volumes:
         - name: unifi-controller-data
           persistentVolumeClaim:
-            claimName: unifi-controller-data
+            claimName: ${APP}
 #    volumes:
 #      - /srv/docker-compose/hosts/unifi/data:/config
