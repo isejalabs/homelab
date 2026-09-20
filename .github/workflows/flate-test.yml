@@ -14,5 +14,5 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
       with:
-        install_args: github:home-operations/flate gum just
+        install_args: github:home-operations/flate gum
     - run: scripts/flate-test-all.sh

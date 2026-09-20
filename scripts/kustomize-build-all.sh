@@ -39,7 +39,7 @@ while IFS= read -r kustomization; do
 
     if ! manifests=$(kubectl kustomize "$dir" 2>&1); then
         log_debug_output "$manifests"
-        just log error "kustomize build failed" "unit" "$dir"
+        log error "kustomize build failed" "unit" "$dir"
         status=1
         continue
     fi
@@ -49,12 +49,12 @@ while IFS= read -r kustomization; do
         -schema-location default \
         -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
         -summary; then
-        just log error "kubeconform failed" "unit" "$dir"
+        log error "kubeconform failed" "unit" "$dir"
         status=1
         continue
     fi
 
-    just log info "OK" "unit" "$dir"
+    log info "OK" "unit" "$dir"
 done < "$list"
 
 exit $status

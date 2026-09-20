@@ -79,12 +79,12 @@ done
 validate_environment "${ENV}"
 
 if [ -z "${NS}" ]; then
-    just log fatal "-n/--namespace is required"
+    log fatal "-n/--namespace is required"
     exit 1
 fi
 
 if [ -z "${APP}" ]; then
-    just log error "app name is required"
+    log error "app name is required"
     usage
 fi
 
@@ -94,12 +94,12 @@ DEPLOY="${DEPLOY:-${APP}}"
 CTX=$(kubecontext_for_environment "${ENV}")
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "PVC not found" "app" "${APP}" "namespace" "${NS}"
+    log fatal "PVC not found" "app" "${APP}" "namespace" "${NS}"
     exit 1
 fi
 
 if ! kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "Deployment not found (pass --deploy if the deployment name differs from the app name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
+    log fatal "Deployment not found (pass --deploy if the deployment name differs from the app name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
     exit 1
 fi
 
@@ -122,38 +122,38 @@ PVC_KS_NS="${PVC_KS_NS:-flux-system}"
 # steps below, and defines `resume` (called in step 4) to resume that same object afterward.
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
-    just log info "Suspending HelmRelease" "step" "1/6" "helmrelease" "${HR}" "namespace" "${HR_NS}"
+    log info "Suspending HelmRelease" "step" "1/6" "helmrelease" "${HR}" "namespace" "${HR_NS}"
     flux --context "${CTX}" suspend helmrelease "${HR}" -n "${HR_NS}"
     resume() {
         flux --context "${CTX}" resume helmrelease "${HR}" -n "${HR_NS}"
     }
 elif [ -n "${KS}" ]; then
-    just log info "Suspending Kustomization" "step" "1/6" "kustomization" "${KS}"
+    log info "Suspending Kustomization" "step" "1/6" "kustomization" "${KS}"
     flux --context "${CTX}" suspend kustomization "${KS}"
     resume() {
         flux --context "${CTX}" resume kustomization "${KS}"
     }
 else
-    just log fatal "could not determine the owning Flux object for this deployment (no helm.toolkit.fluxcd.io/name or kustomize.toolkit.fluxcd.io/name label -- is it managed by Flux at all?)" "namespace" "${NS}" "deployment" "${DEPLOY}"
+    log fatal "could not determine the owning Flux object for this deployment (no helm.toolkit.fluxcd.io/name or kustomize.toolkit.fluxcd.io/name label -- is it managed by Flux at all?)" "namespace" "${NS}" "deployment" "${DEPLOY}"
     exit 1
 fi
 
 # Scaling to 0 (rather than deleting the Deployment) and waiting for its pods to actually terminate is what
 # lets the PVC below be deleted cleanly - a still-mounted PVC can't be deleted.
-just log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
+log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${APP}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
 # Both the PVC and its Restore object must go together (see header comment) so kopiur re-resolves a fresh
 # snapshot on recreation instead of reusing whatever it pinned the first time.
-just log info "Deleting PVC and Restore object" "step" "3/6" "app" "${APP}" "namespace" "${NS}"
+log info "Deleting PVC and Restore object" "step" "3/6" "app" "${APP}" "namespace" "${NS}"
 kubectl --context "${CTX}" delete pvc "${APP}" -n "${NS}" --wait=true
 kubectl --context "${CTX}" delete restore "${APP}" -n "${NS}" --wait=true
 
 # Resumes the HelmRelease/Kustomization suspended in step 1, then, for the Helm-based case, also
 # force-reconciles the PVC's own owning Kustomization (see header comment) since resuming the HelmRelease
 # alone doesn't touch it.
-just log info "Resuming" "step" "4/6" "deployment" "${DEPLOY}"
+log info "Resuming" "step" "4/6" "deployment" "${DEPLOY}"
 resume
 if [ -n "${PVC_KS}" ] && [ "${PVC_KS}" != "${KS}" ]; then
     # Only needs to trigger the reconcile, not block on flux's own --wait
@@ -169,24 +169,24 @@ fi
 # required either way: its StorageClass is WaitForFirstConsumer, so it only
 # binds once a pod tries to mount it, and nothing schedules that pod while
 # replicas is still 0.
-just log info "Scaling back up" "step" "5/6" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
+log info "Scaling back up" "step" "5/6" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas="${ORIG_REPLICAS}"
 
 # Polls up to 5 minutes (60 * 5s) for the recreated PVC to reach Bound - the real signal that the populator
 # finished restoring from the snapshot, since neither `flux resume`/`reconcile` nor `kubectl scale` above
 # block on that.
-just log info "Waiting for the new PVC to bind (populating from the latest snapshot)" "step" "6/6"
+log info "Waiting for the new PVC to bind (populating from the latest snapshot)" "step" "6/6"
 PHASE=""
 for _ in $(seq 1 60); do
     PHASE=$(kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
     [ "${PHASE}" = "Bound" ] && break
-    just log debug "waiting for PVC to bind" "phase" "${PHASE:-Pending}"
+    log debug "waiting for PVC to bind" "phase" "${PHASE:-Pending}"
     sleep 5
 done
 
 if [ "${PHASE}" != "Bound" ]; then
-    just log fatal "PVC did not reach Bound within the timeout -- check manually" "last_phase" "${PHASE:-unknown}"
+    log fatal "PVC did not reach Bound within the timeout -- check manually" "last_phase" "${PHASE:-unknown}"
     exit 1
 fi
 
-just log info "Done."
+log info "Done."

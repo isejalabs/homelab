@@ -31,19 +31,19 @@ while IFS= read -r cfg; do
 
     if ! out=$(terragrunt run --non-interactive --working-dir "$dir" -- init -backend=false -input=false 2>&1); then
         log_debug_output "$out"
-        just log error "terragrunt init failed" "unit" "$dir"
+        log error "terragrunt init failed" "unit" "$dir"
         status=1
         continue
     fi
 
     if ! out=$(terragrunt run --non-interactive --working-dir "$dir" -- validate -no-color 2>&1); then
         log_debug_output "$out"
-        just log error "terragrunt validate failed" "unit" "$dir"
+        log error "terragrunt validate failed" "unit" "$dir"
         status=1
         continue
     fi
 
-    just log info "OK" "unit" "$dir"
+    log info "OK" "unit" "$dir"
 done < "$list"
 
 exit $status

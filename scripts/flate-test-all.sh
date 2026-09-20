@@ -25,12 +25,12 @@ for env in $(list_environments); do
     dir="k8s/bootstrap/cluster/flux/envs/$env"
 
     if ! flate test all --path "$dir"; then
-        just log error "flate test failed" "unit" "$dir"
+        log error "flate test failed" "unit" "$dir"
         status=1
         continue
     fi
 
-    just log info "OK" "unit" "$dir"
+    log info "OK" "unit" "$dir"
 done
 
 exit $status

@@ -21,7 +21,7 @@ while [[ $# -gt 0 ]]; do
         shift
         ;;
     *)
-        just log fatal "unknown option" "flag" "$1"
+        log fatal "unknown option" "flag" "$1"
         exit 1
         ;;
     esac
@@ -38,13 +38,13 @@ find . -regextype egrep -regex "\.\/.+\/.*.sops.yaml" -type f | while IFS= read 
 
         # Compare the decrypted version with the existing decrypted file
         if cmp -s "$decrypted_file" "$decrypted_temp"; then
-            just log info "no changes detected, skipping decryption" "file" "$file"
+            log info "no changes detected, skipping decryption" "file" "$file"
         else
             if [ "$force" = true ]; then
                 mv "$decrypted_temp" "$decrypted_file"
-                just log warn "file replaced with decrypted content" "file" "$decrypted_file"
+                log warn "file replaced with decrypted content" "file" "$decrypted_file"
             else
-                just log warn "changes detected, use -f/--force to overwrite" "file" "$file"
+                log warn "changes detected, use -f/--force to overwrite" "file" "$file"
             fi
         fi
 
@@ -53,7 +53,7 @@ find . -regextype egrep -regex "\.\/.+\/.*.sops.yaml" -type f | while IFS= read 
         fi
     else
         # No decrypted file exists, decrypt and create it
-        just log info "decrypting" "file" "$file"
+        log info "decrypting" "file" "$file"
         sops --decrypt "$file" >"$decrypted_file"
     fi
 done

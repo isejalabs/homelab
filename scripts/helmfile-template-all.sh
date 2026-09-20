@@ -22,12 +22,12 @@ for target in crds apps; do
     for env in $envs; do
         if ! out=$(helmfile -f "k8s/bootstrap/helmfile/$target" -e "$env" template -q 2>&1); then
             log_debug_output "$out"
-            just log error "helmfile template failed" "target" "$target" "env" "$env"
+            log error "helmfile template failed" "target" "$target" "env" "$env"
             status=1
             continue
         fi
 
-        just log info "OK" "target" "$target" "env" "$env"
+        log info "OK" "target" "$target" "env" "$env"
     done
 done
 

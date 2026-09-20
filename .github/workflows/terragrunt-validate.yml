@@ -20,7 +20,7 @@ jobs:
     - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
     - uses: jdx/mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v4.3.0
       with:
-        install_args: gum just opentofu terragrunt
+        install_args: gum opentofu terragrunt
     - run: tofu fmt -check -recursive terragrunt/
     - run: terragrunt hcl format --check --diff --working-dir terragrunt
     - run: scripts/terragrunt-validate-all.sh

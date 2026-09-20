@@ -26,16 +26,16 @@ while IFS= read -r path; do
 
             # Compare the decrypted version with the file on disk
             if cmp -s "$file" "$decrypted_temp"; then
-                just log info "no changes detected, skipping encryption" "file" "$file"
+                log info "no changes detected, skipping encryption" "file" "$file"
             else
-                just log info "changes detected, re-encrypting" "file" "$file"
+                log info "changes detected, re-encrypting" "file" "$file"
                 sops --encrypt "$file" >"$encrypted_file"
             fi
 
             rm "$decrypted_temp"
         else
             # No encrypted version exists, encrypt the file
-            just log info "encrypting (no existing encrypted sibling)" "file" "$file"
+            log info "encrypting (no existing encrypted sibling)" "file" "$file"
             sops --encrypt "$file" >"$encrypted_file"
         fi
     done
