@@ -8,5 +8,4 @@ resources:
   - ../../base
 
 patches:
-  - path: deployment-frontend.yaml
   - path: svc-frontend.yaml
