@@ -18,7 +18,7 @@
 - `.pre-commit-config.yaml` (~140 tok)
 - `.sops.yaml` (~193 tok)
 - `AGENTS.md` — Agent Instructions (~4427 tok)
-- `CLAUDE.md` — OpenWolf (~4526 tok)
+- `CLAUDE.md` — Claude-specific instructions (~139 tok)
 - `LICENSE` — Project license (~3029 tok)
 - `README.md` — Project documentation (~2162 tok)
 
