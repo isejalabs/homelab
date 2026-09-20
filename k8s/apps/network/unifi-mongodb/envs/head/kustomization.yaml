@@ -8,5 +8,4 @@ resources:
   - ../../base
 
 patches:
-  - path: deployment.yaml
   - path: version.yaml

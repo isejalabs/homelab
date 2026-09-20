@@ -89,8 +89,6 @@ spec:
           volumeMounts:
             - name: unifi-controller-data
               mountPath: /config
-      nodeSelector:
-        topology.kubernetes.io/zone: pve4
       securityContext:
         runAsNonRoot: false
         # runAsNonRoot: true

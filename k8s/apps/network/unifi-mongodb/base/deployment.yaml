@@ -74,8 +74,6 @@ spec:
               subPath: init-mongo.sh
             - name: mongodb-data
               mountPath: /data/db
-      nodeSelector:
-        topology.kubernetes.io/zone: pve4
       securityContext:
         runAsNonRoot: false
         # runAsNonRoot: true

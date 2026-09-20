@@ -170,19 +170,6 @@ inputs = {
   }
 
   volumes = {
-    pv-mongodb = {
-      node      = "pve4"
-      size      = include.envcommon.locals.pv-mongodb_size
-      vmid      = local.storage_vmid
-      datastore = local.datastore
-    }
-    pv-unifi = {
-      node      = "pve4"
-      size      = include.envcommon.locals.pv-unifi_size
-      vmid      = local.storage_vmid
-      datastore = local.datastore
-      # datastore = "local" 
-    }
     longhorn = {
       size = include.envcommon.locals.disk_longhorn-small
       type = "disk"
