@@ -128,6 +128,36 @@ Every non-prod environment's domain gets an environment prefix via the
 [`k8s/components/envs/<env>/kustomization.yaml`](../../k8s/components/envs/) files, each including
 `../../transformers/prefix-domain`; prod's is the only one that comments it out.
 
+## Environment ID
+
+Beyond its name, each environment also has a single-digit numeric ID, used wherever a name doesn't fit into a
+fixed-width identifier:
+
+| env | ID |
+| --- | --- |
+| `head` | 1 |
+| `qa` | 2 |
+| `dev` | 3 |
+| `src` | 5 |
+| `poc` | 6 |
+| `rebuild` | 7 |
+| `prod` | 8 |
+| `dbg` | 9 |
+
+Two places this shows up, both confirmed against the current values in the repo:
+
+- **Proxmox VM IDs** — each `vehagn-k8s` Terragrunt module
+  (`terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`) assigns its nodes' `vm_id`s in the form
+  `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a per-node counter (`1`-`3` for
+  control-plane nodes, `4`+ for workers) — e.g. `prod`'s nodes are `7008181`–`7008186` (`id=8`), `qa`'s are
+  `7008121`–`7008126` (`id=2`).
+- **BGP ASN** — each environment's
+  [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) sets
+  `localASN` to `6452<id>` — e.g. `prod` (`id=8`) peers as ASN `64528` (see
+  [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement) for the BGP setup this feeds into),
+  `poc` (`id=6`) as `64526`. The peer ASN (`64520`, the OPNsense routers) is fixed and unrelated to this
+  scheme.
+
 ## What each environment is for
 
 - **`prod`** — production. Only environment with a full 3-controlplane HA topology, its own separately
