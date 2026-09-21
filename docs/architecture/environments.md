@@ -144,21 +144,55 @@ fixed-width identifier:
 | `prod` | 8 |
 | `dbg` | 9 |
 
-Two places this shows up, both confirmed against the current values in the repo:
+Four places this shows up, all confirmed against the current values in the repo:
 
 - **Proxmox VM IDs** — each `vehagn-k8s` Terragrunt module
   (`terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`) assigns its nodes' `vm_id`s in the form
-  `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a per-node counter (`1`-`3` for
-  control-plane nodes, `4`+ for workers) — e.g. `prod`'s nodes are `7008181`–`7008186` (`id=8`), `qa`'s are
-  `7008121`–`7008126` (`id=2`). `just proxmox::{list,snapshot,rollback}` (see
-  [`docs/proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md)) leans on this exact scheme to discover an
-  environment's VMs via the Proxmox API.
+  `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a single-digit per-node counter
+  (`1`-`3` reserved for control-plane nodes, `4`-`9` for workers) — a full range of `70081<id>1`–`70081<id>9`
+  per environment, e.g. `head`'s (`id=1`) is `7008111`–`7008119`. Most environments only populate a subset of
+  that range (`prod`'s active nodes are `7008181`–`7008186`, `qa`'s are `7008121`–`7008126`); the unused
+  higher slots are just headroom the scheme leaves for extra workers, not actual VMs. `just
+  proxmox::{list,snapshot,rollback}` (see [`docs/proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md))
+  leans on this exact scheme to discover an environment's VMs via the Proxmox API, matching the full `1`-`9`
+  range rather than assuming any fixed node count.
 - **BGP ASN** — each environment's
   [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) sets
   `localASN` to `6452<id>` — e.g. `prod` (`id=8`) peers as ASN `64528` (see
   [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement) for the BGP setup this feeds into),
   `poc` (`id=6`) as `64526`. The peer ASN (`64520`, the OPNsense routers) is fixed and unrelated to this
   scheme.
+- **Cilium LB IPAM pool** — each environment's
+  [`CiliumLoadBalancerIPPool`](../../k8s/infra/kube-system/cilium/envs/) (named `bgp-pool`) carves its block
+  out of `10.8.<id>.0/24` — the same `<id>` as this table, e.g. `prod` (`id=8`) gets `10.8.8.0/24`, `poc`
+  (`id=6`) gets `10.8.6.0/24`. See [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement) for
+  the full per-environment pool table and how that address space feeds BGP.
+- **Kubernetes API VIP** — each environment's control-plane VIP (`vip` in its `vehagn-k8s/terragrunt.hcl`,
+  e.g. [`head`'s](../../terragrunt/non-prod/eu-central-1/head/vehagn-k8s/terragrunt.hcl)) sits at
+  `10.7.8.1<id>0` — e.g. `head` (`id=1`) is `10.7.8.110`, `prod` (`id=8`) is `10.7.8.180`. That VIP is also
+  where the cluster's API is reachable by hostname, via the `certSANs` entry each module sets:
+  `<env>-homelab-k8s-api.<domain>` (`domain` is `test.iseja.net` for every non-prod environment, `home.iseja.net`
+  for `prod`) — e.g. `prod-homelab-k8s-api.home.iseja.net` for `prod`, `dev-homelab-k8s-api.test.iseja.net` for
+  `dev`.
+
+All four schemes key off the same single-digit ID, so the first three are summarized once here (the API VIP/
+hostname isn't a fixed-width column, see the bullet above):
+
+| env | ID | VM ID range | BGP ASN | LB IP pool |
+| --- | --- | --- | --- | --- |
+| `head` | 1 | `7008111`–`7008119` | `64521` | `10.8.1.0/24` |
+| `qa` | 2 | `7008121`–`7008129` | `64522` | `10.8.2.0/24` |
+| `dev` | 3 | `7008131`–`7008139` | `64523` | `10.8.3.0/24` |
+| `src` | 5 | `7008151`–`7008159` | `64525` | `10.8.5.0/24` |
+| `poc` | 6 | `7008161`–`7008169` | `64526` | `10.8.6.0/24` |
+| `rebuild` | 7 | `7008171`–`7008179` | `64527` | `10.8.7.0/24` |
+| `prod` | 8 | `7008181`–`7008189` | `64528` | `10.8.8.0/24` |
+| `dbg` | 9 | `7008191`–`7008199` | `64529` | `10.8.9.0/24` |
+
+The VM ID range is the full `<n>`-digit range the scheme allows (`1`-`9`), not what's actually defined —
+most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s active nodes are
+`7008181`–`7008186`, `dbg`'s slots reserved-but-commented-out top out at `7008196`), and `poc`/`src` stop at
+`<n>=5` (only 5 node blocks defined at all). `<n>=7`-`9` is unused headroom everywhere today.
 
 ## What each environment is for
 
@@ -183,13 +217,17 @@ Two places this shows up, both confirmed against the current values in the repo:
   newest Talos/Kubernetes versions of any environment. Runs the full app set, so it's a live,
   continuously-updated real deployment used to catch breakage from new versions early — its
   dependency-update policy (see [`docs/update handling.md`](../update%20handling.md)) is built around that
-  same role.
+  same role. In practice this leading-edge testing isn't exercised as a regular, periodic process at the
+  moment — `head` is structurally set up for that purpose, but actively watching it for breakage isn't yet a
+  habitual routine.
 - **`poc`** — a proof-of-concept/throwaway testbed: not intended for long-term use and can be easily
-  recreated if needed, unlike `dev`. Minimal app set (infra + diagnostics only), and the only environment
-  with its own extra standalone `vms` Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad
-  hoc VM experiments beyond the standard cluster module. See
-  [`docs/update handling.md`](../update%20handling.md) for how it also gets special dependency-update
-  treatment, distinct from every other environment including `head`.
+  recreated if needed, unlike `dev`. Reserved for bigger, more fundamental changes — architecture or
+  tooling-level experiments such as switching the GitOps controller (e.g. ArgoCD to Flux) or trying a
+  different Terraform approach — deliberately kept separate from `dev`'s smaller, everyday enhancement work.
+  Minimal app set (infra + diagnostics only), and the only environment with its own extra standalone `vms`
+  Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad hoc VM experiments beyond the
+  standard cluster module. See [`docs/update handling.md`](../update%20handling.md) for how it also gets
+  special dependency-update treatment, distinct from every other environment including `head`.
 - **`rebuild`** — exists purely to periodically rehearse disaster recovery: kicked off from time to time to
   verify the cluster can actually be rebuilt from scratch as `prod` evolves over time, a safety net alongside
   (data) backups rather than a running app environment in its own right. Sized almost exactly like `prod` —
@@ -201,16 +239,19 @@ Two places this shows up, both confirmed against the current values in the repo:
   `terragrunt/README.md`'s ["Cluster end of lifecycle"](../../terragrunt/README.md#cluster-end-of-lifecycle)
   section and [`scripts/tg-state-rm.sh`](../../scripts/tg-state-rm.sh) for the actual destroy/rebuild
   procedure this environment exercises.
-- **`dev`** — the primary development environment, `on_boot=true`, medium sizing, standard 1-controlplane +
-  3-worker topology, minimal app set. Typically pointed at whatever feature branch is currently under
-  development (via [`track-branch`](../../.agents/skills/track-branch/SKILL.md), see the intro above) or used
-  for unit testing, rather than continuously tracking `main` like the always-on full-stack environments.
-  Distinguished from `poc` by being long-lived rather than throwaway.
+- **`dev`** — the primary environment for feature development and possibly unit testing, `on_boot=true`,
+  medium sizing, standard 1-controlplane + 3-worker topology, minimal app set. Typically pointed at whatever
+  feature branch is currently under development (via
+  [`track-branch`](../../.agents/skills/track-branch/SKILL.md), see the intro above) rather than continuously
+  tracking `main` like the always-on full-stack environments. Distinguished from `poc` by being long-lived
+  rather than throwaway, and by scope — `dev` is for the everyday enhancement work, while `poc` is reserved
+  for bigger, more fundamental changes (see `poc` below).
 - **`dbg`** — a dedicated debugging environment, kept separate from `dev` specifically so investigating a bug
   doesn't collide with or pause `dev`'s own in-progress work — the maintenance/bugfixing track and the
-  enhancement track get their own environments rather than competing for the same one. Smallest topology
-  alongside `src` (1 controlplane + 1 worker only, rest of the node pool commented out in Terragrunt),
-  `on_boot=false`, minimal app set.
+  enhancement track get their own environments rather than competing for the same one. Concretely, this means
+  an incident can be reproduced and investigated on its own separate cluster, while `dev` stays free for
+  ongoing feature/enhancement development. Smallest topology alongside `src` (1 controlplane + 1 worker only,
+  rest of the node pool commented out in Terragrunt), `on_boot=false`, minimal app set.
 - **`src`** — for developing the underlying
   [`terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module itself, not the
   apps running on top of it: its `vehagn-k8s` module `source` points at a local, uncommitted checkout of that
@@ -222,13 +263,13 @@ Two places this shows up, both confirmed against the current values in the repo:
 Dependency-update/automerge policy per environment is deliberately not a column here — see
 [`docs/update handling.md`](../update%20handling.md) for that axis.
 
-| env | apps | Terragrunt sizing | Flux interval | domain prefix | restrictions |
+| env | apps | Cluster sizing | Flux interval | domain prefix | purpose |
 | --- | --- | --- | --- | --- | --- |
-| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | dedicated to debugging, kept separate from `dev` |
-| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | often tracks a feature branch via `track-branch` |
-| `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | none |
-| `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | none |
-| `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | `main`-only apply; excluded from `track-branch` |
-| `qa` | full | big/medium, 1+3 nodes | 1h | yes | `main`-only apply |
+| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | dedicated debugging: investigate an incident on its own separate cluster, apart from `dev`'s enhancement work |
+| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | primary feature development and unit testing; often tracks a feature branch via `track-branch` |
+| `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | bleeding-edge tracking to catch breakage from new versions early (not currently exercised as a regular, periodic process) |
+| `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | proof-of-concept testbed for bigger, fundamental changes (e.g. GitOps controller or Terraform approach swaps), kept separate from `dev`'s smaller enhancements |
+| `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | production; `main`-only apply; excluded from `track-branch` |
+| `qa` | full | big/medium, 1+3 nodes | 1h | yes | validation gate immediately before `prod`; `main`-only apply |
 | `rebuild` | full | big/medium (~`prod`, non-HA), 1+3 nodes | 10m | yes | periodic disaster-recovery rehearsal target |
 | `src` | minimal | small, 1+1 nodes, local module source | 10m | yes | develops `terraform-proxmox-talos` itself |
