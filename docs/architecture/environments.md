@@ -214,13 +214,17 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
   newest Talos/Kubernetes versions of any environment. Runs the full app set, so it's a live,
   continuously-updated real deployment used to catch breakage from new versions early — its
   dependency-update policy (see [`docs/update handling.md`](../update%20handling.md)) is built around that
-  same role.
+  same role. In practice this leading-edge testing isn't exercised as a regular, periodic process at the
+  moment — `head` is structurally set up for that purpose, but actively watching it for breakage isn't yet a
+  habitual routine.
 - **`poc`** — a proof-of-concept/throwaway testbed: not intended for long-term use and can be easily
-  recreated if needed, unlike `dev`. Minimal app set (infra + diagnostics only), and the only environment
-  with its own extra standalone `vms` Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad
-  hoc VM experiments beyond the standard cluster module. See
-  [`docs/update handling.md`](../update%20handling.md) for how it also gets special dependency-update
-  treatment, distinct from every other environment including `head`.
+  recreated if needed, unlike `dev`. Reserved for bigger, more fundamental changes — architecture or
+  tooling-level experiments such as switching the GitOps controller (e.g. ArgoCD to Flux) or trying a
+  different Terraform approach — deliberately kept separate from `dev`'s smaller, everyday enhancement work.
+  Minimal app set (infra + diagnostics only), and the only environment with its own extra standalone `vms`
+  Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad hoc VM experiments beyond the
+  standard cluster module. See [`docs/update handling.md`](../update%20handling.md) for how it also gets
+  special dependency-update treatment, distinct from every other environment including `head`.
 - **`rebuild`** — exists purely to periodically rehearse disaster recovery: kicked off from time to time to
   verify the cluster can actually be rebuilt from scratch as `prod` evolves over time, a safety net alongside
   (data) backups rather than a running app environment in its own right. Sized almost exactly like `prod` —
@@ -232,16 +236,19 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
   `terragrunt/README.md`'s ["Cluster end of lifecycle"](../../terragrunt/README.md#cluster-end-of-lifecycle)
   section and [`scripts/tg-state-rm.sh`](../../scripts/tg-state-rm.sh) for the actual destroy/rebuild
   procedure this environment exercises.
-- **`dev`** — the primary development environment, `on_boot=true`, medium sizing, standard 1-controlplane +
-  3-worker topology, minimal app set. Typically pointed at whatever feature branch is currently under
-  development (via [`track-branch`](../../.agents/skills/track-branch/SKILL.md), see the intro above) or used
-  for unit testing, rather than continuously tracking `main` like the always-on full-stack environments.
-  Distinguished from `poc` by being long-lived rather than throwaway.
+- **`dev`** — the primary environment for feature development and possibly unit testing, `on_boot=true`,
+  medium sizing, standard 1-controlplane + 3-worker topology, minimal app set. Typically pointed at whatever
+  feature branch is currently under development (via
+  [`track-branch`](../../.agents/skills/track-branch/SKILL.md), see the intro above) rather than continuously
+  tracking `main` like the always-on full-stack environments. Distinguished from `poc` by being long-lived
+  rather than throwaway, and by scope — `dev` is for the everyday enhancement work, while `poc` is reserved
+  for bigger, more fundamental changes (see `poc` below).
 - **`dbg`** — a dedicated debugging environment, kept separate from `dev` specifically so investigating a bug
   doesn't collide with or pause `dev`'s own in-progress work — the maintenance/bugfixing track and the
-  enhancement track get their own environments rather than competing for the same one. Smallest topology
-  alongside `src` (1 controlplane + 1 worker only, rest of the node pool commented out in Terragrunt),
-  `on_boot=false`, minimal app set.
+  enhancement track get their own environments rather than competing for the same one. Concretely, this means
+  an incident can be reproduced and investigated on its own separate cluster, while `dev` stays free for
+  ongoing feature/enhancement development. Smallest topology alongside `src` (1 controlplane + 1 worker only,
+  rest of the node pool commented out in Terragrunt), `on_boot=false`, minimal app set.
 - **`src`** — for developing the underlying
   [`terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module itself, not the
   apps running on top of it: its `vehagn-k8s` module `source` points at a local, uncommitted checkout of that
@@ -253,13 +260,13 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
 Dependency-update/automerge policy per environment is deliberately not a column here — see
 [`docs/update handling.md`](../update%20handling.md) for that axis.
 
-| env | apps | Terragrunt sizing | Flux interval | domain prefix | restrictions |
+| env | apps | Cluster sizing | Flux interval | domain prefix | purpose |
 | --- | --- | --- | --- | --- | --- |
-| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | dedicated to debugging, kept separate from `dev` |
-| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | often tracks a feature branch via `track-branch` |
-| `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | none |
-| `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | none |
-| `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | `main`-only apply; excluded from `track-branch` |
-| `qa` | full | big/medium, 1+3 nodes | 1h | yes | `main`-only apply |
+| `dbg` | minimal | small, 1+1 nodes, `on_boot=false` | 10m | yes | dedicated debugging: investigate an incident on its own separate cluster, apart from `dev`'s enhancement work |
+| `dev` | minimal | medium, 1+3 nodes, `on_boot=true` | 10m | yes | primary feature development and unit testing; often tracks a feature branch via `track-branch` |
+| `head` | full | big, newest Talos/K8s, `ref=HEAD` | 1h | yes | bleeding-edge tracking to catch breakage from new versions early (not currently exercised as a regular, periodic process) |
+| `poc` | minimal | small, 1+2 nodes + extra `vms` module | 10m | yes | proof-of-concept testbed for bigger, fundamental changes (e.g. GitOps controller or Terraform approach swaps), kept separate from `dev`'s smaller enhancements |
+| `prod` | full | big, 3+3 HA nodes, own pinned version | 1h | **no** | production; `main`-only apply; excluded from `track-branch` |
+| `qa` | full | big/medium, 1+3 nodes | 1h | yes | validation gate immediately before `prod`; `main`-only apply |
 | `rebuild` | full | big/medium (~`prod`, non-HA), 1+3 nodes | 10m | yes | periodic disaster-recovery rehearsal target |
 | `src` | minimal | small, 1+1 nodes, local module source | 10m | yes | develops `terraform-proxmox-talos` itself |
