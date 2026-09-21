@@ -72,33 +72,36 @@ done
 # This is destructive/disruptive enough (scales the app down, temporarily blanks its volume) that the
 # target cluster should always be named explicitly, same as kopiur-restore.sh.
 validate_environment "${ENV}"
+CTX=$(kubecontext_for_environment "${ENV}")
+# Recorded for log()'s automatic "cluster" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which cluster this destructive run is acting on (#1305).
+LOG_CLUSTER="${CTX}"
 
 if [ -z "${NS}" ]; then
-    just log fatal "-n/--namespace is required"
+    log fatal "-n/--namespace is required"
     exit 1
 fi
 
 if [ -z "${APP}" ]; then
-    just log error "app name is required"
+    log error "app name is required"
     usage
 fi
 
 DEPLOY="${DEPLOY:-${APP}}"
-CTX=$(kubecontext_for_environment "${ENV}")
 BOGUS_POLICY="${APP}-bypass-restore"
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "PVC not found -- <app> is the storage/kopiur name (same as the PVC itself), not necessarily the Deployment name; if this app's Deployment is named differently, pass --deploy too (e.g. unifi-mongodb's Deployment is named mongodb)" "app" "${APP}" "namespace" "${NS}" "deploy" "${DEPLOY}"
+    log fatal "PVC not found -- <app> is the storage/kopiur name (same as the PVC itself), not necessarily the Deployment name; if this app's Deployment is named differently, pass --deploy too (e.g. unifi-mongodb's Deployment is named mongodb)" "app" "${APP}" "namespace" "${NS}" "deploy" "${DEPLOY}"
     exit 1
 fi
 
 if ! kubectl --context "${CTX}" get restore "${APP}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "Restore object not found -- this app may not be wired up via apps/storage/pvc or pvc-no-backup" "app" "${APP}" "namespace" "${NS}"
+    log fatal "Restore object not found -- this app may not be wired up via apps/storage/pvc or pvc-no-backup" "app" "${APP}" "namespace" "${NS}"
     exit 1
 fi
 
 if ! kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "Deployment not found (pass --deploy if the deployment name differs from the app name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
+    log fatal "Deployment not found (pass --deploy if the deployment name differs from the app name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
     exit 1
 fi
 
@@ -111,23 +114,23 @@ KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpat
 
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
-    just log info "Suspending HelmRelease" "step" "1/9" "helmrelease" "${HR}" "namespace" "${HR_NS}"
+    log info "Suspending HelmRelease" "step" "1/9" "helmrelease" "${HR}" "namespace" "${HR_NS}"
     flux --context "${CTX}" suspend helmrelease "${HR}" -n "${HR_NS}"
     resume() {
         flux --context "${CTX}" resume helmrelease "${HR}" -n "${HR_NS}"
     }
 elif [ -n "${KS}" ]; then
-    just log info "Suspending Kustomization" "step" "1/9" "kustomization" "${KS}"
+    log info "Suspending Kustomization" "step" "1/9" "kustomization" "${KS}"
     flux --context "${CTX}" suspend kustomization "${KS}"
     resume() {
         flux --context "${CTX}" resume kustomization "${KS}"
     }
 else
-    just log fatal "could not determine the owning Flux object for this deployment (no helm.toolkit.fluxcd.io/name or kustomize.toolkit.fluxcd.io/name label -- is it managed by Flux at all?)" "namespace" "${NS}" "deployment" "${DEPLOY}"
+    log fatal "could not determine the owning Flux object for this deployment (no helm.toolkit.fluxcd.io/name or kustomize.toolkit.fluxcd.io/name label -- is it managed by Flux at all?)" "namespace" "${NS}" "deployment" "${DEPLOY}"
     exit 1
 fi
 
-just log info "Scaling down" "step" "2/9" "deployment" "${DEPLOY}" "namespace" "${NS}"
+log info "Scaling down" "step" "2/9" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
@@ -135,7 +138,7 @@ kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete -
 # the source PVC name is guaranteed not to exist, and nothing (no SnapshotSchedule) ever references this
 # policy to try snapshotting it anyway -- it exists purely so fromPolicy.name below resolves to a real object
 # with zero matching Snapshots, not to ever actually back anything up.
-just log info "Creating a throwaway SnapshotPolicy for the bypass" "step" "3/9" "bogus_policy" "${BOGUS_POLICY}"
+log info "Creating a throwaway SnapshotPolicy for the bypass" "step" "3/9" "bogus_policy" "${BOGUS_POLICY}"
 kubectl --context "${CTX}" apply -f - <<EOF
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: SnapshotPolicy
@@ -153,7 +156,7 @@ EOF
 
 # Points the Restore at that throwaway policy, so the next PVC claim below resolves NoSnapshot instead of the
 # app's real latest backup. Existing Snapshot/backup data and the app's real SnapshotPolicy are untouched.
-just log info "Pointing Restore at the bypass policy" "step" "4/9" "app" "${APP}" "bogus_policy" "${BOGUS_POLICY}"
+log info "Pointing Restore at the bypass policy" "step" "4/9" "app" "${APP}" "bogus_policy" "${BOGUS_POLICY}"
 kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
     -p "{\"spec\":{\"source\":{\"fromPolicy\":{\"name\":\"${BOGUS_POLICY}\",\"offset\":0}}}}"
 
@@ -166,7 +169,7 @@ kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
 # the PVC stuck in phase Lost. Confirmed live (rebuild, unifi-mongodb, 2026-09-18).
 TMP_PVC=$(mktemp)
 trap 'rm -f "${TMP_PVC}"' EXIT
-just log info "Deleting and recreating the PVC against the bypass policy" "step" "5/9" "app" "${APP}" "namespace" "${NS}"
+log info "Deleting and recreating the PVC against the bypass policy" "step" "5/9" "app" "${APP}" "namespace" "${NS}"
 kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o json \
     | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.finalizers, .metadata.annotations, .spec.volumeName, .status)' \
         >"${TMP_PVC}"
@@ -175,32 +178,32 @@ kubectl --context "${CTX}" apply -f "${TMP_PVC}"
 
 # WaitForFirstConsumer storage classes only bind once something tries to mount the PVC -- scale back up
 # before waiting for Bound, same reasoning as kopiur-restore.sh.
-just log info "Scaling back up" "step" "6/9" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
+log info "Scaling back up" "step" "6/9" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas="${ORIG_REPLICAS}"
 
-just log info "Waiting for the blank PVC to bind" "step" "7/9"
+log info "Waiting for the blank PVC to bind" "step" "7/9"
 PHASE=""
 for _ in $(seq 1 60); do
     PHASE=$(kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
     [ "${PHASE}" = "Bound" ] && break
-    just log debug "waiting for PVC to bind" "phase" "${PHASE:-Pending}"
+    log debug "waiting for PVC to bind" "phase" "${PHASE:-Pending}"
     sleep 5
 done
 
 if [ "${PHASE}" != "Bound" ]; then
-    just log fatal "PVC did not reach Bound within the timeout -- check manually. Flux is still suspended, the Restore is still pointed at the bypass policy, and the throwaway SnapshotPolicy ${BOGUS_POLICY} still exists; fix up and resume manually" "last_phase" "${PHASE:-unknown}" "kustomization_or_helmrelease" "${KS}${HR}"
+    log fatal "PVC did not reach Bound within the timeout -- check manually. Flux is still suspended, the Restore is still pointed at the bypass policy, and the throwaway SnapshotPolicy ${BOGUS_POLICY} still exists; fix up and resume manually" "last_phase" "${PHASE:-unknown}" "kustomization_or_helmrelease" "${KS}${HR}"
     exit 1
 fi
 
-just log info "Blank volume is bound and ${DEPLOY} is back up. Go do the data import now (e.g. the app's own import/export tooling)." "step" "8/9"
+log info "Blank volume is bound and ${DEPLOY} is back up. Go do the data import now (e.g. the app's own import/export tooling)." "step" "8/9"
 printf 'Press Enter once the import is done, to restore normal restore-on-loss wiring and resume Flux: '
 # shellcheck disable=SC2034 # the read value itself is unused, only the pause matters
 read -r _confirm
 
-just log info "Reverting Restore to its normal policy, cleaning up the throwaway SnapshotPolicy, and resuming Flux" "step" "9/9" "app" "${APP}"
+log info "Reverting Restore to its normal policy, cleaning up the throwaway SnapshotPolicy, and resuming Flux" "step" "9/9" "app" "${APP}"
 kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
     -p "{\"spec\":{\"source\":{\"fromPolicy\":{\"name\":\"${APP}\",\"offset\":0}}}}"
 kubectl --context "${CTX}" delete snapshotpolicy "${BOGUS_POLICY}" -n "${NS}"
 resume
 
-just log info "Done."
+log info "Done."

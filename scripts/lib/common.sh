@@ -11,6 +11,12 @@
 
 REPO_ROOT=$(CDPATH= cd -- "${SCRIPTS_DIR}/.." && pwd)
 
+# Set by a caller once it knows which cluster it's operating against (typically right after resolving ENV
+# via kubecontext_for_environment) -- log() then includes it as a "cluster" field on every subsequent line,
+# not just error paths, so which environment a kopiur-*.sh run is acting on is always visible in the output
+# it produces, not only inferable from a raw kubectl error mentioning the API server. See #1305.
+LOG_CLUSTER=""
+
 # Logs one line via gum, calling it directly rather than through the `just log` recipe: `just`'s own
 # template substitution mangles embedded double-quote characters in dynamic message content, and going
 # through `just` at all pulls it in as a runtime dependency for scripts that, by design, don't otherwise
@@ -21,7 +27,11 @@ log() {
     lvl="$1"
     msg="$2"
     shift 2
-    gum log -t rfc3339 -s -l "$lvl" -- "$msg" "$@"
+    if [ -n "${LOG_CLUSTER}" ]; then
+        gum log -t rfc3339 -s -l "$lvl" -- "$msg" "cluster" "${LOG_CLUSTER}" "$@"
+    else
+        gum log -t rfc3339 -s -l "$lvl" -- "$msg" "$@"
+    fi
 }
 
 # The repo's environment identifiers (see docs/architecture/environments.md), derived from
