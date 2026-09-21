@@ -18,7 +18,7 @@ SKIP_KINDS='SealedSecret'
 
 # Read from upgrade-k8s.sh (the single source of truth for the cluster's target k8s version) rather than
 # duplicating the version number here, so the two never drift out of sync.
-K8S_VERSION=$(grep -oP 'K8S_VERSION="\K[^"]+' scripts/upgrade-k8s.sh)
+K8S_VERSION=$(sed -n 's/^K8S_VERSION="\([^"]*\)".*/\1/p' scripts/upgrade-k8s.sh)
 
 # Listed into a file rather than piped into the while loop below, so the loop runs in the
 # current shell (not a subshell) and `status` set inside it is still visible at `exit $status`.
