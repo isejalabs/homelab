@@ -144,19 +144,52 @@ fixed-width identifier:
 | `prod` | 8 |
 | `dbg` | 9 |
 
-Two places this shows up, both confirmed against the current values in the repo:
+Four places this shows up, all confirmed against the current values in the repo:
 
 - **Proxmox VM IDs** — each `vehagn-k8s` Terragrunt module
   (`terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`) assigns its nodes' `vm_id`s in the form
-  `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a per-node counter (`1`-`3` for
-  control-plane nodes, `4`+ for workers) — e.g. `prod`'s nodes are `7008181`–`7008186` (`id=8`), `qa`'s are
-  `7008121`–`7008126` (`id=2`).
+  `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a single-digit per-node counter
+  (`1`-`3` reserved for control-plane nodes, `4`-`9` for workers) — a full range of `70081<id>1`–`70081<id>9`
+  per environment, e.g. `head`'s (`id=1`) is `7008111`–`7008119`. Most environments only populate a subset of
+  that range (`prod`'s active nodes are `7008181`–`7008186`, `qa`'s are `7008121`–`7008126`); the unused
+  higher slots are just headroom the scheme leaves for extra workers, not actual VMs.
 - **BGP ASN** — each environment's
   [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) sets
   `localASN` to `6452<id>` — e.g. `prod` (`id=8`) peers as ASN `64528` (see
   [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement) for the BGP setup this feeds into),
   `poc` (`id=6`) as `64526`. The peer ASN (`64520`, the OPNsense routers) is fixed and unrelated to this
   scheme.
+- **Cilium LB IPAM pool** — each environment's
+  [`CiliumLoadBalancerIPPool`](../../k8s/infra/kube-system/cilium/envs/) (named `bgp-pool`) carves its block
+  out of `10.8.<id>.0/24` — the same `<id>` as this table, e.g. `prod` (`id=8`) gets `10.8.8.0/24`, `poc`
+  (`id=6`) gets `10.8.6.0/24`. See [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement) for
+  the full per-environment pool table and how that address space feeds BGP.
+- **Kubernetes API VIP** — each environment's control-plane VIP (`vip` in its `vehagn-k8s/terragrunt.hcl`,
+  e.g. [`head`'s](../../terragrunt/non-prod/eu-central-1/head/vehagn-k8s/terragrunt.hcl)) sits at
+  `10.7.8.1<id>0` — e.g. `head` (`id=1`) is `10.7.8.110`, `prod` (`id=8`) is `10.7.8.180`. That VIP is also
+  where the cluster's API is reachable by hostname, via the `certSANs` entry each module sets:
+  `<env>-homelab-k8s-api.<domain>` (`domain` is `test.iseja.net` for every non-prod environment, `home.iseja.net`
+  for `prod`) — e.g. `prod-homelab-k8s-api.home.iseja.net` for `prod`, `dev-homelab-k8s-api.test.iseja.net` for
+  `dev`.
+
+All four schemes key off the same single-digit ID, so the first three are summarized once here (the API VIP/
+hostname isn't a fixed-width column, see the bullet above):
+
+| env | ID | VM ID range | BGP ASN | LB IP pool |
+| --- | --- | --- | --- | --- |
+| `head` | 1 | `7008111`–`7008119` | `64521` | `10.8.1.0/24` |
+| `qa` | 2 | `7008121`–`7008129` | `64522` | `10.8.2.0/24` |
+| `dev` | 3 | `7008131`–`7008139` | `64523` | `10.8.3.0/24` |
+| `src` | 5 | `7008151`–`7008159` | `64525` | `10.8.5.0/24` |
+| `poc` | 6 | `7008161`–`7008169` | `64526` | `10.8.6.0/24` |
+| `rebuild` | 7 | `7008171`–`7008179` | `64527` | `10.8.7.0/24` |
+| `prod` | 8 | `7008181`–`7008189` | `64528` | `10.8.8.0/24` |
+| `dbg` | 9 | `7008191`–`7008199` | `64529` | `10.8.9.0/24` |
+
+The VM ID range is the full `<n>`-digit range the scheme allows (`1`-`9`), not what's actually defined —
+most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s active nodes are
+`7008181`–`7008186`, `dbg`'s slots reserved-but-commented-out top out at `7008196`), and `poc`/`src` stop at
+`<n>=5` (only 5 node blocks defined at all). `<n>=7`-`9` is unused headroom everywhere today.
 
 ## What each environment is for
 

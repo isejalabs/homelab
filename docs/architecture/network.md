@@ -68,7 +68,9 @@ Every `LoadBalancer` Service or Gateway requests a specific address from that po
 (e.g. `192.168.1.253`) gets patched to the real per-env address (e.g. `10.8.8.53`) via `envs/<env>/`
 overlays. Offsets are kept stable across environments so the same app always lands on the same last octet
 (e.g. `.8`/`.11` = unbound, `.53` = adguard, `.80` = internal gateway, `.83` = external gateway) — only the
-`10.8.<N>` block changes per environment. The full set of per-environment pools
+`10.8.<N>` block changes per environment, and `<N>` is exactly the environment's single-digit
+[environment ID](environments.md#environment-id) (`prod`'s pool is `10.8.8.0/24` because `prod`'s ID is `8`,
+same `<id>` used for its Proxmox VM IDs and BGP ASN). The full set of per-environment pools
 ([`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/)):
 
 | env | pool |
