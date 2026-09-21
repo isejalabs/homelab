@@ -2,10 +2,11 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
-      description: "batch high-cadence o11y chart releases into a single weekly PR run instead of near-daily noise",
+      description: "batch high-cadence o11y chart releases and renovate self-updates into a single weekly PR run instead of near-daily noise",
       matchPackageNames: [
         "ghcr.io/prometheus-community/charts/kube-prometheus-stack",
         "ghcr.io/grafana/helm-charts/grafana-operator",
+        "renovate",
       ],
       schedule: ["* 18-23 * * 5"],
       timezone: "Europe/Berlin",
