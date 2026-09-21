@@ -152,7 +152,10 @@ Four places this shows up, all confirmed against the current values in the repo:
   (`1`-`3` reserved for control-plane nodes, `4`-`9` for workers) — a full range of `70081<id>1`–`70081<id>9`
   per environment, e.g. `head`'s (`id=1`) is `7008111`–`7008119`. Most environments only populate a subset of
   that range (`prod`'s active nodes are `7008181`–`7008186`, `qa`'s are `7008121`–`7008126`); the unused
-  higher slots are just headroom the scheme leaves for extra workers, not actual VMs.
+  higher slots are just headroom the scheme leaves for extra workers, not actual VMs. `just
+  proxmox::{list,snapshot,rollback}` (see [`docs/proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md))
+  leans on this exact scheme to discover an environment's VMs via the Proxmox API, matching the full `1`-`9`
+  range rather than assuming any fixed node count.
 - **BGP ASN** — each environment's
   [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) sets
   `localASN` to `6452<id>` — e.g. `prod` (`id=8`) peers as ASN `64528` (see

@@ -15,6 +15,9 @@ mod bootstrap "k8s/bootstrap"
 # App backup/restore maintenance recipes
 mod backup "scripts/backup.just"
 
+# Proxmox VM snapshot/rollback recipes (#1296)
+mod proxmox "scripts/proxmox.just"
+
 [private]
 logstep stage msg:
     just log debug "Running step... {{msg}}" "stage" "{{ stage }}"
