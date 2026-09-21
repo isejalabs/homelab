@@ -46,11 +46,11 @@ done
 [ -n "${ENV}" ] && validate_environment "${ENV}"
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
-    just log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
+    log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
     exit 1
 fi
 if [ "${ALL_NS}" -eq 0 ] && [ -z "${NS}" ]; then
-    just log fatal "one of -n/--namespace or -A/--all-namespaces is required"
+    log fatal "one of -n/--namespace or -A/--all-namespaces is required"
     exit 1
 fi
 

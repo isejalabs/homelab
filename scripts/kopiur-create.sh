@@ -51,26 +51,26 @@ done
 [ -n "${ENV}" ] && validate_environment "${ENV}"
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
-    just log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
+    log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
     exit 1
 fi
 if [ "${ALL_NS}" -eq 0 ] && [ -z "${NS}" ]; then
-    just log fatal "one of -n/--namespace or -A/--all-namespaces is required"
+    log fatal "one of -n/--namespace or -A/--all-namespaces is required"
     exit 1
 fi
 
 if [ "${ALL}" -eq 1 ] && [ -n "${APP}" ]; then
-    just log fatal "<app> and --all are mutually exclusive"
+    log fatal "<app> and --all are mutually exclusive"
     exit 1
 fi
 if [ "${ALL}" -eq 0 ] && [ -z "${APP}" ]; then
-    just log fatal "an app name is required unless --all is given"
+    log fatal "an app name is required unless --all is given"
     exit 1
 fi
 # Matches kubectl's own rule that a named resource can't be fetched with
 # -A/--all-namespaces (only a list-style query can span every namespace).
 if [ "${ALL}" -eq 0 ] && [ "${ALL_NS}" -eq 1 ]; then
-    just log fatal "-A/--all-namespaces requires --all -- a single named app cannot be looked up across every namespace"
+    log fatal "-A/--all-namespaces requires --all -- a single named app cannot be looked up across every namespace"
     exit 1
 fi
 
@@ -86,11 +86,11 @@ backup_one() {
     local app="$1" ns="$2"
 
     if ! kubectl "${CTX_ARGS[@]}" get snapshotpolicy "${app}" -n "${ns}" >/dev/null 2>&1; then
-        just log error "SnapshotPolicy not found" "app" "${app}" "namespace" "${ns}"
+        log error "SnapshotPolicy not found" "app" "${app}" "namespace" "${ns}"
         return 1
     fi
 
-    just log info "Triggering a manual snapshot" "app" "${app}" "namespace" "${ns}"
+    log info "Triggering a manual snapshot" "app" "${app}" "namespace" "${ns}"
     local name
     name=$(kubectl "${CTX_ARGS[@]}" create -o jsonpath='{.metadata.name}' -f - <<EOF
 apiVersion: kopiur.home-operations.com/v1alpha1
@@ -104,7 +104,7 @@ spec:
   description: "manual backup via just backup::kopiur::create"
 EOF
     )
-    just log info "created Snapshot" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
+    log info "created Snapshot" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
 
     local phase=""
     for _ in $(seq 1 60); do
@@ -112,7 +112,7 @@ EOF
         if [ "${phase}" = "Succeeded" ]; then
             break
         elif [ "${phase}" = "Failed" ]; then
-            just log error "snapshot failed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
+            log error "snapshot failed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}"
             kubectl "${CTX_ARGS[@]}" get snapshot "${name}" -n "${ns}" -o jsonpath='{.status.logTail}'
             echo
             return 1
@@ -121,13 +121,13 @@ EOF
     done
 
     if [ "${phase}" != "Succeeded" ]; then
-        just log error "timed out waiting for snapshot to complete" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "last_phase" "${phase:-unknown}"
+        log error "timed out waiting for snapshot to complete" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "last_phase" "${phase:-unknown}"
         return 1
     fi
 
     local stats
     stats=$(kubectl "${CTX_ARGS[@]}" get snapshot "${name}" -n "${ns}" -o jsonpath='{.status.stats}')
-    just log info "backup completed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "stats" "${stats}"
+    log info "backup completed" "app" "${app}" "namespace" "${ns}" "snapshot" "${name}" "stats" "${stats}"
 }
 
 if [ "${ALL}" -eq 0 ]; then
@@ -143,11 +143,11 @@ else
 fi
 
 if [ -z "${POLICIES}" ]; then
-    just log fatal "no SnapshotPolicies found"
+    log fatal "no SnapshotPolicies found"
     exit 1
 fi
 
-just log info "Triggering backups for all apps..."
+log info "Triggering backups for all apps..."
 
 PIDS=()
 KEYS=()
@@ -166,8 +166,8 @@ for i in "${!PIDS[@]}"; do
 done
 
 if [ ${#FAILED[@]} -gt 0 ]; then
-    just log error "failed backups" "apps" "${FAILED[*]}"
+    log error "failed backups" "apps" "${FAILED[*]}"
     exit 1
 fi
 
-just log info "All backups completed successfully."
+log info "All backups completed successfully."

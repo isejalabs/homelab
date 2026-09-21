@@ -45,7 +45,7 @@ Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](
 | [`kopiur-create.sh`](kopiur-create.sh) | triggers a manual `Snapshot`, for one app or every app in scope (`--all`) |
 | [`kopiur-restore.sh`](kopiur-restore.sh) | restores an app's PVC from its latest snapshot (deletes and repopulates the PVC) |
 
-All three source [`lib/common.sh`](lib/common.sh) for environment validation, kubecontext construction, and unrecognized-flag handling shared across them.
+All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
 
 ## Cluster maintenance
 

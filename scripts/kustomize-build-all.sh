@@ -8,9 +8,8 @@
 
 set -eu
 
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-NC='\033[0m'
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
 
 # SealedSecret's community schema forbids `spec.template.metadata.creationTimestamp`, which every
 # kubeseal-generated manifest sets to null as part of ObjectMeta - a schema-catalog inaccuracy, not
@@ -39,8 +38,8 @@ while IFS= read -r kustomization; do
     case "$dir" in k8s/components/*) continue ;; esac
 
     if ! manifests=$(kubectl kustomize "$dir" 2>&1); then
-        printf "${RED}kustomize build failed: %s${NC}\n" "$dir"
-        echo "$manifests"
+        log_debug_output "$manifests"
+        log error "kustomize build failed" "unit" "$dir"
         status=1
         continue
     fi
@@ -50,12 +49,12 @@ while IFS= read -r kustomization; do
         -schema-location default \
         -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' \
         -summary; then
-        printf "${RED}kubeconform failed: %s${NC}\n" "$dir"
+        log error "kubeconform failed" "unit" "$dir"
         status=1
         continue
     fi
 
-    printf "${GREEN}OK: %s${NC}\n" "$dir"
+    log info "OK" "unit" "$dir"
 done < "$list"
 
 exit $status
