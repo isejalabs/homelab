@@ -150,7 +150,9 @@ Two places this shows up, both confirmed against the current values in the repo:
   (`terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`) assigns its nodes' `vm_id`s in the form
   `70081<id><n>`, where `<id>` is the environment ID above and `<n>` is a per-node counter (`1`-`3` for
   control-plane nodes, `4`+ for workers) — e.g. `prod`'s nodes are `7008181`–`7008186` (`id=8`), `qa`'s are
-  `7008121`–`7008126` (`id=2`).
+  `7008121`–`7008126` (`id=2`). `just proxmox::{list,snapshot,rollback}` (see
+  [`docs/proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md)) leans on this exact scheme to discover an
+  environment's VMs via the Proxmox API.
 - **BGP ASN** — each environment's
   [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) sets
   `localASN` to `6452<id>` — e.g. `prod` (`id=8`) peers as ASN `64528` (see
