@@ -51,7 +51,7 @@ always wait for review, and so do the exceptions: packages/paths pinned or flagg
 and prod-specific version promotions (prod can pin its own version separately from `qa`/`base`, so a change
 gets validated in `qa` first and merged into prod deliberately, not automatically). There's no GitHub
 Actions CI here — validation is `pre-commit` plus Flux's own reconciliation. See
-[`docs/update handling.md`](docs/update%20handling.md) for the full policy. Left to its own preferences
+[`docs/update-handling.md`](docs/update-handling.md) for the full policy. Left to its own preferences
 this would rather be a boring, patch-only Debian box than chase every minor release — the environment
 split above is what makes that patience compatible with also wanting to catch breakage early.
 
