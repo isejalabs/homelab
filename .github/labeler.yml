@@ -6,6 +6,8 @@
       - any-glob-to-any-file:
           - ".agents/**"
           - ".claude/**"
+          - ".commons/**"
+          - ".commons"
           - "AGENTS.md"
           - "CLAUDE.md"
 "area:ci":
@@ -14,10 +16,19 @@
           - ".ci/**"
           - ".github/**"
           - ".vscode/**"
+          - "scripts/**"
+          - "**/*.just"
+          - ".justfile"
 "area:docs":
   - changed-files:
       - any-glob-to-any-file:
           - "docs/**"
+          - "**/*.md"
+          - "!AGENTS.md"
+          - "!CLAUDE.md"
+          - "!.agents/**"
+          - "!.claude/**"
+          - "!.commons"
 "area:k8s":
   - changed-files:
       - any-glob-to-any-file:
