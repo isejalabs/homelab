@@ -8,6 +8,10 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.wolf/hooks/session-start.js\"",
             "timeout": 5
+          },
+          {
+            "type": "command",
+            "command": "mink session-start"
           }
         ]
       }
@@ -54,6 +58,33 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink pre-read"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink pre-write"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink pre-write"
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -84,6 +115,51 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.wolf/hooks/post-bash.js\"",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink post-read"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink post-write"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink post-write"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink post-tool"
+          }
+        ]
+      },
+      {
+        "matcher": "Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mink post-tool"
           }
         ]
       }
@@ -120,6 +196,10 @@
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.wolf/hooks/stop.js\"",
             "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "mink session-stop"
           }
         ]
       }
