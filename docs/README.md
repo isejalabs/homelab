@@ -12,7 +12,7 @@ thing they describe.
   that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`).
   These change rarely and don't belong to any single app/infra folder.
 - **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
-  - [`update handling.md`](update%20handling.md) — how renovate/labeler/mergify/Flux interact for automated
+  - [`update-handling.md`](update-handling.md) — how renovate/labeler/mergify/Flux interact for automated
     dependency updates.
   - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class
     reference for `apps/storage/pvc`/`pvc-no-backup`.

@@ -53,7 +53,7 @@ members (`dbg`/`poc`/`src`) but disagree on `dev`/`head`, so don't assume one fr
 Which git ref an environment's Flux instance reconciles from (normally `main` — see the intro above for
 `dev`'s `track-branch` exception) and how aggressively renovate-generated dependency-update PRs targeting
 that environment's overlay get automerged are both covered in full in
-[`docs/update handling.md`](../update%20handling.md), not duplicated here — that doc owns the update-handling
+[`docs/update-handling.md`](../update-handling.md), not duplicated here — that doc owns the update-handling
 story end to end (labels, mergify/renovate rules, per-app version pinning), this one owns what each
 environment structurally *is*.
 
@@ -204,7 +204,7 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
   manifests themselves, not just convention —
   [`k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml`](../../k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml)
   has no commented-out `ref:` override placeholder at all, unlike every other environment's copy of that
-  file. See [`docs/update handling.md`](../update%20handling.md) for how prod's dependency-update policy
+  file. See [`docs/update-handling.md`](../update-handling.md) for how prod's dependency-update policy
   differs from the others.
 - **`qa`** — the validation gate immediately before prod: full app+infra Flux set, `1h` interval, and the
   same `main`-checkout-only Terragrunt restriction as prod (`../../CLAUDE.md`: *"`prod` and `qa` may only
@@ -216,7 +216,7 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
 - **`head`** — the bleeding-edge tracking environment: unreleased-tip Terraform module (`ref=HEAD`) and the
   newest Talos/Kubernetes versions of any environment. Runs the full app set, so it's a live,
   continuously-updated real deployment used to catch breakage from new versions early — its
-  dependency-update policy (see [`docs/update handling.md`](../update%20handling.md)) is built around that
+  dependency-update policy (see [`docs/update-handling.md`](../update-handling.md)) is built around that
   same role. In practice this leading-edge testing isn't exercised as a regular, periodic process at the
   moment — `head` is structurally set up for that purpose, but actively watching it for breakage isn't yet a
   habitual routine.
@@ -226,7 +226,7 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
   different Terraform approach — deliberately kept separate from `dev`'s smaller, everyday enhancement work.
   Minimal app set (infra + diagnostics only), and the only environment with its own extra standalone `vms`
   Terragrunt module (`terragrunt/non-prod/eu-central-1/poc/vms/`) for ad hoc VM experiments beyond the
-  standard cluster module. See [`docs/update handling.md`](../update%20handling.md) for how it also gets
+  standard cluster module. See [`docs/update-handling.md`](../update-handling.md) for how it also gets
   special dependency-update treatment, distinct from every other environment including `head`.
 - **`rebuild`** — exists purely to periodically rehearse disaster recovery: kicked off from time to time to
   verify the cluster can actually be rebuilt from scratch as `prod` evolves over time, a safety net alongside
@@ -261,7 +261,7 @@ most environments' `vehagn-k8s/terragrunt.hcl` only goes up to `<n>=6` (`prod`'s
 ## Summary table
 
 Dependency-update/automerge policy per environment is deliberately not a column here — see
-[`docs/update handling.md`](../update%20handling.md) for that axis.
+[`docs/update-handling.md`](../update-handling.md) for that axis.
 
 | env | apps | Cluster sizing | Flux interval | domain prefix | purpose |
 | --- | --- | --- | --- | --- | --- |
