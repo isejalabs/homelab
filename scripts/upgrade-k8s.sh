@@ -9,7 +9,7 @@
 # passed straight through to `talosctl upgrade-k8s` to preview the upgrade plan without applying it.
 
 TALCONFIG=$(find . -iname talos-config.yaml)
-K8S_VERSION="1.34.11" # renovate: github-releases=kubernetes/kubernetes
+K8S_VERSION="1.34.12" # renovate: github-releases=kubernetes/kubernetes
 
 # Talks to whichever node the talosconfig's first context lists first as an endpoint - any control-plane
 # node works, since the upgrade orchestrates the whole cluster from there.
