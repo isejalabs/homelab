@@ -8,9 +8,22 @@
 # Run from anywhere inside the repo; the talosconfig is located automatically via `find`. --dry-run is
 # passed straight through to `talosctl upgrade-k8s` to preview the upgrade plan without applying it.
 
+set -eu
+
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 TALCONFIG=$(find . -iname talos-config.yaml)
 K8S_VERSION="1.34.11" # renovate: github-releases=kubernetes/kubernetes
 
-# Talks to whichever node the talosconfig's first context lists first as an endpoint - any control-plane
-# node works, since the upgrade orchestrates the whole cluster from there.
-talosctl upgrade-k8s $1 --talosconfig ${TALCONFIG} --nodes $( yq -r '.contexts.*.endpoints.[0]' ${TALCONFIG}) --to ${K8S_VERSION}
+# A single info/fatal pair around the one command, not per-step decomposition (#1275) - `talosctl
+# upgrade-k8s` streams its own multi-stage progress straight to the terminal, so its output is deliberately
+# left uncaptured/unwrapped rather than forced through log_debug_output's one-line-per-call debug pattern,
+# which would swallow that live progress until the whole command finished.
+log info "starting Kubernetes upgrade" "to" "${K8S_VERSION}"
+if talosctl upgrade-k8s $1 --talosconfig ${TALCONFIG} --nodes $( yq -r '.contexts.*.endpoints.[0]' ${TALCONFIG}) --to ${K8S_VERSION}; then
+    log info "Kubernetes upgrade complete" "version" "${K8S_VERSION}"
+else
+    log fatal "Kubernetes upgrade failed" "version" "${K8S_VERSION}"
+    exit 1
+fi

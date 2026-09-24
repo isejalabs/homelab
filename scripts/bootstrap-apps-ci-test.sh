@@ -21,23 +21,30 @@
 
 set -eu
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 CLUSTER_NAME=bootstrap-apps-ci
 KUBE_CONTEXT=admin@ci-homelab
 
 # Dumps pod status/describe/logs for anything not Running/Completed on failure, then always tears down the
 # kind cluster (registered via `trap ... EXIT` below, so this runs whether the script succeeded or failed).
+# Each kubectl dump is captured and re-emitted via log_debug_output rather than left as raw echo/kubectl
+# output, so it's one debug-level log line per line of output instead of unstructured terminal noise.
 cleanup() {
     exit_code=$?
     if [ "$exit_code" -ne 0 ]; then
-        echo "=== Diagnostics (exit $exit_code) ==="
-        kubectl --context "$KUBE_CONTEXT" get pods -A -o wide || true
+        log error "bootstrap-apps-ci-test failed" "exit_code" "$exit_code"
+        out=$(kubectl --context "$KUBE_CONTEXT" get pods -A -o wide 2>&1) || true
+        log_debug_output "$out"
         kubectl --context "$KUBE_CONTEXT" get pods -A --no-headers 2>/dev/null \
             | awk '$4 != "Running" && $4 != "Completed" { print $1, $2 }' \
             | while read -r ns pod; do
-                echo "--- describe $ns/$pod ---"
-                kubectl --context "$KUBE_CONTEXT" describe pod -n "$ns" "$pod" || true
-                echo "--- logs $ns/$pod ---"
-                kubectl --context "$KUBE_CONTEXT" logs -n "$ns" "$pod" --all-containers --tail=200 || true
+                log info "describing failed pod" "namespace" "$ns" "pod" "$pod"
+                out=$(kubectl --context "$KUBE_CONTEXT" describe pod -n "$ns" "$pod" 2>&1) || true
+                log_debug_output "$out"
+                out=$(kubectl --context "$KUBE_CONTEXT" logs -n "$ns" "$pod" --all-containers --tail=200 2>&1) || true
+                log_debug_output "$out"
             done
     fi
     kind delete cluster --name "$CLUSTER_NAME" >/dev/null 2>&1 || true
