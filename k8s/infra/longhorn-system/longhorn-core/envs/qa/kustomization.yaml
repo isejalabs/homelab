@@ -9,4 +9,5 @@ resources:
 
 patches:
   - path: backup-target.yaml
+  - path: csi-replicacount.yaml
   - path: minio-backup-secret.yaml
