@@ -128,6 +128,22 @@ Every non-prod environment's domain gets an environment prefix via the
 [`k8s/components/envs/<env>/kustomization.yaml`](../../k8s/components/envs/) files, each including
 `../../transformers/prefix-domain`; prod's is the only one that comments it out.
 
+App domains and the cluster's own API endpoint hostname are two separate naming schemes — the former is
+keyed by env name via `prefix-domain` above, the latter by env name + tier domain via each environment's
+Terragrunt `certSANs` entry (see [`Environment ID`](#environment-id) below for the VIP this hostname
+resolves to):
+
+| env | app domain (`<app>` = any deployed app) | API endpoint hostname |
+| --- | --- | --- |
+| `dbg` | `dbg-<app>.dbg.iseja.net` | `dbg-homelab-k8s-api.test.iseja.net` |
+| `dev` | `dev-<app>.dev.iseja.net` | `dev-homelab-k8s-api.test.iseja.net` |
+| `head` | `head-<app>.head.iseja.net` | `head-homelab-k8s-api.test.iseja.net` |
+| `poc` | `poc-<app>.poc.iseja.net` | `poc-homelab-k8s-api.test.iseja.net` |
+| `prod` | `<app>.prod.iseja.net` | `prod-homelab-k8s-api.home.iseja.net` |
+| `qa` | `qa-<app>.qa.iseja.net` | `qa-homelab-k8s-api.test.iseja.net` |
+| `rebuild` | `rebuild-<app>.rebuild.iseja.net` | `rebuild-homelab-k8s-api.test.iseja.net` |
+| `src` | `src-<app>.src.iseja.net` | `src-homelab-k8s-api.test.iseja.net` |
+
 ## Environment ID
 
 Beyond its name, each environment also has a single-digit numeric ID, used wherever a name doesn't fit into a
@@ -170,10 +186,8 @@ Four places this shows up, all confirmed against the current values in the repo:
 - **Kubernetes API VIP** — each environment's control-plane VIP (`vip` in its `vehagn-k8s/terragrunt.hcl`,
   e.g. [`head`'s](../../terragrunt/non-prod/eu-central-1/head/vehagn-k8s/terragrunt.hcl)) sits at
   `10.7.8.1<id>0` — e.g. `head` (`id=1`) is `10.7.8.110`, `prod` (`id=8`) is `10.7.8.180`. That VIP is also
-  where the cluster's API is reachable by hostname, via the `certSANs` entry each module sets:
-  `<env>-homelab-k8s-api.<domain>` (`domain` is `test.iseja.net` for every non-prod environment, `home.iseja.net`
-  for `prod`) — e.g. `prod-homelab-k8s-api.home.iseja.net` for `prod`, `dev-homelab-k8s-api.test.iseja.net` for
-  `dev`.
+  where the cluster's API is reachable by hostname, via the `certSANs` entry each module sets — see the
+  [API endpoint hostname column](#domain-and-prefixing) for the full per-environment table.
 
 All four schemes key off the same single-digit ID, so the first three are summarized once here (the API VIP/
 hostname isn't a fixed-width column, see the bullet above):
