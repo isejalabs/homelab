@@ -18,6 +18,9 @@
 #   (claimName/existingClaim -> the new PVC) has actually been applied.
 set -eu
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 usage() {
     echo "Usage: $(basename "$0") -e <env> -n <ns> --old-pvc <name> [--deploy <name>] [--uid <uid>] [--gid <gid>] <new-pvc>" >&2
     exit 1
@@ -57,10 +60,7 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         -h | --help) usage ;;
-        -*)
-            just log error "unknown flag" "flag" "$1"
-            usage
-            ;;
+        -*) unknown_flag "$1" ;;
         *)
             NEW_PVC="$1"
             shift
@@ -68,42 +68,39 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-case "${ENV}" in
-    dbg | dev | head | poc | prod | qa | rebuild | src) ;;
-    *)
-        just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
-        exit 1
-        ;;
-esac
+validate_environment "${ENV}"
+CTX=$(kubecontext_for_environment "${ENV}")
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this run is acting on (#1305).
+LOG_CTX="${CTX}"
 
 [ -z "${NS}" ] && {
-    just log fatal "-n/--namespace is required"
+    log fatal "-n/--namespace is required"
     exit 1
 }
 [ -z "${OLD_PVC}" ] && {
-    just log fatal "--old-pvc is required"
+    log fatal "--old-pvc is required"
     exit 1
 }
 [ -z "${NEW_PVC}" ] && {
-    just log error "new PVC name is required"
+    log error "new PVC name is required"
     usage
 }
 
 DEPLOY="${DEPLOY:-${NEW_PVC}}"
-CTX="admin@${ENV}-homelab"
 
 if ! kubectl --context "${CTX}" get pvc "${OLD_PVC}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "old PVC not found" "pvc" "${OLD_PVC}" "namespace" "${NS}"
+    log fatal "old PVC not found" "pvc" "${OLD_PVC}" "namespace" "${NS}"
     exit 1
 fi
 
 if ! kubectl --context "${CTX}" get pvc "${NEW_PVC}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "new PVC not found -- deploy the apps/storage/pvc wiring commit first" "pvc" "${NEW_PVC}" "namespace" "${NS}"
+    log fatal "new PVC not found -- deploy the apps/storage/pvc wiring commit first" "pvc" "${NEW_PVC}" "namespace" "${NS}"
     exit 1
 fi
 
 if ! kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "Deployment not found (pass --deploy if it differs from the new PVC name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
+    log fatal "Deployment not found (pass --deploy if it differs from the new PVC name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
     exit 1
 fi
 
@@ -112,17 +109,17 @@ KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpat
 
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
-    just log info "Suspending HelmRelease" "step" "1/5" "helmrelease" "${HR}" "namespace" "${HR_NS}"
+    log info "Suspending HelmRelease" "step" "1/5" "helmrelease" "${HR}" "namespace" "${HR_NS}"
     flux --context "${CTX}" suspend helmrelease "${HR}" -n "${HR_NS}"
 elif [ -n "${KS}" ]; then
-    just log info "Suspending Kustomization" "step" "1/5" "kustomization" "${KS}"
+    log info "Suspending Kustomization" "step" "1/5" "kustomization" "${KS}"
     flux --context "${CTX}" suspend kustomization "${KS}"
 else
-    just log fatal "could not determine the owning Flux object for this deployment" "namespace" "${NS}" "deployment" "${DEPLOY}"
+    log fatal "could not determine the owning Flux object for this deployment" "namespace" "${NS}" "deployment" "${DEPLOY}"
     exit 1
 fi
 
-just log info "Scaling down" "step" "2/5" "deployment" "${DEPLOY}" "namespace" "${NS}"
+log info "Scaling down" "step" "2/5" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
@@ -133,7 +130,7 @@ JOB="${NEW_PVC}-migrate"
 NODE_SELECTOR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.template.spec.nodeSelector}' 2>/dev/null || true)
 NODE_SELECTOR="${NODE_SELECTOR:-{\}}"
 
-just log info "Running copy job" "step" "3/5" "job" "${JOB}" "from" "${OLD_PVC}" "to" "${NEW_PVC}" "uid" "${UID_}" "gid" "${GID_}"
+log info "Running copy job" "step" "3/5" "job" "${JOB}" "from" "${OLD_PVC}" "to" "${NEW_PVC}" "uid" "${UID_}" "gid" "${GID_}"
 kubectl --context "${CTX}" delete job "${JOB}" -n "${NS}" --ignore-not-found --wait=true
 kubectl --context "${CTX}" apply -n "${NS}" -f - <<EOF
 apiVersion: batch/v1
@@ -173,7 +170,7 @@ kubectl --context "${CTX}" wait job "${JOB}" -n "${NS}" --for=condition=complete
 kubectl --context "${CTX}" logs job/"${JOB}" -n "${NS}"
 kubectl --context "${CTX}" delete job "${JOB}" -n "${NS}" --wait=true
 
-just log info "Triggering manual kopiur snapshot" "step" "4/5" "app" "${NEW_PVC}"
+log info "Triggering manual kopiur snapshot" "step" "4/5" "app" "${NEW_PVC}"
 SNAP=$(kubectl --context "${CTX}" create -n "${NS}" -f - -o jsonpath='{.metadata.name}' <<EOF
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: Snapshot
@@ -192,14 +189,14 @@ for _ in $(seq 1 60); do
     PHASE=$(kubectl --context "${CTX}" get snapshot "${SNAP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
     [ "${PHASE}" = "Succeeded" ] && break
     [ "${PHASE}" = "Failed" ] && break
-    just log debug "waiting for snapshot" "phase" "${PHASE:-Pending}"
+    log debug "waiting for snapshot" "phase" "${PHASE:-Pending}"
     sleep 5
 done
 
 if [ "${PHASE}" != "Succeeded" ]; then
-    just log fatal "snapshot did not succeed -- check manually before cutting over" "snapshot" "${SNAP}" "last_phase" "${PHASE:-unknown}"
+    log fatal "snapshot did not succeed -- check manually before cutting over" "snapshot" "${SNAP}" "last_phase" "${PHASE:-unknown}"
     exit 1
 fi
 
-just log info "Data copied and first snapshot taken. Deployment left suspended+scaled to 0" "step" "5/5"
-just log info "Next: apply the cut-over (point ${DEPLOY} at PVC ${NEW_PVC}), then resume and scale back up."
+log info "Data copied and first snapshot taken. Deployment left suspended+scaled to 0" "step" "5/5"
+log info "Next: apply the cut-over (point ${DEPLOY} at PVC ${NEW_PVC}), then resume and scale back up."

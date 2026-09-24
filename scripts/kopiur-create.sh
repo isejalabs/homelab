@@ -50,6 +50,17 @@ done
 
 [ -n "${ENV}" ] && validate_environment "${ENV}"
 
+CTX_ARGS=()
+if [ -n "${ENV}" ]; then
+    CTX_ARGS=(--context "$(kubecontext_for_environment "${ENV}")")
+fi
+
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this is operating against, even when -e/--environment was omitted and
+# CTX_ARGS above falls back to whatever kubecontext is already current (#1305).
+LOG_CTX="${ENV:+$(kubecontext_for_environment "${ENV}")}"
+: "${LOG_CTX:=$(kubectl config current-context 2>/dev/null || echo unknown)}"
+
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
     log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
     exit 1
@@ -72,11 +83,6 @@ fi
 if [ "${ALL}" -eq 0 ] && [ "${ALL_NS}" -eq 1 ]; then
     log fatal "-A/--all-namespaces requires --all -- a single named app cannot be looked up across every namespace"
     exit 1
-fi
-
-CTX_ARGS=()
-if [ -n "${ENV}" ]; then
-    CTX_ARGS=(--context "$(kubecontext_for_environment "${ENV}")")
 fi
 
 # Creates a Snapshot CR for a single app/namespace, polls its .status.phase until it's terminal, and prints

@@ -77,6 +77,10 @@ done
 # kopiur-list.sh/kopiur-create.sh, there's no "fall back to whatever context is current" mode here, since
 # a restore is destructive enough that the target cluster should always be named explicitly.
 validate_environment "${ENV}"
+CTX=$(kubecontext_for_environment "${ENV}")
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this destructive run is acting on (#1305).
+LOG_CTX="${CTX}"
 
 if [ -z "${NS}" ]; then
     log fatal "-n/--namespace is required"
@@ -91,7 +95,6 @@ fi
 # DEPLOY defaults to the app name, since that's true for the overwhelming majority of apps; --deploy only
 # needs to be passed when a chart names its Deployment differently from the app/release name.
 DEPLOY="${DEPLOY:-${APP}}"
-CTX=$(kubecontext_for_environment "${ENV}")
 
 if ! kubectl --context "${CTX}" get pvc "${APP}" -n "${NS}" >/dev/null 2>&1; then
     log fatal "PVC not found -- <app> is the storage/kopiur name (same as the PVC itself), not necessarily the Deployment name; if this app's Deployment is named differently, pass --deploy too (e.g. unifi-mongodb's Deployment is named mongodb)" "app" "${APP}" "namespace" "${NS}" "deploy" "${DEPLOY}"

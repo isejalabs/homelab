@@ -45,6 +45,19 @@ done
 
 [ -n "${ENV}" ] && validate_environment "${ENV}"
 
+# CTX_ARGS is either empty or exactly "--context admin@<env>-homelab" (env is
+# validated above) -- deliberately word-split below to contribute zero args to
+# kubectl when environment wasn't given, falling back to whatever the current
+# kubecontext already is.
+CTX_ARGS=""
+[ -n "${ENV}" ] && CTX_ARGS="--context $(kubecontext_for_environment "${ENV}")"
+
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this is operating against, even when -e/--environment was omitted and
+# CTX_ARGS above falls back to whatever kubecontext is already current (#1305).
+LOG_CTX="${ENV:+$(kubecontext_for_environment "${ENV}")}"
+: "${LOG_CTX:=$(kubectl config current-context 2>/dev/null || echo unknown)}"
+
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
     log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
     exit 1
@@ -53,13 +66,6 @@ if [ "${ALL_NS}" -eq 0 ] && [ -z "${NS}" ]; then
     log fatal "one of -n/--namespace or -A/--all-namespaces is required"
     exit 1
 fi
-
-# CTX_ARGS is either empty or exactly "--context admin@<env>-homelab" (env is
-# validated above) -- deliberately word-split below to contribute zero args to
-# kubectl when environment wasn't given, falling back to whatever the current
-# kubecontext already is.
-CTX_ARGS=""
-[ -n "${ENV}" ] && CTX_ARGS="--context $(kubecontext_for_environment "${ENV}")"
 
 NS_ARGS="-n ${NS}"
 [ "${ALL_NS}" -eq 1 ] && NS_ARGS="-A"

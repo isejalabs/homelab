@@ -17,6 +17,9 @@
 # to reconcile.
 set -eu
 
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+. "${SCRIPTS_DIR}/lib/common.sh"
+
 usage() {
     echo "Usage: $(basename "$0") -e <env> -n <ns> --storage-class <new-sc> [--deploy <name>] [--uid <uid>] [--gid <gid>] <pvc-name>" >&2
     exit 1
@@ -56,10 +59,7 @@ while [ $# -gt 0 ]; do
             shift 2
             ;;
         -h | --help) usage ;;
-        -*)
-            just log error "unknown flag" "flag" "$1"
-            usage
-            ;;
+        -*) unknown_flag "$1" ;;
         *)
             PVC="$1"
             shift
@@ -67,38 +67,35 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-case "${ENV}" in
-    dbg | dev | head | poc | prod | qa | rebuild | src) ;;
-    *)
-        just log fatal "-e/--environment must be one of dbg|dev|head|poc|prod|qa|rebuild|src" "got" "${ENV}"
-        exit 1
-        ;;
-esac
+validate_environment "${ENV}"
+CTX=$(kubecontext_for_environment "${ENV}")
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this run is acting on (#1305).
+LOG_CTX="${CTX}"
 
 [ -z "${NS}" ] && {
-    just log fatal "-n/--namespace is required"
+    log fatal "-n/--namespace is required"
     exit 1
 }
 [ -z "${NEW_SC}" ] && {
-    just log fatal "--storage-class is required"
+    log fatal "--storage-class is required"
     exit 1
 }
 [ -z "${PVC}" ] && {
-    just log error "pvc name is required"
+    log error "pvc name is required"
     usage
 }
 
 DEPLOY="${DEPLOY:-${PVC}}"
-CTX="admin@${ENV}-homelab"
 
 if ! kubectl --context "${CTX}" get pvc "${PVC}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "PVC not found" "pvc" "${PVC}" "namespace" "${NS}"
+    log fatal "PVC not found" "pvc" "${PVC}" "namespace" "${NS}"
     exit 1
 fi
 
 CUR_SC=$(kubectl --context "${CTX}" get pvc "${PVC}" -n "${NS}" -o jsonpath='{.spec.storageClassName}')
 if [ "${CUR_SC}" = "${NEW_SC}" ]; then
-    just log fatal "PVC is already on this StorageClass" "pvc" "${PVC}" "storageClass" "${NEW_SC}"
+    log fatal "PVC is already on this StorageClass" "pvc" "${PVC}" "storageClass" "${NEW_SC}"
     exit 1
 fi
 SIZE=$(kubectl --context "${CTX}" get pvc "${PVC}" -n "${NS}" -o jsonpath='{.spec.resources.requests.storage}')
@@ -106,7 +103,7 @@ ACCESS_MODE=$(kubectl --context "${CTX}" get pvc "${PVC}" -n "${NS}" -o jsonpath
 HAS_DATASOURCE=$(kubectl --context "${CTX}" get pvc "${PVC}" -n "${NS}" -o jsonpath='{.spec.dataSourceRef.name}' 2>/dev/null || true)
 
 if ! kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" >/dev/null 2>&1; then
-    just log fatal "Deployment not found (pass --deploy if it differs from the PVC name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
+    log fatal "Deployment not found (pass --deploy if it differs from the PVC name)" "deployment" "${DEPLOY}" "namespace" "${NS}"
     exit 1
 fi
 
@@ -115,22 +112,22 @@ KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpat
 
 if [ -n "${HR}" ]; then
     HR_NS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/namespace}')
-    just log info "Suspending HelmRelease" "step" "1/6" "helmrelease" "${HR}" "namespace" "${HR_NS}"
+    log info "Suspending HelmRelease" "step" "1/6" "helmrelease" "${HR}" "namespace" "${HR_NS}"
     flux --context "${CTX}" suspend helmrelease "${HR}" -n "${HR_NS}"
 elif [ -n "${KS}" ]; then
-    just log info "Suspending Kustomization" "step" "1/6" "kustomization" "${KS}"
+    log info "Suspending Kustomization" "step" "1/6" "kustomization" "${KS}"
     flux --context "${CTX}" suspend kustomization "${KS}"
 else
-    just log fatal "could not determine the owning Flux object for this deployment" "namespace" "${NS}" "deployment" "${DEPLOY}"
+    log fatal "could not determine the owning Flux object for this deployment" "namespace" "${NS}" "deployment" "${DEPLOY}"
     exit 1
 fi
 
-just log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
+log info "Scaling down" "step" "2/6" "deployment" "${DEPLOY}" "namespace" "${NS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas=0
 kubectl --context "${CTX}" wait pod -l app="${DEPLOY}" -n "${NS}" --for=delete --timeout=120s 2>/dev/null || true
 
 TMP_PVC="${PVC}-newsc"
-just log info "Provisioning staging PVC on the new StorageClass" "step" "3/6" "pvc" "${TMP_PVC}" "storageClass" "${NEW_SC}"
+log info "Provisioning staging PVC on the new StorageClass" "step" "3/6" "pvc" "${TMP_PVC}" "storageClass" "${NEW_SC}"
 kubectl --context "${CTX}" delete pvc "${TMP_PVC}" -n "${NS}" --ignore-not-found --wait=true
 kubectl --context "${CTX}" apply -n "${NS}" -f - <<EOF
 apiVersion: v1
@@ -152,7 +149,7 @@ JOB="${TMP_PVC}-migrate"
 NODE_SELECTOR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.template.spec.nodeSelector}' 2>/dev/null || true)
 NODE_SELECTOR="${NODE_SELECTOR:-{\}}"
 
-just log info "Running copy job" "step" "4/6" "job" "${JOB}" "from" "${PVC}" "to" "${TMP_PVC}" "uid" "${UID_}" "gid" "${GID_}"
+log info "Running copy job" "step" "4/6" "job" "${JOB}" "from" "${PVC}" "to" "${TMP_PVC}" "uid" "${UID_}" "gid" "${GID_}"
 kubectl --context "${CTX}" delete job "${JOB}" -n "${NS}" --ignore-not-found --wait=true
 kubectl --context "${CTX}" apply -n "${NS}" -f - <<EOF
 apiVersion: batch/v1
@@ -193,12 +190,12 @@ kubectl --context "${CTX}" logs job/"${JOB}" -n "${NS}"
 kubectl --context "${CTX}" delete job "${JOB}" -n "${NS}" --wait=true
 
 TMP_PV=$(kubectl --context "${CTX}" get pvc "${TMP_PVC}" -n "${NS}" -o jsonpath='{.spec.volumeName}')
-just log info "Rebinding the new volume under the original PVC name" "step" "5/6" "pv" "${TMP_PV}" "pvc" "${PVC}"
+log info "Rebinding the new volume under the original PVC name" "step" "5/6" "pv" "${TMP_PV}" "pvc" "${PVC}"
 
 kubectl --context "${CTX}" delete pvc "${TMP_PVC}" -n "${NS}" --wait=true
 kubectl --context "${CTX}" patch pv "${TMP_PV}" --type=json -p '[{"op":"remove","path":"/spec/claimRef"}]'
 
-just log info "Deleting old PVC (its PV is left Released, not deleted, as a safety net)" "pvc" "${PVC}"
+log info "Deleting old PVC (its PV is left Released, not deleted, as a safety net)" "pvc" "${PVC}"
 kubectl --context "${CTX}" delete pvc "${PVC}" -n "${NS}" --wait=true
 
 DATASOURCE_YAML=""
@@ -225,7 +222,7 @@ spec:
 EOF
 kubectl --context "${CTX}" wait pvc "${PVC}" -n "${NS}" --for=jsonpath='{.status.phase}'=Bound --timeout=60s
 
-just log info "Triggering manual kopiur snapshot" "step" "6/6" "app" "${PVC}"
+log info "Triggering manual kopiur snapshot" "step" "6/6" "app" "${PVC}"
 SNAP=$(kubectl --context "${CTX}" create -n "${NS}" -f - -o jsonpath='{.metadata.name}' <<EOF
 apiVersion: kopiur.home-operations.com/v1alpha1
 kind: Snapshot
@@ -244,14 +241,14 @@ for _ in $(seq 1 60); do
     PHASE=$(kubectl --context "${CTX}" get snapshot "${SNAP}" -n "${NS}" -o jsonpath='{.status.phase}' 2>/dev/null || true)
     [ "${PHASE}" = "Succeeded" ] && break
     [ "${PHASE}" = "Failed" ] && break
-    just log debug "waiting for snapshot" "phase" "${PHASE:-Pending}"
+    log debug "waiting for snapshot" "phase" "${PHASE:-Pending}"
     sleep 5
 done
 
 if [ "${PHASE}" != "Succeeded" ]; then
-    just log fatal "snapshot did not succeed -- check manually before resuming" "snapshot" "${SNAP}" "last_phase" "${PHASE:-unknown}"
+    log fatal "snapshot did not succeed -- check manually before resuming" "snapshot" "${SNAP}" "last_phase" "${PHASE:-unknown}"
     exit 1
 fi
 
-just log info "Volume converted to ${NEW_SC} and snapshotted. Deployment left suspended+scaled to 0" "step" "done"
-just log info "Next: resume the Kustomization/HelmRelease (its desired state should now match) and scale ${DEPLOY} back up."
+log info "Volume converted to ${NEW_SC} and snapshotted. Deployment left suspended+scaled to 0" "step" "done"
+log info "Next: resume the Kustomization/HelmRelease (its desired state should now match) and scale ${DEPLOY} back up."
