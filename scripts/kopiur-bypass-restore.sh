@@ -73,9 +73,9 @@ done
 # target cluster should always be named explicitly, same as kopiur-restore.sh.
 validate_environment "${ENV}"
 CTX=$(kubecontext_for_environment "${ENV}")
-# Recorded for log()'s automatic "cluster" field (see lib/common.sh) so every log line below -- not just
-# error paths -- shows which cluster this destructive run is acting on (#1305).
-LOG_CLUSTER="${CTX}"
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this destructive run is acting on (#1305).
+LOG_CTX="${CTX}"
 
 if [ -z "${NS}" ]; then
     log fatal "-n/--namespace is required"

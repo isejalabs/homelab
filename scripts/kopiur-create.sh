@@ -55,11 +55,11 @@ if [ -n "${ENV}" ]; then
     CTX_ARGS=(--context "$(kubecontext_for_environment "${ENV}")")
 fi
 
-# Recorded for log()'s automatic "cluster" field (see lib/common.sh) so every log line below -- not just
-# error paths -- shows which cluster this is operating against, even when -e/--environment was omitted and
+# Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
+# error paths -- shows which context this is operating against, even when -e/--environment was omitted and
 # CTX_ARGS above falls back to whatever kubecontext is already current (#1305).
-LOG_CLUSTER="${ENV:+$(kubecontext_for_environment "${ENV}")}"
-: "${LOG_CLUSTER:=$(kubectl config current-context 2>/dev/null || echo unknown)}"
+LOG_CTX="${ENV:+$(kubecontext_for_environment "${ENV}")}"
+: "${LOG_CTX:=$(kubectl config current-context 2>/dev/null || echo unknown)}"
 
 if [ "${ALL_NS}" -eq 1 ] && [ -n "${NS}" ]; then
     log fatal "-n/--namespace and -A/--all-namespaces are mutually exclusive"
