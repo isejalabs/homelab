@@ -27,6 +27,11 @@ SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 CLUSTER_NAME=bootstrap-apps-ci
 KUBE_CONTEXT=admin@ci-homelab
 
+# Recorded for log()'s automatic "context" field (see lib/common.sh), matching the kopiur scripts' pattern
+# (#1305) -- every kubectl call below targets this same fixed context, so it's worth showing on every log
+# line here too, not just the kopiur scripts' env-driven one.
+LOG_CTX="${KUBE_CONTEXT}"
+
 # Dumps pod status/describe/logs for anything not Running/Completed on failure, then always tears down the
 # kind cluster (registered via `trap ... EXIT` below, so this runs whether the script succeeded or failed).
 # Each kubectl dump is captured and re-emitted via log_debug_output rather than left as raw echo/kubectl
