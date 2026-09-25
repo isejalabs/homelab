@@ -1,20 +1,51 @@
 # PTR/reverse-zone wiring for external-dns's rfc2136 provider (--create-ptr):
-# a second zone alongside the forward <env>.iseja.net one, sourced from the
-# same DNS_REVERSE_ZONE cluster-param field as helmrelease-powerdns-ptr.yaml
-# -- see that file's comment for why this isn't a DOMAIN_BASE/DOMAIN_TLD
-# string-split like the forward zone. extraArgs.9 is the bare zone value
-# passed as its own --rfc2136-zone argv entry (see base helmrelease.yaml's
-# comment on why it's split into two array elements) -- same value as
-# domainFilters.1, both plain whole-value copies since this value has no
-# dots to protect from a "." based replacement anyway.
+# a second zone alongside the forward <env>.iseja.net one. extraArgs.6/7 are
+# "--rfc2136-zone=<value>" entries (not split into two array elements) since
+# the chart's values schema requires extraArgs to be a set of unique strings
+# -- two bare "--rfc2136-zone" elements would be equal regardless of what
+# follows them. "=" delimiter, not "." -- never dot-split a combined
+# "--flag=value" string, since a value containing its own dot (any real zone
+# name) would corrupt the "--rfc2136-zone=" prefix along with it (index 0
+# replacing the whole first dot-segment). See helmrelease-powerdns-ptr.yaml
+# for why DNS_REVERSE_ZONE isn't a DOMAIN_BASE/DOMAIN_TLD string-split like
+# the forward zone -- DNS_ZONE (used for extraArgs.6) is that same
+# already-resolved forward-zone value kept as its own cluster-param literal,
+# for the same reason: chaining off another app's (external-dns's own)
+# already-transformed field would work within external-dns's own build, but
+# this component also runs -- harmlessly, via targets.select -- against every
+# other app's build in the same environment, where no "external-dns"
+# HelmRelease exists at all; sourcing from one there is a hard build error,
+# not a silent no-op like an unmatched target select is.
 - source:
     kind: ConfigMap
     name: cluster-param
-    fieldPath: data.DNS_REVERSE_ZONE
+    fieldPath: data.DNS_ZONE
   targets:
     - select:
         kind: HelmRelease
         name: external-dns
       fieldPaths:
+        - spec.values.extraArgs.6
+      options:
+        delimiter: "="
+        index: 1
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DNS_REVERSE_ZONE
+  targets:
+    # domainFilters.1: a plain whole-value copy, no delimiter -- unlike
+    # extraArgs.7 below, this field has no "--flag=" prefix to protect.
+    - select:
+        kind: HelmRelease
+        name: external-dns
+      fieldPaths:
         - spec.values.domainFilters.1
-        - spec.values.extraArgs.9
+    - select:
+        kind: HelmRelease
+        name: external-dns
+      fieldPaths:
+        - spec.values.extraArgs.7
+      options:
+        delimiter: "="
+        index: 1

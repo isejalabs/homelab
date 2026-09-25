@@ -10,10 +10,6 @@
 # k8s/components/transformers/reverse-zone-env), which must NOT go through
 # this DOMAIN_BASE/DOMAIN_TLD split -- it isn't a dotted iseja.net-style name,
 # it's an in-addr.arpa. zone sourced from its own cluster-param field.
-# extraArgs.7 is the bare zone value passed as its own --rfc2136-zone
-# argv entry (see base helmrelease.yaml's comment on why it's split into two
-# array elements rather than one "--rfc2136-zone=value" string) -- same
-# treatment as domainFilters.0, both ending up with the identical value.
 - source:
     kind: ConfigMap
     name: cluster-param
@@ -24,7 +20,6 @@
         name: external-dns
       fieldPaths:
         - spec.values.domainFilters.0
-        - spec.values.extraArgs.7
       options:
         delimiter: "."
         index: 1
@@ -38,7 +33,6 @@
         name: external-dns
       fieldPaths:
         - spec.values.domainFilters.0
-        - spec.values.extraArgs.7
       options:
         delimiter: "."
         index: 0

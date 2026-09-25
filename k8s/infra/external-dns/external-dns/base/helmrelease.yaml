@@ -51,16 +51,18 @@ spec:
       # dropped rather than combined with it -- both zones have to come from
       # the same place.
       #
-      # Each zone value is its own extraArgs entry (space form, not
-      # --rfc2136-zone=value) purely so the domain-replacement transformers
-      # (replace-domain, reverse-zone-env) can target a bare value with no
-      # "--rfc2136-zone=" prefix glued to it -- exactly like domainFilters
-      # above, and avoiding the corruption a "." or "=" based replacement
-      # would risk against a combined flag+value string.
-      - --rfc2136-zone
-      - example.com # replaced per-env by replace-domain, same value as domainFilters.0
-      - --rfc2136-zone
-      - 100.51.198.in-addr.arpa. # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
+      # Each as its own combined "--rfc2136-zone=value" entry, not split into
+      # two array elements (flag, then bare value) -- tried that first, but
+      # the chart's values schema requires extraArgs to be a set of unique
+      # strings, and two bare "--rfc2136-zone" elements are equal regardless
+      # of what follows them, so Helm rejects it. Values replaced per-env by
+      # k8s/components/transformers/reverse-zone-env, which splices each
+      # already-resolved zone value in after the "=" (not a "." based split
+      # like ZONE/domainFilters use) specifically to avoid the "--rfc2136-zone="
+      # prefix getting mangled by a delimiter that also appears inside the
+      # zone name itself.
+      - --rfc2136-zone=example.com
+      - --rfc2136-zone=100.51.198.in-addr.arpa.
 
     policy: sync
 
