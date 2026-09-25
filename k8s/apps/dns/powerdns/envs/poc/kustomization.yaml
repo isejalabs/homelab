@@ -7,7 +7,6 @@ components:
 
 resources:
   - ../../base
-  - externalsecret.yaml
 
 patches:
   - path: helmrelease.yaml

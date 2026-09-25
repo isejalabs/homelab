@@ -36,7 +36,7 @@ spec:
                 valueFrom:
                   secretKeyRef:
                     name: powerdns-tsig
-                    key: tsig-secret
+                    key: TSIG_SECRET
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

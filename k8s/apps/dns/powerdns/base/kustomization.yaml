@@ -10,5 +10,6 @@ components:
 
 resources:
   - ns.yaml
+  - externalsecret.yaml
   - helmrelease.yaml
   - ocirepository.yaml
