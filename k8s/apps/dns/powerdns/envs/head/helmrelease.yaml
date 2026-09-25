@@ -8,9 +8,10 @@ spec:
     controllers:
       main:
         containers:
-          bootstrap-zone:
+          main:
             env:
               ZONE: head.iseja.net
-          main:
+        initContainers:
+          bootstrap-zone:
             env:
               ZONE: head.iseja.net
