@@ -144,6 +144,14 @@ spec:
             api=no
       bootstrap:
         data:
+          # Every $ below is doubled ($$) on purpose: Flux's postBuild.substitute
+          # scans the whole rendered manifest for ${...}/$VAR-shaped text, this
+          # inlined script included, and errors in strict mode on anything that
+          # looks like an unprovided template variable (it doesn't know this is
+          # a shell script meant to be interpreted at container-start time, not
+          # at Flux-apply time). $$ is Flux's own escape for a literal $, so
+          # this renders back to the exact intended script -- see
+          # https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution.
           bootstrap-zone.sh: |
             #!/bin/sh
             # Idempotent: safe to run on every pod start. gsqlite3
@@ -152,21 +160,21 @@ spec:
             # then exits so the main container can start.
             set -eu
 
-            : "${ZONE:?ZONE env var is required}"
-            : "${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
-            : "${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
+            : "$${ZONE:?ZONE env var is required}"
+            : "$${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
+            : "$${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
 
-            zone="${ZONE%.}."
+            zone="$${ZONE%.}."
 
-            if ! pdnsutil zone list "$zone" >/dev/null 2>&1; then
-              pdnsutil zone create "$zone" "ns1.$zone"
+            if ! pdnsutil zone list "$$zone" >/dev/null 2>&1; then
+              pdnsutil zone create "$$zone" "ns1.$$zone"
             fi
 
-            if ! pdnsutil tsigkey list | grep -q "^${TSIG_DYNUPDATE_KEYNAME}\."; then
-              pdnsutil tsigkey import "$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$TSIG_DYNUPDATE_SECRET"
+            if ! pdnsutil tsigkey list | grep -q "^$${TSIG_DYNUPDATE_KEYNAME}\."; then
+              pdnsutil tsigkey import "$$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$$TSIG_DYNUPDATE_SECRET"
             fi
 
             # metadata set replaces all values for the given kind, so this is
             # naturally idempotent -- no existence check needed.
-            pdnsutil metadata set "$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
-            pdnsutil metadata set "$zone" TSIG-ALLOW-DNSUPDATE "$TSIG_DYNUPDATE_KEYNAME"
+            pdnsutil metadata set "$$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
+            pdnsutil metadata set "$$zone" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
