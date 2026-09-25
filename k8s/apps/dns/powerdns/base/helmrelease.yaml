@@ -27,15 +27,27 @@ spec:
             env: &zoneEnv
               ZONE: example.com # replaced per-env
               # Named for the *role* this key plays (RFC2136 dynamic updates
-              # from external-dns), not just "the" TSIG key -- prod will
-              # later add its own separate axfr-out/axfr-in keys alongside
-              # this one, so this name needs to not collide with those.
+              # from external-dns), not just "the" TSIG key -- a separate
+              # axfr-out key (below) authorizes a different trust
+              # relationship (the external LXC secondary), and prod will
+              # later add its own axfr-in key too, so this name needs to not
+              # collide with those.
               TSIG_DYNUPDATE_KEYNAME: dynupdate
               TSIG_DYNUPDATE_SECRET:
                 valueFrom:
                   secretKeyRef:
                     name: powerdns-tsig-dynupdate
                     key: TSIG_DYNUPDATE_SECRET
+              # Authorizes 10.7.2.12 (the LXC secondary, outside this repo) to
+              # AXFR this zone -- deliberately separate from dynupdate above,
+              # a different trust boundary (an external physical box, not the
+              # in-cluster external-dns pod).
+              TSIG_AXFR_OUT_KEYNAME: axfr-out
+              TSIG_AXFR_OUT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: powerdns-tsig-axfr-out
+                    key: TSIG_AXFR_OUT_SECRET
             image: &image
               # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
               repository: powerdns/pdns-auth-51
@@ -85,7 +97,10 @@ spec:
 
     service:
       main:
+        annotations:
+          io.cilium/lb-ipam-ips: 192.168.8.10 # replaced per-env
         controller: main
+        externalTrafficPolicy: Local
         ports:
           dns-tcp:
             port: 53
@@ -95,6 +110,7 @@ spec:
             port: 53
             protocol: UDP
             targetPort: 5300
+        type: LoadBalancer
 
     persistence:
       data:
@@ -178,6 +194,8 @@ spec:
             : "$${ZONE:?ZONE env var is required}"
             : "$${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
             : "$${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
+            : "$${TSIG_AXFR_OUT_KEYNAME:?TSIG_AXFR_OUT_KEYNAME env var is required}"
+            : "$${TSIG_AXFR_OUT_SECRET:?TSIG_AXFR_OUT_SECRET env var is required}"
 
             if [ ! -f /var/lib/powerdns/pdns.sqlite3 ]; then
               sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
@@ -192,6 +210,9 @@ spec:
             if ! pdnsutil tsigkey list | grep -q "^$${TSIG_DYNUPDATE_KEYNAME}\."; then
               pdnsutil tsigkey import "$$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$$TSIG_DYNUPDATE_SECRET"
             fi
+            if ! pdnsutil tsigkey list | grep -q "^$${TSIG_AXFR_OUT_KEYNAME}\."; then
+              pdnsutil tsigkey import "$$TSIG_AXFR_OUT_KEYNAME" hmac-sha256 "$$TSIG_AXFR_OUT_SECRET"
+            fi
 
             # metadata set replaces all values for the given kind, so this is
             # naturally idempotent -- no existence check needed.
@@ -202,5 +223,16 @@ spec:
             # metadata from TSIG-ALLOW-DNSUPDATE above, granting one doesn't
             # grant the other. Once a TSIG key is AXFR-authorized, PowerDNS
             # bypasses allow-axfr-ips entirely for that transfer, so no IP-ACL
-            # config is needed here either.
-            pdnsutil metadata set "$$zone" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME"
+            # config is needed here either. Both keys listed in the same `set`
+            # call (not two separate calls) since `set` replaces all existing
+            # values for the metadata kind -- a second call would silently
+            # drop the first key's grant.
+            pdnsutil metadata set "$$zone" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME" "$$TSIG_AXFR_OUT_KEYNAME"
+            # Speeds up propagation to secondaries after every external-dns
+            # update, instead of waiting for their own refresh-timer expiry.
+            pdnsutil metadata set "$$zone" NOTIFY-DNSUPDATE 1
+            # 10.7.2.12 (the LXC secondary) explicitly, rather than relying on
+            # an NS record for it inside this zone -- this zone is otherwise
+            # fully external-dns-owned, and ALSO-NOTIFY works regardless of
+            # what NS records exist.
+            pdnsutil metadata set "$$zone" ALSO-NOTIFY 10.7.2.12

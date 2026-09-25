@@ -25,3 +25,17 @@ successfully, create its 1Password item once:
 
 That's the only manual step — the `ExternalSecret`/transformer/`pdnsutil` zone-bootstrap `initContainer`
 handle everything else automatically once the item exists.
+
+## Per-environment `axfr-out` TSIG key setup
+
+A second, separate key authorizes `10.7.2.12` (the LXC secondary, outside this repo) to AXFR each
+environment's `<env>.iseja.net` zone — deliberately not the same key as `dynupdate` above, since it's a
+different trust relationship (an external physical box, not the in-cluster external-dns pod). Same process,
+different item:
+
+1. Generate a base64 HMAC-SHA256 secret the same way as above.
+2. Create a 1Password item named `powerdns-tsig-axfr-out#<env>` with a single field `TSIG_AXFR_OUT_SECRET`
+   holding that value.
+
+This key also needs configuring on `10.7.2.12` itself (outside this repo) once it's actually set up to slave
+the zone — not something this repo's manifests can do.

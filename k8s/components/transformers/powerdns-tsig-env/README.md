@@ -1,15 +1,15 @@
 ## Purpose
 
-Rewrites `powerdns-tsig-dynupdate`'s per-environment 1Password key so `base/` only needs to state it once as
-`powerdns-tsig-dynupdate#base` — same mechanism as [`kopiur-secret-env`](../kopiur-secret-env/README.md),
-applied to a different `ExternalSecret`. Each environment's PowerDNS uses its own TSIG key so a compromised
-key in one environment (e.g. `dbg`) can't be used to forge dynamic updates in another (e.g. `prod`).
+Rewrites each of powerdns's `ExternalSecret`s' per-environment 1Password key so `base/` only needs to state
+it once as `<name>#base` — same mechanism as [`kopiur-secret-env`](../kopiur-secret-env/README.md), applied
+to a different resource kind. Each environment's PowerDNS uses its own TSIG keys so a compromised key in one
+environment (e.g. `dbg`) can't be used to forge updates/transfers in another (e.g. `prod`).
 
-Named `powerdns-tsig-dynupdate`, not just `powerdns-tsig`: this key authorizes one specific thing (RFC2136
-dynamic updates from external-dns). Prod will later need its own separate `powerdns-tsig-axfr-out` (PowerDNS
-→ the surviving LXC) and `powerdns-tsig-axfr-in` (UCS → PowerDNS) keys for the root-zone cutover phase —
-different trust relationships, never reused from this one. Naming this one by its role up front means those
-can be added later without renaming anything that already exists.
+Two entries today: `powerdns-tsig-dynupdate` (RFC2136 dynamic updates from external-dns) and
+`powerdns-tsig-axfr-out` (AXFR to `10.7.2.12`, the LXC secondary) — deliberately separate keys, never reused
+between each other, since each authorizes a different trust relationship. Naming each by its role means a
+future `powerdns-tsig-axfr-in` (UCS → PowerDNS, prod-only, root-zone cutover phase) can be added later
+without renaming anything that already exists.
 
 ## How it works
 
@@ -31,15 +31,23 @@ replacing the last `#`-delimited segment of the `ExternalSecret`'s key:
       options:
         delimiter: "#"
         index: 1
+    - select:
+        kind: ExternalSecret
+        name: powerdns-tsig-axfr-out
+      fieldPaths:
+        - spec.dataFrom.0.extract.key
+      options:
+        delimiter: "#"
+        index: 1
 ```
 
 `powerdns-tsig-dynupdate#base` splits into `["powerdns-tsig-dynupdate", "base"]` on `#`; `index: 1` replaces
-the second element (`"base"`) with the sourced environment name.
+the second element (`"base"`) with the sourced environment name — same for `powerdns-tsig-axfr-out#base`.
 
-A future `powerdns-tsig-axfr-out`/`-in` `ExternalSecret` (prod-only) gets its own `targets` entry appended
-to this same file rather than a sibling transformer component — same shape, same mechanism, just one more
-entry in the list, the same way `kopiur-secret-env` itself bundles two unrelated-resource-kind replacements
-(`ExternalSecret` and `ClusterRepository`) under one purpose-named component.
+A future `powerdns-tsig-axfr-in` `ExternalSecret` (prod-only, root-zone cutover phase) gets its own `targets`
+entry appended to this same file rather than a sibling transformer component — same shape, same mechanism,
+just one more entry in the list, the same way `kopiur-secret-env` itself bundles two unrelated-resource-kind
+replacements (`ExternalSecret` and `ClusterRepository`) under one purpose-named component.
 
 ## Where it's included
 
@@ -49,13 +57,13 @@ specific environment's component is included, not in the shared base.
 
 ## No-op safety
 
-`select` targets `ExternalSecret`/`powerdns-tsig-dynupdate` specifically. For any app that doesn't include
-PowerDNS's `ExternalSecret` at all, it simply matches nothing and no-ops — same behavior as
+Each `select` targets one `ExternalSecret` by name specifically. For any app that doesn't include that
+particular `ExternalSecret` at all, it simply matches nothing and no-ops — same behavior as
 `kopiur-secret-env`.
 
-## 1Password item
+## 1Password items
 
-One item per environment, named `powerdns-tsig-dynupdate#<env>` (e.g. `powerdns-tsig-dynupdate#dev`) in the
-shared `K8S` vault, with a single field `TSIG_DYNUPDATE_SECRET`. See
+One item per environment per key — `powerdns-tsig-dynupdate#<env>` and `powerdns-tsig-axfr-out#<env>` (e.g.
+`powerdns-tsig-dynupdate#dev`) — in the shared `K8S` vault. See
 [`k8s/apps/dns/powerdns/README.md`](../../../apps/dns/powerdns/README.md) for the exact key-generation
-command and setup steps.
+commands, field names, and setup steps.
