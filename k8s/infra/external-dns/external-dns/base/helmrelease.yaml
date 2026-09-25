@@ -38,8 +38,18 @@ spec:
       - --rfc2136-axfr
       # Writes a PTR record alongside every A record's own zone, for the two
       # zones listed below. The older --rfc2136-create-ptr flag is deprecated
-      # in favor of this provider-agnostic one.
+      # in favor of this provider-agnostic one. Confirmed live on dev:
+      # --create-ptr refuses to start unless PTR is explicitly listed in
+      # --managed-record-types alongside the default A/AAAA/CNAME set (its
+      # own default doesn't include PTR) -- "config validation failed:
+      # --create-ptr requires PTR in --managed-record-types". One entry per
+      # type, not a comma-separated value: --managed-record-types is a
+      # cumulative flag ("specify multiple times to include many").
       - --create-ptr
+      - --managed-record-types=A
+      - --managed-record-types=AAAA
+      - --managed-record-types=CNAME
+      - --managed-record-types=PTR
       # rfc2136 needs every zone it's allowed to touch listed explicitly here
       # (a bare --domain-filter entry isn't enough for this provider) -- one
       # per domainFilters entry above, forward zone first then the PTR zone.
