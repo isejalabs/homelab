@@ -233,7 +233,7 @@ AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside th
 
 ## DNS: authoritative zones (PowerDNS)
 
-**Status: partially current, partially planning** — see the table below for which row is which. Design
+**Status: partially in progress, partially planning** — see the table below for which row is which. Design
 rationale lives in [`docs/decisions/0001-powerdns-as-dns-server.md`](../decisions/0001-powerdns-as-dns-server.md)
 and [`0002-tsig-over-ip-acl-for-axfr.md`](../decisions/0002-tsig-over-ip-acl-for-axfr.md); this section is
 the current-state zone inventory, not the reasoning behind it.
@@ -247,7 +247,7 @@ mentioned [below](#physical-network-opnsense-ucs-and-the-root-nameservers).
 
 | Zone | Master | Slaves | Mechanism | Status |
 | --- | --- | --- | --- | --- |
-| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | — | Dynamically populated by external-dns via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002) | current |
+| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | — | Dynamically populated by external-dns via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002) | in progress — PowerDNS itself is deployed and live-verified (zone/TSIG bootstrap, a real dynamic update round-tripped correctly), but not yet `current`: external-dns doesn't populate it yet, and the Service has no LB IP, so nothing resolves it from outside the cluster yet |
 | `iseja.net` (root zone) | in-cluster PowerDNS, prod only (`bind` backend, SOPS-encrypted zone file) | `10.7.2.12` | IaC/git-managed records, TSIG-signed AXFR out | planning — supersedes `10.7.2.10`, see [below](#physical-network-opnsense-ucs-and-the-root-nameservers) |
 | `dir.iseja.net`, `7.10.in-addr.arpa.` | UCS (unchanged) | in-cluster PowerDNS, prod only | TSIG-signed AXFR in — PowerDNS is a secondary here, UCS stays the real source of truth | planning |
 
