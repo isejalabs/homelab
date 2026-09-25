@@ -44,7 +44,12 @@ spec:
               liveness: &probe
                 spec:
                   exec:
-                    command: ["pdns_control", "ping"]
+                    # "ping" only works under pdns_server's guardian mode;
+                    # this image runs standalone ("This is a standalone
+                    # pdns" at startup), which needs "rping" instead --
+                    # confirmed live: "ping" fails with "Unknown command:
+                    # 'PING'".
+                    command: ["pdns_control", "rping"]
                   initialDelaySeconds: 5
                   periodSeconds: 10
                 custom: true
