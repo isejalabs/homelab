@@ -1,0 +1,57 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: external-dns
+spec:
+  chart:
+    spec:
+      chart: external-dns
+      sourceRef:
+        kind: HelmRepository
+        name: external-dns
+        namespace: external-dns
+      version: 1.22.0
+  interval: 1h
+  values:
+    domainFilters:
+      - example.com # replaced per-env by replace-domain, same value as EXTERNAL_DNS_RFC2136_ZONE below
+
+    env:
+      - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
+        valueFrom:
+          secretKeyRef:
+            name: powerdns-tsig-dynupdate
+            key: TSIG_DYNUPDATE_SECRET
+      # Set via env var (kingpin's standard EXTERNAL_DNS_<FLAG> convention),
+      # not as a --rfc2136-zone=... extraArgs entry: that string would be
+      # "--rfc2136-zone=example.com", and the domain transformer's dot-split
+      # replacement would corrupt the "--rfc2136-zone=example" segment along
+      # with the "example" part -- keeping the zone as its own bare value
+      # here lets the same plain domain-replacement approach used elsewhere
+      # in this repo apply cleanly.
+      - name: EXTERNAL_DNS_RFC2136_ZONE
+        value: example.com # replaced per-env by replace-domain
+
+    extraArgs:
+      - --rfc2136-host=powerdns.powerdns.svc.cluster.local
+      - --rfc2136-port=53
+      - --rfc2136-tsig-keyname=dynupdate
+      - --rfc2136-tsig-secret-alg=hmac-sha256
+      # Required for --policy=sync to list existing records (otherwise
+      # external-dns can only ever create, never update/delete) -- see
+      # k8s/apps/dns/powerdns's TSIG-ALLOW-AXFR grant for the other half of
+      # this.
+      - --rfc2136-axfr
+
+    policy: sync
+
+    provider:
+      name: rfc2136
+
+    sources:
+      - gateway-httproute
+      - service
+
+    txtOwnerId: external-dns
