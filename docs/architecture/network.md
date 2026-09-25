@@ -231,6 +231,37 @@ environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached o
 AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises
 AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
 
+## DNS: authoritative zones (PowerDNS)
+
+**Status: partially current, partially planning** — see the table below for which row is which. Design
+rationale lives in [`docs/decisions/0001-powerdns-as-dns-server.md`](../decisions/0001-powerdns-as-dns-server.md)
+and [`0002-tsig-over-ip-acl-for-axfr.md`](../decisions/0002-tsig-over-ip-acl-for-axfr.md); this section is
+the current-state zone inventory, not the reasoning behind it.
+
+AdGuard and Unbound above are **resolvers** — they answer queries on behalf of LAN clients but aren't
+authoritative for anything. [`k8s/apps/dns/powerdns/`](../../k8s/apps/dns/powerdns/) (one
+[`bjw-s-labs` app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template)
+`HelmRelease` per environment) is the first **authoritative** nameserver this repo runs — until now, every
+authoritative record for `iseja.net` lived outside Git entirely, manually maintained on the two LXCs
+mentioned [below](#physical-network-opnsense-ucs-and-the-root-nameservers).
+
+| Zone | Master | Slaves | Mechanism | Status |
+| --- | --- | --- | --- | --- |
+| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | — | Dynamically populated by external-dns via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002) | current |
+| `iseja.net` (root zone) | in-cluster PowerDNS, prod only (`bind` backend, SOPS-encrypted zone file) | `10.7.2.12` | IaC/git-managed records, TSIG-signed AXFR out | planning — supersedes `10.7.2.10`, see [below](#physical-network-opnsense-ucs-and-the-root-nameservers) |
+| `dir.iseja.net`, `7.10.in-addr.arpa.` | UCS (unchanged) | in-cluster PowerDNS, prod only | TSIG-signed AXFR in — PowerDNS is a secondary here, UCS stays the real source of truth | planning |
+
+The dynamic per-environment zones have no external master to resync from, so each environment's PowerDNS
+data lives on a `longhorn-ha` PersistentVolumeClaim (via the `apps/storage/pvc` component, so it's also
+kopiur-backed) rather than being reconstructed on every restart. The (planned) root-zone and UCS-slave-zone
+data on the prod instance follows the same reasoning for the parts *this repo* owns, but a UCS or LXC outage
+simply means those specific slaved zones go stale until reachable again — normal secondary-nameserver
+behavior, not a design gap.
+
+No app in the repo has changed to accommodate this — `replace-domain`/`prefix-domain` already produce the
+exact hostnames (e.g. `adguard.prod.iseja.net`) that external-dns's `gateway-httproute`/`service` sources
+pick up automatically; the zone this project adds is additive underneath what already existed.
+
 ## Physical network: OPNsense, UCS, and the root nameservers
 
 Everything in this section is physical infrastructure with no representation in this repo at all — it's
@@ -256,7 +287,9 @@ is relayed back.
 
 **The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a
 *separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone
-itself, distinct from UCS's subdomain-scoped DNS role. Not yet migrated into Kubernetes.
+itself, distinct from UCS's subdomain-scoped DNS role. `10.7.2.10` (today's master) is planned to be
+superseded by the in-cluster PowerDNS instance described [above](#dns-authoritative-zones-powerdns); `10.7.2.12`
+keeps its existing slave-only role unchanged, just re-pointed at the new master once that cutover happens.
 
 **unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its
 own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the

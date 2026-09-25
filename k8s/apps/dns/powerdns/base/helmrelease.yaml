@@ -1,0 +1,168 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.bjw-s.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: powerdns
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+  interval: 1h
+  values:
+    defaultPodOptions:
+      securityContext:
+        fsGroup: 953 # the `pdns` user baked into the official image
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 953
+        runAsNonRoot: true
+        runAsUser: 953
+        seccompProfile:
+          type: RuntimeDefault
+
+    controllers:
+      main:
+        containers:
+          bootstrap-zone:
+            image: &image
+              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
+              repository: powerdns/pdns-auth-51
+              tag: 5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205
+            command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
+            env: &zoneEnv
+              ZONE: example.com # replaced per-env
+              TSIG_KEYNAME: external-dns
+              TSIG_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: powerdns-tsig
+                    key: tsig-secret
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+          main:
+            image: *image
+            env: *zoneEnv
+            probes:
+              liveness: &probe
+                enabled: true
+                custom: true
+                spec:
+                  exec:
+                    command: ["pdns_control", "ping"]
+                  initialDelaySeconds: 5
+                  periodSeconds: 10
+              readiness: *probe
+              startup:
+                enabled: false
+            resources:
+              limits:
+                cpu: 500m
+                memory: 128Mi
+              requests:
+                cpu: 10m
+                memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+
+    service:
+      main:
+        controller: main
+        ports:
+          dns-tcp:
+            port: 53
+            protocol: TCP
+            targetPort: 5300
+          dns-udp:
+            port: 53
+            protocol: UDP
+            targetPort: 5300
+
+    persistence:
+      data:
+        type: persistentVolumeClaim
+        existingClaim: powerdns
+        globalMounts:
+          - path: /var/lib/powerdns
+      config:
+        type: configMap
+        identifier: conf
+        globalMounts:
+          - path: /etc/powerdns/pdns.d
+            readOnly: true
+      bootstrap-script:
+        type: configMap
+        identifier: bootstrap
+        defaultMode: 0555
+        globalMounts:
+          - path: /scripts
+            readOnly: true
+
+    # Inlined here (rather than kustomize's configMapGenerator) on purpose:
+    # a HelmRelease's `values:` is an opaque blob to kustomize, so its
+    # name-reference hash-suffix fixup never reaches into
+    # `persistence.*.identifier` -- generating the ConfigMap via
+    # configMapGenerator would silently create `powerdns-conf-<hash>` while
+    # this file still says `powerdns-conf`, a broken reference. app-template's
+    # own `configMaps` + `persistence.*.identifier` keeps everything inside
+    # the same values tree Flux already reconciles as one unit, and
+    # `includeInChecksum` (on by default) triggers a rollout when this
+    # content changes.
+    configMaps:
+      conf:
+        data:
+          10-backend.conf: |
+            launch=gsqlite3
+            gsqlite3-database=/var/lib/powerdns/pdns.sqlite3
+          20-network.conf: |
+            # Unprivileged port: the container doesn't run as root, so it can't
+            # bind 53 directly. The Service maps port 53 -> this targetPort.
+            local-address=0.0.0.0
+            local-port=5300
+          30-dnsupdate.conf: |
+            # TSIG-only dynamic updates (RFC2136) for external-dns. No IP-ACL:
+            # auth is by TSIG key name, not source address, so it doesn't
+            # matter which node a replica lands on -- see
+            # docs/decisions/0002-tsig-over-ip-acl-for-axfr.md.
+            dnsupdate=yes
+            dnsupdate-require-tsig=yes
+            # Left empty deliberately: only the per-zone TSIG-ALLOW-DNSUPDATE
+            # metadata (set by the zone-bootstrap init container) authorizes
+            # updates, never an IP range.
+            allow-dnsupdate-from=
+          40-security.conf: |
+            # No web UI/API needed yet -- external-dns talks RFC2136, not the
+            # HTTP API.
+            webserver=no
+            api=no
+      bootstrap:
+        data:
+          bootstrap-zone.sh: |
+            #!/bin/sh
+            # Idempotent: safe to run on every pod start. gsqlite3
+            # auto-creates the database schema on first boot, but not the
+            # zone row/apex records or the TSIG key -- this does the rest,
+            # then exits so the main container can start.
+            set -eu
+
+            : "${ZONE:?ZONE env var is required}"
+            : "${TSIG_KEYNAME:?TSIG_KEYNAME env var is required}"
+            : "${TSIG_SECRET:?TSIG_SECRET env var is required}"
+
+            zone="${ZONE%.}."
+
+            if ! pdnsutil zone list "$zone" >/dev/null 2>&1; then
+              pdnsutil zone create "$zone" "ns1.$zone"
+            fi
+
+            if ! pdnsutil tsigkey list | grep -q "^${TSIG_KEYNAME}\."; then
+              pdnsutil tsigkey import "$TSIG_KEYNAME" hmac-sha256 "$TSIG_SECRET"
+            fi
+
+            # metadata set replaces all values for the given kind, so this is
+            # naturally idempotent -- no existence check needed.
+            pdnsutil metadata set "$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
+            pdnsutil metadata set "$zone" TSIG-ALLOW-DNSUPDATE "$TSIG_KEYNAME"
