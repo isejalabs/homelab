@@ -50,13 +50,13 @@ spec:
             env: *zoneEnv
             probes:
               liveness: &probe
-                enabled: true
-                custom: true
                 spec:
                   exec:
                     command: ["pdns_control", "ping"]
                   initialDelaySeconds: 5
                   periodSeconds: 10
+                custom: true
+                enabled: true
               readiness: *probe
               startup:
                 enabled: false
