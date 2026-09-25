@@ -56,5 +56,6 @@ PowerDNS's `ExternalSecret` at all, it simply matches nothing and no-ops — sam
 ## 1Password item
 
 One item per environment, named `powerdns-tsig-dynupdate#<env>` (e.g. `powerdns-tsig-dynupdate#dev`) in the
-shared `K8S` vault, with a single field `TSIG_DYNUPDATE_SECRET` holding a base64 HMAC-SHA256 key (e.g.
-`tsig-keygen -a hmac-sha256 dynupdate` or `openssl rand -base64 32`).
+shared `K8S` vault, with a single field `TSIG_DYNUPDATE_SECRET`. See
+[`k8s/apps/dns/powerdns/README.md`](../../../apps/dns/powerdns/README.md) for the exact key-generation
+command and setup steps.
