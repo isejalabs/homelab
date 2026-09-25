@@ -15,15 +15,15 @@ parameters:
   # Options: disabled, least-effort, best-effort
   replicaAutoBalance: "best-effort"
 
-  # Allow scheduling replicas on the same node (not recommended for HA)
-  replicaDiskSoftAntiAffinity: "true"
-
-  # Minimum number of healthy replicas before writes are blocked
-  # Prevents data loss during degraded states
-  replicaSoftAntiAffinity: "true"
-
-  # Zone-aware replica placement (requires node labels)
-  replicaZoneSoftAntiAffinity: "true"
+  # Valid values are enabled/disabled/ignored -- "true" is rejected by the CSI
+  # driver outright (confirmed live: this class had zero consumers until now,
+  # so this was never actually exercised). "ignored" defers to Longhorn's
+  # cluster-wide default as a safe stopgap; picking a deliberate
+  # enabled/disabled stance per field for a "max resilience" class is
+  # follow-up work, not done here -- see issue #1380.
+  replicaDiskSoftAntiAffinity: "ignored"
+  replicaSoftAntiAffinity: "ignored"
+  replicaZoneSoftAntiAffinity: "ignored"
 provisioner: driver.longhorn.io
 reclaimPolicy: Retain # Retain volume when PVC is deleted
 volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
