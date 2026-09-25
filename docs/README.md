@@ -18,6 +18,9 @@ thing they describe.
     reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and
     day-to-day operational tasks (list/trigger/restore/prune backups).
+- **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant,
+  non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the
+  repo, only the ones whose *why* would otherwise be lost to git-log archaeology.
 - **[`logs/`](logs)** — raw output logs kept as a historical/reference record of past bootstrap runs, not
   narrative documentation.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece
@@ -35,7 +38,7 @@ thing they describe.
 | [`architecture/secrets.md`](architecture/secrets.md) | done | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
 | `architecture/terraform-bootstrap.md` | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
 | [`architecture/environments.md`](architecture/environments.md) | done | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
-| [`architecture/network.md`](architecture/network.md) | done | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS), and unifi-controller fit together |
+| [`architecture/network.md`](architecture/network.md) | partially planning | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
 | [`architecture/storage.md`](architecture/storage.md) | done | Longhorn vs proxmox-csi, and when each is used |
 | [`architecture/workloads.md`](architecture/workloads.md) | done | catalog of every app/infra component deployed, what it is, and how it's installed |
 

@@ -5,6 +5,7 @@ components:
   - ../base # configures domain replacement
   - ../../transformers/prefix-domain
   - ../../transformers/kopiur-secret-env
+  - ../../transformers/powerdns-tsig-env
   - ../../transformers/suspend-kopiur-schedule
 resources:
   - cluster-param.yaml
