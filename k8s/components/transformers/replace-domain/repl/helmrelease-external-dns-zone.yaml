@@ -4,6 +4,16 @@
 # fields instead. Kept as its own file rather than folded into the powerdns
 # one: same transformation, but two different apps' own values, not one
 # shared concern.
+#
+# domainFilters.0 specifically, not a domainFilters.* wildcard: domainFilters
+# now also carries the PTR/reverse zone at index 1 (see
+# k8s/components/transformers/reverse-zone-env), which must NOT go through
+# this DOMAIN_BASE/DOMAIN_TLD split -- it isn't a dotted iseja.net-style name,
+# it's an in-addr.arpa. zone sourced from its own cluster-param field.
+# extraArgs.7 is the bare zone value passed as its own --rfc2136-zone
+# argv entry (see base helmrelease.yaml's comment on why it's split into two
+# array elements rather than one "--rfc2136-zone=value" string) -- same
+# treatment as domainFilters.0, both ending up with the identical value.
 - source:
     kind: ConfigMap
     name: cluster-param
@@ -13,8 +23,8 @@
         kind: HelmRelease
         name: external-dns
       fieldPaths:
-        - spec.values.env.[name=EXTERNAL_DNS_RFC2136_ZONE].value
-        - spec.values.domainFilters.*
+        - spec.values.domainFilters.0
+        - spec.values.extraArgs.7
       options:
         delimiter: "."
         index: 1
@@ -27,8 +37,8 @@
         kind: HelmRelease
         name: external-dns
       fieldPaths:
-        - spec.values.env.[name=EXTERNAL_DNS_RFC2136_ZONE].value
-        - spec.values.domainFilters.*
+        - spec.values.domainFilters.0
+        - spec.values.extraArgs.7
       options:
         delimiter: "."
         index: 0

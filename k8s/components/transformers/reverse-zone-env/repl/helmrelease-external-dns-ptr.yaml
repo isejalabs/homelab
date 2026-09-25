@@ -1,0 +1,20 @@
+# PTR/reverse-zone wiring for external-dns's rfc2136 provider (--create-ptr):
+# a second zone alongside the forward <env>.iseja.net one, sourced from the
+# same DNS_REVERSE_ZONE cluster-param field as helmrelease-powerdns-ptr.yaml
+# -- see that file's comment for why this isn't a DOMAIN_BASE/DOMAIN_TLD
+# string-split like the forward zone. extraArgs.9 is the bare zone value
+# passed as its own --rfc2136-zone argv entry (see base helmrelease.yaml's
+# comment on why it's split into two array elements) -- same value as
+# domainFilters.1, both plain whole-value copies since this value has no
+# dots to protect from a "." based replacement anyway.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DNS_REVERSE_ZONE
+  targets:
+    - select:
+        kind: HelmRelease
+        name: external-dns
+      fieldPaths:
+        - spec.values.domainFilters.1
+        - spec.values.extraArgs.9

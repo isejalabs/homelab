@@ -39,3 +39,17 @@ different item:
 
 This key also needs configuring on `10.7.2.12` itself (outside this repo) once it's actually set up to slave
 the zone — not something this repo's manifests can do.
+
+## Per-environment PTR/reverse-zone setup
+
+Alongside the forward `<env>.iseja.net` zone, PowerDNS also hosts a PTR zone for that environment's own
+`10.8.<env-id>.0/24` LB-IP range (see [`docs/architecture/network.md`](../../../../docs/architecture/network.md)'s
+zone-inventory table), populated the same dynamic way by external-dns's `--create-ptr`. Unlike `ZONE`, this
+value isn't derivable from `DOMAIN_BASE`/`DOMAIN_TLD` — it's tied to each environment's own Cilium LB-IPAM
+pool (`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`), an unrelated addressing scheme — so a new
+environment needs its own `DNS_REVERSE_ZONE` value added to
+[`k8s/components/envs/<env>/cluster-param.yaml`](../../../components/envs), e.g. `3.8.10.in-addr.arpa.` for
+an env whose LB-IP pool is `10.8.3.0/24`. See
+[`k8s/components/transformers/reverse-zone-env`](../../../components/transformers/reverse-zone-env) for how
+that value gets wired into both PowerDNS's own zone-bootstrap `initContainer` and external-dns's
+`domainFilters`/`--rfc2136-zone`.

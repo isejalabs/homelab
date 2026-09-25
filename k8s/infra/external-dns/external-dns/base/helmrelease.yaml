@@ -16,7 +16,8 @@ spec:
   interval: 1h
   values:
     domainFilters:
-      - example.com # replaced per-env by replace-domain, same value as EXTERNAL_DNS_RFC2136_ZONE below
+      - example.com # replaced per-env by replace-domain, same value spliced into --rfc2136-zone below
+      - 100.51.198.in-addr.arpa. # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
 
     env:
       - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
@@ -24,15 +25,6 @@ spec:
           secretKeyRef:
             name: powerdns-tsig-dynupdate
             key: TSIG_DYNUPDATE_SECRET
-      # Set via env var (kingpin's standard EXTERNAL_DNS_<FLAG> convention),
-      # not as a --rfc2136-zone=... extraArgs entry: that string would be
-      # "--rfc2136-zone=example.com", and the domain transformer's dot-split
-      # replacement would corrupt the "--rfc2136-zone=example" segment along
-      # with the "example" part -- keeping the zone as its own bare value
-      # here lets the same plain domain-replacement approach used elsewhere
-      # in this repo apply cleanly.
-      - name: EXTERNAL_DNS_RFC2136_ZONE
-        value: example.com # replaced per-env by replace-domain
 
     extraArgs:
       - --rfc2136-host=powerdns.powerdns.svc.cluster.local
@@ -44,6 +36,31 @@ spec:
       # k8s/apps/dns/powerdns's TSIG-ALLOW-AXFR grant for the other half of
       # this.
       - --rfc2136-axfr
+      # Writes a PTR record alongside every A record's own zone, for the two
+      # zones listed below. The older --rfc2136-create-ptr flag is deprecated
+      # in favor of this provider-agnostic one.
+      - --create-ptr
+      # rfc2136 needs every zone it's allowed to touch listed explicitly here
+      # (a bare --domain-filter entry isn't enough for this provider) -- one
+      # per domainFilters entry above, forward zone first then the PTR zone.
+      # Not set via the EXTERNAL_DNS_RFC2136_ZONE env var (kingpin's
+      # <FLAG>-envar convention) like a single zone would be: kingpin only
+      # honors an envar-set default when the flag isn't also passed via CLI
+      # args at all, so as soon as a second zone needs an explicit
+      # --rfc2136-zone here, an env-var-set first zone would be silently
+      # dropped rather than combined with it -- both zones have to come from
+      # the same place.
+      #
+      # Each zone value is its own extraArgs entry (space form, not
+      # --rfc2136-zone=value) purely so the domain-replacement transformers
+      # (replace-domain, reverse-zone-env) can target a bare value with no
+      # "--rfc2136-zone=" prefix glued to it -- exactly like domainFilters
+      # above, and avoiding the corruption a "." or "=" based replacement
+      # would risk against a combined flag+value string.
+      - --rfc2136-zone
+      - example.com # replaced per-env by replace-domain, same value as domainFilters.0
+      - --rfc2136-zone
+      - 100.51.198.in-addr.arpa. # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
 
     policy: sync
 

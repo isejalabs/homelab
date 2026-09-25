@@ -9,3 +9,7 @@ data:
   DOMAIN_BASE: dev.iseja
   DOMAIN_TLD: net
   FLUX_RECONCILIATION_INTERVAL: 10m
+  # PTR zone for this env's own 10.8.3.0/24 LB-IP range (see
+  # k8s/infra/kube-system/cilium/envs/dev/ip-pool-bgp.yaml) -- not derivable
+  # from DOMAIN_BASE/DOMAIN_TLD, a separate per-env addressing scheme.
+  DNS_REVERSE_ZONE: 3.8.10.in-addr.arpa.
