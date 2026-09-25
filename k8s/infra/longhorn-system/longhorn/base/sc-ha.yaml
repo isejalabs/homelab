@@ -5,8 +5,8 @@ metadata:
   name: longhorn-ha
 allowVolumeExpansion: true
 parameters:
-  # Use XFS for better performance and reliability
-  fsType: xfs
+  # ext4 by policy — longhorn-xfs is the only class that should use xfs
+  fsType: ext4
 
   # Three replicas ensures survival of two node failures
   numberOfReplicas: "3"
