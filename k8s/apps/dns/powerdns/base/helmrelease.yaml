@@ -197,3 +197,10 @@ spec:
             # naturally idempotent -- no existence check needed.
             pdnsutil metadata set "$$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
             pdnsutil metadata set "$$zone" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
+            # external-dns's --policy=sync needs AXFR to list existing records
+            # (otherwise it can only create, never update/delete) -- separate
+            # metadata from TSIG-ALLOW-DNSUPDATE above, granting one doesn't
+            # grant the other. Once a TSIG key is AXFR-authorized, PowerDNS
+            # bypasses allow-axfr-ips entirely for that transfer, so no IP-ACL
+            # config is needed here either.
+            pdnsutil metadata set "$$zone" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME"
