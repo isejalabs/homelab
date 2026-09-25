@@ -23,12 +23,7 @@ spec:
     controllers:
       main:
         containers:
-          bootstrap-zone:
-            image: &image
-              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
-              repository: powerdns/pdns-auth-51
-              tag: 5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205
-            command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
+          main:
             env: &zoneEnv
               ZONE: example.com # replaced per-env
               # Named for the *role* this key plays (RFC2136 dynamic updates
@@ -41,13 +36,10 @@ spec:
                   secretKeyRef:
                     name: powerdns-tsig-dynupdate
                     key: TSIG_DYNUPDATE_SECRET
-            securityContext:
-              allowPrivilegeEscalation: false
-              capabilities:
-                drop: ["ALL"]
-          main:
-            image: *image
-            env: *zoneEnv
+            image: &image
+              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
+              repository: powerdns/pdns-auth-51
+              tag: 5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205
             probes:
               liveness: &probe
                 spec:
@@ -67,6 +59,20 @@ spec:
               requests:
                 cpu: 10m
                 memory: 64Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+        initContainers:
+          # A real initContainer, not a regular container: it runs a one-shot
+          # script and exits, which is exactly what kubelet expects from an
+          # init container and exactly what makes a *regular* container
+          # CrashLoopBackOff (confirmed live -- this was originally
+          # (mis)placed under `containers`).
+          bootstrap-zone:
+            command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
+            env: *zoneEnv
+            image: *image
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -154,15 +160,23 @@ spec:
           # https://fluxcd.io/flux/components/kustomize/kustomizations/#post-build-variable-substitution.
           bootstrap-zone.sh: |
             #!/bin/sh
-            # Idempotent: safe to run on every pod start. gsqlite3
-            # auto-creates the database schema on first boot, but not the
-            # zone row/apex records or the TSIG key -- this does the rest,
-            # then exits so the main container can start.
+            # Idempotent: safe to run on every pod start. Contrary to some
+            # third-party PowerDNS images, the official one does NOT
+            # auto-create the sqlite3 schema on first boot (confirmed live:
+            # both pdnsutil and pdns_server itself refuse to start against a
+            # missing database file) -- this seeds it from the same schema
+            # file the official docs' manual setup guide uses, then handles
+            # the zone row/apex records and the TSIG key, then exits so the
+            # main container can start.
             set -eu
 
             : "$${ZONE:?ZONE env var is required}"
             : "$${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
             : "$${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
+
+            if [ ! -f /var/lib/powerdns/pdns.sqlite3 ]; then
+              sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
+            fi
 
             zone="$${ZONE%.}."
 
