@@ -26,6 +26,11 @@ spec:
           main:
             env: &zoneEnv
               ZONE: example.com # replaced per-env
+              # PTR zone for this env's own LB-IP range, hosted the same way
+              # as ZONE above -- see
+              # k8s/components/transformers/reverse-zone-env for why this
+              # isn't a DOMAIN_BASE/DOMAIN_TLD-derived value like ZONE is.
+              REVERSE_ZONE: 100.51.198.in-addr.arpa. # replaced per-env
               # Named for the *role* this key plays (RFC2136 dynamic updates
               # from external-dns), not just "the" TSIG key -- a separate
               # axfr-out key (below) authorizes a different trust
@@ -192,6 +197,7 @@ spec:
             set -eu
 
             : "$${ZONE:?ZONE env var is required}"
+            : "$${REVERSE_ZONE:?REVERSE_ZONE env var is required}"
             : "$${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
             : "$${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
             : "$${TSIG_AXFR_OUT_KEYNAME:?TSIG_AXFR_OUT_KEYNAME env var is required}"
@@ -202,10 +208,7 @@ spec:
             fi
 
             zone="$${ZONE%.}."
-
-            if ! pdnsutil zone list "$$zone" >/dev/null 2>&1; then
-              pdnsutil zone create "$$zone" "ns1.$$zone"
-            fi
+            reverse_zone="$${REVERSE_ZONE%.}."
 
             if ! pdnsutil tsigkey list | grep -q "^$${TSIG_DYNUPDATE_KEYNAME}\."; then
               pdnsutil tsigkey import "$$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$$TSIG_DYNUPDATE_SECRET"
@@ -214,25 +217,44 @@ spec:
               pdnsutil tsigkey import "$$TSIG_AXFR_OUT_KEYNAME" hmac-sha256 "$$TSIG_AXFR_OUT_SECRET"
             fi
 
-            # metadata set replaces all values for the given kind, so this is
-            # naturally idempotent -- no existence check needed.
-            pdnsutil metadata set "$$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
-            pdnsutil metadata set "$$zone" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
-            # external-dns's --policy=sync needs AXFR to list existing records
-            # (otherwise it can only create, never update/delete) -- separate
-            # metadata from TSIG-ALLOW-DNSUPDATE above, granting one doesn't
-            # grant the other. Once a TSIG key is AXFR-authorized, PowerDNS
-            # bypasses allow-axfr-ips entirely for that transfer, so no IP-ACL
-            # config is needed here either. Both keys listed in the same `set`
-            # call (not two separate calls) since `set` replaces all existing
-            # values for the metadata kind -- a second call would silently
-            # drop the first key's grant.
-            pdnsutil metadata set "$$zone" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME" "$$TSIG_AXFR_OUT_KEYNAME"
-            # Speeds up propagation to secondaries after every external-dns
-            # update, instead of waiting for their own refresh-timer expiry.
-            pdnsutil metadata set "$$zone" NOTIFY-DNSUPDATE 1
-            # 10.7.2.12 (the LXC secondary) explicitly, rather than relying on
-            # an NS record for it inside this zone -- this zone is otherwise
-            # fully external-dns-owned, and ALSO-NOTIFY works regardless of
-            # what NS records exist.
-            pdnsutil metadata set "$$zone" ALSO-NOTIFY 10.7.2.12
+            # Same TSIG-authorized dynamic-update/AXFR/NOTIFY setup for both
+            # the forward <env>.iseja.net zone and its PTR counterpart --
+            # external-dns writes to both via the same rfc2136 credentials
+            # (--create-ptr), and 10.7.2.12 slaves both the same way. $1's
+            # own NS record always names the *forward* zone's ns1 host (the
+            # PowerDNS instance's own identity), even when setting up the
+            # reverse zone -- it doesn't need to live inside the zone it's
+            # naming.
+            setup_zone() {
+              z="$$1"
+              if ! pdnsutil zone list "$$z" >/dev/null 2>&1; then
+                pdnsutil zone create "$$z" "ns1.$$zone"
+              fi
+              # metadata set replaces all values for the given kind, so this
+              # is naturally idempotent -- no existence check needed.
+              pdnsutil metadata set "$$z" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
+              pdnsutil metadata set "$$z" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
+              # external-dns's --policy=sync needs AXFR to list existing
+              # records (otherwise it can only create, never update/delete)
+              # -- separate metadata from TSIG-ALLOW-DNSUPDATE above,
+              # granting one doesn't grant the other. Once a TSIG key is
+              # AXFR-authorized, PowerDNS bypasses allow-axfr-ips entirely for
+              # that transfer, so no IP-ACL config is needed here either.
+              # Both keys listed in the same `set` call (not two separate
+              # calls) since `set` replaces all existing values for the
+              # metadata kind -- a second call would silently drop the first
+              # key's grant.
+              pdnsutil metadata set "$$z" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME" "$$TSIG_AXFR_OUT_KEYNAME"
+              # Speeds up propagation to secondaries after every
+              # external-dns update, instead of waiting for their own
+              # refresh-timer expiry.
+              pdnsutil metadata set "$$z" NOTIFY-DNSUPDATE 1
+              # 10.7.2.12 (the LXC secondary) explicitly, rather than relying
+              # on an NS record for it inside this zone -- these zones are
+              # otherwise fully external-dns-owned, and ALSO-NOTIFY works
+              # regardless of what NS records exist.
+              pdnsutil metadata set "$$z" ALSO-NOTIFY 10.7.2.12
+            }
+
+            setup_zone "$$zone"
+            setup_zone "$$reverse_zone"

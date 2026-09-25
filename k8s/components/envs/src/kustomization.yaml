@@ -6,6 +6,7 @@ components:
   - ../../transformers/prefix-domain
   - ../../transformers/kopiur-secret-env
   - ../../transformers/powerdns-tsig-env
+  - ../../transformers/reverse-zone-env
   - ../../transformers/suspend-kopiur-schedule
 resources:
   - cluster-param.yaml
