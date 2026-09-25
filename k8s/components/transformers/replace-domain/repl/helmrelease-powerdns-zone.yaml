@@ -1,0 +1,39 @@
+# powerdns's ZONE env var has no app-label segment (unlike an Ingress/HTTPRoute
+# hostname's app.example.com) -- its base value is just example.com, so this
+# replaces index 0 (not 1) with DOMAIN_BASE, producing e.g. dev.iseja.net
+# directly, matching DOMAIN_BASE's own per-env value (see
+# k8s/components/envs/<env>/cluster-param.yaml) with no further prefixing needed.
+#
+# TLD first, then DOMAIN_BASE, same order as httproute-replace-domain.yaml and
+# for the same reason: DOMAIN_BASE's own value contains a dot (e.g.
+# "dev.iseja"), so replacing it first would grow the string to 3 segments
+# before the TLD replacement's index-1 lookup ran, silently targeting the
+# wrong segment.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_TLD
+  targets:
+    - select:
+        kind: HelmRelease
+        name: powerdns
+      fieldPaths:
+        - spec.values.controllers.main.containers.main.env.ZONE
+        - spec.values.controllers.main.initContainers.bootstrap-zone.env.ZONE
+      options:
+        delimiter: "."
+        index: 1
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_BASE
+  targets:
+    - select:
+        kind: HelmRelease
+        name: powerdns
+      fieldPaths:
+        - spec.values.controllers.main.containers.main.env.ZONE
+        - spec.values.controllers.main.initContainers.bootstrap-zone.env.ZONE
+      options:
+        delimiter: "."
+        index: 0

@@ -4,6 +4,7 @@ kind: Component
 replacements:
   - path: repl/cert-replace-hostname.yaml
   - path: repl/gateway-replace-hostname.yaml
+  - path: repl/helmrelease-powerdns-zone.yaml
   - path: repl/ingress-replace-domain.yaml
   - path: repl/httproute-replace-domain.yaml
   - path: repl/tlsroute-replace-domain.yaml
