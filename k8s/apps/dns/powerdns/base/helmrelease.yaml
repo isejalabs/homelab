@@ -31,12 +31,16 @@ spec:
             command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
             env: &zoneEnv
               ZONE: example.com # replaced per-env
-              TSIG_KEYNAME: external-dns
-              TSIG_SECRET:
+              # Named for the *role* this key plays (RFC2136 dynamic updates
+              # from external-dns), not just "the" TSIG key -- prod will
+              # later add its own separate axfr-out/axfr-in keys alongside
+              # this one, so this name needs to not collide with those.
+              TSIG_DYNUPDATE_KEYNAME: dynupdate
+              TSIG_DYNUPDATE_SECRET:
                 valueFrom:
                   secretKeyRef:
-                    name: powerdns-tsig
-                    key: TSIG_SECRET
+                    name: powerdns-tsig-dynupdate
+                    key: TSIG_DYNUPDATE_SECRET
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:
@@ -149,8 +153,8 @@ spec:
             set -eu
 
             : "${ZONE:?ZONE env var is required}"
-            : "${TSIG_KEYNAME:?TSIG_KEYNAME env var is required}"
-            : "${TSIG_SECRET:?TSIG_SECRET env var is required}"
+            : "${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
+            : "${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
 
             zone="${ZONE%.}."
 
@@ -158,11 +162,11 @@ spec:
               pdnsutil zone create "$zone" "ns1.$zone"
             fi
 
-            if ! pdnsutil tsigkey list | grep -q "^${TSIG_KEYNAME}\."; then
-              pdnsutil tsigkey import "$TSIG_KEYNAME" hmac-sha256 "$TSIG_SECRET"
+            if ! pdnsutil tsigkey list | grep -q "^${TSIG_DYNUPDATE_KEYNAME}\."; then
+              pdnsutil tsigkey import "$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$TSIG_DYNUPDATE_SECRET"
             fi
 
             # metadata set replaces all values for the given kind, so this is
             # naturally idempotent -- no existence check needed.
             pdnsutil metadata set "$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
-            pdnsutil metadata set "$zone" TSIG-ALLOW-DNSUPDATE "$TSIG_KEYNAME"
+            pdnsutil metadata set "$zone" TSIG-ALLOW-DNSUPDATE "$TSIG_DYNUPDATE_KEYNAME"
