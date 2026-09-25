@@ -125,7 +125,7 @@ sharing `provisioner: driver.longhorn.io`, `reclaimPolicy: Retain`, `volumeBindi
 | `longhorn-ext4` | ext4 | 2 | same profile, explicit ext4 |
 | `longhorn-xfs` | xfs | 2 | same profile, xfs |
 | `longhorn-fast` | xfs | 1 | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
-| `longhorn-ha` | xfs | 3 | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
+| `longhorn-ha` | ext4 | 3 | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
 
 The sixth, **`longhorn`**, is not defined in that `base/` folder at all — it's created automatically by the
 Longhorn Helm chart itself (`longhorn-core`'s
