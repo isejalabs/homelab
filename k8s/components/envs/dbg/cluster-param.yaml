@@ -12,7 +12,7 @@ data:
   # PTR zone for this env's own 10.8.9.0/24 LB-IP range (see
   # k8s/infra/kube-system/cilium/envs/dbg/ip-pool-bgp.yaml) -- not derivable
   # from DOMAIN_BASE/DOMAIN_TLD, a separate per-env addressing scheme.
-  DNS_REVERSE_ZONE: 9.8.10.in-addr.arpa.
+  DNS_REVERSE_ZONE: 9.8.10.in-addr.arpa
   # Same value as DOMAIN_BASE+"."+DOMAIN_TLD, kept as its own literal (rather
   # than derived) so external-dns's --rfc2136-zone extraArgs entry can be set
   # via a single whole-value copy from cluster-param -- see
