@@ -16,5 +16,9 @@ spec:
   postBuild:
     substitute:
       APP: powerdns
-      STORAGE_CAPACITY: 1Gi
+      # A DNS zone's sqlite3 file is tiny (KBs-to-low-MBs even with a few
+      # hundred records) -- 128Mi leaves headroom above ext4's own overhead
+      # and SQLite's WAL file without following the 5Gi default meant for
+      # actual application data.
+      STORAGE_CAPACITY: 128Mi
       STORAGE_CLASS: longhorn-ha
