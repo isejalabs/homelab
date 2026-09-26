@@ -1,0 +1,32 @@
+# Same pattern as httproute-replace-domain.yaml (TLD before BASE, same
+# reasoning: DOMAIN_BASE's own value contains a dot), applied to Gateway
+# objects' own external-dns hostname annotations instead of an HTTPRoute's
+# spec.hostnames (not spec.listeners.*.hostname -- that's this component's
+# own gateway-replace-hostname.yaml, a separate concern) -- see
+# k8s/infra/gateway-api/gateway/base/gw-internal.yaml.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_TLD
+  targets:
+    - select:
+        kind: Gateway
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/target]
+        - spec.infrastructure.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_BASE
+  targets:
+    - select:
+        kind: Gateway
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/target]
+        - spec.infrastructure.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1

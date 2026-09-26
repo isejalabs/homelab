@@ -2,6 +2,12 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: internal-http
+  annotations:
+    # Same target as the internal Gateway (gw-internal.yaml) -- this listener
+    # only carries the http-redirect-to-https route, but kept consistent
+    # with its sibling Gateway regardless. See gw-internal.yaml's comment for
+    # the full explanation.
+    external-dns.kubernetes.io/target: gw-internal.example.com
 spec:
   gatewayClassName: cilium
   infrastructure:
@@ -9,6 +15,11 @@ spec:
       io.cilium/lb-ipam-ips: 192.168.8.80
       # shared with the internal Gateway so both get the same LB IP
       io.cilium/lb-ipam-sharing-key: internal
+      # Same hostname as the internal Gateway's own -- both share one LB IP
+      # (io.cilium/lb-ipam-sharing-key above), so both would create the
+      # identical A record; external-dns dedupes identical endpoints across
+      # sources. See gw-internal.yaml's comment for the full explanation.
+      external-dns.kubernetes.io/hostname: gw-internal.example.com
   listeners:
     - name: http-gateway
       allowedRoutes:
