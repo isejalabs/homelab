@@ -30,5 +30,8 @@ sops = "3.13.3"
 # CI pre-commit hooks (pre-commit.yml)
 pre-commit = "4.6.2"
 
+# CI docs link-check (docs-link-check.yml)
+lychee = "0.24.2"
+
 [settings]
 lockfile = true

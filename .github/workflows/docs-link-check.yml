@@ -1,0 +1,22 @@
+name: "Docs link check"
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  docs-link-check:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      with:
+        install_args: lychee
+    # --offline: local file/anchor targets only, no network calls - deterministic, no third-party-downtime
+    # flakiness. External URLs are a separate, much noisier concern (rate limits, real downtime) deliberately
+    # left out of this PR-blocking check - see #1349. _attic/ZZ.bak are retired material that isn't kept up
+    # to date by design, so link rot there is expected, not something to flag.
+    - run: lychee --offline --no-progress --exclude-path _attic --exclude-path ZZ.bak '**/*.md'
