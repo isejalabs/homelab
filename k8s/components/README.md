@@ -25,7 +25,6 @@ These components can then be included in the `kustomization.yaml` files of indiv
 │   └── 📁 prod                 # prod environment-specific configuration
 └── 📁 transformers             # kustomize transformers used in the components above
     ├── 📁 add-labels           # add labels to resources, e.g. reconcile.fluxcd.io/watch: "Enabled"
-    ├── 📁 external-dns-interval-env  # reuse each env's FLUX_RECONCILIATION_INTERVAL for external-dns's own --interval
     ├── 📁 kopiur-secret-env    # rewrite kopiur's per-env 1Password key + ClusterRepository bucket name
     ├── 📁 powerdns-tsig-env    # rewrite powerdns's per-env TSIG-key 1Password keys -- see its own README
     ├── 📁 prefix-domain        # prefix domain with env., e.g. dev-app.example.com
