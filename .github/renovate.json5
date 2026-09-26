@@ -20,7 +20,11 @@
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
   },
-  additionalBranchPrefix: "{{packageFileDir}}/",
+  // A bare "{{packageFileDir}}/" renders to just "/" for any dependency with
+  // an empty packageFileDir (any root-level file, e.g. .gitmodules) --
+  // producing an invalid double-slash branch name ("renovate//foo"),
+  // confirmed live via `git check-ref-format` -- hence the conditional.
+  additionalBranchPrefix: "{{#if packageFileDir}}{{packageFileDir}}/{{/if}}",
   prBodyColumns: ["Package", "Package file", "Update", "Change"],
   separateMinorPatch: true,
   flux: {
