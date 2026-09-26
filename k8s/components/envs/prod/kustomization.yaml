@@ -8,5 +8,6 @@ components:
   - ../../transformers/kopiur-secret-env
   - ../../transformers/powerdns-tsig-env
   - ../../transformers/reverse-zone-env
+  - ../../transformers/external-dns-interval-env
 resources:
   - cluster-param.yaml
