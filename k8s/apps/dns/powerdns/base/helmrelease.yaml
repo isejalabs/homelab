@@ -245,6 +245,19 @@ spec:
               if ! pdnsutil zone list "$$z" >/dev/null 2>&1; then
                 pdnsutil zone create "$$z" "ns1.$$zone"
               fi
+              # Declares 10.7.2.12's own hostname (ns2.home.iseja.net,
+              # UCS-managed) as a second nameserver for this zone ahead of
+              # its actual slave config existing -- deliberately pre-added,
+              # not waiting for the physical LXC-side setup, so the zone's
+              # own NS records already reflect the intended two-nameserver
+              # state once real delegation happens. `rrset add`, not
+              # `replace`: adds alongside the existing ns1 NS record from
+              # zone create above, rather than replacing it. Guarded
+              # (unlike the SOA replace below) since add would otherwise
+              # accumulate a duplicate NS value on every pod restart.
+              if ! pdnsutil zone list "$$z" | grep -q "NS.*ns2\.home\.iseja\.net\."; then
+                pdnsutil rrset add "$$z" "$$z" NS "ns2.home.iseja.net."
+              fi
               # zone create seeds the SOA from the server's default-soa-content
               # setting, whose own default MNAME is a deliberately-fake
               # placeholder ("a.misconfigured.dns.server.invalid" -- PowerDNS's
@@ -280,10 +293,11 @@ spec:
               # external-dns update, instead of waiting for their own
               # refresh-timer expiry.
               pdnsutil metadata set "$$z" NOTIFY-DNSUPDATE 1
-              # 10.7.2.12 (the LXC secondary) explicitly, rather than relying
-              # on an NS record for it inside this zone -- these zones are
-              # otherwise fully external-dns-owned, and ALSO-NOTIFY works
-              # regardless of what NS records exist.
+              # 10.7.2.12 (the LXC secondary) explicitly, by IP, rather than
+              # relying on the ns2.home.iseja.net NS record above --
+              # ALSO-NOTIFY works regardless of what NS records exist, and
+              # doesn't depend on ns2's own A record (UCS-managed, outside
+              # this repo) being resolvable.
               pdnsutil metadata set "$$z" ALSO-NOTIFY 10.7.2.12
             }
 
