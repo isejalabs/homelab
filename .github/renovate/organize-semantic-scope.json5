@@ -3,6 +3,27 @@
   "semanticCommitScope": "{{parentDir}}",
   "packageRules": [
     {
+      "description": "parentDir resolves to an empty string for any file directly at repo root (no subdirectory), leaving an empty chore() scope -- fallback for any root-level file not otherwise matched below",
+      "matchFileNames": [
+        "/^[^/]+$/"
+      ],
+      "semanticCommitScope": "root"
+    },
+    {
+      "description": "the .mise.toml tool-version manifest is its own concern, regardless of which repo area a given tool actually serves",
+      "matchFileNames": [
+        ".mise.toml"
+      ],
+      "semanticCommitScope": "mise"
+    },
+    {
+      "description": "git submodule reference bumps (e.g. .commons)",
+      "matchFileNames": [
+        ".gitmodules"
+      ],
+      "semanticCommitScope": "submodules"
+    },
+    {
       "description": "add semantic commit scope for terragrunt environments, which are in the format terragrunt/<1account>/<2region>/<3env>/<4module>/",
       "matchFileNames": [
         "terragrunt/*/*/**"
