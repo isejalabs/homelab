@@ -2,7 +2,7 @@
 # terragrunt/ (provisioning VMs + Talos)
 opentofu = "1.12.6"
 talosctl = "1.14.0"
-terragrunt = "1.1.5"
+terragrunt = "1.1.6"
 
 # just bootstrap::cluster (k8s/bootstrap)
 "1password-cli" = "2.39.0" # "1password-cli" and "op" are aliases of the same mise registry entry (registry/1password.toml in jdx/mise) -- version tracking for this one dependency comes from a custom Renovate datasource (.github/renovate/custom-datasource-1password-cli.json5), not the built-in mise manager, since mise's own registry entry has no working public datasource Renovate can use directly
