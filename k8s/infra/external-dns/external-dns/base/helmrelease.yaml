@@ -17,7 +17,7 @@ spec:
   values:
     domainFilters:
       - example.com # replaced per-env by replace-domain, same value spliced into --rfc2136-zone below
-      - 100.51.198.in-addr.arpa # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
+      - 8.168.192.in-addr.arpa # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
 
     env:
       - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
@@ -72,7 +72,7 @@ spec:
       # prefix getting mangled by a delimiter that also appears inside the
       # zone name itself.
       - --rfc2136-zone=example.com
-      - --rfc2136-zone=100.51.198.in-addr.arpa
+      - --rfc2136-zone=8.168.192.in-addr.arpa
       # Kubernetes Service/HTTPRoute-backed records here are not volatile --
       # no reason to hand out a 0s TTL (the default) for something this
       # stable. RFC2136MinTTL is a floor, not a fixed value: a resource's own

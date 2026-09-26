@@ -4,5 +4,8 @@ metadata:
   name: bgp-pool
 spec:
   blocks:
+    # Third octet (5) must match k8s/components/envs/src/cluster-param.yaml's
+    # own DNS_REVERSE_ZONE value (5.8.10.in-addr.arpa), kept in sync by
+    # hand -- there's no single source of truth for both.
     - start: 10.8.5.8
       stop: 10.8.5.250
