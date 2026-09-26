@@ -145,7 +145,6 @@ be included by another `Kustomization`.
 │   └── 📁 ...        # one per environment
 └── 📁 transformers
     ├── 📁 add-labels          # add common labels, e.g. reconcile.fluxcd.io/watch: "Enabled"
-    ├── 📁 external-dns-interval-env  # reuse FLUX_RECONCILIATION_INTERVAL for external-dns's own --interval
     ├── 📁 kopiur-secret-env   # per-env kopiur 1Password key + bucket name (all 8 envs, not via base)
     ├── 📁 powerdns-tsig-env   # per-env powerdns TSIG-key 1Password keys (all 8 envs, not via base)
     ├── 📁 prefix-domain       # dev-app.example.com — env prefix in front of the domain
@@ -225,7 +224,7 @@ resources of a given `kind`.
   name, included in all 8 environments; `suspend-kopiur-schedule` force-suspends every `SnapshotSchedule`,
   included only in the 4 environments without an active backup schedule (`dbg`/`head`/`poc`/`src`). See
   [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for the full mechanism.
-- **`powerdns-tsig-env`** / **`reverse-zone-env`** / **`external-dns-interval-env`** — PowerDNS/external-dns specific, also included per-env in all 8 environments rather than via `../base`: `powerdns-tsig-env` rewrites PowerDNS's per-env TSIG-key 1Password keys, `reverse-zone-env` wires each env's own PTR-zone name into both PowerDNS's zone-bootstrap `initContainer` and external-dns's `domainFilters`/`--rfc2136-zone` (not derivable from the domain like a normal hostname, so it needs its own per-env `cluster-param` value), and `external-dns-interval-env` reuses `FLUX_RECONCILIATION_INTERVAL` for external-dns's own `--interval`. See [`powerdns-tsig-env`](../../k8s/components/transformers/powerdns-tsig-env/README.md)'s and [`reverse-zone-env`](../../k8s/components/transformers/reverse-zone-env/README.md)'s own READMEs for the full mechanism.
+- **`powerdns-tsig-env`** / **`reverse-zone-env`** — PowerDNS/external-dns specific, also included per-env in all 8 environments rather than via `../base`: `powerdns-tsig-env` rewrites PowerDNS's per-env TSIG-key 1Password keys, `reverse-zone-env` wires each env's own PTR-zone name into both PowerDNS's zone-bootstrap `initContainer` and external-dns's `domainFilters`/`--rfc2136-zone` (not derivable from the domain like a normal hostname, so it needs its own per-env `cluster-param` value). See [`powerdns-tsig-env`](../../k8s/components/transformers/powerdns-tsig-env/README.md)'s and [`reverse-zone-env`](../../k8s/components/transformers/reverse-zone-env/README.md)'s own READMEs for the full mechanism.
 
 ### Flux path rewriting (`replace-path`)
 
