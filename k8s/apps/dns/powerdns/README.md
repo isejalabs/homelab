@@ -85,7 +85,7 @@ Each environment has its own independent `axfr-out` TSIG secret (`powerdns-tsig-
    dig @10.7.2.12 dev.iseja.net NS
    ```
 
-Repeat steps 1-5 per environment as each one is actually ready to be slaved — no need to do all 8 in one sitting. `10.7.2.10`'s own reconfiguration (to stop sending it anything once its master reference moves) and the `iseja.net` root-zone NS/glue-record updates are separate, tracked in PR #1392's "Before merging" checklist.
+Repeat steps 1-5 per environment as each one is actually ready to be slaved — no need to do all 8 in one sitting. `10.7.2.10`'s own reconfiguration (to stop sending it anything once its master reference moves) and the `iseja.net` root-zone NS/glue-record updates are separate, tracked in [PR #1392](https://github.com/isejalabs/homelab/pull/1392)'s "Before merging" checklist.
 
 ## Per-environment PTR/reverse-zone setup
 
@@ -130,4 +130,4 @@ Faster than a `dig` round-trip for confirming what's actually in the backend, es
 - **external-dns's `--rfc2136-zone` must be one combined `flag=value` string, not two array entries.** The chart's values schema requires `extraArgs` to be a set of *unique* strings; two bare `--rfc2136-zone` entries (flag and value split across array elements) collide regardless of what value follows, since uniqueness checking only sees the repeated flag token itself.
 - **external-dns's `--create-ptr` refuses to start unless `PTR` is explicitly added to `--managed-record-types`.** The flag's own default set (`A`, `AAAA`, `CNAME`) doesn't include it -- fails config validation at startup otherwise (`--create-ptr requires PTR in --managed-record-types`).
 - **external-dns's zone-name matching is literal, not normalized.** Unlike `pdnsutil` (tolerant of a trailing dot either way), external-dns compares its own generated record names against the exact string configured in `--rfc2136-zone`/`domainFilters` -- a trailing dot present on one side and not the other silently drops every record for that zone as "out of zone", which PowerDNS then refuses at the RFC2136 layer with little indication why.
-- **PTR/CNAME record churn on every reconcile is a known upstream external-dns bug, not a local misconfiguration.** See PR #1392's "Known upstream external-dns bug" section and issue #1393 -- harmless, just wasteful; don't spend time chasing it as a config problem here.
+- **PTR/CNAME record churn on every reconcile is a known upstream external-dns bug, not a local misconfiguration.** See [PR #1392](https://github.com/isejalabs/homelab/pull/1392)'s "Known upstream external-dns bug" section and [issue #1393](https://github.com/isejalabs/homelab/issues/1393) -- harmless, just wasteful; don't spend time chasing it as a config problem here.
