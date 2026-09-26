@@ -20,15 +20,25 @@
           - "**/*.just"
           - ".justfile"
 "area:docs":
-  - changed-files:
-      - any-glob-to-any-file:
-          - "docs/**"
-          - "**/*.md"
-          - "!AGENTS.md"
-          - "!CLAUDE.md"
-          - "!.agents/**"
-          - "!.claude/**"
-          - "!.commons"
+  # Previously all seven patterns (2 real + 5 negated) lived in one any-glob-to-any-file list, which ORs
+  # every pattern across every changed file - a negated pattern like "!AGENTS.md" is satisfied by any file
+  # that simply isn't that literal path, so a PR touching only e.g. .mise.toml still matched (via the
+  # negations alone) even though neither real docs pattern did. The structure below instead follows
+  # actions/labeler's own documented "matches X, but not Y" pattern: `all:` requires both a nested
+  # changed-files entry to hold, AND-ing "some changed file matches docs/** or **/*.md"
+  # (any-glob-to-any-file) with "every changed file isn't one of these five" (all-globs-to-all-files) -
+  # see #1416.
+  - all:
+      - changed-files:
+          - any-glob-to-any-file:
+              - "docs/**"
+              - "**/*.md"
+          - all-globs-to-all-files:
+              - "!AGENTS.md"
+              - "!CLAUDE.md"
+              - "!.agents/**"
+              - "!.claude/**"
+              - "!.commons"
 "area:k8s":
   - changed-files:
       - any-glob-to-any-file:
@@ -38,6 +48,11 @@
       - any-glob-to-any-file:
           - "terragrunt/**"
           - "tofu/**"
+          # a terragrunt/opentofu version bump lives here, not under terragrunt/** - see #1416. This
+          # also flags on an unrelated tool's version bump in the same file (file-level match, not
+          # line-level); accepted as the safe direction, see #1416's "Alternatives considered".
+          - ".mise.toml"
+          - "mise.lock"
 
 # Environment
 "env:base":
