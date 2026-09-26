@@ -6,16 +6,16 @@ There's no application source code in this repo, so CI (`.github/workflows/`) is
 
 | Workflow | Checks | Typical runtime |
 | --- | --- | --- |
-| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops`) | ~0:10 |
-| [`kustomize-build.yml`](../../.github/workflows/kustomize-build.yml) | `kustomize build` + `kubeconform` across every `k8s/` overlay (`scripts/kustomize-build-all.sh`) | ~1:15-1:30 |
-| [`terragrunt-validate.yml`](../../.github/workflows/terragrunt-validate.yml) | `tofu fmt -check`, `terragrunt hcl format --check`, and `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (`scripts/terragrunt-validate-all.sh`) | ~2:20-3:00, occasionally much longer |
-| [`bootstrap-apps-test.yml`](../../.github/workflows/bootstrap-apps-test.yml) | the bootstrap `helmfile` "apps" stage against an ephemeral `kind` cluster (`scripts/bootstrap-apps-ci-test.sh`) — the only workflow that actually applies anything, rather than just rendering/linting | ~2:30-3:55 |
-| [`helmfile-template.yml`](../../.github/workflows/helmfile-template.yml) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment, to catch `.gotmpl` errors (`scripts/helmfile-template-all.sh`) | ~0:20-0:30 |
-| [`flate-test.yml`](../../.github/workflows/flate-test.yml) | `flate test all` — cross-resource Flux validation against every environment's top-level sync target (`scripts/flate-test-all.sh`) | ~0:20-0:45 |
-| [`renovate-config-validate.yml`](../../.github/workflows/renovate-config-validate.yml) | `renovate-config-validator` against `.github/renovate.json5` and its includes | ~0:30-0:40 |
-| [`check-sorting.yml`](../../.github/workflows/check-sorting.yml) | leading-field/`metadata` key ordering conformance with [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md) (`scripts/check-sorting.py`) — partial: that ordering only, not full list-sorting | ~0:10 |
-| [`actionlint.yml`](../../.github/workflows/actionlint.yml) | lints the workflow files themselves | ~0:15-0:20 |
-| [`labeler.yml`](../../.github/workflows/labeler.yml) | not a validation check — applies `area:*`/`env:*` labels to the PR itself (see below) | ~0:05 |
+| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops`) | ~10s |
+| [`kustomize-build.yml`](../../.github/workflows/kustomize-build.yml) | `kustomize build` + `kubeconform` across every `k8s/` overlay (`scripts/kustomize-build-all.sh`) | ~1m15s-1m30s |
+| [`terragrunt-validate.yml`](../../.github/workflows/terragrunt-validate.yml) | `tofu fmt -check`, `terragrunt hcl format --check`, and `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (`scripts/terragrunt-validate-all.sh`) | ~2m20s-3m0s, occasionally much longer |
+| [`bootstrap-apps-test.yml`](../../.github/workflows/bootstrap-apps-test.yml) | the bootstrap `helmfile` "apps" stage against an ephemeral `kind` cluster (`scripts/bootstrap-apps-ci-test.sh`) — the only workflow that actually applies anything, rather than just rendering/linting | ~2m30s-3m55s |
+| [`helmfile-template.yml`](../../.github/workflows/helmfile-template.yml) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment, to catch `.gotmpl` errors (`scripts/helmfile-template-all.sh`) | ~20s-30s |
+| [`flate-test.yml`](../../.github/workflows/flate-test.yml) | `flate test all` — cross-resource Flux validation against every environment's top-level sync target (`scripts/flate-test-all.sh`) | ~20s-45s |
+| [`renovate-config-validate.yml`](../../.github/workflows/renovate-config-validate.yml) | `renovate-config-validator` against `.github/renovate.json5` and its includes | ~30s-40s |
+| [`check-sorting.yml`](../../.github/workflows/check-sorting.yml) | leading-field/`metadata` key ordering conformance with [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md) (`scripts/check-sorting.py`) — partial: that ordering only, not full list-sorting | ~10s |
+| [`actionlint.yml`](../../.github/workflows/actionlint.yml) | lints the workflow files themselves | ~15s-20s |
+| [`labeler.yml`](../../.github/workflows/labeler.yml) | not a validation check — applies `area:*`/`env:*` labels to the PR itself (see below) | ~5s |
 
 Phase 2 — checks that need a live/ephemeral cluster beyond what `bootstrap-apps-test.yml` already covers (`flux-local`, policy checks) — is tracked separately in [#1209](https://github.com/isejalabs/homelab/issues/1209). Anything not covered by the table above is still validated manually via `helmfile template` (used implicitly by `just bootstrap::cluster`) and Flux's own reconciliation status.
 
