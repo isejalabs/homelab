@@ -1,0 +1,78 @@
+# Same pattern as httproute-replace-domain.yaml (TLD before BASE, same
+# reasoning: DOMAIN_BASE's own value contains a dot), applied to standalone
+# LoadBalancer Services' own external-dns hostname annotation -- see
+# service-prefix-domain.yaml for which Services and why.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_TLD
+  targets:
+    - select:
+        kind: Service
+        name: unbound
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
+    - select:
+        kind: Service
+        name: adguard
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
+    - select:
+        kind: Service
+        name: unifi-controller
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
+    - select:
+        kind: Service
+        name: whoami
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_BASE
+  targets:
+    - select:
+        kind: Service
+        name: unbound
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1
+    - select:
+        kind: Service
+        name: adguard
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1
+    - select:
+        kind: Service
+        name: unifi-controller
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1
+    - select:
+        kind: Service
+        name: whoami
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1

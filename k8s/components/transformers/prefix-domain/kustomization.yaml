@@ -5,4 +5,5 @@ replacements:
   - path: repl/gateway-external-dns-hostname.yaml
   - path: repl/httproute-prefix-domain.yaml
   - path: repl/ingress-prefix-domain.yaml
+  - path: repl/service-prefix-domain.yaml
   - path: repl/tlsroute-prefix-domain.yaml

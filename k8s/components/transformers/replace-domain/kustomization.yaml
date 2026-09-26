@@ -9,4 +9,5 @@ replacements:
   - path: repl/helmrelease-powerdns-zone.yaml
   - path: repl/ingress-replace-domain.yaml
   - path: repl/httproute-replace-domain.yaml
+  - path: repl/service-replace-domain.yaml
   - path: repl/tlsroute-replace-domain.yaml
