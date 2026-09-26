@@ -69,7 +69,7 @@ scripts/sops-decrypt-all.sh
 
 Pre-commit hooks (`.pre-commit-config.yaml`) enforce: no unencrypted secrets committed (`forbid-secrets`, with a single deliberate exception at `k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml`) and valid SOPS encryption on `*.sops.{yaml,json,env}` files (`validate-sops`).
 
-There is no application source code, so CI (`.github/workflows/`) is limited to static validation rather than tests — ten workflows run on every PR and push to `main`. See [`docs/architecture/ci.md`](docs/architecture/ci.md) for what each one checks, typical runtime, the shared tool-provisioning pattern, and the PR-labeling/Mergify automation built on top of it.
+There is no application source code, so CI (`.github/workflows/`) is limited to static validation rather than tests — eleven workflows run on every PR and push to `main`. See [`docs/architecture/ci.md`](docs/architecture/ci.md) for what each one checks, typical runtime, the shared tool-provisioning pattern, and the PR-labeling/Mergify automation built on top of it.
 
 ## Conventions
 

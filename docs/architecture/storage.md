@@ -39,9 +39,12 @@ lays the groundwork (namespace, credentials), Flux installs and runs the driver 
 
 ### The actual volumes: pinned, not dynamic
 
-Every real proxmox-csi PVC in this repo binds to a **specific, pre-existing** `PersistentVolume` by name
-instead of letting the StorageClass dynamically provision one — e.g.
-[`k8s/apps/network/unifi-controller/base/pvc-db.yaml`](../../k8s/apps/network/unifi-controller/base/pvc-db.yaml):
+**Historical, no longer exemplified live**: a proxmox-csi PVC in this repo used to bind to a **specific,
+pre-existing** `PersistentVolume` by name instead of letting the StorageClass dynamically provision one — no
+PVC anywhere in `k8s/` still does this today (unifi-controller's MongoDB PVC, the last one, has since moved
+to kopiur-backed Longhorn — see [issue #807](https://github.com/isejalabs/homelab/issues/807)), but the
+underlying Terragrunt-managed volumes/pattern below is unaffected and still real. Kept for that context;
+treat the PVC snippet itself as illustrative of the pattern, not a pointer to a live file:
 
 ```yaml
 apiVersion: v1
