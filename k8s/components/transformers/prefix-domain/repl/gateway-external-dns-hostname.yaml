@@ -1,0 +1,21 @@
+# Same mechanism as httproute-prefix-domain.yaml, applied to Gateway objects'
+# own external-dns hostname annotations instead of an HTTPRoute's
+# spec.hostnames (not spec.listeners.*.hostname -- that's replace-domain's
+# own gateway-replace-hostname.yaml, a separate concern) -- see
+# k8s/infra/gateway-api/gateway/base/gw-internal.yaml for why Gateways carry
+# these at all (HTTPRoutes-as-CNAME-to-one-gateway-hostname). Two escaped
+# fieldPaths, not one wildcard: these are two differently-named annotations,
+# not repeated entries in one list.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    - select:
+        kind: Gateway
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/target]
+        - spec.infrastructure.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "-"
+        index: -1

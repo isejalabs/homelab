@@ -14,7 +14,14 @@
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
   rebaseWhen: 'conflicted',
-  ignorePaths: ["_attic/**"],
+  // "**/charts/**": several apps (cilium, sealed-secrets, prometheus-stack,
+  // grafana-cloud, metrics-server) vendor a specific chart release's own
+  // rendered values.yaml under envs/<env>/charts/<name>-<version>/ -- those
+  // files' own embedded image/dependency references are third-party chart
+  // internals, not something to Renovate-track (confirmed live: without
+  // this, the customManagers entry below would match 30+ files across
+  // those vendored trees).
+  ignorePaths: ["_attic/**", "**/charts/**"],
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
   },
@@ -56,6 +63,25 @@
         "https://raw\\.githubusercontent\\.com/(?<depName>[^/]*/[^/]*)/(?<currentValue>.*?)/",
       ],
       datasourceTemplate: "github-tags",
+    },
+    {
+      // bjw-s-labs/app-template (and any other chart following its own
+      // convention) requires `image:` as an object -- {repository, tag} --
+      // never a single "repo:tag" string, so it never matches the built-in
+      // kubernetes manager's line-based image: regex. Confirmed neither
+      // datasource picks this up before adding this (see
+      // k8s/apps/dns/powerdns/base/helmrelease.yaml's own image block).
+      // Vendored chart trees (see ignorePaths above) are excluded there,
+      // not here -- Renovate's managerFilePatterns regex is RE2, which
+      // doesn't support the negative-lookahead needed to exclude them
+      // directly in this pattern (confirmed live: "Failed to parse regex
+      // pattern").
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
+      matchStrings: [
+        "repository:\\s*(?<depName>\\S+)\\s+tag:\\s*[\"']?(?<currentValue>[\\w.\\-]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\"']?",
+      ],
+      datasourceTemplate: "docker",
     },
   ],
   commitMessageAction: "{{{updateType}}}",

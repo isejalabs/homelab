@@ -146,9 +146,11 @@ be included by another `Kustomization`.
 └── 📁 transformers
     ├── 📁 add-labels          # add common labels, e.g. reconcile.fluxcd.io/watch: "Enabled"
     ├── 📁 kopiur-secret-env   # per-env kopiur 1Password key + bucket name (all 8 envs, not via base)
+    ├── 📁 powerdns-tsig-env   # per-env powerdns TSIG-key 1Password keys (all 8 envs, not via base)
     ├── 📁 prefix-domain       # dev-app.example.com — env prefix in front of the domain
     ├── 📁 replace-domain      # example.com -> your.sub.domain.com
     ├── 📁 replace-path        # rewrite Flux Kustomization spec.path: .../base -> .../envs/<env>
+    ├── 📁 reverse-zone-env    # per-env PTR-zone name into powerdns + external-dns (all 8 envs, not via base)
     ├── 📁 set-flux-defaults   # set Flux Kustomization/HelmRelease reconciliation intervals
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur backup in dbg/head/poc/src (not via base)
 ```
@@ -208,17 +210,7 @@ more fields on other resources (`targets`), optionally splitting/rejoining it wi
 `options.index` — that's how a single `cluster-param` ConfigMap value fans out into edits across many
 resources of a given `kind`.
 
-- **`replace-domain` / `prefix-domain`** — swap the placeholder `example.com` for the real domain, across
-  every `Ingress`/`HTTPRoute`/`TLSRoute`/`Gateway`/`Certificate` resource (apps in this repo route traffic
-  via the Gateway API, so in practice it's `HTTPRoute`/`Gateway`/`Certificate` that get rewritten; the
-  `Ingress` replacement exists for completeness but currently has nothing to match). `replace-domain` splits
-  a hostname on `.` and replaces the two rightmost segments with `DOMAIN_BASE`/`DOMAIN_TLD` from the
-  `cluster-param` ConfigMap — e.g. [`replace-domain/repl/httproute-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/httproute-replace-domain.yaml)
-  turns `adguard.example.com` (`spec.hostnames.*` in [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml))
-  into `adguard.dev.iseja.net` in the `dev` environment. `prefix-domain` then prepends
-  `CLUSTER_ENVIRONMENT` as an extra dash-delimited segment in front of the resulting hostname (so `dev` +
-  `adguard.dev.iseja.net` becomes `dev-adguard.dev.iseja.net`) — every non-prod environment includes it,
-  `prod` does not (see above), so only prod's hostnames stay unprefixed.
+- **`replace-domain` / `prefix-domain`** — swap the placeholder `example.com` for the real domain, across every `Ingress`/`HTTPRoute`/`TLSRoute`/`Gateway`/`Service`/`Certificate` resource that carries one (apps in this repo route traffic via the Gateway API, so in practice it's mostly `HTTPRoute`/`Gateway`/`Certificate` that get rewritten; the `Ingress` replacement exists for completeness but currently has nothing to match). `replace-domain` splits a hostname on `.` and replaces the two rightmost segments with `DOMAIN_BASE`/`DOMAIN_TLD` from the `cluster-param` ConfigMap — e.g. [`replace-domain/repl/httproute-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/httproute-replace-domain.yaml) turns `adguard.example.com` (`spec.hostnames.*` in [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml)) into `adguard.dev.iseja.net` in the `dev` environment. `prefix-domain` then prepends `CLUSTER_ENVIRONMENT` as an extra dash-delimited segment in front of the resulting hostname (so `dev` + `adguard.dev.iseja.net` becomes `dev-adguard.dev.iseja.net`) — every non-prod environment includes it, `prod` does not (see above), so only prod's hostnames stay unprefixed. The same two components also rewrite each Gateway's own `external-dns.kubernetes.io/target`/`hostname` annotations ([`gateway-external-dns-hostname.yaml`](../../k8s/components/transformers/replace-domain/repl/gateway-external-dns-hostname.yaml) in each) and a handful of standalone `LoadBalancer` Services' `external-dns.kubernetes.io/hostname` annotation ([`service-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/service-replace-domain.yaml)) — see [`docs/architecture/network.md`](network.md)'s DNS section for why those exist.
 - **`add-labels`** — a built-in `LabelTransformer` that stamps `reconcile.fluxcd.io/watch: "Enabled"` onto
   every `ConfigMap`, so Flux's Helm Controller notices a ConfigMap change and immediately upgrades the
   `HelmRelease` that mounts it, rather than waiting for the next reconciliation interval.
@@ -232,6 +224,7 @@ resources of a given `kind`.
   name, included in all 8 environments; `suspend-kopiur-schedule` force-suspends every `SnapshotSchedule`,
   included only in the 4 environments without an active backup schedule (`dbg`/`head`/`poc`/`src`). See
   [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for the full mechanism.
+- **`powerdns-tsig-env`** / **`reverse-zone-env`** — PowerDNS/external-dns specific, also included per-env in all 8 environments rather than via `../base`: `powerdns-tsig-env` rewrites PowerDNS's per-env TSIG-key 1Password keys, `reverse-zone-env` wires each env's own PTR-zone name into both PowerDNS's zone-bootstrap `initContainer` and external-dns's `domainFilters`/`--rfc2136-zone` (not derivable from the domain like a normal hostname, so it needs its own per-env `cluster-param` value). See [`powerdns-tsig-env`](../../k8s/components/transformers/powerdns-tsig-env/README.md)'s and [`reverse-zone-env`](../../k8s/components/transformers/reverse-zone-env/README.md)'s own READMEs for the full mechanism.
 
 ### Flux path rewriting (`replace-path`)
 

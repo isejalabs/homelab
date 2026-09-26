@@ -4,6 +4,11 @@ metadata:
   name: unbound
   annotations:
     io.cilium/lb-ipam-ips: 192.168.8.11
+    # Picked up by external-dns's service source (already enabled) -- no
+    # HTTPRoute claims this name, so no CNAME/A-record type collision like
+    # whoami/adguard's own resolver Service. Value replaced per-env by
+    # replace-domain/prefix-domain, same mechanism as any HTTPRoute hostname.
+    external-dns.kubernetes.io/hostname: unbound.example.com
 spec:
   externalTrafficPolicy: Local
   ports:

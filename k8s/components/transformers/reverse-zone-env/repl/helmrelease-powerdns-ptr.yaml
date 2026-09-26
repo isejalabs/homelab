@@ -1,0 +1,18 @@
+# REVERSE_ZONE wiring for PowerDNS's bootstrap-zone init container: this is
+# what actually creates/TSIG-authorizes the PTR zone before external-dns can
+# write into it. Unlike ZONE (see helmrelease-powerdns-zone.yaml), this value
+# isn't derivable from DOMAIN_BASE/DOMAIN_TLD -- it's tied to each env's own
+# Cilium LB-IPAM pool (see k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml),
+# an unrelated per-env addressing scheme -- so it comes from its own
+# cluster-param field (DNS_REVERSE_ZONE) instead of a string-split transform.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DNS_REVERSE_ZONE
+  targets:
+    - select:
+        kind: HelmRelease
+        name: powerdns
+      fieldPaths:
+        - spec.values.controllers.main.containers.main.env.REVERSE_ZONE
+        - spec.values.controllers.main.initContainers.bootstrap-zone.env.REVERSE_ZONE

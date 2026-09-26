@@ -9,3 +9,16 @@ data:
   DOMAIN_BASE: dbg.iseja
   DOMAIN_TLD: net
   FLUX_RECONCILIATION_INTERVAL: 10m
+  # PTR zone for this env's own 10.8.9.0/24 LB-IP range -- the third
+  # octet (9) must match k8s/infra/kube-system/cilium/envs/dbg/ip-pool-bgp.yaml's
+  # own block start/stop, kept in sync by hand (there's no single source
+  # of truth for both); not derivable from DOMAIN_BASE/DOMAIN_TLD either,
+  # a separate per-env addressing scheme.
+  DNS_REVERSE_ZONE: 9.8.10.in-addr.arpa
+  # Same value as DOMAIN_BASE+"."+DOMAIN_TLD, kept as its own literal (rather
+  # than derived) so external-dns's --rfc2136-zone extraArgs entry can be set
+  # via a single whole-value copy from cluster-param -- see
+  # k8s/components/transformers/reverse-zone-env for why that entry can't use
+  # the same dot-split approach ZONE/domainFilters use (its "--rfc2136-zone="
+  # prefix would get corrupted by a "." based replacement).
+  DNS_ZONE: dbg.iseja.net

@@ -16,7 +16,8 @@ spec:
   interval: 1h
   values:
     domainFilters:
-      - example.com # replaced per-env by replace-domain, same value as EXTERNAL_DNS_RFC2136_ZONE below
+      - example.com # replaced per-env by replace-domain, same value spliced into --rfc2136-zone below
+      - 8.168.192.in-addr.arpa # PTR zone, replaced per-env -- see k8s/components/transformers/reverse-zone-env
 
     env:
       - name: EXTERNAL_DNS_RFC2136_TSIG_SECRET
@@ -24,15 +25,6 @@ spec:
           secretKeyRef:
             name: powerdns-tsig-dynupdate
             key: TSIG_DYNUPDATE_SECRET
-      # Set via env var (kingpin's standard EXTERNAL_DNS_<FLAG> convention),
-      # not as a --rfc2136-zone=... extraArgs entry: that string would be
-      # "--rfc2136-zone=example.com", and the domain transformer's dot-split
-      # replacement would corrupt the "--rfc2136-zone=example" segment along
-      # with the "example" part -- keeping the zone as its own bare value
-      # here lets the same plain domain-replacement approach used elsewhere
-      # in this repo apply cleanly.
-      - name: EXTERNAL_DNS_RFC2136_ZONE
-        value: example.com # replaced per-env by replace-domain
 
     extraArgs:
       - --rfc2136-host=powerdns.powerdns.svc.cluster.local
@@ -44,6 +36,74 @@ spec:
       # k8s/apps/dns/powerdns's TSIG-ALLOW-AXFR grant for the other half of
       # this.
       - --rfc2136-axfr
+      # Writes a PTR record alongside every A record's own zone, for the two
+      # zones listed below. The older --rfc2136-create-ptr flag is deprecated
+      # in favor of this provider-agnostic one. Confirmed live on dev:
+      # --create-ptr refuses to start unless PTR is explicitly listed in
+      # --managed-record-types alongside the default A/AAAA/CNAME set (its
+      # own default doesn't include PTR) -- "config validation failed:
+      # --create-ptr requires PTR in --managed-record-types". One entry per
+      # type, not a comma-separated value: --managed-record-types is a
+      # cumulative flag ("specify multiple times to include many").
+      - --create-ptr
+      - --managed-record-types=A
+      - --managed-record-types=AAAA
+      - --managed-record-types=CNAME
+      - --managed-record-types=PTR
+      # rfc2136 needs every zone it's allowed to touch listed explicitly here
+      # (a bare --domain-filter entry isn't enough for this provider) -- one
+      # per domainFilters entry above, forward zone first then the PTR zone.
+      # Not set via the EXTERNAL_DNS_RFC2136_ZONE env var (kingpin's
+      # <FLAG>-envar convention) like a single zone would be: kingpin only
+      # honors an envar-set default when the flag isn't also passed via CLI
+      # args at all, so as soon as a second zone needs an explicit
+      # --rfc2136-zone here, an env-var-set first zone would be silently
+      # dropped rather than combined with it -- both zones have to come from
+      # the same place.
+      #
+      # Each as its own combined "--rfc2136-zone=value" entry, not split into
+      # two array elements (flag, then bare value) -- tried that first, but
+      # the chart's values schema requires extraArgs to be a set of unique
+      # strings, and two bare "--rfc2136-zone" elements are equal regardless
+      # of what follows them, so Helm rejects it. Values replaced per-env by
+      # k8s/components/transformers/reverse-zone-env, which splices each
+      # already-resolved zone value in after the "=" (not a "." based split
+      # like ZONE/domainFilters use) specifically to avoid the "--rfc2136-zone="
+      # prefix getting mangled by a delimiter that also appears inside the
+      # zone name itself.
+      - --rfc2136-zone=example.com
+      - --rfc2136-zone=8.168.192.in-addr.arpa
+      # Kubernetes Service/HTTPRoute-backed records here are not volatile --
+      # no reason to hand out a 0s TTL (the default) for something this
+      # stable. RFC2136MinTTL is a floor, not a fixed value: a resource's own
+      # external-dns.alpha.kubernetes.io/ttl annotation can still ask for
+      # something higher (see provider/rfc2136's AddRecord -- confirmed in
+      # its source, not guessed), just never lower than this.
+      - --rfc2136-min-ttl=1h
+
+    # Not an extraArgs entry: the chart has its own native `interval` values
+    # field (default "1m") that always renders its own --interval flag
+    # regardless of extraArgs, so an extraArgs entry for the same flag
+    # doesn't add a second value -- it collides ("flag 'interval' cannot be
+    # repeated", confirmed live).
+    #
+    # One fixed value for every environment, deliberately not wired per-env
+    # from FLUX_RECONCILIATION_INTERVAL (tried that first, via a dedicated
+    # transformer component -- reverted as needless complexity for a value
+    # with no concrete case yet where a faster-moving environment actually
+    # needed a shorter interval; simpler to keep one value everywhere and
+    # revisit only if that need materializes). Also meaningfully reduces the
+    # cost of a confirmed upstream external-dns bug affecting PTR records
+    # specifically (kubernetes-sigs/external-dns#6555, open/unmerged as of
+    # writing): Targets.Same() compares FQDN-valued targets (PTR/CNAME) with
+    # a plain case-insensitive string equality and no trailing-dot
+    # normalization, while PowerDNS's AXFR always returns such targets with
+    # a canonical trailing dot (DNS wire format, not a PowerDNS
+    # misconfiguration -- every authoritative server does this) -- so every
+    # PTR record ends up removed and re-added on every single reconcile,
+    # forever, harmlessly but wastefully, until that upstream fix ships.
+    # Tracked in #1393; revisit this once it does.
+    interval: 10m
 
     policy: sync
 

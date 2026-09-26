@@ -26,9 +26,11 @@ These components can then be included in the `kustomization.yaml` files of indiv
 └── 📁 transformers             # kustomize transformers used in the components above
     ├── 📁 add-labels           # add labels to resources, e.g. reconcile.fluxcd.io/watch: "Enabled"
     ├── 📁 kopiur-secret-env    # rewrite kopiur's per-env 1Password key + ClusterRepository bucket name
+    ├── 📁 powerdns-tsig-env    # rewrite powerdns's per-env TSIG-key 1Password keys -- see its own README
     ├── 📁 prefix-domain        # prefix domain with env., e.g. dev-app.example.com
     ├── 📁 replace-domain       # rename base domain example.com to your.sub.domain.com
     ├── 📁 replace-path         # replace base path by environment-specific path in configuration files (flux)
+    ├── 📁 reverse-zone-env     # wire each env's own PTR-zone name into powerdns + external-dns -- see its own README
     ├── 📁 set-flux-defaults    # set default values for flux configuration files
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur SnapshotSchedules in environments without active backup
 ```
