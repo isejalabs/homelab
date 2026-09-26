@@ -1,0 +1,10 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      description: "1Password's CLI (`op` in .mise.toml) is closed-source with no public GitHub repo -- mise's own registry resolves it to a github-tags lookup against 1password/cli, which 404s (confirmed live). No automatable public datasource exists for it; version stays a manual bump.",
+      matchPackageNames: ["1password/cli"],
+      enabled: false,
+    },
+  ],
+}
