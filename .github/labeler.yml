@@ -20,25 +20,21 @@
           - "**/*.just"
           - ".justfile"
 "area:docs":
-  # Previously all seven patterns (2 real + 5 negated) lived in one any-glob-to-any-file list, which ORs
-  # every pattern across every changed file - a negated pattern like "!AGENTS.md" is satisfied by any file
-  # that simply isn't that literal path, so a PR touching only e.g. .mise.toml still matched (via the
-  # negations alone) even though neither real docs pattern did. The structure below instead follows
-  # actions/labeler's own documented "matches X, but not Y" pattern: `all:` requires both a nested
-  # changed-files entry to hold, AND-ing "some changed file matches docs/** or **/*.md"
-  # (any-glob-to-any-file) with "every changed file isn't one of these five" (all-globs-to-all-files) -
-  # see #1416.
-  - all:
-      - changed-files:
-          - any-glob-to-any-file:
-              - "docs/**"
-              - "**/*.md"
-          - all-globs-to-all-files:
-              - "!AGENTS.md"
-              - "!CLAUDE.md"
-              - "!.agents/**"
-              - "!.claude/**"
-              - "!.commons"
+  # #1416 found the original any-glob-to-any-file list (2 real patterns + 5 negations) ORed every pattern
+  # across every changed file, mislabeling almost anything. #1421's `all:`-wrapped fix solved that but
+  # introduced a subtler bug (#1424): all-globs-to-all-files checks every changed file in the whole PR, not
+  # just the one that matched the positive pattern, so a PR touching both docs/** and AGENTS.md (a very
+  # normal combination) failed to get area:docs at all, since AGENTS.md fails "every file isn't AGENTS.md".
+  # actions/labeler's top-level match-config list is AND'd (verified against its actual source, not just its
+  # README), so an all:-wrapped alternative can never be OR'd against a bare one in the same label - there's
+  # no way to express "either A, or (B and not C)" here. Fixed at the root instead: "**/README.md" matches
+  # every subsystem README (the actual thing "**/*.md" was trying to catch) without ever colliding with
+  # AGENTS.md/CLAUDE.md/anything under .agents/**/.claude/**/.commons (none of those are literally named
+  # README.md - verified against every git-tracked .md file in the repo), so no exclusion is needed at all.
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "**/README.md"
 "area:k8s":
   - changed-files:
       - any-glob-to-any-file:
