@@ -1,5 +1,7 @@
 # Agent Instructions
 
+**Before relying on the import below**: `.commons` is a git submodule, not a regular directory — a plain `git clone` of this repo (or an existing older checkout) leaves it empty, and the `@`-import then silently pulls in nothing, with no error either way. Run `git submodule status .commons` first; a leading `-` on the printed commit hash means it's uninitialized. If so, run `git submodule update --init .commons` before trusting anything below to reflect the imported file's actual content — otherwise several real conventions silently don't apply: redirect.github.com links to another repo's issue/PR, the `## Before merging` prerequisite-confirmation rule, recording GitHub "blocked by" relationships, and squash-merge title/body handling. This exact gap already caused a real violation once (direct `github.com` links to `kubernetes-sigs/external-dns` in PR #1392, a commit message, and issue #1393).
+
 @.commons/agents/AGENTS.common.md
 
 ## What this repo is
