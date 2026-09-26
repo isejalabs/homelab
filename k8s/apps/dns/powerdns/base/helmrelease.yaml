@@ -30,7 +30,7 @@ spec:
               # as ZONE above -- see
               # k8s/components/transformers/reverse-zone-env for why this
               # isn't a DOMAIN_BASE/DOMAIN_TLD-derived value like ZONE is.
-              REVERSE_ZONE: 100.51.198.in-addr.arpa # replaced per-env
+              REVERSE_ZONE: 8.168.192.in-addr.arpa # replaced per-env
               # Named for the *role* this key plays (RFC2136 dynamic updates
               # from external-dns), not just "the" TSIG key -- a separate
               # axfr-out key (below) authorizes a different trust
@@ -54,7 +54,12 @@ spec:
                     name: powerdns-tsig-axfr-out
                     key: TSIG_AXFR_OUT_SECRET
             image: &image
-              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
+              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line.
+              # Tracked by Renovate via a dedicated customManagers entry in
+              # .github/renovate.json5 -- app-template's own image schema
+              # requires this split repository/tag object form, which the
+              # built-in kubernetes manager's line-based "image:" regex
+              # can't match.
               repository: powerdns/pdns-auth-51
               tag: 5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205
             probes:
@@ -88,9 +93,7 @@ spec:
         initContainers:
           # A real initContainer, not a regular container: it runs a one-shot
           # script and exits, which is exactly what kubelet expects from an
-          # init container and exactly what makes a *regular* container
-          # CrashLoopBackOff (confirmed live -- this was originally
-          # (mis)placed under `containers`).
+          # init container, but would be a CrashLoopBackOff for a regular one.
           bootstrap-zone:
             command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
             env: *zoneEnv
