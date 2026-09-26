@@ -36,6 +36,10 @@ jobs:
     - run: mkdir -p "$TF_PLUGIN_CACHE_DIR"
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
+        # opentofu/terragrunt/talosctl live in terragrunt/.mise.toml, not the root one, so a bump to them
+        # doesn't also retrigger kustomize-build.yml/bootstrap-apps-test.yml (#1426) - working_directory
+        # makes mise resolve that file, merged with the root one (gum etc.), same as running it by hand.
+        working_directory: terragrunt
         install_args: gum opentofu terragrunt
     # Persists provider downloads across runs, not just within one (TF_PLUGIN_CACHE_DIR above only dedupes
     # within a single run's 26 units) - keyed on what a provider requirement could plausibly follow: every
@@ -43,7 +47,7 @@ jobs:
     - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
       with:
         path: ${{ env.TF_PLUGIN_CACHE_DIR }}
-        key: tf-plugin-cache-${{ hashFiles('terragrunt/**/terragrunt.hcl', '.mise.toml') }}
+        key: tf-plugin-cache-${{ hashFiles('terragrunt/**/terragrunt.hcl', 'terragrunt/.mise.toml') }}
         restore-keys: |
           tf-plugin-cache-
     - run: tofu fmt -check -recursive terragrunt/
