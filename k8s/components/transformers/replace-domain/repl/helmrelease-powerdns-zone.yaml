@@ -23,6 +23,19 @@
       options:
         delimiter: "."
         index: 1
+    # service.main.annotations' hostname *does* have a label segment
+    # ("ns1", see base helmrelease.yaml for why it isn't run through
+    # prefix-domain like a normal app-label would be) -- index 2/1, not
+    # ZONE's 1/0 above, same shift HTTPRoute hostnames use for the same
+    # reason.
+    - select:
+        kind: HelmRelease
+        name: powerdns
+      fieldPaths:
+        - spec.values.service.main.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 2
 - source:
     kind: ConfigMap
     name: cluster-param
@@ -37,3 +50,11 @@
       options:
         delimiter: "."
         index: 0
+    - select:
+        kind: HelmRelease
+        name: powerdns
+      fieldPaths:
+        - spec.values.service.main.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "."
+        index: 1

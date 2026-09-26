@@ -104,6 +104,18 @@ spec:
       main:
         annotations:
           io.cilium/lb-ipam-ips: 192.168.8.10 # replaced per-env
+          # Picked up by external-dns's service source (already enabled) --
+          # without this, ns1.<env>.iseja.net (what every zone's own NS
+          # record and SOA MNAME point at, see bootstrap-zone.sh) has no A
+          # record of its own, an incomplete NS configuration (confirmed
+          # live: NXDOMAIN). "ns1", not the usual "dev-powerdns"-style
+          # app-label -- must match bootstrap-zone.sh's own "ns1.$$zone"
+          # construction exactly, so replaced per-env by *only*
+          # replace-domain's TLD/BASE split (see
+          # helmrelease-powerdns-zone.yaml), never prefix-domain -- an
+          # env-name prefix here would produce "dev-ns1.dev.iseja.net",
+          # which wouldn't match what the NS/SOA records actually say.
+          external-dns.kubernetes.io/hostname: ns1.example.com
         controller: main
         externalTrafficPolicy: Local
         ports:
@@ -230,6 +242,22 @@ spec:
               if ! pdnsutil zone list "$$z" >/dev/null 2>&1; then
                 pdnsutil zone create "$$z" "ns1.$$zone"
               fi
+              # zone create seeds the SOA from the server's default-soa-content
+              # setting, whose own default MNAME is a deliberately-fake
+              # placeholder ("a.misconfigured.dns.server.invalid" -- PowerDNS's
+              # own documented default) meant to be overridden per zone, which
+              # nothing here ever did. Same real MNAME for both this zone and
+              # the reverse one -- ns1.$$zone (forward), matching what zone
+              # create's own NS argument above already points at, not this
+              # zone's own name (default-soa-content's "@" substitution would
+              # otherwise use the reverse zone's own name here, which has no
+              # NS/A record of its own). Serial "0" is PowerDNS's own
+              # documented convention for "auto-compute from the zone's
+              # highest record change_date" -- keeps the existing
+              # auto-incrementing serial behavior; only the MNAME/RNAME
+              # actually change here. Safe to re-run unconditionally: a fresh
+              # "0" only ever recomputes forward in time, never regresses.
+              pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
               # metadata set replaces all values for the given kind, so this
               # is naturally idempotent -- no existence check needed.
               pdnsutil metadata set "$$z" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
