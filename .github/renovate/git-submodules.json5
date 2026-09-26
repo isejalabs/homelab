@@ -3,4 +3,10 @@
   "git-submodules": {
     enabled: true,
   },
+  // Detecting a new submodule digest only needs .gitmodules/the gitlink, but
+  // actually writing the update branch needs the submodule's content checked
+  // out locally -- without this, branch creation fails ("Error updating
+  // branch: update failure" on the Dependency Dashboard), confirmed live.
+  cloneSubmodules: true,
+  cloneSubmodulesFilter: [".commons"],
 }
