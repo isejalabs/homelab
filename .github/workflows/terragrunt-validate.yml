@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
     - "terragrunt/**"
+    - "!terragrunt/**/*.md" # e.g. terragrunt/README.md, terragrunt/_envcommon/README.md - not a unit
     - ".mise.toml"
     - "mise.lock"
     - "scripts/terragrunt-validate-all.sh"
@@ -13,6 +14,7 @@ on:
     - main
     paths:
     - "terragrunt/**"
+    - "!terragrunt/**/*.md"
     - ".mise.toml"
     - "mise.lock"
     - "scripts/terragrunt-validate-all.sh"

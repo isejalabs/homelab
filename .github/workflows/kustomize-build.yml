@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
     - "k8s/**"
+    - "!k8s/**/*.md" # a README under k8s/ (there are ~17) isn't a manifest kustomize-build validates
     - ".mise.toml"
     - "mise.lock"
     - "scripts/kustomize-build-all.sh"
@@ -14,6 +15,7 @@ on:
     - main
     paths:
     - "k8s/**"
+    - "!k8s/**/*.md"
     - ".mise.toml"
     - "mise.lock"
     - "scripts/kustomize-build-all.sh"

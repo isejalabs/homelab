@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
     - "k8s/bootstrap/helmfile/**"
+    - "!k8s/bootstrap/helmfile/**/*.md" # none exist today, but keep this consistent with the other two
     - ".mise.toml"
     - "mise.lock"
     - "scripts/bootstrap-apps-ci-test.sh"
@@ -13,6 +14,7 @@ on:
     - main
     paths:
     - "k8s/bootstrap/helmfile/**"
+    - "!k8s/bootstrap/helmfile/**/*.md"
     - ".mise.toml"
     - "mise.lock"
     - "scripts/bootstrap-apps-ci-test.sh"
