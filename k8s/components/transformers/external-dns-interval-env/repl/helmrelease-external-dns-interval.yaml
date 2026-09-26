@@ -1,10 +1,10 @@
 # Reuses each env's own FLUX_RECONCILIATION_INTERVAL cluster-param value for
-# external-dns's --interval extraArgs entry (index 13, see base
-# helmrelease.yaml) -- same underlying "how stable/fast-moving is this env"
-# judgment already made per env for Flux itself, rather than a second,
-# separate per-env literal for the same concern. Whole-value copy, no
-# delimiter: both values are plain Go-duration strings ("10m", "1h") with no
-# "--flag=" prefix or dots to protect.
+# external-dns's native `interval` values field (see base helmrelease.yaml
+# for why this is a top-level field, not an extraArgs entry) -- same
+# underlying "how stable/fast-moving is this env" judgment already made per
+# env for Flux itself, rather than a second, separate per-env literal for the
+# same concern. Whole-value copy, no delimiter: both values are plain
+# Go-duration strings ("10m", "1h") with no "--flag=" prefix to protect.
 - source:
     kind: ConfigMap
     name: cluster-param
@@ -14,7 +14,4 @@
         kind: HelmRelease
         name: external-dns
       fieldPaths:
-        - spec.values.extraArgs.13
-      options:
-        delimiter: "="
-        index: 1
+        - spec.values.interval

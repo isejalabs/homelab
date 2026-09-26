@@ -80,22 +80,27 @@ spec:
       # something higher (see provider/rfc2136's AddRecord -- confirmed in
       # its source, not guessed), just never lower than this.
       - --rfc2136-min-ttl=1h
-      # Default --interval is 1m -- reused here from the same
-      # FLUX_RECONCILIATION_INTERVAL value each env already uses for its own
-      # Flux reconciliation cadence (k8s/components/envs/<env>/cluster-param.yaml),
-      # rather than inventing a separate per-env literal for the same
-      # underlying "how stable is this env" judgment. Also meaningfully
-      # reduces the cost of a confirmed upstream external-dns bug affecting
-      # PTR records specifically (kubernetes-sigs/external-dns#6555, open/
-      # unmerged as of writing): Targets.Same() compares FQDN-valued targets
-      # (PTR/CNAME) with a plain case-insensitive string equality and no
-      # trailing-dot normalization, while PowerDNS's AXFR always returns such
-      # targets with a canonical trailing dot (DNS wire format, not a
-      # PowerDNS misconfiguration -- every authoritative server does this) --
-      # so every PTR record ends up removed and re-added on every single
-      # reconcile, forever, harmlessly but wastefully, until that upstream
-      # fix ships. Tracked in #1391; revisit --interval once it does.
-      - --interval=10m
+
+    # Not an extraArgs entry: the chart has its own native `interval` values
+    # field (default "1m") that always renders its own --interval flag
+    # regardless of extraArgs, so an extraArgs entry for the same flag
+    # doesn't add a second value -- it collides ("flag 'interval' cannot be
+    # repeated", confirmed live). Reused here from the same
+    # FLUX_RECONCILIATION_INTERVAL value each env already uses for its own
+    # Flux reconciliation cadence (k8s/components/envs/<env>/cluster-param.yaml),
+    # rather than inventing a separate per-env literal for the same
+    # underlying "how stable is this env" judgment. Also meaningfully
+    # reduces the cost of a confirmed upstream external-dns bug affecting
+    # PTR records specifically (kubernetes-sigs/external-dns#6555, open/
+    # unmerged as of writing): Targets.Same() compares FQDN-valued targets
+    # (PTR/CNAME) with a plain case-insensitive string equality and no
+    # trailing-dot normalization, while PowerDNS's AXFR always returns such
+    # targets with a canonical trailing dot (DNS wire format, not a
+    # PowerDNS misconfiguration -- every authoritative server does this) --
+    # so every PTR record ends up removed and re-added on every single
+    # reconcile, forever, harmlessly but wastefully, until that upstream fix
+    # ships. Tracked in #1393; revisit this once it does.
+    interval: 10m # replaced per-env from FLUX_RECONCILIATION_INTERVAL
 
     policy: sync
 
