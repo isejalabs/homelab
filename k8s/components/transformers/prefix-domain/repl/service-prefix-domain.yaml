@@ -1,0 +1,46 @@
+# Same mechanism as httproute-prefix-domain.yaml, applied to standalone
+# LoadBalancer Services' own external-dns hostname annotation instead of an
+# HTTPRoute's spec.hostnames -- these are the "everything with an LB IP"
+# apps (unbound, adguard's resolver, unifi-controller, whoami's raw
+# Service) that --source=service was enabled for back in #1384/#1385 but
+# never actually got a hostname annotation to produce a record from. One
+# target entry per Service name, not a kind-wide select: only these
+# specific Services carry this annotation, unlike HTTPRoute where every
+# instance of the kind does.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    - select:
+        kind: Service
+        name: unbound
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "-"
+        index: -1
+    - select:
+        kind: Service
+        name: adguard
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "-"
+        index: -1
+    - select:
+        kind: Service
+        name: unifi-controller
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "-"
+        index: -1
+    - select:
+        kind: Service
+        name: whoami
+      fieldPaths:
+        - metadata.annotations.[external-dns.kubernetes.io/hostname]
+      options:
+        delimiter: "-"
+        index: -1

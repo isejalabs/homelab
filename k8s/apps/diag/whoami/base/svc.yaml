@@ -4,6 +4,15 @@ metadata:
   name: whoami
   annotations:
     io.cilium/lb-ipam-ips: 192.168.8.87
+    # Picked up by external-dns's service source (already enabled). "-lb"
+    # suffix, not the bare "whoami" name: this app's own HTTPRoute already
+    # claims that name (and "whoami-ingress") for its web UI (CNAME to the
+    # Gateway), and a raw LB Service can't also claim it -- DNS forbids a
+    # CNAME and another record type coexisting at the same owner name
+    # (PowerDNS refuses it outright, confirmed live). Value replaced per-env
+    # by replace-domain/prefix-domain, same mechanism as any HTTPRoute
+    # hostname.
+    external-dns.kubernetes.io/hostname: whoami-lb.example.com
 spec:
   externalTrafficPolicy: Local
   ports:
