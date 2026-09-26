@@ -190,6 +190,7 @@ encrypted client-side with `kubeseal` against the controller's public certificat
 to Git — only the controller instance running in that specific cluster (holding the matching private key) can
 decrypt it back into a normal `Secret`. Real examples in this repo:
 
+- [`k8s/apps/network/unifi-mongodb/base/db-secret.sealed.yaml`](../../k8s/apps/network/unifi-mongodb/base/db-secret.sealed.yaml) — MongoDB credentials (mongo has its own `unifi-mongodb` kustomization now, split out of `unifi-controller`)
 - [`k8s/apps/dns/adguard/base/secret-users.yaml`](../../k8s/apps/dns/adguard/base/secret-users.yaml) — AdGuard Home user list
 - [`k8s/infra/cert-manager/cert-manager/base/cloudflare-api-token.yaml`](../../k8s/infra/cert-manager/cert-manager/base/cloudflare-api-token.yaml) — the Cloudflare DNS-01 token
 
