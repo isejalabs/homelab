@@ -1,9 +1,25 @@
 name: "Terragrunt validate"
 on:
   pull_request:
+    paths:
+    - "terragrunt/**"
+    - "!terragrunt/**/*.md" # e.g. terragrunt/README.md, terragrunt/_envcommon/README.md - not a unit
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/terragrunt-validate-all.sh"
+    - "scripts/lib/common.sh"
+    - ".github/workflows/terragrunt-validate.yml"
   push:
     branches:
     - main
+    paths:
+    - "terragrunt/**"
+    - "!terragrunt/**/*.md"
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/terragrunt-validate-all.sh"
+    - "scripts/lib/common.sh"
+    - ".github/workflows/terragrunt-validate.yml"
 
 jobs:
   terragrunt-validate:
@@ -21,6 +37,15 @@ jobs:
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
         install_args: gum opentofu terragrunt
+    # Persists provider downloads across runs, not just within one (TF_PLUGIN_CACHE_DIR above only dedupes
+    # within a single run's 26 units) - keyed on what a provider requirement could plausibly follow: every
+    # terragrunt.hcl's module source/version ref, plus the pinned opentofu version. See #1416.
+    - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ env.TF_PLUGIN_CACHE_DIR }}
+        key: tf-plugin-cache-${{ hashFiles('terragrunt/**/terragrunt.hcl', '.mise.toml') }}
+        restore-keys: |
+          tf-plugin-cache-
     - run: tofu fmt -check -recursive terragrunt/
     - run: terragrunt hcl format --check --diff --working-dir terragrunt
     - run: scripts/terragrunt-validate-all.sh
