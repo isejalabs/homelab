@@ -25,7 +25,7 @@ need every replica's egress pinned to one predictable IP to keep working.
   hardcoded node via `nodeSelector.matchLabels.kubernetes.io/hostname`, with the PoC's own code comment
   reading `# ToDo: use node where pod is running` — i.e. it never actually solved multi-node
   failover, only demonstrated the single-node happy path. There's also an open-but-empty tracked issue
-  (`#126`, parent `#234`) for applying egress gateway to unifi, with no design notes. Building a real,
+  ([#126](https://github.com/isejalabs/homelab/issues/126), parent [#234](https://github.com/isejalabs/homelab/issues/234)) for applying egress gateway to unifi, with no design notes. Building a real,
   failover-capable egress-IP story from scratch was judged out of proportion to what this DNS project
   actually needs.
 - **TSIG, with IP-ACL as a second layer** — considered as defense-in-depth. Rejected as unnecessary

@@ -50,7 +50,7 @@ for the full mechanism and current caveats. Requires both a `rustfs` and an `one
 `global-secrets.sops.yaml`.
 
 Units exist for all 8 environments. Only `dev`/`qa`/`rebuild`/`prod` have an active kopiur backup schedule
-on the Kubernetes side (see `isejalabs/homelab#1121`); `dbg`/`head`/`poc`/`src` still get a real bucket and
+on the Kubernetes side (see [isejalabs/homelab#1121](https://github.com/isejalabs/homelab/issues/1121)); `dbg`/`head`/`poc`/`src` still get a real bucket and
 1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on
 a schedule.
 
