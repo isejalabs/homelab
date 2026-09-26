@@ -2,6 +2,16 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: internal
+  annotations:
+    # Read directly by external-dns's gateway-httproute source (from the
+    # Gateway object's own metadata, not spec.infrastructure.annotations
+    # below) -- every HTTPRoute attached to this Gateway gets a CNAME to this
+    # hostname instead of its own direct A record to the LB IP. Not an IP
+    # address, so external-dns's SuitableType() produces CNAME automatically
+    # -- confirmed in its source, not guessed. Value replaced per-env by
+    # replace-domain/prefix-domain, same mechanism as any HTTPRoute hostname
+    # -- see k8s/components/transformers/*/repl/gateway-*.yaml.
+    external-dns.kubernetes.io/target: gw-internal.example.com
 spec:
   gatewayClassName: cilium
   infrastructure:
@@ -13,6 +23,13 @@ spec:
       # when both listeners live on one Gateway - see gateway-api/gateway/README.md
       # and https://github.com/cilium/cilium/issues/44123 for the related upstream bug class)
       io.cilium/lb-ipam-sharing-key: internal
+      # Propagated by Cilium to the auto-created Service (the same mechanism
+      # already used for the io.cilium/* annotations above) so external-dns's
+      # service source creates the actual A record the target annotation
+      # above points HTTPRoutes' CNAMEs at. Same value as that annotation --
+      # shared with the internal-http Gateway (both point here, deduped by
+      # external-dns since they resolve to the same name and IP).
+      external-dns.kubernetes.io/hostname: gw-internal.example.com
   listeners:
     - name: https-gateway
       allowedRoutes:
