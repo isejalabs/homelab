@@ -5,6 +5,7 @@
     "config:best-practices",
     "github>isejalabs/homelab//.github/renovate/automerge-enable.json5",
     "github>isejalabs/homelab//.github/renovate/automerge-disable.json5",
+    "github>isejalabs/homelab//.github/renovate/custom-datasource-1password-cli.json5",
     "github>isejalabs/homelab//.github/renovate/git-submodules.json5",
     "github>isejalabs/homelab//.github/renovate/labels.json5",
     "github>isejalabs/homelab//.github/renovate/major-test-plan.json5",
