@@ -1,9 +1,25 @@
 name: "Kustomize build"
 on:
   pull_request:
+    paths:
+    - "k8s/**"
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/kustomize-build-all.sh"
+    - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
+    - "scripts/lib/common.sh"
+    - ".github/workflows/kustomize-build.yml"
   push:
     branches:
     - main
+    paths:
+    - "k8s/**"
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/kustomize-build-all.sh"
+    - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
+    - "scripts/lib/common.sh"
+    - ".github/workflows/kustomize-build.yml"
 
 jobs:
   kustomize-build:

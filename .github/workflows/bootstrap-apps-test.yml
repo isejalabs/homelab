@@ -1,9 +1,23 @@
 name: "Bootstrap apps test"
 on:
   pull_request:
+    paths:
+    - "k8s/bootstrap/helmfile/**"
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/bootstrap-apps-ci-test.sh"
+    - "scripts/lib/common.sh"
+    - ".github/workflows/bootstrap-apps-test.yml"
   push:
     branches:
     - main
+    paths:
+    - "k8s/bootstrap/helmfile/**"
+    - ".mise.toml"
+    - "mise.lock"
+    - "scripts/bootstrap-apps-ci-test.sh"
+    - "scripts/lib/common.sh"
+    - ".github/workflows/bootstrap-apps-test.yml"
 
 jobs:
   bootstrap-apps-test:
