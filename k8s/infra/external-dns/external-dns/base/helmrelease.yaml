@@ -73,6 +73,29 @@ spec:
       # zone name itself.
       - --rfc2136-zone=example.com
       - --rfc2136-zone=100.51.198.in-addr.arpa
+      # Kubernetes Service/HTTPRoute-backed records here are not volatile --
+      # no reason to hand out a 0s TTL (the default) for something this
+      # stable. RFC2136MinTTL is a floor, not a fixed value: a resource's own
+      # external-dns.alpha.kubernetes.io/ttl annotation can still ask for
+      # something higher (see provider/rfc2136's AddRecord -- confirmed in
+      # its source, not guessed), just never lower than this.
+      - --rfc2136-min-ttl=1h
+      # Default --interval is 1m -- reused here from the same
+      # FLUX_RECONCILIATION_INTERVAL value each env already uses for its own
+      # Flux reconciliation cadence (k8s/components/envs/<env>/cluster-param.yaml),
+      # rather than inventing a separate per-env literal for the same
+      # underlying "how stable is this env" judgment. Also meaningfully
+      # reduces the cost of a confirmed upstream external-dns bug affecting
+      # PTR records specifically (kubernetes-sigs/external-dns#6555, open/
+      # unmerged as of writing): Targets.Same() compares FQDN-valued targets
+      # (PTR/CNAME) with a plain case-insensitive string equality and no
+      # trailing-dot normalization, while PowerDNS's AXFR always returns such
+      # targets with a canonical trailing dot (DNS wire format, not a
+      # PowerDNS misconfiguration -- every authoritative server does this) --
+      # so every PTR record ends up removed and re-added on every single
+      # reconcile, forever, harmlessly but wastefully, until that upstream
+      # fix ships. Tracked in #1391; revisit --interval once it does.
+      - --interval=10m
 
     policy: sync
 
