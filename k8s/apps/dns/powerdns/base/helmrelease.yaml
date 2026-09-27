@@ -319,6 +319,25 @@ spec:
               if ! pdnsutil zone list "$$z" | grep -q "NS.*ns2\.home\.iseja\.net\."; then
                 pdnsutil rrset add "$$z" "$$z" NS "ns2.home.iseja.net."
               fi
+              # `zone create` above always creates a "native" zone -- confirmed
+              # in PowerDNS's own source (pdnsutil.cc's createZone always
+              # passes DomainInfo::Native, no flag to override it at creation
+              # time). Native zones serve AXFR/queries fine (that's why
+              # transfers to ns2 already worked), but rfc2136handler.cc's
+              # NOTIFY-DNSUPDATE auto-notify path explicitly requires
+              # `ctx.di.kind == DomainInfo::Primary` -- a native zone never
+              # triggers it, regardless of NOTIFY-DNSUPDATE/ALSO-NOTIFY
+              # metadata or the global primary=yes setting (confirmed live:
+              # the SOA serial kept incrementing correctly on every
+              # external-dns update, but ns2 never received a NOTIFY for it,
+              # while a manual `pdns_control notify-host` worked fine since
+              # that command doesn't check domain kind at all). Unconditional,
+              # not inside the creation guard above: this needs to also
+              # self-heal any zone already created (as native) before this
+              # fix existed, not just new ones -- and unlike the SOA seed,
+              # re-asserting a zone's kind on every restart has no regression
+              # risk (there's no counter to stomp).
+              pdnsutil zone set-kind "$$z" primary
               # metadata set replaces all values for the given kind, so this
               # is naturally idempotent -- no existence check needed.
               pdnsutil metadata set "$$z" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
