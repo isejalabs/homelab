@@ -318,7 +318,25 @@ spec:
               # calls) since `set` replaces all existing values for the
               # metadata kind -- a second call would silently drop the first
               # key's grant.
-              pdnsutil metadata set "$$z" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME" "$$TSIG_AXFR_OUT_KEYNAME"
+              #
+              # Order matters here, and axfr-out must come first: PowerDNS's
+              # send-signed-notify (default "yes") signs every outgoing
+              # NOTIFY with whichever TSIG-ALLOW-AXFR key it retrieves first
+              # from the backend when a zone has more than one -- see
+              # https://doc.powerdns.com/authoritative/settings.html
+              # ("send-signed-notify"), which documents this exact ambiguity
+              # ("may not be the correct one for the respective secondary").
+              # ns2 is the only real NOTIFY-receiving secondary today, and
+              # its allow-notify requires this zone's own axfr-out-<env> key
+              # specifically -- with dynupdate listed first, PowerDNS was
+              # signing NOTIFY with dynupdate instead, which ns2 correctly
+              # rejects, so it never re-checked/AXFR'd until its own 3h SOA
+              # refresh timer (confirmed live: PowerDNS's own serial bumped
+              # on every external-dns update, ns2's copy silently didn't).
+              # dynupdate itself is never NOTIFY-relevant -- it's only used
+              # for external-dns's own client-side AXFR-to-read, which is
+              # self-initiated polling, not something PowerDNS notifies.
+              pdnsutil metadata set "$$z" TSIG-ALLOW-AXFR "$$TSIG_AXFR_OUT_KEYNAME" "$$TSIG_DYNUPDATE_KEYNAME"
               # Speeds up propagation to secondaries after every
               # external-dns update, instead of waiting for their own
               # refresh-timer expiry.
