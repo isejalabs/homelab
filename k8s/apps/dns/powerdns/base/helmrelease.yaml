@@ -47,7 +47,22 @@ spec:
               # AXFR this zone -- deliberately separate from dynupdate above,
               # a different trust boundary (an external physical box, not the
               # in-cluster external-dns pod).
-              TSIG_AXFR_OUT_KEYNAME: axfr-out
+              #
+              # Must be env-suffixed, unlike TSIG_DYNUPDATE_KEYNAME above: a
+              # TSIG key's name is transmitted verbatim on the wire and must
+              # match exactly on both ends, and ns2's BIND9 config slaves
+              # *every* environment's zone from a single shared server, where
+              # key clause names are global -- it can't hold two differently
+              # secreted "axfr-out" keys at once, so each environment's
+              # PowerDNS must register its own uniquely-named key (see
+              # k8s/apps/dns/powerdns/README.md's ns2 runbook, which already
+              # documented this as "axfr-out-<env>" before this env var
+              # existed -- this was the one place still out of sync with it,
+              # confirmed live: BIND rejected the (correctly TSIG-signed, but
+              # wrongly *named*) response with "expected a TSIG or SIG(0)"
+              # since PowerDNS didn't recognize the unsuffixed key name at
+              # all and answered unsigned).
+              TSIG_AXFR_OUT_KEYNAME: axfr-out-base # replaced per-env
               TSIG_AXFR_OUT_SECRET:
                 valueFrom:
                   secretKeyRef:
