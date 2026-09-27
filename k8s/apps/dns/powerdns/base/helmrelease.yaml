@@ -199,6 +199,21 @@ spec:
             # metadata (set by the zone-bootstrap init container) authorizes
             # updates, never an IP range.
             allow-dnsupdate-from=
+            # Defaults to "no" (https://doc.powerdns.com/authoritative/settings.html,
+            # "primary") -- without it, PowerDNS's entire primary-communicator
+            # subsystem never starts at all, which is what actually sends
+            # NOTIFY (both NOTIFY-DNSUPDATE-triggered and ALSO-NOTIFY),
+            # confirmed against auth-main.cc
+            # (`mustDo("primary") || mustDo("secondary") || ...` gates it) and
+            # live: `pdns_control notify-host` refused outright with
+            # "PowerDNS not configured as primary, or secondary with
+            # re-notifications", and zero notify-related log lines appeared
+            # at any point, not even the Warning-level ones that fire from
+            # inside that same subsystem when it *is* running. This zone
+            # really is this PowerDNS's own primary copy (dynamic, RFC2136
+            # from external-dns) so "primary" is the correct mode, not
+            # "secondary".
+            primary=yes
           40-security.conf: |
             # No web UI/API needed yet -- external-dns talks RFC2136, not the
             # HTTP API.
