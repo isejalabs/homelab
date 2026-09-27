@@ -259,6 +259,37 @@ spec:
               z="$$1"
               if ! pdnsutil zone list "$$z" >/dev/null 2>&1; then
                 pdnsutil zone create "$$z" "ns1.$$zone"
+                # zone create seeds the SOA from the server's
+                # default-soa-content setting, whose own default MNAME is a
+                # deliberately-fake placeholder
+                # ("a.misconfigured.dns.server.invalid" -- PowerDNS's own
+                # documented default) meant to be overridden per zone. Same
+                # real MNAME for both this zone and the reverse one --
+                # ns1.$$zone (forward), matching what zone create's own NS
+                # argument above already points at, not this zone's own name
+                # (default-soa-content's "@" substitution would otherwise use
+                # the reverse zone's own name here, which has no NS/A record
+                # of its own).
+                #
+                # Deliberately inside this creation guard, not unconditional:
+                # autoserial (serial "0" meaning "calculate from the zone's
+                # highest record change_date") was removed in PowerDNS 4.2.0
+                # (https://doc.powerdns.com/authoritative/upgrading.html,
+                # "4.1.X to 4.2.0") -- this image runs 5.1.4, well past that,
+                # so "0" is not a live placeholder here, it's taken literally.
+                # SOA-EDIT-DNSUPDATE's default mode already bumps the real
+                # serial forward on every external-dns update with no
+                # metadata setup needed (that part works as-is) -- but
+                # re-running this same `rrset replace ... SOA ... 0 ...` on
+                # every pod restart would unconditionally stomp that bumped
+                # value back down to a literal 0 every time, which is a
+                # regression: RFC1982 serial arithmetic means secondaries
+                # (ns2 included) then correctly refuse to accept it as newer
+                # and stop transferring, silently freezing that zone until
+                # the serial organically climbs back past its own prior
+                # peak. First-creation-only avoids ever touching the SOA
+                # again after that.
+                pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
               fi
               # Declares 10.7.2.12's own hostname (ns2.home.iseja.net,
               # UCS-managed) as a second nameserver for this zone ahead of
@@ -267,28 +298,12 @@ spec:
               # own NS records already reflect the intended two-nameserver
               # state once real delegation happens. `rrset add`, not
               # `replace`: adds alongside the existing ns1 NS record from
-              # zone create above, rather than replacing it. Guarded
-              # (unlike the SOA replace below) since add would otherwise
+              # zone create above, rather than replacing it. Guarded, same
+              # reason as the SOA block above, since add would otherwise
               # accumulate a duplicate NS value on every pod restart.
               if ! pdnsutil zone list "$$z" | grep -q "NS.*ns2\.home\.iseja\.net\."; then
                 pdnsutil rrset add "$$z" "$$z" NS "ns2.home.iseja.net."
               fi
-              # zone create seeds the SOA from the server's default-soa-content
-              # setting, whose own default MNAME is a deliberately-fake
-              # placeholder ("a.misconfigured.dns.server.invalid" -- PowerDNS's
-              # own documented default) meant to be overridden per zone, which
-              # nothing here ever did. Same real MNAME for both this zone and
-              # the reverse one -- ns1.$$zone (forward), matching what zone
-              # create's own NS argument above already points at, not this
-              # zone's own name (default-soa-content's "@" substitution would
-              # otherwise use the reverse zone's own name here, which has no
-              # NS/A record of its own). Serial "0" is PowerDNS's own
-              # documented convention for "auto-compute from the zone's
-              # highest record change_date" -- keeps the existing
-              # auto-incrementing serial behavior; only the MNAME/RNAME
-              # actually change here. Safe to re-run unconditionally: a fresh
-              # "0" only ever recomputes forward in time, never regresses.
-              pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
               # metadata set replaces all values for the given kind, so this
               # is naturally idempotent -- no existence check needed.
               pdnsutil metadata set "$$z" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
