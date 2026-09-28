@@ -2,14 +2,17 @@
 
 ## Overview
 
-[#1296](https://github.com/isejalabs/homelab/issues/1296): a `just proxmox::*` recipe set that snapshots or
-rolls back every VM belonging to one environment "in one go", via the Proxmox REST API -- no SSH to
-individual Proxmox nodes, no hand-picking `70081<env-id><n>` VM IDs.
+[#1296](https://github.com/isejalabs/homelab/issues/1296): a `just proxmox::snapshot::*` recipe set that
+snapshots or rolls back every VM belonging to one environment "in one go", via the Proxmox REST API -- no
+SSH to individual Proxmox nodes, no hand-picking `70081<env-id><n>` VM IDs. Sibling to
+`proxmox::vm::*` ([#1431](https://github.com/isejalabs/homelab/issues/1431), see
+[`docs/proxmox-vm-power.md`](proxmox-vm-power.md)), which covers VM power lifecycle (start/stop/etc.)
+instead of snapshots -- both share the same credential/discovery mechanism described below.
 
 ```sh
-just proxmox::list -e dev                                # read-only: VMs + their snapshots
-just proxmox::snapshot -e dev --name initial              # default --name is "initial"
-just proxmox::rollback -e dev --name initial              # destructive -- see below
+just proxmox::snapshot::list -e dev                       # read-only: VMs + their snapshots
+just proxmox::snapshot::create -e dev --name initial      # default --name is "initial"
+just proxmox::snapshot::rollback -e dev --name initial    # destructive -- see below
 ```
 
 This operates one level below Kubernetes/Flux entirely -- it's talking directly to the Proxmox hypervisor
@@ -49,7 +52,7 @@ depth, so a stale id mapping or a vmid collision can't silently touch another en
 ## Rollback is destructive and gated
 
 `rollback` requires typing the environment name to confirm (or `--yes` to skip that, e.g. non-interactive
-use) before touching anything -- it discards every disk change made since the snapshot. `snapshot` and
+use) before touching anything -- it discards every disk change made since the snapshot. `create` and
 `list` need no confirmation: creating a snapshot is additive, listing is read-only.
 
 ### Only the latest snapshot can be rolled back to
@@ -59,7 +62,7 @@ this repo's `local-enc` datastore the same as anywhere else) refuse to roll a VM
 isn't its **most recent** one -- if you've taken a newer snapshot (e.g. `bootstrapped`) on top of the one
 you're targeting (e.g. `initial`), Proxmox rejects the rollback outright. The Proxmox API does expose a
 `force` parameter that overrides this by destroying the intervening newer snapshots as part of the
-rollback -- `scripts/proxmox-vm-rollback.sh` **deliberately doesn't expose it**: that's a second, larger
+rollback -- `scripts/proxmox-snapshot-rollback.sh` **deliberately doesn't expose it**: that's a second, larger
 destructive action (irreversibly deleting other snapshots) layered on top of the one this issue asked for.
 
 `rollback`'s pre-flight checks every discovered VM's snapshot list *before touching any of them*: the
@@ -84,12 +87,14 @@ snapshot.
 
 ## What each command does
 
-- **`list`** (`scripts/proxmox-vm-list.sh`) -- discovers the environment's VMs and, for each, its
-  snapshots (name + taken-at, from Proxmox's `snaptime`). Read-only.
-- **`snapshot`** (`scripts/proxmox-vm-snapshot.sh`) -- pre-checks no discovered VM already has a snapshot
+- **`list`** (`scripts/proxmox-snapshot-list.sh`) -- discovers the environment's VMs and, for each, its
+  snapshots (name + taken-at, from Proxmox's `snaptime`). Read-only. See
+  [`docs/proxmox-vm-power.md`](proxmox-vm-power.md) for the sibling `proxmox::vm::list`, a leaner VM-only
+  view with no snapshot detail.
+- **`create`** (`scripts/proxmox-snapshot-create.sh`) -- pre-checks no discovered VM already has a snapshot
   of the target name, then creates one on every VM **in parallel** (a ZFS/PVE snapshot is a fast
   metadata-only operation, so concurrent VMs are low-risk here).
-- **`rollback`** (`scripts/proxmox-vm-rollback.sh`) -- runs the pre-flight above, prompts for confirmation,
+- **`rollback`** (`scripts/proxmox-snapshot-rollback.sh`) -- runs the pre-flight above, prompts for confirmation,
   then processes VMs **sequentially, one at a time**: stop it if running (hard stop -- a graceful shutdown
   is pointless when the disk is about to be reverted anyway), roll back, then start it again unless
   `--no-start`. Stops attempting further VMs after the first failure, reporting which VMs were already

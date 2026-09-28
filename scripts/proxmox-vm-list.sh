@@ -1,7 +1,8 @@
 #!/bin/bash
 # Lists the Proxmox VMs belonging to one environment (discovered via scripts/lib/proxmox.sh's
-# 70081<id><n> vmid scheme, cross-checked against each VM's name prefix) and each VM's snapshots, via the
-# Proxmox REST API -- no SSH. Read-only. See docs/proxmox-vm-snapshots.md.
+# 70081<id><n> vmid scheme, cross-checked against each VM's name prefix), via the Proxmox REST API -- no
+# SSH. Read-only. VM-only view, no snapshot detail -- see scripts/proxmox-snapshot-list.sh for that. See
+# docs/proxmox-vm-power.md.
 #
 # Usage: scripts/proxmox-vm-list.sh -e <env>
 set -euo pipefail
@@ -39,24 +40,6 @@ if [ -z "${VMS}" ]; then
 fi
 
 {
-    printf 'VMID\tNAME\tNODE\tSTATUS\tSNAPSHOT\tTAKEN_AT\n'
-    while IFS=$'\t' read -r vmid node name status; do
-        [ -z "${vmid}" ] && continue
-        snapshots=$(proxmox_curl GET "/nodes/${node}/qemu/${vmid}/snapshot") || continue
-        rows=$(jq -r '.[] | select(.name != "current") | [.name, (.snaptime // empty)] | @tsv' <<<"${snapshots}")
-        if [ -z "${rows}" ]; then
-            printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${vmid}" "${name}" "${node}" "${status}" "-" "-"
-            continue
-        fi
-        while IFS=$'\t' read -r snapname snaptime; do
-            taken_at="-"
-            if [ -n "${snaptime}" ]; then
-                # BSD/macOS `date -r <epoch>` vs GNU `date -d @<epoch>` -- the former errors on GNU date
-                # (where -r means "use this file's mtime", and no such file exists), so the fallback covers
-                # Linux/CI without misinterpreting the epoch as a filename there.
-                taken_at=$(date -r "${snaptime}" '+%Y-%m-%d %H:%M:%S' 2>/dev/null || date -d "@${snaptime}" '+%Y-%m-%d %H:%M:%S')
-            fi
-            printf '%s\t%s\t%s\t%s\t%s\t%s\n' "${vmid}" "${name}" "${node}" "${status}" "${snapname}" "${taken_at}"
-        done <<<"${rows}"
-    done <<<"${VMS}"
+    printf 'VMID\tNAME\tNODE\tSTATUS\n'
+    printf '%s\n' "${VMS}" | awk -F'\t' -v OFS='\t' '{print $1, $3, $2, $4}'
 } | column -t -s $'\t'

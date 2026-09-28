@@ -3,7 +3,7 @@
 # via the Proxmox REST API -- no SSH. The "Snapshot" half of #1296's one-go workflow. Non-destructive
 # (additive only) -- no confirmation prompt. See docs/proxmox-vm-snapshots.md.
 #
-# Usage: scripts/proxmox-vm-snapshot.sh -e <env> [--name <name>]
+# Usage: scripts/proxmox-snapshot-create.sh -e <env> [--name <name>]
 set -euo pipefail
 
 SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)

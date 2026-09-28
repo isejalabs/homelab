@@ -18,6 +18,11 @@ proxmox_cleanup() {
     for f in "${PROXMOX_CLEANUP_FILES[@]:-}"; do
         [ -n "${f}" ] && rm -f "${f}"
     done
+    # Explicit, not implicit: under `set -e`, this trap's own last command (the `[ -n "${f}" ]` test
+    # above, false whenever the array is empty) would otherwise leak its own exit status out as the
+    # *whole script's* exit code once the EXIT trap fires -- confirmed live, every read-only recipe
+    # (list) was exiting 1 despite succeeding and printing correct output.
+    return 0
 }
 trap proxmox_cleanup EXIT
 
@@ -145,6 +150,27 @@ proxmox_discover_vms() {
     done < <(jq -r '.[] | select(.type=="qemu") | [.vmid, .node, .name, .status] | @tsv' <<<"${resources}" | sort -n)
 }
 
+# Narrows proxmox_discover_vms' TSV output (read from stdin) to the single row matching <vmid>, or passes
+# every row through unchanged if <vmid> is empty. Errors out (rather than silently returning nothing) if a
+# non-empty <vmid> doesn't match any discovered row -- defense in depth, same spirit as
+# proxmox_discover_vms' own name-prefix cross-check: a typo'd or wrong-environment vmid should fail loudly,
+# not silently act on zero VMs.
+proxmox_filter_vmid() {
+    local vmid="$1"
+    if [ -z "${vmid}" ]; then
+        cat
+        return 0
+    fi
+
+    local matched
+    matched=$(awk -F'\t' -v want="${vmid}" '$1 == want' -)
+    if [ -z "${matched}" ]; then
+        log fatal "--vmid does not match any VM discovered for this environment" "vmid" "${vmid}"
+        exit 1
+    fi
+    printf '%s\n' "${matched}"
+}
+
 # Polls a Proxmox task (a UPID returned by an async API call like snapshot creation/rollback/start/stop)
 # every 3s up to a 10 minute cap, same polling shape as scripts/kopiur-create.sh's backup_one(). Returns 0
 # only once the task's exitstatus is exactly "OK"; logs the task's own log tail on failure or timeout.
@@ -190,4 +216,14 @@ proxmox_validate_snapshot_name() {
         log fatal "invalid snapshot name -- must start with a letter/digit/underscore, followed by letters/digits/underscores/hyphens" "name" "${name}"
         exit 1
     fi
+}
+
+# Performs one VM power action via POST /nodes/<node>/qemu/<vmid>/status/<action> and waits for the
+# resulting task. <action> must be one Proxmox actually exposes at this path (start/stop/shutdown/reset) --
+# not validated here, that's scripts/proxmox-vm-power.sh's job so the error surfaces before any API call.
+proxmox_vm_power_action() {
+    local action="$1" vmid="$2" node="$3"
+    local upid
+    upid=$(proxmox_curl POST "/nodes/${node}/qemu/${vmid}/status/${action}") || return 1
+    proxmox_wait_task "${node}" "${upid}"
 }
