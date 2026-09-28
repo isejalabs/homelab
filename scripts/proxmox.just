@@ -1,3 +1,5 @@
+set default-list
+
 # Proxmox VM snapshot/rollback recipes (#1296)
 mod snapshot "proxmox-snapshot.just"
 
