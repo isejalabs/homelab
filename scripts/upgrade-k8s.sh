@@ -14,7 +14,7 @@ SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 TALCONFIG=$(find . -iname talos-config.yaml)
-K8S_VERSION="1.34.11" # renovate: github-releases=kubernetes/kubernetes
+K8S_VERSION="1.34.12" # renovate: github-releases=kubernetes/kubernetes
 NODE=$(yq -r '.contexts.*.endpoints.[0]' "${TALCONFIG}")
 
 # Recorded for log()'s automatic "context" field (see lib/common.sh), matching the kopiur scripts' pattern
