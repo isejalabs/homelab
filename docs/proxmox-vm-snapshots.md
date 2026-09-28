@@ -13,6 +13,7 @@ instead of snapshots -- both share the same credential/discovery mechanism descr
 just proxmox::snapshot::list -e dev                       # read-only: VMs + their snapshots
 just proxmox::snapshot::create -e dev --name initial      # default --name is "initial"
 just proxmox::snapshot::rollback -e dev --name initial    # destructive -- see below
+just proxmox::snapshot::delete -e dev --name initial      # destructive -- see below
 ```
 
 This operates one level below Kubernetes/Flux entirely -- it's talking directly to the Proxmox hypervisor
@@ -49,11 +50,31 @@ Each environment's VMs are found by matching **both** of:
 A vmid match without the matching name prefix is logged and excluded rather than trusted -- defense in
 depth, so a stale id mapping or a vmid collision can't silently touch another environment's VM.
 
-## Rollback is destructive and gated
+## Rollback and delete are destructive and gated
 
 `rollback` requires typing the environment name to confirm (or `--yes` to skip that, e.g. non-interactive
 use) before touching anything -- it discards every disk change made since the snapshot. `create` and
 `list` need no confirmation: creating a snapshot is additive, listing is read-only.
+
+`delete` requires the same typed confirmation as `rollback`, but only when acting on the whole environment
+(no `--vmid` given) -- a single `--vmid` target already makes the blast radius explicit, same rule
+`proxmox::vm::*`'s `stop`/`shutdown`/`reset` use (see [`docs/proxmox-vm-power.md`](proxmox-vm-power.md)).
+`rollback` itself has no `--vmid` option (always environment-wide), so it always prompts unless `--yes`.
+
+### Deleting doesn't require every VM to have the snapshot
+
+Unlike `create` (fails if *any* VM already has the target name) and `rollback` (fails if *any* VM is
+missing it or has a newer one on top), `delete` tolerates a mixed environment: some VMs having the named
+snapshot and others not is a normal, expected state (e.g. a snapshot taken before a node joined the
+environment). `delete` removes the snapshot wherever it's present and logs a warning naming exactly which
+VMs it skipped, rather than failing the whole batch over one VM's absence.
+
+### Deletion isn't restricted by chain position
+
+Unlike rollback (see below), Proxmox doesn't require a snapshot to be the most recent one before it can be
+deleted -- confirmed against the Proxmox API's own documented parameters for this endpoint (`force`, for
+config/disk-state divergence, not chain position) and live during this feature's development, deleting an
+older snapshot while a newer one still existed on top of it.
 
 ### Only the latest snapshot can be rolled back to
 
@@ -94,6 +115,9 @@ snapshot.
 - **`create`** (`scripts/proxmox-snapshot-create.sh`) -- pre-checks no discovered VM already has a snapshot
   of the target name, then creates one on every VM **in parallel** (a ZFS/PVE snapshot is a fast
   metadata-only operation, so concurrent VMs are low-risk here).
+- **`delete`** (`scripts/proxmox-snapshot-delete.sh`) -- deletes a named snapshot from every discovered VM
+  that has it (or just `--vmid`) **in parallel** (same low-risk reasoning as `create`), skipping and
+  warning about any that don't rather than failing the batch.
 - **`rollback`** (`scripts/proxmox-snapshot-rollback.sh`) -- runs the pre-flight above, prompts for confirmation,
   then processes VMs **sequentially, one at a time**: stop it if running (hard stop -- a graceful shutdown
   is pointless when the disk is about to be reverted anyway), roll back, then start it again unless
