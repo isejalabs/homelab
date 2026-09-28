@@ -26,18 +26,55 @@ spec:
           main:
             env: &zoneEnv
               ZONE: example.com # replaced per-env
+              # PTR zone for this env's own LB-IP range, hosted the same way
+              # as ZONE above -- see
+              # k8s/components/transformers/reverse-zone-env for why this
+              # isn't a DOMAIN_BASE/DOMAIN_TLD-derived value like ZONE is.
+              REVERSE_ZONE: 8.168.192.in-addr.arpa # replaced per-env
               # Named for the *role* this key plays (RFC2136 dynamic updates
-              # from external-dns), not just "the" TSIG key -- prod will
-              # later add its own separate axfr-out/axfr-in keys alongside
-              # this one, so this name needs to not collide with those.
+              # from external-dns), not just "the" TSIG key -- a separate
+              # axfr-out key (below) authorizes a different trust
+              # relationship (the external LXC secondary), and prod will
+              # later add its own axfr-in key too, so this name needs to not
+              # collide with those.
               TSIG_DYNUPDATE_KEYNAME: dynupdate
               TSIG_DYNUPDATE_SECRET:
                 valueFrom:
                   secretKeyRef:
                     name: powerdns-tsig-dynupdate
                     key: TSIG_DYNUPDATE_SECRET
+              # Authorizes 10.7.2.12 (the LXC secondary, outside this repo) to
+              # AXFR this zone -- deliberately separate from dynupdate above,
+              # a different trust boundary (an external physical box, not the
+              # in-cluster external-dns pod).
+              #
+              # Must be env-suffixed, unlike TSIG_DYNUPDATE_KEYNAME above: a
+              # TSIG key's name is transmitted verbatim on the wire and must
+              # match exactly on both ends, and ns2's BIND9 config slaves
+              # *every* environment's zone from a single shared server, where
+              # key clause names are global -- it can't hold two differently
+              # secreted "axfr-out" keys at once, so each environment's
+              # PowerDNS must register its own uniquely-named key (see
+              # k8s/apps/dns/powerdns/README.md's ns2 runbook, which already
+              # documented this as "axfr-out-<env>" before this env var
+              # existed -- this was the one place still out of sync with it,
+              # confirmed live: BIND rejected the (correctly TSIG-signed, but
+              # wrongly *named*) response with "expected a TSIG or SIG(0)"
+              # since PowerDNS didn't recognize the unsuffixed key name at
+              # all and answered unsigned).
+              TSIG_AXFR_OUT_KEYNAME: axfr-out-base # replaced per-env
+              TSIG_AXFR_OUT_SECRET:
+                valueFrom:
+                  secretKeyRef:
+                    name: powerdns-tsig-axfr-out
+                    key: TSIG_AXFR_OUT_SECRET
             image: &image
-              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line
+              # pdns-auth-52 only has an alpha0 tag so far -- 51 is the latest stable line.
+              # Tracked by Renovate via a dedicated customManagers entry in
+              # .github/renovate.json5 -- app-template's own image schema
+              # requires this split repository/tag object form, which the
+              # built-in kubernetes manager's line-based "image:" regex
+              # can't match.
               repository: powerdns/pdns-auth-51
               tag: 5.1.4@sha256:bb5b1c133bcca1dd455075321de7d55db4945a8d7f2ba23339e3c7bbe416b205
             probes:
@@ -71,9 +108,7 @@ spec:
         initContainers:
           # A real initContainer, not a regular container: it runs a one-shot
           # script and exits, which is exactly what kubelet expects from an
-          # init container and exactly what makes a *regular* container
-          # CrashLoopBackOff (confirmed live -- this was originally
-          # (mis)placed under `containers`).
+          # init container, but would be a CrashLoopBackOff for a regular one.
           bootstrap-zone:
             command: ["/bin/sh", "/scripts/bootstrap-zone.sh"]
             env: *zoneEnv
@@ -85,7 +120,22 @@ spec:
 
     service:
       main:
+        annotations:
+          io.cilium/lb-ipam-ips: 192.168.8.10 # replaced per-env
+          # Picked up by external-dns's service source (already enabled) --
+          # without this, ns1.<env>.iseja.net (what every zone's own NS
+          # record and SOA MNAME point at, see bootstrap-zone.sh) has no A
+          # record of its own, an incomplete NS configuration (confirmed
+          # live: NXDOMAIN). "ns1", not the usual "dev-powerdns"-style
+          # app-label -- must match bootstrap-zone.sh's own "ns1.$$zone"
+          # construction exactly, so replaced per-env by *only*
+          # replace-domain's TLD/BASE split (see
+          # helmrelease-powerdns-zone.yaml), never prefix-domain -- an
+          # env-name prefix here would produce "dev-ns1.dev.iseja.net",
+          # which wouldn't match what the NS/SOA records actually say.
+          external-dns.kubernetes.io/hostname: ns1.example.com
         controller: main
+        externalTrafficPolicy: Local
         ports:
           dns-tcp:
             port: 53
@@ -95,6 +145,7 @@ spec:
             port: 53
             protocol: UDP
             targetPort: 5300
+        type: LoadBalancer
 
     persistence:
       data:
@@ -148,6 +199,21 @@ spec:
             # metadata (set by the zone-bootstrap init container) authorizes
             # updates, never an IP range.
             allow-dnsupdate-from=
+            # Defaults to "no" (https://doc.powerdns.com/authoritative/settings.html,
+            # "primary") -- without it, PowerDNS's entire primary-communicator
+            # subsystem never starts at all, which is what actually sends
+            # NOTIFY (both NOTIFY-DNSUPDATE-triggered and ALSO-NOTIFY),
+            # confirmed against auth-main.cc
+            # (`mustDo("primary") || mustDo("secondary") || ...` gates it) and
+            # live: `pdns_control notify-host` refused outright with
+            # "PowerDNS not configured as primary, or secondary with
+            # re-notifications", and zero notify-related log lines appeared
+            # at any point, not even the Warning-level ones that fire from
+            # inside that same subsystem when it *is* running. This zone
+            # really is this PowerDNS's own primary copy (dynamic, RFC2136
+            # from external-dns) so "primary" is the correct mode, not
+            # "secondary".
+            primary=yes
           40-security.conf: |
             # No web UI/API needed yet -- external-dns talks RFC2136, not the
             # HTTP API.
@@ -176,31 +242,146 @@ spec:
             set -eu
 
             : "$${ZONE:?ZONE env var is required}"
+            : "$${REVERSE_ZONE:?REVERSE_ZONE env var is required}"
             : "$${TSIG_DYNUPDATE_KEYNAME:?TSIG_DYNUPDATE_KEYNAME env var is required}"
             : "$${TSIG_DYNUPDATE_SECRET:?TSIG_DYNUPDATE_SECRET env var is required}"
+            : "$${TSIG_AXFR_OUT_KEYNAME:?TSIG_AXFR_OUT_KEYNAME env var is required}"
+            : "$${TSIG_AXFR_OUT_SECRET:?TSIG_AXFR_OUT_SECRET env var is required}"
 
             if [ ! -f /var/lib/powerdns/pdns.sqlite3 ]; then
               sqlite3 /var/lib/powerdns/pdns.sqlite3 < /usr/local/share/doc/pdns/schema.sqlite3.sql
             fi
 
             zone="$${ZONE%.}."
-
-            if ! pdnsutil zone list "$$zone" >/dev/null 2>&1; then
-              pdnsutil zone create "$$zone" "ns1.$$zone"
-            fi
+            reverse_zone="$${REVERSE_ZONE%.}."
 
             if ! pdnsutil tsigkey list | grep -q "^$${TSIG_DYNUPDATE_KEYNAME}\."; then
               pdnsutil tsigkey import "$$TSIG_DYNUPDATE_KEYNAME" hmac-sha256 "$$TSIG_DYNUPDATE_SECRET"
             fi
+            if ! pdnsutil tsigkey list | grep -q "^$${TSIG_AXFR_OUT_KEYNAME}\."; then
+              pdnsutil tsigkey import "$$TSIG_AXFR_OUT_KEYNAME" hmac-sha256 "$$TSIG_AXFR_OUT_SECRET"
+            fi
 
-            # metadata set replaces all values for the given kind, so this is
-            # naturally idempotent -- no existence check needed.
-            pdnsutil metadata set "$$zone" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
-            pdnsutil metadata set "$$zone" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
-            # external-dns's --policy=sync needs AXFR to list existing records
-            # (otherwise it can only create, never update/delete) -- separate
-            # metadata from TSIG-ALLOW-DNSUPDATE above, granting one doesn't
-            # grant the other. Once a TSIG key is AXFR-authorized, PowerDNS
-            # bypasses allow-axfr-ips entirely for that transfer, so no IP-ACL
-            # config is needed here either.
-            pdnsutil metadata set "$$zone" TSIG-ALLOW-AXFR "$$TSIG_DYNUPDATE_KEYNAME"
+            # Same TSIG-authorized dynamic-update/AXFR/NOTIFY setup for both
+            # the forward <env>.iseja.net zone and its PTR counterpart --
+            # external-dns writes to both via the same rfc2136 credentials
+            # (--create-ptr), and 10.7.2.12 slaves both the same way. $1's
+            # own NS record always names the *forward* zone's ns1 host (the
+            # PowerDNS instance's own identity), even when setting up the
+            # reverse zone -- it doesn't need to live inside the zone it's
+            # naming.
+            setup_zone() {
+              z="$$1"
+              if ! pdnsutil zone list "$$z" >/dev/null 2>&1; then
+                pdnsutil zone create "$$z" "ns1.$$zone"
+                # zone create seeds the SOA from the server's
+                # default-soa-content setting, whose own default MNAME is a
+                # deliberately-fake placeholder
+                # ("a.misconfigured.dns.server.invalid" -- PowerDNS's own
+                # documented default) meant to be overridden per zone. Same
+                # real MNAME for both this zone and the reverse one --
+                # ns1.$$zone (forward), matching what zone create's own NS
+                # argument above already points at, not this zone's own name
+                # (default-soa-content's "@" substitution would otherwise use
+                # the reverse zone's own name here, which has no NS/A record
+                # of its own).
+                #
+                # Deliberately inside this creation guard, not unconditional:
+                # autoserial (serial "0" meaning "calculate from the zone's
+                # highest record change_date") was removed in PowerDNS 4.2.0
+                # (https://doc.powerdns.com/authoritative/upgrading.html,
+                # "4.1.X to 4.2.0") -- this image runs 5.1.4, well past that,
+                # so "0" is not a live placeholder here, it's taken literally.
+                # SOA-EDIT-DNSUPDATE's default mode already bumps the real
+                # serial forward on every external-dns update with no
+                # metadata setup needed (that part works as-is) -- but
+                # re-running this same `rrset replace ... SOA ... 0 ...` on
+                # every pod restart would unconditionally stomp that bumped
+                # value back down to a literal 0 every time, which is a
+                # regression: RFC1982 serial arithmetic means secondaries
+                # (ns2 included) then correctly refuse to accept it as newer
+                # and stop transferring, silently freezing that zone until
+                # the serial organically climbs back past its own prior
+                # peak. First-creation-only avoids ever touching the SOA
+                # again after that.
+                pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
+              fi
+              # Declares 10.7.2.12's own hostname (ns2.home.iseja.net,
+              # UCS-managed) as a second nameserver for this zone ahead of
+              # its actual slave config existing -- deliberately pre-added,
+              # not waiting for the physical LXC-side setup, so the zone's
+              # own NS records already reflect the intended two-nameserver
+              # state once real delegation happens. `rrset add`, not
+              # `replace`: adds alongside the existing ns1 NS record from
+              # zone create above, rather than replacing it. Guarded, same
+              # reason as the SOA block above, since add would otherwise
+              # accumulate a duplicate NS value on every pod restart.
+              if ! pdnsutil zone list "$$z" | grep -q "NS.*ns2\.home\.iseja\.net\."; then
+                pdnsutil rrset add "$$z" "$$z" NS "ns2.home.iseja.net."
+              fi
+              # `zone create` above always creates a "native" zone -- confirmed
+              # in PowerDNS's own source (pdnsutil.cc's createZone always
+              # passes DomainInfo::Native, no flag to override it at creation
+              # time). Native zones serve AXFR/queries fine (that's why
+              # transfers to ns2 already worked), but rfc2136handler.cc's
+              # NOTIFY-DNSUPDATE auto-notify path explicitly requires
+              # `ctx.di.kind == DomainInfo::Primary` -- a native zone never
+              # triggers it, regardless of NOTIFY-DNSUPDATE/ALSO-NOTIFY
+              # metadata or the global primary=yes setting (confirmed live:
+              # the SOA serial kept incrementing correctly on every
+              # external-dns update, but ns2 never received a NOTIFY for it,
+              # while a manual `pdns_control notify-host` worked fine since
+              # that command doesn't check domain kind at all). Unconditional,
+              # not inside the creation guard above: this needs to also
+              # self-heal any zone already created (as native) before this
+              # fix existed, not just new ones -- and unlike the SOA seed,
+              # re-asserting a zone's kind on every restart has no regression
+              # risk (there's no counter to stomp).
+              pdnsutil zone set-kind "$$z" primary
+              # metadata set replaces all values for the given kind, so this
+              # is naturally idempotent -- no existence check needed.
+              pdnsutil metadata set "$$z" ALLOW-DNSUPDATE-FROM 0.0.0.0/0 ::/0
+              pdnsutil metadata set "$$z" TSIG-ALLOW-DNSUPDATE "$$TSIG_DYNUPDATE_KEYNAME"
+              # external-dns's --policy=sync needs AXFR to list existing
+              # records (otherwise it can only create, never update/delete)
+              # -- separate metadata from TSIG-ALLOW-DNSUPDATE above,
+              # granting one doesn't grant the other. Once a TSIG key is
+              # AXFR-authorized, PowerDNS bypasses allow-axfr-ips entirely for
+              # that transfer, so no IP-ACL config is needed here either.
+              # Both keys listed in the same `set` call (not two separate
+              # calls) since `set` replaces all existing values for the
+              # metadata kind -- a second call would silently drop the first
+              # key's grant.
+              #
+              # Order matters here, and axfr-out must come first: PowerDNS's
+              # send-signed-notify (default "yes") signs every outgoing
+              # NOTIFY with whichever TSIG-ALLOW-AXFR key it retrieves first
+              # from the backend when a zone has more than one -- see
+              # https://doc.powerdns.com/authoritative/settings.html
+              # ("send-signed-notify"), which documents this exact ambiguity
+              # ("may not be the correct one for the respective secondary").
+              # ns2 is the only real NOTIFY-receiving secondary today, and
+              # its allow-notify requires this zone's own axfr-out-<env> key
+              # specifically -- with dynupdate listed first, PowerDNS was
+              # signing NOTIFY with dynupdate instead, which ns2 correctly
+              # rejects, so it never re-checked/AXFR'd until its own 3h SOA
+              # refresh timer (confirmed live: PowerDNS's own serial bumped
+              # on every external-dns update, ns2's copy silently didn't).
+              # dynupdate itself is never NOTIFY-relevant -- it's only used
+              # for external-dns's own client-side AXFR-to-read, which is
+              # self-initiated polling, not something PowerDNS notifies.
+              pdnsutil metadata set "$$z" TSIG-ALLOW-AXFR "$$TSIG_AXFR_OUT_KEYNAME" "$$TSIG_DYNUPDATE_KEYNAME"
+              # Speeds up propagation to secondaries after every
+              # external-dns update, instead of waiting for their own
+              # refresh-timer expiry.
+              pdnsutil metadata set "$$z" NOTIFY-DNSUPDATE 1
+              # 10.7.2.12 (the LXC secondary) explicitly, by IP, rather than
+              # relying on the ns2.home.iseja.net NS record above --
+              # ALSO-NOTIFY works regardless of what NS records exist, and
+              # doesn't depend on ns2's own A record (UCS-managed, outside
+              # this repo) being resolvable.
+              pdnsutil metadata set "$$z" ALSO-NOTIFY 10.7.2.12
+            }
+
+            setup_zone "$$zone"
+            setup_zone "$$reverse_zone"

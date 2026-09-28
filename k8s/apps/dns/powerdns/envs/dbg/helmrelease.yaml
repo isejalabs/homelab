@@ -1,0 +1,11 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: powerdns
+spec:
+  values:
+    service:
+      main:
+        annotations:
+          io.cilium/lb-ipam-ips: 10.8.9.10

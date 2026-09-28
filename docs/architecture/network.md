@@ -155,7 +155,7 @@ into two separate `Gateway` objects instead of one Gateway with two listeners �
 Cilium's Gateway-API-to-Envoy translation leaks every app's exact-hostname HTTPS route into the HTTP
 listener's own route table too, and Envoy always prefers an exact-hostname match over the redirect's
 wildcard vhost — so a same-Gateway HTTP→HTTPS redirect silently stopped firing for any hostname that had its
-own route (tracked upstream as [cilium/cilium#44123](https://github.com/cilium/cilium/issues/44123)).
+own route (tracked upstream as [cilium/cilium#44123](https://redirect.github.com/cilium/cilium/issues/44123)).
 Splitting the listeners into two Gateways avoids the route leak entirely, at the cost of `internal-http`
 restricting `allowedRoutes` to `from: Same` so only its own redirect route can attach.
 
@@ -247,7 +247,8 @@ mentioned [below](#physical-network-opnsense-ucs-and-the-root-nameservers).
 
 | Zone | Master | Slaves | Mechanism | Status |
 | --- | --- | --- | --- | --- |
-| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | — | Dynamically populated by external-dns (`gateway-httproute`+`service` sources) via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002) | in progress — PowerDNS and external-dns are both deployed and live-verified end to end on `dev` (real HTTPRoutes auto-registered, idempotent on repeat sync), but still not `current`: the PowerDNS Service has no LB IP, so nothing outside the cluster can resolve this zone yet — that's the prod cutover phase |
+| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | `10.7.2.12` (once delegated — see below) | Dynamically populated by external-dns (`gateway-httproute`+`service` sources) via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002); `NOTIFY-DNSUPDATE`/`ALSO-NOTIFY` push changes to the slave promptly | in progress — PowerDNS and external-dns are both deployed and live-verified end to end on `dev` (real HTTPRoutes auto-registered, idempotent on repeat sync); PowerDNS also has a real LB IP (`10.8.<env-id>.10`) and a TSIG-signed AXFR-out relationship ready for `10.7.2.12`, but real NS delegation from the current `iseja.net` master (`10.7.2.10`) hasn't happened yet — that's the point of this phase, testing the mechanism before the actual cutover |
+| `<env-id>.8.10.in-addr.arpa.` (PTR zone for that environment's own `10.8.<env-id>.0/24` LB-IP range, one per environment) | in-cluster PowerDNS (`gsqlite3` backend, same instance as the forward zone above) | `10.7.2.12` (once delegated — see below) | Dynamically populated by external-dns's `--create-ptr`, same RFC2136/TSIG mechanism as the forward zone; zone name comes from each env's own `DNS_REVERSE_ZONE` cluster-param value (see `k8s/components/transformers/reverse-zone-env`), not derived from the domain like the forward zone is | in progress — same live-verification status as the forward zone above |
 | `iseja.net` (root zone) | in-cluster PowerDNS, prod only (`bind` backend, SOPS-encrypted zone file) | `10.7.2.12` | IaC/git-managed records, TSIG-signed AXFR out | planning — supersedes `10.7.2.10`, see [below](#physical-network-opnsense-ucs-and-the-root-nameservers) |
 | `dir.iseja.net`, `7.10.in-addr.arpa.` | UCS (unchanged) | in-cluster PowerDNS, prod only | TSIG-signed AXFR in — PowerDNS is a secondary here, UCS stays the real source of truth | planning |
 
@@ -258,9 +259,15 @@ data on the prod instance follows the same reasoning for the parts *this repo* o
 simply means those specific slaved zones go stale until reachable again — normal secondary-nameserver
 behavior, not a design gap.
 
-No app in the repo has changed to accommodate this — `replace-domain`/`prefix-domain` already produce the
-exact hostnames (e.g. `adguard.prod.iseja.net`) that external-dns's `gateway-httproute`/`service` sources
-pick up automatically; the zone this project adds is additive underneath what already existed.
+Two small deliberate app-level changes were needed to make the zone actually correct, beyond the originally-planned "no app changes" scope:
+
+- **HTTPRoutes CNAME to their Gateway's own hostname, rather than each getting a direct A record to the LB IP.** Every Gateway (`internal`, `internal-http`, `external`) carries an `external-dns.kubernetes.io/target` annotation (e.g. `gw-internal.dev.iseja.net`) that external-dns's `gateway-httproute` source reads directly, and a matching `external-dns.kubernetes.io/hostname` under `spec.infrastructure.annotations` (propagated to Cilium's auto-created Service the same way `io.cilium/lb-ipam-ips` already is) so that hostname gets a real A record. Beyond the cleaner architecture (one A record per shared LB IP instead of one per app), this also structurally avoids a confirmed upstream external-dns bug (see below): a shared IP now only ever has one PTR target, not several.
+- **Standalone LoadBalancer Services now get their own record too** (`unbound`, `adguard`'s resolver IP, `unifi-controller`, `whoami`'s raw Service) via the same `external-dns.kubernetes.io/hostname` annotation on the Service itself — closing a gap from `--source=service` being enabled since Phase 2 but never actually given a hostname to work from. `whoami`/`adguard` specifically use an `-lb` suffix (`whoami-lb.dev.iseja.net`) since their bare app name is already claimed by their own HTTPRoute's CNAME, and DNS forbids a CNAME and another record type coexisting at the same owner name. PowerDNS's own Service gets the same treatment for its `ns1.<env>.iseja.net` identity (see below).
+- Otherwise unchanged from the original plan: `replace-domain`/`prefix-domain` already produce the exact hostnames (e.g. `adguard.prod.iseja.net`) that external-dns's `gateway-httproute`/`service` sources pick up automatically.
+
+**Known upstream bug (external-dns, not PowerDNS)**: when a name has more than one target sharing the same IP, external-dns's rfc2136 provider removes and re-adds that record (and any PTR pointing at it) on every single reconcile cycle, forever — harmless (the records stay correct and resolvable at any point in time), but wasteful. Root cause confirmed in external-dns's own source: `Targets.Same()` compares FQDN-valued targets (PTR/CNAME) without normalizing the trailing dot PowerDNS's AXFR always includes. Tracked upstream at [kubernetes-sigs/external-dns#6555](https://redirect.github.com/kubernetes-sigs/external-dns/pull/6555) (open, unmerged); tracked in this repo at [#1393](https://github.com/isejalabs/homelab/issues/1393). Mitigated (not fixed) by reducing external-dns's `--interval` to each environment's own `FLUX_RECONCILIATION_INTERVAL` instead of its 1m default, and largely avoided structurally by the Gateway-CNAME change above — the one remaining case still exposed to it is a Service assigned more than one LB IP (e.g. `unbound`'s `10.8.<env-id>.{8,11}`), confirmed live to still work correctly, just with the same underlying churn.
+
+`ns1.<env>.iseja.net` (every zone's own NS target and SOA MNAME, see `bootstrap-zone.sh`) needed the same explicit-hostname treatment as the standalone Services above, plus a one-time SOA fix: `pdnsutil`'s `default-soa-content` default seeds every new zone with a deliberately-fake MNAME placeholder (`a.misconfigured.dns.server.invalid`), which nothing had ever overridden — every zone's SOA now gets explicitly set to the real `ns1.<env>.iseja.net` MNAME at bootstrap time instead.
 
 ## Physical network: OPNsense, UCS, and the root nameservers
 

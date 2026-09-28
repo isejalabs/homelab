@@ -2,11 +2,16 @@ apiVersion: gateway.networking.k8s.io/v1
 kind: Gateway
 metadata:
   name: external
+  annotations:
+    # See gw-internal.yaml's comment for the full explanation -- same
+    # mechanism, this Gateway's own hostname instead.
+    external-dns.kubernetes.io/target: gw-external.example.com
 spec:
   gatewayClassName: cilium
   infrastructure:
     annotations:
       io.cilium/lb-ipam-ips: 192.168.8.83
+      external-dns.kubernetes.io/hostname: gw-external.example.com
   listeners:
     - name: https-gateway
       allowedRoutes:
