@@ -1,6 +1,6 @@
-# Observability Phase 0 — Findings (working draft, not yet in a PR)
+# Observability Phase 0 — Findings
 
-**Date:** 2026-09-29. **Status:** In progress — this is a consolidated summary of a first read-only investigation pass for [issue #1437](https://github.com/isejalabs/homelab/issues/1437). Not committed, no issue/PR/branch created yet, per instruction. Detailed command-level evidence lives in two sibling docs:
+**Date:** 2026-09-29. **Origin:** produced by Claude (Anthropic's Claude Code), via read-only SSH/`midclt`/`kubectl` commands against live infrastructure — not manually authored by the repository owner. Corrections noted throughout came from the owner reviewing this pass's initial output. **Status:** In progress — this is a consolidated summary of a first read-only investigation pass for [issue #1437](https://github.com/isejalabs/homelab/issues/1437). Detailed command-level evidence lives in two sibling docs:
 
 - [`2026-09-observability-phase0-checkmk-proxmox-claude.md`](2026-09-observability-phase0-checkmk-proxmox-claude.md) — Checkmk sites/RRD/backups, Proxmox hosts (pve1/pve4/pve6), loghost.
 - [`2026-09-observability-phase0-truenas-k8s-claude.md`](2026-09-observability-phase0-truenas-k8s-claude.md) — TrueNAS/RustFS, Longhorn/Talos.

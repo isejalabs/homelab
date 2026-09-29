@@ -1,6 +1,6 @@
 # Phase 0 findings — TrueNAS/RustFS and Longhorn/Talos (read-only)
 
-Part of [issue #1437](https://github.com/isejalabs/homelab/issues/1437). Gathered via read-only SSH/`midclt`/`zfs`/`docker inspect` commands on the TrueNAS host and read-only `kubectl get` against `prod`/`dev` clusters. No configuration, workload, or state was changed. Raw command output containing credentials (an active OneDrive OAuth client secret/token from `cloudsync.query`) was deliberately excluded from this file — noted only as "present", never reproduced.
+**Origin:** produced by Claude (Anthropic's Claude Code), via read-only SSH/`midclt`/`kubectl` commands against live infrastructure — not manually authored by the repository owner. Part of [issue #1437](https://github.com/isejalabs/homelab/issues/1437). Gathered via read-only SSH/`midclt`/`zfs`/`docker inspect` commands on the TrueNAS host and read-only `kubectl get` against `prod`/`dev` clusters. No configuration, workload, or state was changed. Raw command output containing credentials (an active OneDrive OAuth client secret/token from `cloudsync.query`) was deliberately excluded from this file — noted only as "present", never reproduced.
 
 ## Correcting the assessment: TrueNAS hostname
 
