@@ -114,8 +114,8 @@ if [ -z "${VMID}" ] && [ "${YES}" -eq 0 ]; then
     fi
 fi
 
-# No cross-VM ordering dependency, same reasoning as proxmox-vm-power.sh -- every selected VM's deletion
-# runs concurrently.
+# Deletes snapshot $NAME from a single VM. Called once per VM in DELETE_VMID, in parallel -- no cross-VM
+# ordering dependency, same reasoning as proxmox-vm-power.sh.
 delete_one() {
     local vmid="$1" node="$2" name="$3"
     log info "deleting snapshot" "vmid" "${vmid}" "name" "${name}" "snapshot" "${NAME}"

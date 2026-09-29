@@ -106,6 +106,9 @@ if [ "${YES}" -eq 0 ]; then
     fi
 fi
 
+# Rolls back a single VM: stops it first if running, rolls back to $NAME, then starts it again unless
+# --no-start ($START=0). Each step waits for its own Proxmox task before the next begins -- rollback while
+# still running, or starting before the rollback lands, would both be wrong.
 rollback_one() {
     local vmid="$1" node="$2" name="$3" status="$4"
     local upid

@@ -62,10 +62,10 @@ fi
 
 log info "Creating snapshot on all ${ENV} VMs" "name" "${NAME}"
 
-# A ZFS/PVE snapshot is a fast metadata-only operation, so running every VM's snapshot creation in
-# parallel (PID-array pattern copied from scripts/kopiur-create.sh's --all path) is low-risk here -- unlike
-# rollback's stop+rollback+start(+boot) cycle, there's no meaningful per-node resource contention to worry
-# about.
+# Creates snapshot $NAME on a single VM. Called once per discovered VM, in parallel (PID-array pattern
+# copied from scripts/kopiur-create.sh's --all path) -- a ZFS/PVE snapshot is a fast metadata-only
+# operation, so concurrent VMs are low-risk here, unlike rollback's stop+rollback+start(+boot) cycle, which
+# has real per-node resource contention to worry about.
 snapshot_one() {
     local vmid="$1" node="$2" name="$3"
     log info "creating snapshot" "vmid" "${vmid}" "name" "${name}" "node" "${node}"
