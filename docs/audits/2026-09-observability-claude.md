@@ -70,7 +70,7 @@ On outage resilience specifically: rather than adding a new cloud service, the c
 
 ## Roadmap
 
-See [`2026-09-observability-independent.md`](../plans/2026-09-observability-independent.md) in `docs/plans/` for the phased implementation plan built on this assessment.
+See [`2026-09-observability-claude.md`](../plans/2026-09-observability-claude.md) in `docs/plans/` for the phased implementation plan built on this assessment.
 
 ## Validation still required (needs live access this pass did not have)
 
