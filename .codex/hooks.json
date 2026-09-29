@@ -1,90 +1,42 @@
 {
+  "description": "Mink activity tracking adapted for Codex",
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "statusMessage": "Mink: start session",
+            "timeout": 120
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
-        "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "mink pre-read"
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "statusMessage": "Mink: check file reads and edits",
+            "timeout": 120
           }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink pre-write"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink pre-write"
-          }
-        ]
+        ],
+        "matcher": "^(Bash|apply_patch|Read|Edit|Write)$"
       }
     ],
     "PostToolUse": [
       {
-        "matcher": "Read",
         "hooks": [
           {
             "type": "command",
-            "command": "mink post-read"
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "statusMessage": "Mink: record file activity",
+            "timeout": 120
           }
-        ]
-      },
-      {
-        "matcher": "Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink post-write"
-          }
-        ]
-      },
-      {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink post-write"
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink post-tool"
-          }
-        ]
-      },
-      {
-        "matcher": "Grep",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink post-tool"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "mink session-start"
-          }
-        ]
+        ],
+        "matcher": "^(Bash|apply_patch|Read|Edit|Write)$"
       }
     ],
     "Stop": [
@@ -92,7 +44,9 @@
         "hooks": [
           {
             "type": "command",
-            "command": "mink session-stop"
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "statusMessage": "Mink: summarize session activity",
+            "timeout": 120
           }
         ]
       }
