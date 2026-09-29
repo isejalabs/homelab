@@ -1,6 +1,6 @@
 # Observability implementation plan
 
-**Date:** 2026-09-28. **Status:** Planning complete; implementation not started. **Assessment:** [September 2026 observability assessment](../audits/2026-09-observability.md). **Tracking:** [O11Y umbrella issue](https://github.com/isejalabs/homelab/issues/71).
+**Date:** 2026-09-28. **Reviewed:** 2026-09-29. **Status:** Planning complete; implementation not started. **Assessment:** [September 2026 observability assessment](../audits/2026-09-observability.md). **Tracking:** [O11Y umbrella issue](https://github.com/isejalabs/homelab/issues/71).
 
 This plan preserves Checkmk metrics/history, closes capacity gaps and adds useful log collection and analysis with measured SSD overhead. Backend selection remains a pilot outcome. Recording the plan and issues does not deploy services or authorize unrelated upgrades, quota removal or Checkmk retirement.
 
@@ -10,36 +10,40 @@ This plan preserves Checkmk metrics/history, closes capacity gaps and adds usefu
 - Preserve existing RRDs, graph-rich email and healthchecks.io coverage. An eventually retired Checkmk installation may be retained as a restorable, normally stopped archive.
 - Extend loghost outside Kubernetes; brief downtime and buffered-data loss are acceptable. No replicated backend or whole-site monitor is required.
 - Prefer €0 recurring costs; consider up to €5/month only for demonstrated value. Measure RAM/CPU and physical host writes, including collection and storage overhead.
-- Manage Linux services through Salt and Kubernetes collectors through this repository's Flux conventions. Record manual Checkmk and TrueNAS settings, because they are currently configured through their UIs. TrueNAS has SSH but no Salt.
+- Manage Linux services through Salt and Kubernetes collectors through this repository's Flux conventions. Record manual Checkmk and TrueNAS settings, because they are currently configured through their UIs. TrueNAS has SSH and had limited historical `salt-ssh` use for `apps/check-mk/client`; this is not general Salt management of TrueNAS.
+- Treat TrueNAS 25.10 and RustFS 1.0.0-beta.12 as the initial inventory, not version constraints. Check newer features and compatibility upfront; perform any upgrade as separate work and validate collection against the version actually deployed.
+- Preserve five-minute standard service polling and daily SMART/storage-usage updates for USB backup disks. Baseline measurements and new checks must not introduce extra disk spin-ups.
 - Require remote CLI log querying without logging into loghost. Evaluate native `logcli` usability against a documented VictoriaLogs query workflow.
 - Follow repository branch, PR and non-prod testing conventions for each implementation. Do not fill production disks or induce OOM on production hosts to test notifications.
 
 ## Phase 0 — Baseline, inventory and preservation
 
-Read live configuration without changing it. Confirm site placement (including the initially reported `prod_k8s`), RRD archive definitions, capacity rules, notifications, host/loghost configuration, collector reachability and backup/restore arrangements. Inventory CPU, memory, temperature and capacity graphs that must remain available.
+Read live configuration without changing it. Confirm site placement (including the initially reported `prod_k8s`), RRD archive definitions, capacity rules, notifications, host/loghost configuration, collector reachability and backup/restore arrangements. Inventory CPU, memory, temperature and capacity graphs that must remain available. Record the existing five-minute service cadence and daily USB backup-disk SMART/usage behavior; verify how cached usage is obtained without waking disks. Compare current and candidate TrueNAS/RustFS versions for collection features, fixes and compatibility before selecting interfaces, and record any separately tracked upgrade prerequisite.
 
-Measure representative host-write deltas and workload/log volume for approximately seven days, including backup-heavy periods. Record SMART/NVMe host writes, block-device/LXC attribution where available, host workload changes, backend filesystem growth and CPU/RAM. Do not infer physical NAND writes from host writes if the device does not expose them. Establish an agreed incremental GB/day and RAM budget from this baseline rather than inventing one.
+Measure representative host-write deltas and workload/log volume for approximately seven days, including backup-heavy periods. For always-on SSDs, record SMART/NVMe host writes, block-device/LXC attribution where available, host workload changes, backend filesystem growth and CPU/RAM. Do not infer physical NAND writes from host writes if the device does not expose them. Establish an agreed incremental GB/day and RAM budget from this baseline rather than inventing one.
 
 Acceptance:
 
 - [ ] Current site/source inventory and actual RRD resolutions/retention recorded.
 - [ ] Checkmk backups shown to be recoverable, including old graphs in an isolated restore where feasible.
 - [ ] Loghost traffic and SSD write/resource baseline recorded with units, intervals and known confounders.
-- [ ] Relevant RustFS, Longhorn and Talos collection interfaces inspected without changing workloads.
+- [ ] Relevant RustFS, Longhorn, Talos and TrueNAS collection interfaces inspected without changing workloads; newer TrueNAS/RustFS capabilities and compatibility checked, with any upgrade prerequisite tracked separately.
+- [ ] Existing service and USB backup-disk polling/caching behavior recorded; baseline collection causes no additional USB disk spin-ups.
 - [ ] Pilot resource/write budget recorded before judging candidate results.
 
 ## Phase 1A — Missing capacity checks
 
 Add Checkmk services for Longhorn backing disks and RustFS buckets. The additional Talos disks are exclusively Longhorn disks, so do not duplicate checks under a separate project. Preserve ZFS dataset/pool and PVC filesystem checks.
 
-For Longhorn, collect per-node/per-disk total, actual used/free capacity, scheduling headroom and health. Keep allocated/scheduled bytes distinct from actual physical use. Use stable identities and least-privilege access. For RustFS 1.0.0-beta.12, validate the exact accounting interface and collect logical bytes, quota, headroom and data age. Prefer existing server-side accounting over repeated full listings; measure any listing fallback before adopting it. Retain quotas initially.
+For Longhorn, collect per-node/per-disk total, actual used/free capacity, scheduling headroom and health. Keep allocated/scheduled bytes distinct from actual physical use. Use stable identities and least-privilege access. For the RustFS version selected after the phase-0 compatibility review, validate the exact accounting interface and collect logical bytes, quota, headroom and data age. Prefer existing server-side accounting over repeated full listings; measure any listing fallback before adopting it. Retain quotas initially.
 
-Start evaluation at one-minute disk polling and 15-minute bucket polling, adapting to accounting freshness/cost. Thresholds must cover percentage and absolute reserve, plus growth where meaningful. Allow for backup staging and replica recovery space. Reuse established Checkmk filesystem trend behavior where supported; a generic graphable local-check metric alone is not sufficient. Record the forecasting window, minimum sample history, behavior for flat/negative growth and bursty backup retention cycles.
+Start evaluation at five-minute Longhorn disk polling, matching the current standard service interval; 15-minute disk polling is also acceptable where sufficient. Start bucket polling at 15 minutes, adapting to accounting freshness/cost. Preserve daily SMART and storage-usage updates for USB-powered backup disks and their ability to sleep; do not add probes that wake them. Interpret prompt capacity alerts as notification after the next scheduled confirmed measurement, not a requirement for one-minute polling. Thresholds must cover percentage and absolute reserve, plus growth where meaningful. Allow for backup staging and replica recovery space. Reuse established Checkmk filesystem trend behavior where supported; a generic graphable local-check metric alone is not sufficient. Record the forecasting window, minimum sample history, behavior for flat/negative growth and bursty backup retention cycles.
 
 Acceptance:
 
 - [ ] Values reconciled against Longhorn/TrueNAS/RustFS views and representative known data.
 - [ ] Stable services and useful RRD graphs exist for active storage sources.
+- [ ] Five- or 15-minute disk polling and 15-minute bucket polling validated; existing daily USB backup-disk checks remain unchanged and no additional spin-ups are introduced.
 - [ ] WARN/CRIT, stale/missing data and recovery behavior tested using fixtures or non-prod resources.
 - [ ] Time-to-full/quota demonstrated where reliable; insufficient history and unknown growth are explicit.
 - [ ] Bucket and physical-capacity checks remain distinct; no quota removed as part of this phase.
@@ -75,7 +79,7 @@ Acceptance:
 
 - [ ] Kubernetes container logs and Events, including workload identity, collected from intended environments.
 - [ ] Proxmox kernel/OOM and Linux/UCS authentication/application logs verified.
-- [ ] TrueNAS 25.10 container logs (RustFS, borgbackup server, syncthing) and Cloud Sync/AD synchronization failures verified through supported collection routes.
+- [ ] TrueNAS container logs for the version actually deployed (RustFS, borgbackup server, syncthing) and Cloud Sync/AD synchronization failures verified through supported collection routes.
 - [ ] OPNsense gw2/gw3/gw4 logs verified.
 - [ ] Home Assistant authentication events verified; Immich collection documented as an onboarding item until deployed.
 - [ ] Backup coverage matrix distinguishes healthchecks.io-monitored jobs, kopiur backup freshness and failure-detail logs.
