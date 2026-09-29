@@ -18,6 +18,10 @@ thing they describe.
     reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and
     day-to-day operational tasks (list/trigger/restore/prune backups).
+  - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes
+    (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
+  - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes
+    (list/start/stop/shutdown/reset).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant,
   non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the
   repo, only the ones whose *why* would otherwise be lost to git-log archaeology.
