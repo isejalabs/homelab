@@ -1,6 +1,6 @@
-Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, and kopiur backup/restore operations. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
+Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
 
-Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. Three scripts (`kopiur-list.sh`, `kopiur-create.sh`, `kopiur-restore.sh`) are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just).
+Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
 
 ## CI validation
 
@@ -46,6 +46,21 @@ Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](
 | [`kopiur-restore.sh`](kopiur-restore.sh) | restores an app's PVC from its latest snapshot (deletes and repopulates the PVC) |
 
 All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
+
+## Proxmox VM snapshot/power management
+
+Wrapped by `just proxmox::snapshot::<create|list|rollback|delete>` and `just proxmox::vm::<list|start|stop|shutdown|reset>` — see [`docs/proxmox-vm-snapshots.md`](../docs/proxmox-vm-snapshots.md) and [`docs/proxmox-vm-power.md`](../docs/proxmox-vm-power.md) for the day-to-day operational guides.
+
+| Script | Purpose |
+| --- | --- |
+| [`proxmox-snapshot-list.sh`](proxmox-snapshot-list.sh) | lists an environment's VMs and each VM's snapshots |
+| [`proxmox-snapshot-create.sh`](proxmox-snapshot-create.sh) | creates a named snapshot on every VM in an environment |
+| [`proxmox-snapshot-delete.sh`](proxmox-snapshot-delete.sh) | deletes a named snapshot from every VM that has it (or just `--vmid`) |
+| [`proxmox-snapshot-rollback.sh`](proxmox-snapshot-rollback.sh) | rolls every VM in an environment back to a named snapshot and restarts them |
+| [`proxmox-vm-list.sh`](proxmox-vm-list.sh) | lists an environment's VMs (no snapshot detail — see `proxmox-snapshot-list.sh` for that) |
+| [`proxmox-vm-power.sh`](proxmox-vm-power.sh) | one shared script for `start`/`stop`/`shutdown`/`reset`, parameterized by `--action` |
+
+All source [`lib/proxmox.sh`](lib/proxmox.sh) (Proxmox API auth, VM discovery, task polling) in addition to `lib/common.sh` above.
 
 ## Cluster maintenance
 

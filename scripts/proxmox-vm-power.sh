@@ -96,9 +96,9 @@ verb() {
     esac
 }
 
-# No cross-VM ordering dependency for a power action (unlike rollback's per-VM stop-then-rollback-then-start
-# sequence), so every selected VM runs concurrently -- same PID-array pattern as
-# scripts/proxmox-snapshot-create.sh.
+# Performs $ACTION on a single VM. Called once per selected VM, in parallel -- no cross-VM ordering
+# dependency for a power action (unlike rollback's per-VM stop-then-rollback-then-start sequence), so every
+# selected VM runs concurrently, same PID-array pattern as scripts/proxmox-snapshot-create.sh.
 power_one() {
     local vmid="$1" node="$2" name="$3"
     log info "$(verb "${ACTION}") VM" "vmid" "${vmid}" "name" "${name}"
