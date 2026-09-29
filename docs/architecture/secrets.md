@@ -102,7 +102,7 @@ Every file is optional (`try(...)` defaults to `{}`), and a child module never g
 automatically — it opts in explicitly via `include.root.locals.secret_vars.<name>`. One value out of this
 merged map is itself load-bearing for the whole pipeline: `secret_vars.state_encryption_passphrase` is what
 Terragrunt uses to encrypt the S3 remote-state backend (see `docs/architecture/terraform-bootstrap.md`,
-pending in [#1168](https://redirect.github.com/isejalabs/homelab/pull/1168) — restore this as a link once
+pending in [#1168](https://github.com/isejalabs/homelab/pull/1168) — restore this as a link once
 that merges) — so the very first `terragrunt` command a fresh checkout runs already depends on a
 SOPS-decrypted value.
 
