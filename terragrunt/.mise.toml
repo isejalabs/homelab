@@ -3,5 +3,5 @@
 # .mise.toml so a bump here doesn't also retrigger kustomize-build.yml/bootstrap-apps-test.yml, which have
 # nothing to do with these tools. See #1426.
 opentofu = "1.12.6"
-talosctl = "1.14.0"
+talosctl = "1.14.2"
 terragrunt = "1.1.6"
