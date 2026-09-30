@@ -93,5 +93,12 @@
         "updateStrategy:pinWatch"
       ],
     },
+    {
+      description: 'keep sops below 3.13.3 -- that release\'s aqua-registry entry is missing SLSA signer_identity/signer_issuer metadata, breaking `mise install --locked` in every CI workflow (#1462); no environment carve-out, this is a CI tool, not a per-environment deployment',
+      allowedVersions: '<3.13.3',
+      matchPackageNames: [
+        'getsops/sops',
+      ],
+    },
   ],
 }
