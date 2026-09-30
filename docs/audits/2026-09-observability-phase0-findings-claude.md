@@ -31,7 +31,18 @@ An earlier version of this document reported "no Proxmox-level backup job covers
 - Confirmed real snapshots exist on PBS for all three: `format: pbs-ct`, `subtype: lxc` (full-container), going back to at least 2026-02-22, daily since ~2026-09-19, most recent 2026-09-28. Older snapshots show `verification.state: "ok"`.
 - The earlier finding was based only on `/etc/pve/jobs.cfg`, which is real but is a *separate, supplementary* weekly job for three unrelated VMs (gw2, gw3, Polina) — it isn't, and was never meant to be, the primary backup mechanism.
 
-**Revised bottom line**: the LXCs themselves (including `/omd/sites/*` RRDs/config on the monitoring hosts) are backed up nightly and the backups verify as healthy. The one real remaining gap is narrower than originally stated: there's no Checkmk-*native* (`mkbackup`) export, and nobody has actually performed a test restore of a PBS snapshot into isolation to confirm the RRDs/WATO config come back usable — that's a validation step, not a "build a backup from scratch" gap. Full detail in the [checkmk-proxmox doc](2026-09-observability-phase0-checkmk-proxmox-claude.md#checkmk-backups-no-mkbackup-level-job-but-full-container-pbs-backups-exist-and-are-verified).
+**Revised bottom line**: the LXCs themselves (including `/omd/sites/*` RRDs/config on the monitoring hosts) are backed up nightly and the backups verify as healthy. The one real remaining gap was narrower than originally stated: there's no Checkmk-*native* (`mkbackup`) export, and until now nobody had performed a test restore of a PBS snapshot into isolation. Full detail in the [checkmk-proxmox doc](2026-09-observability-phase0-checkmk-proxmox-claude.md#checkmk-backups-no-mkbackup-level-job-but-full-container-pbs-backups-exist-and-are-verified).
+
+### Isolated restore test (2026-09-30) — passed
+
+Performed the actual test restore: `monitoring1`'s most recent PBS snapshot (`pbs:backup/ct/7002061/2026-09-29T21:22:10Z`, ~14.2 GB) restored via `pct restore 101 ... --storage local-enc --unprivileged 1` into a new, isolated VMID **on the same node monitoring1 already runs on (pve6)** — never started, never networked.
+
+- Extraction took **~20 minutes** (01:51–02:11 CEST) — slow because of the sheer number of small RRD/WATO files, not a hang; confirmed via `vmstat` showing 50%+ I/O-wait and ZFS `txg_sync`/`zvol_tq` threads in disk-wait while it ran.
+- **Cost/impact note**: container creation and disk writes stayed on pve6, but the restore necessarily *reads* backup data from the PBS server itself — Polina (VMID 7005116), which runs on **pve1**, not pve6. So this test did add ~20 minutes of extra read I/O/network load against Polina/pve1, on top of whatever else runs there overnight (the owner flagged that PBS itself runs additional jobs around 2–3 AM). Worth keeping in mind for any future restore test: consider timing it outside that window, or ask first if it lands inside it.
+- Verified read-only via `pct mount 101` (no boot, no network): `ls /opt/omd/sites/` showed all three of monitoring1's real sites (`core`, `dev_k8s`, `qa_k8s`); a sample RRD (`dev_k8s/var/check_mk/rrd/dev-work-03.test.iseja.net/Uptime.rrd`, 385 KB) has an intact `RRD\0` binary header (checked via `od -c`, since `rrdtool` isn't installed on the Proxmox host itself — a full `rrdtool info` parse wasn't done, but the file is not truncated/corrupted); WATO config (`dev_k8s/etc/check_mk/conf.d/wato/hosts.mk`, `global.mk`, `contacts.mk`) is present and human-readable with real content.
+- Cleaned up immediately: `pct unmount 101` + `pct destroy 101 --purge 1` — confirmed no residual config/disk left on pve6.
+
+**Acceptance criterion #2 ("Checkmk backups shown to be recoverable, including old graphs in an isolated restore where feasible") is now satisfied**: a real snapshot restores intact, RRDs and WATO config both survive, and cleanup leaves no trace. This was a single sample (`monitoring1`, one snapshot) — extending the same spot-check to `monitoring2`/`loghost` would be pure confirmation, not a new finding, so it's not treated as a blocking gap.
 
 ## Resolved via owner feedback
 
@@ -45,6 +56,11 @@ An earlier version of this document reported "no Proxmox-level backup job covers
 - Checkmk's Linux agent already tracks per-job backup run history (`vzdump_*`, `borgbackup`, cron_* durations/exit codes) under `/var/lib/check_mk_agent/job/root/` — a ready-made signal for the phase-2 "backup coverage matrix" item.
 - `pvecm status` shows `Expected votes: 5` / `Highest expected: 5` against only 3 active cluster members — noticed in passing, not investigated, possibly unrelated to this project.
 - Two host-key mismatches were hit during this session (`monitoring1`, `pve6`) — you updated `known_hosts` yourself before the investigation continued. pve6's unusually low SMART wear/hours and different drive model versus pve1/pve4 is *consistent with* a recent rebuild, which would also explain the key change, but that's inference, not confirmed against change history.
+- **`qa-work-03.test.iseja.net` was found `NotReady` since 2026-09-25** (kubelet stopped posting status), found incidentally while checking Longhorn state across environments during the [PR #1458](https://github.com/isejalabs/homelab/pull/1458) review. Its stuck old-version `longhorn-manager` pod was directly causing an active crash loop in `qa`'s Longhorn manager after the chart was bumped to v1.13.0. **Remediated 2026-09-30 at the owner's request**: the VM was simply stopped (not hung) — found via `just proxmox vm list -e qa`, restarted via `just proxmox vm start -e qa --vmid 7008126`; the stuck pod was force-deleted, clearing the crash loop; the node rejoined and Longhorn's manager is now stable on it.
+
+  **Root cause, traced via loghost's syslog**: two separate, unrelated problems, six days apart. (1) On 2026-09-19, Terraform legitimately destroyed and recreated qa-work-03 (old VM on pve5 → new VM on pve6) as a routine infra rebuild — the fresh disk this created is why Longhorn's disk record showed a `DiskFilesystemChanged`/UUID-mismatch condition dated that day; not corruption, just an unreconciled disk record. (2) On 2026-09-25, pve6's kernel OOM-killer killed qa-work-03's VM process outright — this is what actually caused the 5-day outage, and it's part of a **broader, still-current pve6 memory-pressure problem**: the same OOM-killer also hit `prod-work-03` and `dbg-work-03` on 09-19 (prod self-recovered quickly; dbg's current stopped state is an unrelated, deliberate later shutdown). Per the owner, pve6's RAM was upgraded between 09-19 and 09-25 (explains the 09-20 reboot and pve6's oddly-low SMART wear/different drive model noted earlier) — but **pve6 still runs at ~44GB/46GB used today**, so the overcommit risk (including for prod) isn't resolved.
+
+  **Disk issue fixed 2026-09-30, at the owner's direction**: confirmed both affected volumes (qa `actualbudget` and `unifi` app data) had an intact second replica elsewhere and were currently detached before touching anything. Removed and re-added the stale disk entry on qa-work-03 via `kubectl patch`; Longhorn re-scanned the fresh filesystem within a minute — disk now `Ready`/`Schedulable`, capacity matching qa-work-01/02 exactly. **`qa` is now fully healthy at every level**: node, Longhorn-manager, and Longhorn-disk. Full timeline and evidence in the [checkmk-proxmox doc](2026-09-observability-phase0-checkmk-proxmox-claude.md#pve6-memory-pressure-and-the-qa-work-03-outage-2026-09-30-investigation) and the [truenas-k8s doc](2026-09-observability-phase0-truenas-k8s-claude.md)'s qa section.
 
 ## Phase 0 acceptance criteria — status
 
@@ -53,9 +69,9 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 | # | Acceptance item | Status | Notes |
 | --- | --- | --- | --- |
 | 1 | Current site/source inventory and actual RRD resolutions/retention recorded | **Done** | 5 Checkmk sites inventoried, RRD tiers confirmed live via `rrdtool info` |
-| 2 | Checkmk backups shown to be recoverable | **Partial** | Nightly full-container PBS snapshots exist and verify healthy for all three LXCs (corrected — see "Checkmk/LXC backup" section above); what's still missing is an actual isolated test restore to confirm RRDs/WATO config come back usable |
+| 2 | Checkmk backups shown to be recoverable | **Done** | Nightly full-container PBS snapshots exist and verify healthy for all three LXCs; isolated test restore of monitoring1's latest snapshot performed 2026-09-30, RRDs and WATO config both confirmed intact — see "Isolated restore test" above |
 | 3 | Loghost traffic and SSD write/resource baseline recorded, with units/intervals/confounders | **Partial** | Day-0 SMART snapshot taken for pve1/pve4/pve6; loghost's own daily log-volume/logrotate figures not captured; the actual 7-day delta genuinely needs elapsed time |
-| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn inspected for `prod`/`dev`; `qa`/`rebuild`/`dbg` Longhorn state not checked; no newer-release comparison done yet (explicit plan requirement, still open) |
+| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn now checked across all 5 environments (`qa`/`rebuild` on 2026-09-30; `dbg` confirmed N/A — no Longhorn, cluster unreachable). RustFS has a newer `1.0.1-preview` series (quota-fix status still unconfirmed); TrueNAS's own point-release changelog remains unresearched — its docs site isn't fetchable via WebFetch, needs checking directly in the TrueNAS UI |
 | 5 | Existing service/USB backup-disk polling/caching behavior recorded; no added spin-ups | **Partial** | Checkmk's `86400`-interval cached SMART plugin confirmed for Linux hosts; ZFS space accounting confirmed as in-memory (not verified against an actually spun-down disk); USB disks' own SMART/wear data intentionally not queried |
 | 6 | Pilot resource/write budget agreed from baseline | **Not started** | Blocked on #3's 7-day measurement |
 
@@ -66,21 +82,17 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 
 ## Remaining access/inventory gaps
 
-- An actual isolated test restore of a PBS snapshot for one of the monitoring LXCs, to confirm RRDs/WATO config come back usable (backups exist and verify, but restore itself hasn't been exercised).
 - Salt-based inventory (`salt-key -L`, `salt '*' grains...`) — `salt-master` needs a sudo password not available in this session.
-- Checkmk notification-rule contents (`etc/check_mk/conf.d/wato/rules.mk` confirmed present, not read).
 - loghost daily log-line-count/logrotate figures (transient tool issue mid-session, not retried).
 - USB backup disk SMART/wear (by design, not queried this pass).
 - RustFS's own S3 admin API for exact per-bucket logical-byte/quota accounting (no admin credentials pulled).
-- `qa-homelab`/`rebuild-homelab`/`dbg-homelab` Longhorn node/disk/backup-target state.
-- TrueNAS 25.10.x / RustFS post-beta.12 release comparison (explicit plan requirement, still open).
-- Syncthing folder configuration (query returned empty, likely wrong path).
-- borgmatic's actual backup-server target (expected `pi4.dir.iseja.net` per Salt `top.sls`, not independently confirmed).
+- TrueNAS SCALE point-release changelog comparison (WebFetch couldn't get usable content from TrueNAS's docs site; needs checking directly in the TrueNAS UI's update page instead).
+- borgmatic's actual backup-server target — **deliberately deferred**, not a gap: backup infrastructure is a separate topic the owner will address in the coming days, out of scope for this observability pass.
+
+Closed since the last update: Checkmk notification-rule contents (reviewed), `qa`/`rebuild`/`dbg` Longhorn state (checked — surfaced the `qa-work-03` NotReady issue above), Syncthing folder configuration (resolved — wrong container name).
 
 ## Suggested next steps
 
-1. Do a test restore of one PBS snapshot (e.g. monitoring1's most recent) into isolation to actually satisfy the "shown to be recoverable" acceptance wording.
-2. Get a decision on `loghost2` and `natascha.home.iseja.net` before phase 1B log-backend work assumes anything about host topology.
-3. Close the remaining access gaps above (most just need either the salt-master sudo password or another short SSH pass).
-4. Start the 7-day write-delta/log-volume measurement window — this needs a decision on mechanism (manual daily re-run vs. some kind of scheduled snapshot script), since setting up new instrumentation goes slightly beyond this pass's "read without changing" scope.
-5. Once the above settles, fold the corrections in this doc back into `docs/audits/2026-09-observability.md` and `docs/plans/2026-09-observability.md`, and only then open the actual GitHub issue update / PR.
+1. Close the remaining access gaps above (most just need either the salt-master sudo password, RustFS admin credentials, or a look at the TrueNAS UI's update page).
+2. Start the 7-day write-delta/log-volume measurement window — this needs a decision on mechanism (manual daily re-run vs. some kind of scheduled snapshot script), since setting up new instrumentation goes slightly beyond this pass's "read without changing" scope. Note for scheduling any future live-infrastructure work: avoid the ~2–3 AM window if possible, since PBS runs its own jobs against Polina/pve1 then.
+3. Once the above settles, fold the corrections in this doc back into `docs/audits/2026-09-observability.md` and `docs/plans/2026-09-observability.md`, and only then open the actual GitHub issue update / PR.

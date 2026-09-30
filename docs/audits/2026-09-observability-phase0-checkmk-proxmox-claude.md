@@ -60,9 +60,16 @@ The `borgmatic` backup (host's `/root /etc /usr/local` to `baksrv.home.iseja.net
 
 **Still open** (this is where a real gap may remain): no `mkbackup`-level (Checkmk-native) backup/export is configured on 4 of 5 sites, and `prod`'s only `mkbackup` job is a stale, unscheduled 2021 test pointed at a nonexistent `/tmp` path. This means there's no Checkmk-specific *application-level* export (e.g. for migrating a site to a different host/edition independent of the underlying LXC), and the phase-0 acceptance item "Checkmk backups shown to be recoverable, **including old graphs in an isolated restore where feasible**" hasn't actually been exercised — the PBS snapshots exist and are verified, but nobody has performed a test restore-into-isolation of one to confirm the RRDs/WATO config actually come back usable. That's the concrete next step, not "no backup exists."
 
-### Notifications, host list
+### Notifications, host list (2026-09-30 follow-up: reviewed)
 
-Not fully inventoried this pass — `etc/check_mk/conf.d/wato/rules.mk` exists on every site (confirmed present, not read in detail) and is presumably where notification rules live; contents weren't reviewed. **Gap: notification rule content still needs review** in a follow-up pass.
+Read `etc/check_mk/conf.d/wato/rules.mk` on all five in-scope sites. Findings:
+
+- **Mostly Checkmk factory-default rules** across `dev_k8s`, `qa_k8s`, `free`, `prod`, `prod_k8s`: standard inventory rules (`cmk_inv`), the same 4-tier `cmc_host_rrd_config`/`cmc_service_rrd_config` RRA scheme independently confirmed here (matches the live `rrdtool info` result above — good cross-check), `bulkwalk_hosts` SNMP tuning, and `extra_host_conf['notification_options'] = 'd,r,f,s'` (down/recovery/flapping/scheduled-downtime-end) everywhere.
+- **No custom rules yet for the plan's target alert policy** (repeated authentication failures, backup-failure/overdue-success detection, Proxmox OOM context) — none of the five sites has anything beyond the factory defaults plus a handful of unrelated active checks. This confirms phase 3's alert-policy work is starting from a clean slate, not adapting existing rules.
+- **`qa_k8s` has an explicit 15-minute `first_notification_delay`** on all services ("only send out notification if service is DOWN for minimum of 15 minutes") — this doesn't match the plan's stated "ordinary service unavailability notifies after ten continuous minutes" policy. Worth reconciling in phase 3: either the ten-minute figure was aspirational/not-yet-applied everywhere, or `qa_k8s`'s 15-minute value should be tightened to match.
+- **`free` site is where general (non-Kubernetes) home infrastructure gets monitored** — DNS resolution checks (internal resolvers, `www.iseja.net`), HTTP/SSL cert-expiry checks (`webfront`, `hassos-prod`, `www.iseja.net`), SMTP (`smarthost`), and TCP port checks (apt-cacher-ng, IMAPS). Useful to know for phase 2's source rollout: `free`, not one of the `_k8s` sites, is the natural home for OPNsense/Home Assistant/UCS authentication-event checks once those exist.
+
+No further gap here — notification-rule content is now reviewed.
 
 ## Proxmox host inventory (pve1, pve4, pve6)
 
@@ -90,7 +97,7 @@ All three confirmed clean (`zpool status`: ONLINE, 0 errors, most recent scrub 2
 
 **pve1's boot NVMe is now at 93% wear (up from the assessment's 91%/203TB)** — it's continued climbing and has very little headroom left before the "one 512GB SSD wore out after ~3 years / 138TB" failure story the assessment cites repeats itself; pve1 is already past that point (229TB) and at 93% used. This host runs `loghost`, `ns1`, `nsresolv1`, `smarthost`, `mqtt`, `webfront` — worth flagging as a near-term hardware risk independent of the observability project, and a strong argument for keeping any new logging backend's write footprint on pve1 (loghost) as small as possible.
 
-pve6's very low wear/hours and different drive model (Samsung PM991a vs. the Intel drives on pve1/pve4) is consistent with the host-key mismatch flagged earlier in this session (pve6 was likely rebuilt/reinstalled recently) — noting this as probable explanation, not confirmed against change history.
+**Resolved (2026-09-30, owner confirmation)**: pve6's very low wear/hours, different drive model (Samsung PM991a vs. the Intel drives on pve1/pve4), and the host-key mismatch flagged earlier in this session are all explained by a **physical RAM upgrade the owner performed on pve6 between 2026-09-19 and 2026-09-25** (host rebooted 2026-09-20 for that maintenance — confirmed via `uptime`) — most likely alongside a boot-drive/hardware swap during the same window, which would explain both the different SSD model and the new host SSH key. See [pve6 OOM investigation](#pve6-memory-pressure-and-the-qa-work-03-outage-2026-09-30-investigation) below for why this matters beyond just explaining the drive/key oddities: **even after the RAM upgrade, pve6 still runs at ~44GB/46GB used with minimal headroom**.
 
 ### USB-attached backup disks
 
@@ -109,6 +116,19 @@ pve6's very low wear/hours and different drive model (Samsung PM991a vs. the Int
 ### Backup job tracking (bonus finding, adjacent to scope)
 
 Checkmk's agent also tracks recent job runs under `/var/lib/check_mk_agent/job/root/` on pve4, including `vzdump_prod`, `vzdump_test`, `vzdump_crit`, `borgbackup`, `cron_daily/weekly/monthly/hourly` — each with start time, duration, and exit code (`vzdump_prod` sampled: ~10m runtime, `exit_code 0`). This is presumably surfaced as a Checkmk service (job-duration/success check) and is a useful existing signal for the later backup-coverage-matrix acceptance item in phase 2 — not investigated further here.
+
+### pve6 memory pressure and the qa-work-03 outage (2026-09-30 investigation)
+
+Root-caused at the owner's request, while investigating why `qa-work-03.test.iseja.net`'s VM had been stopped since 2026-09-25 (see the [truenas-k8s doc](2026-09-observability-phase0-truenas-k8s-claude.md)'s qa section for the Longhorn/Kubernetes-side remediation). Found via efficient `zgrep` on loghost's compressed rotated syslogs (never loading full files into context) — logs are rotated nightly at 00:00, so a calendar day's traffic lands in the *following* day's filename (e.g. 2026-09-25's events are in `syslog.2026-09-26.gz`).
+
+**Two separate, unrelated causes converged on qa-work-03, six days apart:**
+
+1. **2026-09-19, ~13:12 — a legitimate Terraform-driven VM rebuild**, not a crash. `terraform@pve!tanga` stopped and destroyed the old `qa-work-03` VM (VMID `7008126`) on **pve5**, then recreated it fresh on **pve6** roughly 30 seconds later (`qmcreate` at 13:13:03/13:13:04). A brand-new VM naturally gets a brand-new disk — which is exactly why Longhorn's node record for this disk shows `DiskFilesystemChanged: record diskUUID doesn't match the one on the disk` at `2026-09-19T11:13:19Z`-ish (Longhorn still has the *old* disk's UUID on file from before the rebuild, and nobody removed/re-added the disk in Longhorn afterward to reconcile it). **This is not data corruption and not OOM-related** — it's an orphaned Longhorn disk record from a routine infra rebuild, fixable by removing and re-adding the disk in Longhorn (triggering a replica rebuild from the other two nodes).
+2. **2026-09-25, 18:05:09** — pve6's kernel OOM-killer killed the `kvm` process for the (by-then 6-day-old) qa-work-03 VM (`task_memcg=/qemu.slice/7008126.scope`, `anon-rss:6235436kB`). Unlike a graceful shutdown, nothing brought the VM back up afterward — it sat `stopped` for 5 days until the 2026-09-30 remediation (see truenas-k8s doc) found and restarted it.
+
+**This is a recurring pve6 host-level memory-pressure problem, not specific to qa-work-03.** The same day as cause 1 above, pve6's OOM-killer *also* killed **`prod-work-03`** (`task_memcg=/qemu.slice/7008186.scope`, 08:04:25) and **`dbg-work-03`** (`task_memcg=/qemu.slice/7008196.scope`, 09:29:00) — two more `*-work-03` Talos workers sharing the same host, about 1.5 hours apart. `prod-work-03` self-recovered quickly (current VM uptime ~9.9 days, i.e. it was back up within about a day); `dbg-work-03`'s current `stopped` state is unrelated — confirmed via Proxmox task history as a deliberate shutdown by the owner on 2026-09-28, not a lingering unrecovered crash.
+
+**Per the owner: pve6's RAM was upgraded between 2026-09-19 and 2026-09-25** (host rebooted 2026-09-20 for that maintenance — this is also the likely explanation for pve6's low SMART wear/hours and host-key change noted above, probably a boot-drive swap in the same session). **This is the important, still-open finding: even after the RAM upgrade, `free -h` on pve6 (checked live, 2026-09-30) shows 46Gi total, ~44Gi used, only ~1.4Gi free/2.1Gi available.** The upgrade did not resolve the underlying overcommit — pve6 currently hosts `qa-work-03` (6GB), `dev-ctrl-03`/`dev-work-03` (4GB/4GB), `rebuild-ctrl-03`/`rebuild-work-03` (4GB/6GB), `prod-ctrl-03`/`prod-work-03` (4GB/6GB), plus `monitoring1` (10GB LXC), `ns2` (LXC), `gw3`, `baerbel`, and `hannelore` — configured memory alone is tight against the 46GB ceiling before any ballooning burst or real usage growth is considered. **This is a genuine, current capacity risk directly relevant to this project's resource-constraint theme** (the assessment's "~25GB free RAM across hosts, shared with future services" undersells how tight pve6 specifically is), and it's the most likely explanation if any VM on pve6 — including a prod one — gets OOM-killed again.
 
 ## loghost
 
