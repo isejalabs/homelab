@@ -23,24 +23,28 @@ A DNS name `natascha.home.iseja.net` (10.7.5.114) also exists but is unreachable
 
 ## RustFS buckets and quota
 
-Dataset `natascha1/gamma/srv/rustfs`: **quota 100G, used 7.30G, 92.7G available** (`zfs get quota,refquota,used,available`). Directory listing of the RustFS data root (`/mnt/natascha1/gamma/srv/rustfs/`) shows 12 buckets, confirming and refining the assessment's "eight kopiur buckets, four active":
+Dataset `natascha1/gamma/srv/rustfs`: **quota 100G, used 7.30G, 92.7G available** (`zfs get quota,refquota,used,available`) — physical/ZFS-level view.
 
-| Bucket | Type | Object count (raw dir entries) | Active? |
-| --- | --- | --- | --- |
-| `dev-kopiur-backup` | kopiur | 918 | yes |
-| `prod-kopiur-backup` | kopiur | 1125 | yes |
-| `qa-kopiur-backup` | kopiur | 1144 | yes |
-| `rebuild-kopiur-backup` | kopiur | 483 | yes |
-| `dbg-kopiur-backup` | kopiur | 0 (empty) | no |
-| `head-kopiur-backup` | kopiur | 0 (empty) | no |
-| `poc-kopiur-backup` | kopiur | 0 (empty) | no |
-| `src-kopiur-backup` | kopiur | 0 (empty) | no |
-| `dev-longhorn-backup` | Longhorn (separate!) | 2 | minimal |
-| `prod-longhorn-backup` | Longhorn (separate!) | 1 | minimal |
-| `qa-longhorn-backup` | Longhorn (separate!) | 1 | minimal |
-| `rebuild-longhorn-backup` | Longhorn (separate!) | 1 | minimal |
+**Authoritative S3-level accounting, closed 2026-09-30**: at the owner's direction, created a scoped, read-only RustFS access key (list-only IAM policy, no `GetObject`/write/delete — see the policy drafted in-session) and queried the real S3 API (`aws s3 ls --recursive --summarize`) instead of the earlier raw-directory-listing approximation:
 
-The **8 kopiur buckets exactly match** the assessment (one per environment: `dbg/dev/head/poc/prod/qa/rebuild/src`), 4 active matches exactly. The 4 `*-longhorn-backup` buckets are a **separate, previously-unmentioned bucket family** — Longhorn's own native S3 backup target (`backuptargets.longhorn.io`, confirmed live in both `prod-homelab` and `dev-homelab`), distinct from kopiur's buckets, currently holding almost nothing (Longhorn `RecurringJob`s exist and run — see below — but backup content is minimal so far). Object counts above are raw directory-listing counts (include RustFS-internal per-object metadata dirs), not authoritative logical-byte accounting — the plan's own "prefer server-side accounting over listings" caveat applies; did not query RustFS's own admin/S3 API for exact accounting.
+| Bucket | Type | Objects | Logical size | Active? |
+| --- | --- | --- | --- | --- |
+| `dev-kopiur-backup` | kopiur | 974 | 2.2 MB | yes |
+| `prod-kopiur-backup` | kopiur | 1,286 | 910 MB | yes |
+| `qa-kopiur-backup` | kopiur | 1,162 | 344 MB | yes |
+| `rebuild-kopiur-backup` | kopiur | 458 | 149 MB | yes |
+| `dbg-kopiur-backup` | kopiur | 0 | 0 | no |
+| `head-kopiur-backup` | kopiur | 0 | 0 | no |
+| `poc-kopiur-backup` | kopiur | 0 | 0 | no |
+| `src-kopiur-backup` | kopiur | 0 | 0 | no |
+| `dev-longhorn-backup` | Longhorn (separate!) | 3,244 | **3.25 GB** | yes |
+| `prod-longhorn-backup` | Longhorn (separate!) | 1,661 | 1.24 GB | yes |
+| `qa-longhorn-backup` | Longhorn (separate!) | 1,123 | 678 MB | yes |
+| `rebuild-longhorn-backup` | Longhorn (separate!) | 625 | 494 MB | yes |
+
+Total logical bytes across all buckets: **~7.52 GB**, closely matching the ZFS-level "used 7.30G" above (small delta expected from RustFS's own storage/metadata overhead) — a clean cross-check between the physical and logical views.
+
+**Correction to the earlier characterization**: the 4 `*-longhorn-backup` buckets were previously described as "holding almost nothing (minimal)" based on raw directory-entry counts (1–2 entries each) — that undercounted badly, since RustFS's on-disk layout doesn't map 1:1 to logical S3 objects. The real numbers show `dev-longhorn-backup` alone has 3,244 objects and is in fact the **largest** bucket by size (3.25 GB, larger than any kopiur bucket) — all four longhorn-backup buckets are actively accumulating real backup data, not "minimal." The **8 kopiur buckets exactly match** the assessment (one per environment, 4 active), unchanged from the original finding.
 
 Did not attempt to reach RustFS's S3 admin API for exact per-bucket quotas/logical bytes (would need RustFS admin credentials, which weren't extracted — out of scope for this pass to avoid handling secrets unnecessarily).
 
@@ -77,15 +81,13 @@ Did not attempt to reach RustFS's S3 admin API for exact per-bucket quotas/logic
   - `dbg-homelab`: **cluster entirely unreachable** (kubectl times out even listing nodes) — consistent with `dbg`'s Flux set including only `minimal` (no `optional`/Longhorn) per `k8s/bootstrap/cluster/flux/envs/dbg/kustomization.yaml`, and with `dbg` being an on-demand/rarely-powered environment. Nothing to check here; treat as N/A rather than a gap.
 - Talos node/collector access for the *logging* pilot (phase 1B's log-collector permissions, not this phase's storage check) was **not tested** — out of scope for Phase 0's storage/capacity inventory but flagged since the plan bundles "Talos collector mounts/permissions" under the same validation-required list.
 
-## Version/compatibility comparison (2026-09-30 follow-up: partial)
+## Version/compatibility comparison (2026-09-30 follow-up: TrueNAS closed, RustFS partial)
 
-- TrueNAS 25.10.0 is the installed version. Attempted to fetch TrueNAS's own SCALE 25.10.x release notes via WebFetch — **inconclusive**: `truenas.com`'s release-notes pages are JS-rendered and didn't return usable static content, and `truenas/middleware` on GitHub doesn't publish point releases there. This remains an open gap requiring either checking TrueNAS's UI update page directly (Settings → Update, which lists point releases and their changelogs) or a different research approach — not resolved by WebFetch from this session.
+- **TrueNAS version comparison, closed (2026-09-30)**: an earlier attempt to fetch TrueNAS's release notes via WebFetch was inconclusive (`truenas.com`'s pages are JS-rendered; `truenas/middleware` on GitHub doesn't publish point releases). Resolved by going straight to TrueNAS's own API instead of its web UI: `midclt call update.status` on fiona directly. Result: **25.10.7 is already downloaded and ready to install** (`update_download_progress: 100%`), up from the installed 25.10.0. Release notes cover a kernel security update, ZFS bumped to 2.3.9 (fixes silent read corruption after block cloning, data loss during redacted replication send, zvol sync writes not reaching the ZIL, incomplete dRAID rebuilds), NFS/AD/LDAP permission-denied fixes after directory-service outages, an Apps update-check fix (one unreachable container registry no longer blocks checks for all other apps), and — directly relevant to fiona's own Cloud Sync task — a fix for Cloud Sync tasks failing when credentials contain special characters. "Pre-Update Actions: None required when updating from 25.10.6" is stated for the final hop only; intermediate point releases' own prerequisites weren't individually checked. Not applied — flagged for the owner as a separate, actionable item outside this project's scope.
 - RustFS: confirmed a newer `1.0.1-preview.6`–`1.0.1-preview.11` series exists beyond the installed `1.0.0-beta.12` (progressed past "beta" naming), with storage/ecstore stability fixes, replication-convergence improvements, and S3 permission-enforcement hardening. **[rustfs/rustfs#5716](https://github.com/rustfs/rustfs/issues/5716)'s quota-enabled-write-failure report has no confirmed fix** in the visible preview changelogs — don't assume it's resolved; would need to check the actual issue thread or test directly against a preview build before relying on it.
 - RustFS is pinned to `1.0.0-beta.12` via the TrueNAS app catalog (chart `1.1.30`); an in-place upgrade would go through TrueNAS's app-update flow, not a manual container swap — relevant if/when an upgrade is decided.
 
 ## Access gaps / things NOT verified
 
-- RustFS S3 admin API not queried directly (no credentials pulled) — bucket quotas/logical-byte accounting above is inferred from ZFS + raw directory listing, not RustFS's own accounting interface. Phase 1A will need this properly.
 - borgmatic's actual backup target (expected: `pi4.dir.iseja.net` per Salt `top.sls`) — deliberately not pursued; backup infrastructure is a separate topic the owner will address on its own in the coming days, out of scope for this observability pass.
-- TrueNAS SCALE point-release changelog comparison — see above, needs a different research approach than WebFetch.
 - Checkmk's own live check config for `natascha1/gamma/srv/rustfs` (thresholds, trend/forecast settings) not cross-checked against this ZFS data — that's covered by a separate, parallel Checkmk-focused investigation track.
