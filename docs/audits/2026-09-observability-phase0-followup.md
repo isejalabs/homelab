@@ -56,6 +56,39 @@ The official [25.10 release notes](https://www.truenas.com/docs/scale/25.10/gett
 
 Relevant changes include restored SNMP HDD-temperature data and notification-email fixes in 25.10.1, plus Cloud Sync task-visibility fixes in 25.10.2. Starting with 25.10.1, deprecated REST API use produces alerts; new API integrations should consider the versioned JSON-RPC/WebSocket interface or supported `midclt` route. Review the installed Checkmk integration before any separate upgrade to avoid API compatibility surprises. No upgrade is required or performed by this follow-up, and live collection compatibility remains untested.
 
+## Collection-interface follow-up
+
+### Dev Kubernetes and Talos
+
+Read-only queries against `admin@dev-homelab` found four Ready nodes: one control plane and three workers, running Talos 1.12.11 and Kubernetes 1.34.11. The API returned 184 current Events; this confirms availability at query time, not durable history. The `checkmk-agent` namespace and its DaemonSets are absent in this environment, so the pilot must not assume an existing Checkmk collector is available to extend.
+
+The worker `dev-work-01.test.iseja.net` kubelet `/configz` reports `podLogsDir=/var/log/pods`, `containerLogMaxSize=10Mi` and `containerLogMaxFiles=5`. A directory listing through the Kubernetes node proxy confirmed pod-log directories actually exist there. No raw application log messages were retrieved. These settings are rotation bounds, not a guaranteed historical time window.
+
+A future node log collector needs an explicitly read-only host-path mount and suitable admission settings; the existing `longhorn-system` and `csi-proxmox` namespaces are labeled privileged, but no collector admission/mount test was performed. Use a dedicated namespace and narrowly scoped workload configuration rather than inheriting another service's namespace. The Event collector separately needs least-privilege list/watch access. Current admin access does not prove that a future collector service account is correctly authorized.
+
+Direct Talos API access failed certificate verification against worker `10.7.8.134` using the saved `dev-homelab` context. The installed Talos client was invoked directly because the local mise shim had no selected version; no tool configuration was changed. The owner was asked to refresh the trusted Talos configuration. Verification was not bypassed. Kubernetes API inspection succeeded independently, so direct Talos access is not necessary to establish the log location, but deployed-collector access remains untested.
+
+### Longhorn disk interface
+
+`nodes.longhorn.io` in dev's `longhorn-system` namespace exposes `status.diskStatus` with `storageMaximum`, `storageAvailable`, `storageScheduled`, and `Ready`/`Schedulable` conditions. All three worker disks reported 21,407,727,616 bytes maximum and 20,866,662,400 available. Scheduled bytes were 134,217,728 on worker 01 and 268,435,456 on workers 02/03. All were Ready and Schedulable.
+
+This establishes a usable Kubernetes read interface for capacity checks without a Prometheus backend. Compute consumed filesystem space separately from scheduled allocation, and include configured reserves/scheduling policies when evaluating headroom. Collection freshness and Checkmk forecasting still need explicit implementation and testing.
+
+### RustFS beta.12 source-level interface review
+
+The version-pinned [quota handler](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/rustfs/src/admin/handlers/quota.rs) and [quota checker](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/crates/ecstore/src/bucket/quota/checker.rs) establish the following candidate contract. This is source inspection, not a successful live API test or confirmation that the deployed binary exactly matches this tag.
+
+- `GET /rustfs/admin/v3/quota-stats/{bucket}` returns bucket, quota limit, current usage, remaining quota and usage percentage.
+- `GET /rustfs/admin/v3/quota/{bucket}` returns quota and usage; the compatibility `get-bucket-quota` route returns quota configuration only and should not be mistaken for usage accounting.
+- The handlers require credentials and check the bucket-scoped `GetBucketQuotaAction`. A dedicated read-only monitoring identity and actual policy enforcement remain to validate; backup credentials must not be assumed to grant this permission.
+- `get_quota_stats` reads the quota configuration and calls `get_bucket_usage_memory`; that usage path does not perform a recursive object listing. Missing authoritative usage becomes `UsageUnavailable`, mapped to `ServiceUnavailable` by the handler. Missing buckets become `NoSuchBucket`. The Checkmk integration should report collection failure/unknown rather than translating these responses into zero usage.
+- The response contains no accounting timestamp. A successful recent HTTP request is not proof that usage is fresh; scanner/accounting freshness needs an additional validated signal before this interface fully meets the plan.
+- Each quota-statistics request emits a warning-level request event in this version. Polling cadence therefore affects log volume as well as request overhead.
+
+These findings support evaluating quota-stats before resorting to full listings or a telemetry stack. Do not infer its behavior from the different `datausageinfo` route: an [upstream report for beta.9](https://redirect.github.com/rustfs/rustfs/issues/4902) describes slow scans through that route, but does not establish quota-stats behavior on beta.12.
+
+Live TrueNAS/RustFS inspection was blocked when the workstation's SSH agent failed to sign the fiona connection. No credentials were extracted, authentication settings altered or live bucket API request sent. The owner was asked to unlock/approve the agent. Live version, response values, least-privilege policy, latency and accounting freshness still need checking once access works.
+
 ## Remaining phase-0 work
 
 1. Refresh monitoring2 only where it resolves a specific remaining question, after its host identity is verified. pve1 and loghost initial measurements are now captured.
