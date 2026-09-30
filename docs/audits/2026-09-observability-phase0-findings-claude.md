@@ -52,6 +52,7 @@ Performed the actual test restore: `monitoring1`'s most recent PBS snapshot (`pb
 
 ## New/undocumented items surfaced
 
+- **TrueNAS 25.10.7 is already downloaded and ready to install** on fiona (confirmed via `midclt call update.status`, not the unreachable web UI) — currently running 25.10.0. The update includes a kernel security update, ZFS updated to 2.3.9 (fixes silent read corruption after block cloning, data loss during redacted replication send, zvol sync writes not reaching the ZIL, incomplete dRAID rebuilds), and a Cloud Sync "credentials with special characters" fix directly relevant to fiona's own OneDrive Cloud Sync task. This is a real, actionable finding independent of the observability project — not something acted on here, just surfaced for the owner's attention.
 - Longhorn's backup-target model has moved to a dedicated `backuptargets.longhorn.io` CRD in the deployed version, not the older Settings-based `backup-target` model the plan/assessment assumed.
 - Checkmk's Linux agent already tracks per-job backup run history (`vzdump_*`, `borgbackup`, cron_* durations/exit codes) under `/var/lib/check_mk_agent/job/root/` — a ready-made signal for the phase-2 "backup coverage matrix" item.
 - `pvecm status` shows `Expected votes: 5` / `Highest expected: 5` against only 3 active cluster members — noticed in passing, not investigated, possibly unrelated to this project.
@@ -70,8 +71,8 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 | --- | --- | --- | --- |
 | 1 | Current site/source inventory and actual RRD resolutions/retention recorded | **Done** | 5 Checkmk sites inventoried, RRD tiers confirmed live via `rrdtool info` |
 | 2 | Checkmk backups shown to be recoverable | **Done** | Nightly full-container PBS snapshots exist and verify healthy for all three LXCs; isolated test restore of monitoring1's latest snapshot performed 2026-09-30, RRDs and WATO config both confirmed intact — see "Isolated restore test" above |
-| 3 | Loghost traffic and SSD write/resource baseline recorded, with units/intervals/confounders | **Partial** | Day-0 SMART snapshot taken for pve1/pve4/pve6; loghost's own daily log-volume/logrotate figures not captured; the actual 7-day delta genuinely needs elapsed time |
-| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn now checked across all 5 environments (`qa`/`rebuild` on 2026-09-30; `dbg` confirmed N/A — no Longhorn, cluster unreachable). RustFS has a newer `1.0.1-preview` series (quota-fix status still unconfirmed); TrueNAS's own point-release changelog remains unresearched — its docs site isn't fetchable via WebFetch, needs checking directly in the TrueNAS UI |
+| 3 | Loghost traffic and SSD write/resource baseline recorded, with units/intervals/confounders | **Partial** | Day-0 SMART snapshot taken for pve1/pve4/pve6. Loghost's own logging now fully characterized (2026-09-30): `rotate 365` on the main syslog (confirms the assessment's ~1-year retention claim), ~3.0–3.3 MB/day compressed, 364 archived days totaling 680 MB (close to the assessed ~760 MB), full-day line counts ~318K (matches the "~320,000 recently" estimate almost exactly). The actual 7-day write-delta measurement still genuinely needs elapsed time |
+| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn now checked across all 5 environments (`qa`/`rebuild` on 2026-09-30; `dbg` confirmed N/A — no Longhorn, cluster unreachable). **TrueNAS version comparison closed (2026-09-30)** via `midclt call update.status` directly on fiona (no web UI needed) — see "New/undocumented items" below for the finding. RustFS has a newer `1.0.1-preview` series (quota-fix status still unconfirmed); its own S3 admin API for exact bucket accounting remains blocked (see gaps below) |
 | 5 | Existing service/USB backup-disk polling/caching behavior recorded; no added spin-ups | **Partial** | Checkmk's `86400`-interval cached SMART plugin confirmed for Linux hosts; ZFS space accounting confirmed as in-memory (not verified against an actually spun-down disk); USB disks' own SMART/wear data intentionally not queried |
 | 6 | Pilot resource/write budget agreed from baseline | **Not started** | Blocked on #3's 7-day measurement |
 
@@ -82,17 +83,14 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 
 ## Remaining access/inventory gaps
 
-- Salt-based inventory (`salt-key -L`, `salt '*' grains...`) — `salt-master` needs a sudo password not available in this session.
-- loghost daily log-line-count/logrotate figures (transient tool issue mid-session, not retried).
+- **RustFS's own S3 admin API for exact per-bucket logical-byte/quota accounting** — attempted 2026-09-30 via the owner's explicit direction to pull credentials from fiona/TrueNAS directly, but blocked by a harness-level safety guardrail ("Credential Materialization") that refuses to let raw secret values be dumped into context, independent of any authorization given. This needs a different approach than SSH+dump — e.g. the owner extracting the RustFS root credentials themselves and handing over just what's needed, or a scoped read-only RustFS API key created specifically for this purpose.
 - USB backup disk SMART/wear (by design, not queried this pass).
-- RustFS's own S3 admin API for exact per-bucket logical-byte/quota accounting (no admin credentials pulled).
-- TrueNAS SCALE point-release changelog comparison (WebFetch couldn't get usable content from TrueNAS's docs site; needs checking directly in the TrueNAS UI's update page instead).
 - borgmatic's actual backup-server target — **deliberately deferred**, not a gap: backup infrastructure is a separate topic the owner will address in the coming days, out of scope for this observability pass.
 
-Closed since the last update: Checkmk notification-rule contents (reviewed), `qa`/`rebuild`/`dbg` Longhorn state (checked — surfaced the `qa-work-03` NotReady issue above), Syncthing folder configuration (resolved — wrong container name).
+Closed since the last update (2026-09-30): Checkmk notification-rule contents (reviewed), `qa`/`rebuild`/`dbg` Longhorn state (checked — surfaced the `qa-work-03` NotReady issue, since fully remediated), Syncthing folder configuration (resolved — wrong container name), loghost daily log-volume/logrotate figures, TrueNAS point-release comparison, and Salt-based inventory (owner applied a temporary NOPASSWD sudo policy scoped to the `salt` user for the assessment period — confirmed no surprises: `loghost` carries the `roles:loghost` grain as expected from `top.sls`; `monitoring1`/`monitoring2`/`pve1`/`pve4`/`pve6` have no special role grains beyond the repo's existing glob matches).
 
 ## Suggested next steps
 
-1. Close the remaining access gaps above (most just need either the salt-master sudo password, RustFS admin credentials, or a look at the TrueNAS UI's update page).
+1. Decide how to get RustFS admin credentials for exact bucket accounting (see gaps above) — the last real access gap; everything else is closed or deliberately deferred.
 2. Start the 7-day write-delta/log-volume measurement window — this needs a decision on mechanism (manual daily re-run vs. some kind of scheduled snapshot script), since setting up new instrumentation goes slightly beyond this pass's "read without changing" scope. Note for scheduling any future live-infrastructure work: avoid the ~2–3 AM window if possible, since PBS runs its own jobs against Polina/pve1 then.
 3. Once the above settles, fold the corrections in this doc back into `docs/audits/2026-09-observability.md` and `docs/plans/2026-09-observability.md`, and only then open the actual GitHub issue update / PR.
