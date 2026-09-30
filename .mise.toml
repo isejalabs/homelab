@@ -16,7 +16,7 @@ kind = "0.33.0"
 
 # SOPS secrets (scripts/sops-*-all.sh)
 age = "1.3.2"
-sops = "3.13.3"
+sops = "3.13.2" # pinned below latest (3.13.3): that version's aqua-registry entry lacks signer_identity/signer_issuer, so `mise install --locked` fails SLSA provenance verification -- see #1462
 
 # CI cross-resource Flux validation (flate-test.yml)
 "github:home-operations/flate" = "0.6.5"
