@@ -56,6 +56,7 @@ Performed the actual test restore: `monitoring1`'s most recent PBS snapshot (`pb
 - Checkmk's Linux agent already tracks per-job backup run history (`vzdump_*`, `borgbackup`, cron_* durations/exit codes) under `/var/lib/check_mk_agent/job/root/` — a ready-made signal for the phase-2 "backup coverage matrix" item.
 - `pvecm status` shows `Expected votes: 5` / `Highest expected: 5` against only 3 active cluster members — noticed in passing, not investigated, possibly unrelated to this project.
 - Two host-key mismatches were hit during this session (`monitoring1`, `pve6`) — you updated `known_hosts` yourself before the investigation continued. pve6's unusually low SMART wear/hours and different drive model versus pve1/pve4 is *consistent with* a recent rebuild, which would also explain the key change, but that's inference, not confirmed against change history.
+- **`qa-work-03.test.iseja.net` has been `NotReady` since 2026-09-25** (kubelet stopped posting status) — a live, ongoing, pre-existing cluster health problem unrelated to observability, found incidentally while checking Longhorn state across environments. Its stuck old-version `longhorn-manager` pod is also the direct cause of an active crash loop in `qa`'s Longhorn manager after the chart was bumped to v1.13.0 (see [PR #1458](https://github.com/isejalabs/homelab/pull/1458) discussion) — worth fixing independent of that PR's outcome.
 
 ## Phase 0 acceptance criteria — status
 
@@ -66,7 +67,7 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 | 1 | Current site/source inventory and actual RRD resolutions/retention recorded | **Done** | 5 Checkmk sites inventoried, RRD tiers confirmed live via `rrdtool info` |
 | 2 | Checkmk backups shown to be recoverable | **Done** | Nightly full-container PBS snapshots exist and verify healthy for all three LXCs; isolated test restore of monitoring1's latest snapshot performed 2026-09-30, RRDs and WATO config both confirmed intact — see "Isolated restore test" above |
 | 3 | Loghost traffic and SSD write/resource baseline recorded, with units/intervals/confounders | **Partial** | Day-0 SMART snapshot taken for pve1/pve4/pve6; loghost's own daily log-volume/logrotate figures not captured; the actual 7-day delta genuinely needs elapsed time |
-| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn inspected for `prod`/`dev`; `qa`/`rebuild`/`dbg` Longhorn state not checked; no newer-release comparison done yet (explicit plan requirement, still open) |
+| 4 | RustFS/Longhorn/Talos/TrueNAS interfaces inspected; version/compatibility checked | **Partial** | TrueNAS + RustFS + Longhorn now checked across all 5 environments (`qa`/`rebuild` on 2026-09-30; `dbg` confirmed N/A — no Longhorn, cluster unreachable). RustFS has a newer `1.0.1-preview` series (quota-fix status still unconfirmed); TrueNAS's own point-release changelog remains unresearched — its docs site isn't fetchable via WebFetch, needs checking directly in the TrueNAS UI |
 | 5 | Existing service/USB backup-disk polling/caching behavior recorded; no added spin-ups | **Partial** | Checkmk's `86400`-interval cached SMART plugin confirmed for Linux hosts; ZFS space accounting confirmed as in-memory (not verified against an actually spun-down disk); USB disks' own SMART/wear data intentionally not queried |
 | 6 | Pilot resource/write budget agreed from baseline | **Not started** | Blocked on #3's 7-day measurement |
 
@@ -78,17 +79,16 @@ From [the plan](../plans/2026-09-observability.md#phase-0--baseline-inventory-an
 ## Remaining access/inventory gaps
 
 - Salt-based inventory (`salt-key -L`, `salt '*' grains...`) — `salt-master` needs a sudo password not available in this session.
-- Checkmk notification-rule contents (`etc/check_mk/conf.d/wato/rules.mk` confirmed present, not read).
 - loghost daily log-line-count/logrotate figures (transient tool issue mid-session, not retried).
 - USB backup disk SMART/wear (by design, not queried this pass).
 - RustFS's own S3 admin API for exact per-bucket logical-byte/quota accounting (no admin credentials pulled).
-- `qa-homelab`/`rebuild-homelab`/`dbg-homelab` Longhorn node/disk/backup-target state.
-- TrueNAS 25.10.x / RustFS post-beta.12 release comparison (explicit plan requirement, still open).
-- Syncthing folder configuration (query returned empty, likely wrong path).
-- borgmatic's actual backup-server target (expected `pi4.dir.iseja.net` per Salt `top.sls`, not independently confirmed).
+- TrueNAS SCALE point-release changelog comparison (WebFetch couldn't get usable content from TrueNAS's docs site; needs checking directly in the TrueNAS UI's update page instead).
+- borgmatic's actual backup-server target — **deliberately deferred**, not a gap: backup infrastructure is a separate topic the owner will address in the coming days, out of scope for this observability pass.
+
+Closed since the last update: Checkmk notification-rule contents (reviewed), `qa`/`rebuild`/`dbg` Longhorn state (checked — surfaced the `qa-work-03` NotReady issue above), Syncthing folder configuration (resolved — wrong container name).
 
 ## Suggested next steps
 
-1. Close the remaining access gaps above (most just need either the salt-master sudo password or another short SSH pass).
+1. Close the remaining access gaps above (most just need either the salt-master sudo password, RustFS admin credentials, or a look at the TrueNAS UI's update page).
 2. Start the 7-day write-delta/log-volume measurement window — this needs a decision on mechanism (manual daily re-run vs. some kind of scheduled snapshot script), since setting up new instrumentation goes slightly beyond this pass's "read without changing" scope. Note for scheduling any future live-infrastructure work: avoid the ~2–3 AM window if possible, since PBS runs its own jobs against Polina/pve1 then.
 3. Once the above settles, fold the corrections in this doc back into `docs/audits/2026-09-observability.md` and `docs/plans/2026-09-observability.md`, and only then open the actual GitHub issue update / PR.

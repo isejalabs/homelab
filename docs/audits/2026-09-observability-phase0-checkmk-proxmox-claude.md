@@ -60,9 +60,16 @@ The `borgmatic` backup (host's `/root /etc /usr/local` to `baksrv.home.iseja.net
 
 **Still open** (this is where a real gap may remain): no `mkbackup`-level (Checkmk-native) backup/export is configured on 4 of 5 sites, and `prod`'s only `mkbackup` job is a stale, unscheduled 2021 test pointed at a nonexistent `/tmp` path. This means there's no Checkmk-specific *application-level* export (e.g. for migrating a site to a different host/edition independent of the underlying LXC), and the phase-0 acceptance item "Checkmk backups shown to be recoverable, **including old graphs in an isolated restore where feasible**" hasn't actually been exercised — the PBS snapshots exist and are verified, but nobody has performed a test restore-into-isolation of one to confirm the RRDs/WATO config actually come back usable. That's the concrete next step, not "no backup exists."
 
-### Notifications, host list
+### Notifications, host list (2026-09-30 follow-up: reviewed)
 
-Not fully inventoried this pass — `etc/check_mk/conf.d/wato/rules.mk` exists on every site (confirmed present, not read in detail) and is presumably where notification rules live; contents weren't reviewed. **Gap: notification rule content still needs review** in a follow-up pass.
+Read `etc/check_mk/conf.d/wato/rules.mk` on all five in-scope sites. Findings:
+
+- **Mostly Checkmk factory-default rules** across `dev_k8s`, `qa_k8s`, `free`, `prod`, `prod_k8s`: standard inventory rules (`cmk_inv`), the same 4-tier `cmc_host_rrd_config`/`cmc_service_rrd_config` RRA scheme independently confirmed here (matches the live `rrdtool info` result above — good cross-check), `bulkwalk_hosts` SNMP tuning, and `extra_host_conf['notification_options'] = 'd,r,f,s'` (down/recovery/flapping/scheduled-downtime-end) everywhere.
+- **No custom rules yet for the plan's target alert policy** (repeated authentication failures, backup-failure/overdue-success detection, Proxmox OOM context) — none of the five sites has anything beyond the factory defaults plus a handful of unrelated active checks. This confirms phase 3's alert-policy work is starting from a clean slate, not adapting existing rules.
+- **`qa_k8s` has an explicit 15-minute `first_notification_delay`** on all services ("only send out notification if service is DOWN for minimum of 15 minutes") — this doesn't match the plan's stated "ordinary service unavailability notifies after ten continuous minutes" policy. Worth reconciling in phase 3: either the ten-minute figure was aspirational/not-yet-applied everywhere, or `qa_k8s`'s 15-minute value should be tightened to match.
+- **`free` site is where general (non-Kubernetes) home infrastructure gets monitored** — DNS resolution checks (internal resolvers, `www.iseja.net`), HTTP/SSL cert-expiry checks (`webfront`, `hassos-prod`, `www.iseja.net`), SMTP (`smarthost`), and TCP port checks (apt-cacher-ng, IMAPS). Useful to know for phase 2's source rollout: `free`, not one of the `_k8s` sites, is the natural home for OPNsense/Home Assistant/UCS authentication-event checks once those exist.
+
+No further gap here — notification-rule content is now reviewed.
 
 ## Proxmox host inventory (pve1, pve4, pve6)
 
