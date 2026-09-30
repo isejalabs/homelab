@@ -1,0 +1,55 @@
+{
+  "collection": "Read-only SSH; internal NVMe only; no USB SMART queries or self-tests",
+  "samples": [
+    {
+      "host": "pve1.home.iseja.net",
+      "sample_utc": "2026-09-30T16:40:40Z",
+      "device": "/dev/nvme0n1",
+      "model": "INTEL SSDPEKNW512G8",
+      "data_units_written": 449590531,
+      "percentage_used": 94,
+      "temperature_c": 54,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 28383,
+      "resource_sample_utc": "2026-09-30T16:40:13Z",
+      "mem_total_mib": 47903,
+      "mem_available_mib": 6640,
+      "load_15m": 7.95
+    },
+    {
+      "host": "pve4.home.iseja.net",
+      "sample_utc": "2026-09-30T16:37:52Z",
+      "device": "/dev/nvme0n1",
+      "model": "INTEL SSDPEKNW512G8",
+      "data_units_written": 265420810,
+      "percentage_used": 63,
+      "temperature_c": 54,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 14667,
+      "resource_sample_utc": "2026-09-30T16:37:36Z",
+      "mem_total_mib": 64031,
+      "mem_available_mib": 13731,
+      "load_15m": 8.82
+    },
+    {
+      "host": "pve6.home.iseja.net",
+      "sample_utc": "2026-09-30T16:38:09Z",
+      "device": "/dev/nvme0n1",
+      "model": "PM991a NVMe Samsung 512GB",
+      "data_units_written": 31896142,
+      "percentage_used": 4,
+      "temperature_c": 81,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 2235,
+      "warning_temp_time_minutes": 1504,
+      "critical_comp_time_minutes": 176,
+      "resource_sample_utc": "2026-09-30T16:37:36Z",
+      "mem_total_mib": 47903,
+      "mem_available_mib": 6850,
+      "load_15m": 8.31
+    }
+  ]
+}
