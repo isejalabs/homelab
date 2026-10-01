@@ -1,6 +1,6 @@
 # Observability phase 0 — baseline follow-up
 
-**Date:** 2026-09-30. **Origin:** Codex read-only follow-up for [#1437](https://github.com/isejalabs/homelab/issues/1437). **Status:** Partial; elapsed-time baseline and some access/interface checks remain outstanding.
+**Date:** 2026-09-30; live RustFS follow-up 2026-10-01. **Origin:** Codex read-only follow-up for [#1437](https://github.com/isejalabs/homelab/issues/1437). **Status:** Partial; elapsed-time baseline and some access/interface checks remain outstanding.
 
 ## Existing work and evidence limits
 
@@ -76,7 +76,7 @@ This establishes a usable Kubernetes read interface for capacity checks without 
 
 ### RustFS beta.12 source-level interface review
 
-The version-pinned [quota handler](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/rustfs/src/admin/handlers/quota.rs) and [quota checker](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/crates/ecstore/src/bucket/quota/checker.rs) establish the following candidate contract. This is source inspection, not a successful live API test or confirmation that the deployed binary exactly matches this tag.
+The version-pinned [quota handler](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/rustfs/src/admin/handlers/quota.rs) and [quota checker](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/crates/ecstore/src/bucket/quota/checker.rs) establish the following candidate contract. The source review was followed by the live read-only checks below. The deployed image tag matches; its binary digest was not independently verified.
 
 - `GET /rustfs/admin/v3/quota-stats/{bucket}` returns bucket, quota limit, current usage, remaining quota and usage percentage.
 - `GET /rustfs/admin/v3/quota/{bucket}` returns quota and usage; the compatibility `get-bucket-quota` route returns quota configuration only and should not be mistaken for usage accounting.
@@ -87,7 +87,34 @@ The version-pinned [quota handler](https://github.com/rustfs/rustfs/blob/1.0.0-b
 
 These findings support evaluating quota-stats before resorting to full listings or a telemetry stack. Do not infer its behavior from the different `datausageinfo` route: an [upstream report for beta.9](https://redirect.github.com/rustfs/rustfs/issues/4902) describes slow scans through that route, but does not establish quota-stats behavior on beta.12.
 
-Live TrueNAS/RustFS inspection was blocked when the workstation's SSH agent failed to sign the fiona connection. No credentials were extracted, authentication settings altered or live bucket API request sent. The owner was asked to unlock/approve the agent. Live version, response values, least-privilege policy, latency and accounting freshness still need checking once access works.
+### Live RustFS accounting — 2026-10-01
+
+After an intermittent SSH-agent signing failure, normal authenticated SSH to fiona succeeded. `/etc/version` reports TrueNAS 25.10.0 and Docker reports `rustfs/rustfs:1.0.0-beta.12` for `ix-rustfs-rustfs-1`. Existing RustFS credentials were read only into the remote Python process's memory to sign HTTPS GET requests with SigV4. No credentials were printed, saved locally or committed. TLS verification stayed enabled, redirects were disabled, and no bucket, policy, quota or application settings were changed. These probes used the existing administrative identity; they do not demonstrate least-privilege collection.
+
+A sequential sample started at **2026-10-01 04:15:20 UTC**. All 12 known backup buckets returned HTTP 200 through `/rustfs/admin/v3/quota-stats/{bucket}`; individual request times ranged from 0.111 to 0.348 seconds. The table records logical usage reported by the API, not physical ZFS allocation or independently enumerated object sizes.
+
+| Bucket | Current usage (bytes) | Quota (bytes) |
+| --- | --- | --- |
+| dbg-kopiur-backup | 0 | 10737418240 |
+| dev-kopiur-backup | 2743694 | 10737418240 |
+| head-kopiur-backup | 0 | 10737418240 |
+| poc-kopiur-backup | 0 | 10737418240 |
+| prod-kopiur-backup | 903265226 | 10737418240 |
+| qa-kopiur-backup | 402658849 | 10737418240 |
+| rebuild-kopiur-backup | 178467815 | 10737418240 |
+| src-kopiur-backup | 0 | 10737418240 |
+| dev-longhorn-backup | 3491990277 | 10737418240 |
+| prod-longhorn-backup | 1429886794 | 32212254720 |
+| qa-longhorn-backup | 774224085 | 10737418240 |
+| rebuild-longhorn-backup | 703272852 | 10737418240 |
+
+At **04:15:50 UTC**, `/rustfs/admin/v3/scanner/status` returned HTTP 200, `enabled=true`, no disabled reason, and `freshness.state=fresh`. The last cycle ended at Unix timestamp `1790828055` (**04:14:15 UTC**), approximately 95 seconds before the observation, within the returned `max_expected_age_seconds=120`. Its effective cycle interval was 60 seconds and clean-idle backoff multiplier was one.
+
+The version-pinned [scanner handler](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/rustfs/src/admin/handlers/scanner.rs) derives freshness from the last cycle-end age and twice the greater of the configured/effective cycle interval. It returns unknown when no completed cycle is recorded. The [route policy](https://github.com/rustfs/rustfs/blob/1.0.0-beta.12/rustfs/src/admin/route_policy.rs) assigns scanner status the server-info policy group, distinct from bucket quota permissions. A future monitoring identity must be tested against both routes; do not grant broad administration merely because this feasibility probe used it.
+
+This gives a promising additional scanner-health signal, but it is global cycle freshness, not a per-bucket accounting timestamp or proof of a complete/error-free scan. The response also exposes fields such as `last_cycle_result`, `last_cycle_bucket_drive_failures`, `last_cycle_usage_saves` and `usage_freshness`; only their names were inspected in this pass. Interpret and validate these before defining the final stale-accounting check. The pilot should retain collection errors as unknown, avoid accepting old values as fresh, and test accounting progress through an ordinary backup lifecycle without inventing a timestamp the bucket API does not supply.
+
+The selected quota route is now live-verified as a low-latency candidate for all known buckets. No full object listing was performed, and no scanner cycle was triggered. Least-privilege enforcement, failure/partial-scan handling and end-to-end freshness remain implementation acceptance work. The separate saved dev Talos context still failed certificate verification on retry; Kubernetes API inspection remains available independently.
 
 ## Remaining phase-0 work
 
