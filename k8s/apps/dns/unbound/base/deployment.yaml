@@ -19,7 +19,7 @@ spec:
           envFrom:
             - configMapRef:
                 name: unbound-env
-          image: docker.io/madnuttah/unbound:1.26.1-0-quic@sha256:031b3f9025554fc87effe85d4b58021bbe9cb32c4e1cf92ab2ffb041d3787b99
+          image: docker.io/madnuttah/unbound:1.26.1-1-quic@sha256:7842af5b282221913ec2c84b56d4db888cbbda9baf4190154415e3ad3f65c8c3
           livenessProbe:
             exec:
               command: ['/usr/local/unbound/sbin/healthcheck.sh']
