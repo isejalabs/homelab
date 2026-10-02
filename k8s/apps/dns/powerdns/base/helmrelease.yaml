@@ -306,6 +306,22 @@ spec:
                 # again after that.
                 pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
               fi
+              # Self-heals the MNAME on zones created before this fix existed
+              # (issue #1485), without resetting the serial like the
+              # creation-time seed above does: reads the zone's *current*
+              # SOA and, only if its MNAME is still PowerDNS's placeholder,
+              # replaces just that one field while keeping every other field
+              # (rname/serial/refresh/retry/expire/minimum) exactly as
+              # PowerDNS already has it -- preserving whatever real serial
+              # SOA-EDIT-DNSUPDATE has already bumped it to. Unconditional,
+              # same reasoning as the zone-kind fix below: no regression risk,
+              # since a freshly-created zone's MNAME is already correct and
+              # the grep simply won't match, a no-op for the common case.
+              current_soa="$$(pdnsutil list-zone "$$z" | awk -v z="$$z" '$1==z && $4=="SOA"')"
+              if printf '%s' "$$current_soa" | grep -q 'a\.misconfigured\.dns\.server\.invalid\.'; then
+                rest="$$(printf '%s' "$$current_soa" | awk '{$1=$2=$3=$4=$5=""; sub(/^ +/,""); print}')"
+                pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone $$rest"
+              fi
               # Declares 10.7.2.12's own hostname (ns2.home.iseja.net,
               # UCS-managed) as a second nameserver for this zone ahead of
               # its actual slave config existing -- deliberately pre-added,
