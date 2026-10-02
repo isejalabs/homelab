@@ -5,6 +5,14 @@ set quiet
 set script-interpreter := ['bash', '-euo', 'pipefail']
 set shell := ['bash', '-euo', 'pipefail', '-c']
 
+# `default-list` above only lists recipes when truly no arguments are given -- e.g. `just proxmox::snapshot
+# -e dev` (action omitted, but a flag given) still has just pick the first recipe below as the default and
+# fail on its required arg instead. This catch-all absorbs any such leftover arguments and lists recipes
+# instead, so an omitted action behaves the same regardless of what else was typed.
+[private]
+default *args:
+    {{ just_executable() }} --justfile {{ source_file() }} --list
+
 [doc('Create a Proxmox snapshot on every VM in an environment, in one go, via the Proxmox API (-e/--environment required; --name defaults to "initial")')]
 [arg('environment', short='e', long='environment')]
 [arg('name', long='name')]
