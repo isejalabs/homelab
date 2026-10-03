@@ -13,6 +13,7 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `ro
 ├── global-secrets.sops.yaml       # secrets merged in at every level
 ├── 📁 _envcommon                    # reusable .hcl includes merged into each module's live config (see _envcommon/README.md)
 │   ├── tf-state-read-role.hcl
+│   ├── rustfs-bucket-reader.hcl
 │   ├── vms.hcl
 │   ├── talos-proxmox.hcl
 │   └── vehagn-k8s.hcl
