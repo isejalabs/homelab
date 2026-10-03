@@ -33,3 +33,4 @@ current | planning | superseded
 | --- | --- | --- |
 | [0001](0001-powerdns-as-dns-server.md) | PowerDNS as the in-cluster authoritative DNS server | current |
 | [0002](0002-tsig-over-ip-acl-for-axfr.md) | TSIG over IP-ACL for AXFR and dynamic-update authorization | current |
+| [0003](0003-repository-and-tool-boundaries.md) | Repository and IaC tool boundaries | planning |
