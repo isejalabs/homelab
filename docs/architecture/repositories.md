@@ -59,7 +59,7 @@ Tracked in [#1438](https://github.com/isejalabs/homelab/issues/1438); design in 
 
 | Piece | Tool | Where |
 | --- | --- | --- |
-| Monitoring user and bucket-scoped `s3:GetBucketQuota` policy, credentials into 1Password | Terraform | New module tracked in [isejalabs/terraform-modules#34](https://github.com/isejalabs/terraform-modules/issues/34), instantiated in `terragrunt/` here |
+| One monitoring user per environment with a bucket-scoped `s3:GetBucketQuota` policy, credentials into 1Password | Terraform | New module tracked in [isejalabs/terraform-modules#34](https://github.com/isejalabs/terraform-modules/issues/34), instantiated per environment in `terragrunt/` here |
 | Checkmk special agent and check plugin on monitoring2, secret read from 1Password | Salt | `sebiklamar/salt-iseja.net` |
 | Checkmk host, password-store entry and rules | Manual, documented | Recorded with the feature |
 
@@ -69,4 +69,4 @@ Tracked as open decisions in the ADR rather than fixed here:
 
 - `terraform-modules` still carries the PoC `talos-proxmox` and `vms` modules, which overlap with `terraform-proxmox-talos`, and `homelab` still has `poc` env units using them.
 - `terragrunt/_envcommon/talos-proxmox.hcl` has an unpinned module source, unlike `rustfs-kopiur-backup.hcl`, which pins a tag.
-- Cross-env singleton Terraform units (such as the RustFS monitoring identity) have no natural home in the per-env `terragrunt/<account>/<region>/<env>/<module>` tree.
+- No cross-env singleton Terraform unit exists today (the RustFS monitoring identity is deliberately one unit per environment). If one is ever needed, it has no natural home in the per-env `terragrunt/<account>/<region>/<env>/<module>` tree.

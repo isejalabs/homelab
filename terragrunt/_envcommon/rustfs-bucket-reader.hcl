@@ -5,12 +5,12 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 locals {
-  ### The following is duplicate code from the `root.hcl` configuration b/c TerraGrunt does not allow
-  ### including `root.hcl` here again (no 2-level includes).
-
-  # Automatically load global-, account-, region- and environment-level variables
+  # Automatically load global- and environment-level variables
   global_vars      = read_terragrunt_config(find_in_parent_folders("global.hcl"))
   environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+
+  ### The following is duplicate code from the `root.hcl` configuration b/c TerraGrunt does not allow
+  ### including `root.hcl` here again (no 2-level includes).
 
   # Automatically load global-, account-, region-, environment- and local secrets
   # The files are SOPS encrypted, and a value in a lower placed dir. is overwriting its parent
@@ -49,12 +49,26 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-kopiur-backup?ref=rustfs-kopiur-backup-v0.1.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=rustfs-bucket-reader-v0.2.0"
 
-  # Only the env differs per environment -- computed here so per-env units don't repeat it. The module
-  # derives both the bucket/user/policy name and the 1Password item title from this plus its own
-  # `name` default ("kopiur-backup"), so that string isn't repeated here.
+  # Only the env differs per environment. Each environment gets its own monitoring identity (all of them used by the
+  # one Checkmk site), scoped to that environment's own buckets only.
   env = local.environment_vars.locals.env
+
+  # Environments with a Longhorn S3 backup target, i.e. a "<env>-longhorn-backup" bucket besides the kopiur one (see
+  # the longhorn-core backup-target.yaml overlays). The module only references buckets by name, it doesn't manage them.
+  longhorn_envs = ["dev", "prod", "qa", "rebuild"]
+  bucket_names = concat(
+    ["${local.env}-kopiur-backup"],
+    contains(local.longhorn_envs, local.env) ? ["${local.env}-longhorn-backup"] : [],
+  )
+
+  # Named after consumer and environment; the module uses it verbatim as user, policy base and 1Password item title.
+  name = "${local.env}-checkmk-monitoring"
+
+  # The 1Password item follows the vault's "<thing>#<env>" convention (like kopiur-backup#<env>) instead of the
+  # RustFS-side "<env>-<thing>" naming used for the user and policy above.
+  item_title = "checkmk-monitoring#${local.env}"
 
   # 1Password "K8S" vault, shared with other components -- see global.hcl.
   onepassword_vault_id = local.global_vars.locals.onepassword_vault_id
@@ -69,7 +83,9 @@ inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
   rustfs      = local.secret_vars.rustfs
   onepassword = local.secret_vars.onepassword
-  env         = local.env
 
+  name                 = local.name
+  item_title           = local.item_title
+  bucket_names         = local.bucket_names
   onepassword_vault_id = local.onepassword_vault_id
 }
