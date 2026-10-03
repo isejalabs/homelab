@@ -47,9 +47,9 @@ locals {
 
   ### Common variables for the component across all environments
 
-  # TEMPORARY: tracks the module's feature branch because no release tag exists yet. Switch to a tag
-  # (rustfs-bucket-reader-v0.1.0, as rustfs-kopiur-backup does) before merging.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=issue/34_rustfs-bucket-reader-claude"
+  # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
+  # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=rustfs-bucket-reader-v0.1.0"
 
   # Only the env differs per environment. Each environment gets its own monitoring identity (all of them used by the
   # one Checkmk site), scoped to that environment's own buckets only.
