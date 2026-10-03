@@ -23,8 +23,7 @@ include "envcommon" {
 terraform {
   # using hard-coded URL instead of envcommon variable, so this env tracks the module's latest commit
   # instead of the pinned release tag other environments use (mirrors vehagn-k8s's head unit).
-  # TEMPORARY: the module isn't on main yet, so this tracks its feature branch. Switch to `?ref=HEAD` before merging.
-  source = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=issue/34_rustfs-bucket-reader-claude"
+  source = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=HEAD"
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
