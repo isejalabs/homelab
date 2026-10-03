@@ -64,7 +64,7 @@ a schedule.
 a `<env>-checkmk-monitoring` user whose policy allows only the bucket-scoped `s3:GetBucketQuota` action on that
 environment's own buckets (`<env>-kopiur-backup`, plus `<env>-longhorn-backup` for `dev`/`qa`/`rebuild`/`prod`).
 It creates no buckets or quotas and grants no object, listing or admin access. The generated access key and secret
-are written into a `<env>-checkmk-monitoring` item in the `K8S` 1Password vault (shared with `rustfs-kopiur-backup`
+are written into a `checkmk-monitoring#<env>` item in the `K8S` 1Password vault, following that vault's `<thing>#<env>` item naming (the RustFS-side user and policy are `<env>-checkmk-monitoring`) (shared with `rustfs-kopiur-backup`
 via [`global.hcl`](global.hcl)); no credential is a module output. Requires both a `rustfs` and an `onepassword`
 entry in `global-secrets.sops.yaml`, like `rustfs-kopiur-backup`. See the module's README for the full mechanism and
 caveats.
