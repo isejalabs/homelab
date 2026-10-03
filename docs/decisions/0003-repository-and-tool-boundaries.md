@@ -30,7 +30,7 @@ The homelab spans a Kubernetes platform, VMs on Proxmox, the physical Proxmox ho
 
 ## Open decisions
 
-- Where cross-env singleton Terraform units live: under the `prod` env directory, or a new shared directory. A shared directory would break the 8-environment invariant stated in AGENTS.md, so that has to be a deliberate change.
+- Where a cross-env singleton Terraform unit would live, should one ever be needed: under the `prod` env directory, or a new shared directory. A shared directory would break the 8-environment invariant stated in AGENTS.md, so that has to be a deliberate change. The RustFS monitoring identity, which prompted this question, was decided to be one unit per environment, so there is no current example.
 - Whether Checkmk host, password-store and rule setup stays manual or becomes code (REST API or a Terraform provider; provider maturity is unverified).
 - Whether the PoC `talos-proxmox` and `vms` modules and the `poc` env units are retired, and whether `_envcommon/talos-proxmox.hcl` gets a pinned source.
 - Pillar data lives only on the salt-master, outside git. Whether that stays acceptable is not decided here.

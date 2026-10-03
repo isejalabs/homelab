@@ -11,8 +11,10 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `ro
 📁 terragrunt
 ├── root.hcl                       # top-level config, see above
 ├── global-secrets.sops.yaml       # secrets merged in at every level
+├── global.hcl                     # non-secret values shared by all environments/components (e.g. 1Password vault ID)
 ├── 📁 _envcommon                    # reusable .hcl includes merged into each module's live config (see _envcommon/README.md)
 │   ├── tf-state-read-role.hcl
+│   ├── rustfs-bucket-reader.hcl
 │   ├── rustfs-bucket-reader.hcl
 │   ├── vms.hcl
 │   ├── talos-proxmox.hcl
@@ -54,6 +56,27 @@ Units exist for all 8 environments. Only `dev`/`qa`/`rebuild`/`prod` have an act
 on the Kubernetes side (see [isejalabs/homelab#1121](https://github.com/isejalabs/homelab/issues/1121)); `dbg`/`head`/`poc`/`src` still get a real bucket and
 1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on
 a schedule.
+
+# RustFS monitoring identity
+
+`rustfs-bucket-reader` provisions, per environment, a read-only RustFS identity for capacity monitoring via
+[`rustfs-bucket-reader`](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-reader):
+a `<env>-checkmk-monitoring` user whose policy allows only the bucket-scoped `s3:GetBucketQuota` action on that
+environment's own buckets (`<env>-kopiur-backup`, plus `<env>-longhorn-backup` for `dev`/`qa`/`rebuild`/`prod`).
+It creates no buckets or quotas and grants no object, listing or admin access. The generated access key and secret
+are written into a `<env>-checkmk-monitoring` item in the `K8S` 1Password vault (shared with `rustfs-kopiur-backup`
+via [`global.hcl`](global.hcl)); no credential is a module output. Requires both a `rustfs` and an `onepassword`
+entry in `global-secrets.sops.yaml`, like `rustfs-kopiur-backup`. See the module's README for the full mechanism and
+caveats.
+
+Units exist for all 8 environments, even though all identities are consumed by the one Checkmk `prod` site, so each
+environment owns its own user and can be created, rotated or removed on its own. Like for kopiur, `head` tracks
+the module's latest commit instead of a pinned release tag, and `src` uses a local checkout of `terraform-modules`.
+
+Using a created identity is a separate, manual step: copy its access key and secret from 1Password into the Checkmk
+`prod` site's Password Store (never into command-line arguments of the special-agent call, which are visible in
+process listings). To roll back, remove that Password Store entry first, then destroy the environment's
+`rustfs-bucket-reader` unit, which removes the RustFS user and policy and the managed 1Password item.
 
 # Proxmox volume handling
 

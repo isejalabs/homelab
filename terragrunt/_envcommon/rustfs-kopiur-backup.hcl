@@ -8,7 +8,8 @@ locals {
   ### The following is duplicate code from the `root.hcl` configuration b/c TerraGrunt does not allow
   ### including `root.hcl` here again (no 2-level includes).
 
-  # Automatically load account-, region- and environment-level variables
+  # Automatically load global-, account-, region- and environment-level variables
+  global_vars      = read_terragrunt_config(find_in_parent_folders("global.hcl"))
   environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
 
   # Automatically load global-, account-, region-, environment- and local secrets
@@ -55,8 +56,8 @@ locals {
   # `name` default ("kopiur-backup"), so that string isn't repeated here.
   env = local.environment_vars.locals.env
 
-  # 1Password "K8S" vault -- not a secret, just an identifier, so it's fine to hardcode.
-  onepassword_vault_id = "nem6h2jif62oiudpwmbby4yjh4"
+  # 1Password "K8S" vault, shared with other components -- see global.hcl.
+  onepassword_vault_id = local.global_vars.locals.onepassword_vault_id
 }
 
 # ---------------------------------------------------------------------------------------------------------------------

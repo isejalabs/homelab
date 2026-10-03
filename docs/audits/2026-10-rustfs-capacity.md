@@ -24,7 +24,7 @@ Store the access key/secret in the Checkmk `prod` site's Password Store. Checkmk
 
 ## Remaining work before live Checkmk collection
 
-1. Owner creates the separate RustFS monitoring identity from the policy above and stores the secret in the `prod` Checkmk Password Store.
+1. Apply the per-environment `rustfs-bucket-reader` Terragrunt units (see [`terragrunt/README.md`](../../terragrunt/README.md#rustfs-monitoring-identity)), which create one bucket-scoped monitoring identity per environment and its 1Password item, then store each secret in the `prod` Checkmk Password Store (manual step).
 2. Implement and install the Checkmk 2.4-compatible custom API integration on monitoring2; add/configure the fiona host and discover stable per-bucket services manually in Checkmk.
 3. Confirm the integration actually records quota metrics in Checkmk RRDs and gets useful native quota/time-to-full behavior. A metric graph alone does not satisfy the forecast requirement.
 4. Verify the identity can query all 12 buckets and cannot access objects, alter quotas, or access unrelated admin endpoints. Confirm errors, deleted buckets, missing quotas and recovery produce explicit states.
