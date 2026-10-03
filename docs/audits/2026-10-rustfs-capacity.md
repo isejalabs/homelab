@@ -16,19 +16,20 @@ Each quota-stat request generates a warning-level RustFS admin event. Twelve buc
 
 ## Monitoring identity policy
 
-The existing audit key is list-only, which is enough for listing bucket objects but not for this endpoint. Create a distinct monitoring identity with the bucket-only `s3:GetBucketQuota` policy in [the prepared policy JSON](data/2026-10-rustfs-checkmk-policy.json). Do not grant `ListBucket`, object read/write/delete, quota-setting actions or `admin:ServerInfo`.
+The existing audit key is list-only, which is enough for listing bucket objects but not for this endpoint. The planned IaC implementation uses [`rustfs-bucket-reader`](https://redirect.github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-reader) to create a dedicated identity with the bucket-only `s3:GetBucketQuota` policy in [the prepared policy JSON](data/2026-10-rustfs-checkmk-policy.json). It accepts the known bucket names as inputs, creates no buckets or quotas, and stores the generated credentials in a concealed-fields 1Password item. Do not grant `ListBucket`, object read/write/delete, quota-setting actions or `admin:ServerInfo`.
 
 RustFS beta.12 maps the same `s3:GetBucketQuota` action to bucket quota reads, quota statistics, and the quota-check endpoint. The latter computes whether a hypothetical operation would fit; it does not perform that object operation, though invoking it can trigger usage reads and warning/metric events. The policy is therefore bucket-scoped and object-read/write-free, but the API cannot constrain it to one HTTP path using this action alone.
 
-Store the access key/secret in the Checkmk `prod` site's Password Store. Checkmk documents that the store encrypts/obfuscates the saved file with a key held in the same site directory, so site filesystem access remains trusted. The Checkmk 2.4 special-agent call must not place the secret in command-line arguments, which could expose it through process listings. The implementation must hand secret input over standard input or another protected mechanism and must keep it out of logs and diagnostics.
+After the IaC identity is applied, copy the access key/secret from 1Password into the Checkmk `prod` site's Password Store as a manual step. Checkmk documents that the store encrypts/obfuscates the saved file with a key held in the same site directory, so site filesystem access remains trusted. The Checkmk 2.4 special-agent call must not place the secret in command-line arguments, which could expose it through process listings. The implementation must hand secret input over standard input or another protected mechanism and must keep it out of logs and diagnostics.
 
 ## Remaining work before live Checkmk collection
 
-1. Owner creates the separate RustFS monitoring identity from the policy above and stores the secret in the `prod` Checkmk Password Store.
-2. Implement and install the Checkmk 2.4-compatible custom API integration on monitoring2; add/configure the fiona host and discover stable per-bucket services manually in Checkmk.
-3. Confirm the integration actually records quota metrics in Checkmk RRDs and gets useful native quota/time-to-full behavior. A metric graph alone does not satisfy the forecast requirement.
-4. Verify the identity can query all 12 buckets and cannot access objects, alter quotas, or access unrelated admin endpoints. Confirm errors, deleted buckets, missing quotas and recovery produce explicit states.
-5. Reconcile the first service values with the RustFS API and existing ZFS dataset check; set percentage and absolute reserve thresholds after reviewing real backup growth.
-6. Recheck the added event/log and host-write rate at 15-minute cadence; keep polling at 15 minutes unless evidence supports changing it.
+1. Review and merge the IaC module; change the Terragrunt source from its temporary branch ref to the released module tag, then apply the singleton unit to create the identity and 1Password item.
+2. Copy the identity's credentials from 1Password into the `prod` Checkmk Password Store.
+3. Implement and install the Checkmk 2.4-compatible custom API integration on monitoring2; add/configure the fiona host and discover stable per-bucket services manually in Checkmk.
+4. Confirm the integration actually records quota metrics in Checkmk RRDs and gets useful native quota/time-to-full behavior. A metric graph alone does not satisfy the forecast requirement.
+5. Verify the identity can query all 12 buckets and cannot access objects, alter quotas, or access unrelated admin endpoints. Confirm errors, deleted buckets, missing quotas and recovery produce explicit states.
+6. Reconcile the first service values with the RustFS API and existing ZFS dataset check; set percentage and absolute reserve thresholds after reviewing real backup growth.
+7. Recheck the added event/log and host-write rate at 15-minute cadence; keep polling at 15 minutes unless evidence supports changing it.
 
 The Longhorn physical-disk checks remain a separate part of issue #1438 and can progress independently.

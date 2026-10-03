@@ -54,6 +54,17 @@ on the Kubernetes side (see [isejalabs/homelab#1121](https://github.com/isejalab
 1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on
 a schedule.
 
+## RustFS monitoring identity
+
+The singleton `prod/eu-central-1/prod/rustfs-monitoring` unit provisions the `checkmk-monitoring` user and
+bucket-scoped `s3:GetBucketQuota` policy for the 12 known kopiur and Longhorn backup buckets. It creates no
+buckets or quotas and grants no object or admin access. The generated access key and secret are stored in a
+concealed-fields 1Password item in the `K8S` vault; copy them into the Checkmk `prod` site's Password Store
+as a separate manual configuration step. See [`rustfs-bucket-reader`](https://redirect.github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-reader)
+for module details. The source currently points to the module PR branch and must be changed to the released
+tag before applying. To roll back, remove the Checkmk Password Store entry first, then destroy the singleton
+Terragrunt unit; that removes the RustFS user/policy and managed 1Password item.
+
 # Proxmox volume handling
 
 ## Import Proxmox volume
