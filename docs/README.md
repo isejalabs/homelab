@@ -45,6 +45,7 @@ thing they describe.
 | [`architecture/network.md`](architecture/network.md) | partially planning | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
 | [`architecture/storage.md`](architecture/storage.md) | done | Longhorn vs proxmox-csi, and when each is used |
 | [`architecture/workloads.md`](architecture/workloads.md) | done | catalog of every app/infra component deployed, what it is, and how it's installed |
+| [`architecture/repositories.md`](architecture/repositories.md) | done | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
 
 Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document
 cluster settings and procedures").
