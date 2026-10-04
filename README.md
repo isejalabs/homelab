@@ -10,6 +10,16 @@ its foundation phase — the cluster itself has been stable since prod went live
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) gives an
 up-to-date, browsable overview of the current implementation.
 
+## At a glance
+
+- **Stack**: Proxmox → Talos Linux → Kubernetes, provisioned by OpenTofu/Terragrunt, reconciled by Flux CD.
+- **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see
+  [`environments.md`](docs/architecture/environments.md) for what each one is for.
+- **Status**: prod has been live since 9/2025; still in its foundation phase — see
+  [history](#a-bit-of-history) below.
+- **Where to go next**: the [Documentation](#documentation) section below, or straight to
+  [`docs/README.md`](docs/README.md).
+
 ## Principles
 
 - **IaC and [GitOps](https://opengitops.dev/) end to end, no
