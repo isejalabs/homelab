@@ -34,6 +34,7 @@ Colocate code that shares a change unit and a toolchain, not everything that is 
 | Configuration inside a long-lived Linux host | Salt | Packages, files, services and cron on Proxmox hosts, monitoring2, loghost, ns2; Checkmk agents and plugins |
 | Anything running in Kubernetes | Flux | Everything under `k8s/infra` and `k8s/apps` |
 | Application settings of appliances | Manual, documented | TrueNAS, Checkmk site configuration (hosts, rules, password store) |
+| GitHub repository/branch settings | Manual, documented | `main`'s branch protection (required status checks, PR-before-merge) — see [`ci.md`](ci.md) for what's actually required and why; no Terraform GitHub provider exists in this repo, this is a deliberate exception for a low-churn setting rather than new IaC surface area |
 
 Rules of thumb:
 
