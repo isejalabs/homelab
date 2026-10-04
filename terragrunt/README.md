@@ -38,12 +38,25 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `ro
 
 ```sh
 cd terragrunt/<account>/<region>/<env>/vehagn-k8s
+terragrunt plan
+terragrunt apply
 ```
 
-See [`../AGENTS.md`](../AGENTS.md)'s Terragrunt section for the actual `terragrunt plan`/`apply` invocation
-from here, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha for non-interactive shells, and the `prod`/`qa`
-main-branch-only rule — not duplicated here. See [`docs/disaster-recovery.md`](../docs/disaster-recovery.md)
-for how this step fits into a full cluster rebuild.
+Each environment directory has an `.envrc` (e.g. `terragrunt/non-prod/eu-central-1/dev/.envrc`) that
+exports `TG_IAM_ASSUME_ROLE`, the per-env state-read/write role Terragrunt assumes for the S3 remote-state
+backend. `direnv` loads this automatically on `cd` in a normal interactive shell; in a non-interactive
+context without the direnv hook, `source` that `.envrc` yourself first, or every command fails with a
+generic S3 `HeadObject`/`403 Forbidden` on state access (easy to misdiagnose as an unrelated AWS credentials
+problem).
+
+**Apply from `main`, not a feature branch.** `prod` and `qa` may *only* ever be applied from a `main`
+checkout — no exceptions. For the other environments, applying from a feature branch to validate a
+not-yet-merged change is acceptable, but merge it promptly afterward so the next `main` apply is a no-op —
+there's no one-command revert for a Terragrunt apply the way there is for Flux config, since it creates real
+state that only matches that unmerged branch.
+
+See [`docs/disaster-recovery.md`](../docs/disaster-recovery.md) for how this step fits into a full cluster
+rebuild.
 
 # RustFS buckets/users for kopiur backup
 

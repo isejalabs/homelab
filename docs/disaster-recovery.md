@@ -31,9 +31,9 @@ time — a problem caught at step 2 is much cheaper to fix than the same problem
 
 ### 1. Provision VMs and install Talos
 
-[`AGENTS.md`](../AGENTS.md)'s Terragrunt section has the actual commands (`terragrunt plan`/`apply` from the
-environment's `vehagn-k8s` module directory), the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha for
-non-interactive shells, and the `prod`/`qa` main-branch-only rule — not duplicated here.
+[`terragrunt/README.md`](../terragrunt/README.md#directory-handling) — `terragrunt plan`/`apply` from the
+environment's `vehagn-k8s` module directory, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha, and the
+`prod`/`qa` main-branch-only rule.
 
 **If recovering from a teardown that preserved Proxmox volumes** (rather than a from-scratch provision):
 import the surviving disk(s) first — see [`terragrunt/README.md`](../terragrunt/README.md#import-proxmox-volume)'s
