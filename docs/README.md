@@ -48,19 +48,68 @@ configuration — don't read them as authoritative for "what exists today."
   - narrow operational notes for one app/component, e.g. the `kubeseal` regen command in
     [`k8s/apps/dns/adguard/README.md`](../k8s/apps/dns/adguard/README.md).
 
+## Conventions
+
+### Where a new doc belongs
+
+- A mechanism that spans the whole repo → [`architecture/`](architecture).
+- A procedure that spans multiple areas but isn't architecture → this folder's top level (see
+  [What goes where](#what-goes-where) above).
+- A choice likely to be revisited → [`decisions/`](decisions) (see [`decisions/README.md`](decisions/README.md)).
+- A point-in-time assessment → [`audits/`](audits) — written once, never edited after the fact; a later
+  pass is a new audit file, not a rewrite of an old one.
+- Everything else, tied to one piece of code → a `README.md` next to that code, not here.
+
+When in doubt, prefer colocating with the code; use this folder only for documentation that genuinely has
+no single owning folder.
+
+### Ownership
+
+A doc is owned by whoever owns the thing it describes, and gets updated in the same PR as that thing
+changes (see the commons "Documentation check" convention). `architecture/*` is cross-cutting by design, so
+"owned by" means whoever changes the mechanism it documents, not one dedicated maintainer.
+
+`decisions/*` and `audits/*` are the exception: once written, their body is a historical record and isn't
+rewritten — a decision gets superseded by a new ADR that notes the old one, and a stale audit gets a
+follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to
+change over its life.
+
+### Status labels
+
+Borrowed from the Sep 2026 documentation audit's own
+[F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information),
+and already in use in `decisions/*`'s `## Status` section:
+
+| Status | Meaning |
+| --- | --- |
+| `current` | Describes the system as it actually is today. |
+| `planning` | Describes an intended or not-yet-implemented design. |
+| `historical` | Superseded; kept for context, not a guide to today's system. |
+| `audit` | A point-in-time assessment — not itself architecture. |
+
+Where it's signalled depends on the doc type, since each already has its own natural home for it:
+
+- `architecture/*`: the **Status** column in the table below.
+- this folder's top-level procedural docs: assumed `current` (each describes a shipped mechanism); called
+  out inline if that's ever not the case.
+- `decisions/*`: the ADR's own `## Status` section.
+- `audits/*`: implicit from the folder — everything there is `audit`, never `current`.
+- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the
+  root README's [folder structure](../README.md#folder-structure)).
+
 ## Architecture docs
 
 | Doc | Status | Covers |
 | --- | --- | --- |
-| [`architecture/overview.md`](architecture/overview.md) | done | top-level stack diagram (Proxmox → Talos → Kubernetes → Flux) and cross-cutting components, with links out to the rest of this table — start here |
-| [`architecture/kustomize.md`](architecture/kustomize.md) | done | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
-| [`architecture/secrets.md`](architecture/secrets.md) | done | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
-| `architecture/terraform-bootstrap.md` | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
-| [`architecture/environments.md`](architecture/environments.md) | done | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
-| [`architecture/network.md`](architecture/network.md) | partially planning | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
-| [`architecture/storage.md`](architecture/storage.md) | done | Longhorn vs proxmox-csi, and when each is used |
-| [`architecture/workloads.md`](architecture/workloads.md) | done | catalog of every app/infra component deployed, what it is, and how it's installed |
-| [`architecture/repositories.md`](architecture/repositories.md) | done | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
+| [`architecture/overview.md`](architecture/overview.md) | current | top-level stack diagram (Proxmox → Talos → Kubernetes → Flux) and cross-cutting components, with links out to the rest of this table — start here |
+| [`architecture/kustomize.md`](architecture/kustomize.md) | current | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
+| [`architecture/secrets.md`](architecture/secrets.md) | current | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
+| `architecture/terraform-bootstrap.md` | planning ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
+| [`architecture/environments.md`](architecture/environments.md) | current | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
+| [`architecture/network.md`](architecture/network.md) | current | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
+| [`architecture/storage.md`](architecture/storage.md) | current | Longhorn vs proxmox-csi, and when each is used |
+| [`architecture/workloads.md`](architecture/workloads.md) | current | catalog of every app/infra component deployed, what it is, and how it's installed |
+| [`architecture/repositories.md`](architecture/repositories.md) | current | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
 
 Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document
 cluster settings and procedures").
