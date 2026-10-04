@@ -42,12 +42,29 @@ terragrunt plan
 terragrunt apply
 ```
 
-Each environment directory has an `.envrc` (e.g. `terragrunt/non-prod/eu-central-1/dev/.envrc`) that
-exports `TG_IAM_ASSUME_ROLE`, the per-env state-read/write role Terragrunt assumes for the S3 remote-state
-backend. `direnv` loads this automatically on `cd` in a normal interactive shell; in a non-interactive
-context without the direnv hook, `source` that `.envrc` yourself first, or every command fails with a
-generic S3 `HeadObject`/`403 Forbidden` on state access (easy to misdiagnose as an unrelated AWS credentials
-problem).
+Concretely, for `prod` -- the environment most likely to actually need this during a disaster recovery,
+where you want the exact commands ready to run without first mentally substituting placeholders:
+
+```sh
+cd terragrunt/prod/eu-central-1/prod/vehagn-k8s
+terragrunt plan
+terragrunt apply
+```
+
+Each environment directory has an `.envrc` (e.g. `terragrunt/prod/eu-central-1/prod/.envrc`) that exports
+`TG_IAM_ASSUME_ROLE`, the per-env state-read/write role Terragrunt assumes for the S3 remote-state backend.
+The first time you `cd` into a given environment's directory, direnv blocks until you approve its content
+once:
+
+```sh
+direnv allow
+```
+
+After that one-time approval, every later `cd` into that same directory auto-loads it via the normal
+direnv shell hook -- no need to repeat it, and no need to touch `.envrc` directly. Only in a context with no
+direnv hook at all (a script, a non-interactive shell) does that hook never fire, in which case `source
+.envrc` directly instead, or every command fails with a generic S3 `HeadObject`/`403 Forbidden` on state
+access (easy to misdiagnose as an unrelated AWS credentials problem).
 
 **Apply from `main`, not a feature branch.** `prod` and `qa` may *only* ever be applied from a `main`
 checkout — no exceptions. For the other environments, applying from a feature branch to validate a
@@ -129,7 +146,12 @@ CLUSTER="dev-homelab"; talosctl config remove ${CLUSTER}; kubectl config delete-
 
 ## Import configs
 
-Once cluster is up, import its configs.
+Once cluster is up, import its configs. Both come from `local_file` resources the `vehagn-k8s` module's
+own `output.tf` writes during `terragrunt apply` (`talos-config.yaml`, `kube-config.yaml`, and others) into
+an `output/` directory relative to wherever Terraform actually ran. Since Terragrunt copies the module into
+a per-run cache directory first, that's `.terragrunt-cache/<hash1>/<hash2>/output/`, not a plain `output/`
+next to this README -- and since the two hash segments change across cache invalidations, the commands
+below use a `**` glob to find the directory rather than a fixed path.
 
 ### talosconfig
 ```sh
@@ -152,8 +174,7 @@ If the VIP isn't reachable yet (or you specifically want the kubeconfig Terrafor
 fresh one fetched live via the Talos API), extract it from the Terragrunt output instead. Resolve the cache
 path into a variable first, rather than using the `**` glob directly on the right-hand side of the
 `KUBECONFIG=` assignment -- a glob pattern there isn't expanded the way it is in a normal command argument
-position (confirmed: this is why the previous version of this doc, using a literal `output/kube-config.yaml`
-path with no explanation of how `output/` got there, never actually worked as written):
+position:
 
 ```sh
 OUTPUT_DIR=$(ls -d .terragrunt-cache/**/output)
