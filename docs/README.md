@@ -12,7 +12,7 @@ thing they describe.
 | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
 | What is this system?                             | the root [`README.md`](../README.md)                                                                                                              |
 | Why is it designed this way?                     | [`architecture/`](architecture), [`decisions/`](decisions)                                                                                        |
-| What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`architecture/environments.md`](architecture/environments.md), and per-folder `README.md`s |
+| What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`reference/`](reference), and per-folder `README.md`s |
 | How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
 | Why did it become this way?                      | [`decisions/`](decisions) (ADRs), [`audits/`](audits) (point-in-time assessments), the root README's [history](../README.md#a-bit-of-history)     |
 
@@ -25,6 +25,10 @@ configuration — don't read them as authoritative for "what exists today."
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism
   that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`).
   These change rarely and don't belong to any single app/infra folder.
+- **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables,
+  inventories) split out from the conceptual doc that explains it, where that split genuinely helps
+  scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference
+  sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
   - [`update-handling.md`](update-handling.md) — how renovate/labeler/mergify/Flux interact for automated
     dependency updates.
@@ -53,6 +57,8 @@ configuration — don't read them as authoritative for "what exists today."
 ### Where a new doc belongs
 
 - A mechanism that spans the whole repo → [`architecture/`](architecture).
+- Dense, factual reference tables that would interrupt an architecture doc's prose → a sibling file in
+  [`reference/`](reference), linked both ways — only when the split genuinely helps, not by default.
 - A procedure that spans multiple areas but isn't architecture → this folder's top level (see
   [What goes where](#what-goes-where) above).
 - A choice likely to be revisited → [`decisions/`](decisions) (see [`decisions/README.md`](decisions/README.md)).
@@ -89,8 +95,8 @@ and already in use in `decisions/*`'s `## Status` section:
 
 Where it's signalled depends on the doc type, since each already has its own natural home for it:
 
-- `architecture/*` and this folder's top-level procedural docs: a YAML frontmatter block at the very top
-  of the file, before the title —
+- `architecture/*`, `reference/*`, and this folder's top-level procedural docs: a YAML frontmatter block at
+  the very top of the file, before the title —
 
   ```yaml
   ---
@@ -99,8 +105,8 @@ Where it's signalled depends on the doc type, since each already has its own nat
   ```
 
   — which also doubles as the place for any other per-doc metadata later, without inventing a second
-  mechanism. `architecture/*` also repeats its status in the **Status** column below, since that table is
-  the entry point for those docs.
+  mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column below, since
+  those tables are the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with
   an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs.
@@ -115,8 +121,8 @@ Where it's signalled depends on the doc type, since each already has its own nat
 | [`architecture/overview.md`](architecture/overview.md) | current | top-level stack diagram (Proxmox → Talos → Kubernetes → Flux) and cross-cutting components, with links out to the rest of this table — start here |
 | [`architecture/kustomize.md`](architecture/kustomize.md) | current | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
 | [`architecture/secrets.md`](architecture/secrets.md) | current | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
-| `architecture/terraform-bootstrap.md` | planning ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
-| [`architecture/environments.md`](architecture/environments.md) | current | purpose of each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) |
+| `architecture/terraform-bootstrap.md` | planning ([#195](https://github.com/isejalabs/homelab/issues/195); implementation in progress at [PR #1168](https://github.com/isejalabs/homelab/pull/1168)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
+| [`architecture/environments.md`](architecture/environments.md) | current | what each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) is *for*, and the two axes that vary between them — factual values live in [`reference/environments.md`](reference/environments.md) |
 | [`architecture/network.md`](architecture/network.md) | current | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
 | [`architecture/storage.md`](architecture/storage.md) | current | Longhorn vs proxmox-csi, and when each is used |
 | [`architecture/workloads.md`](architecture/workloads.md) | current | catalog of every app/infra component deployed, what it is, and how it's installed |
@@ -125,3 +131,11 @@ Where it's signalled depends on the doc type, since each already has its own nat
 
 Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document
 cluster settings and procedures").
+
+## Reference docs
+
+| Doc | Status | Covers |
+| --- | --- | --- |
+| [`reference/environments.md`](reference/environments.md) | current | per-environment sizing, Flux interval, domain/naming schemes, and the ID/ASN/LB-pool/API-VIP tables — split out of `architecture/environments.md` per [#1350](https://github.com/isejalabs/homelab/issues/1350) |
+
+See [`reference/README.md`](reference/README.md) for what belongs in this folder.

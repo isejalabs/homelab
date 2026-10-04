@@ -45,7 +45,7 @@ the same trust decision the Terraform provider already encodes for this token/en
 Each environment's VMs are found by matching **both** of:
 
 - **vmid** against the documented `70081<env-id><n>` scheme
-  ([`docs/architecture/environments.md`](architecture/environments.md#environment-id)) -- the env-id lookup
+  ([`docs/reference/environments.md`](reference/environments.md#environment-id)) -- the env-id lookup
   lives in `proxmox_env_id()` in `scripts/lib/proxmox.sh`, kept in sync with that doc's table by hand (same
   precedent as that doc's other consumer, the per-env `localASN: 6452<id>` hardcoded into each
   `k8s/infra/kube-system/cilium/envs/<env>/bgp-cluster-config.yaml`).
