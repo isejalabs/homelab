@@ -17,6 +17,10 @@ jobs:
     - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
       id: filter
       with:
+        # default predicate-quantifier ('some') treats a '!'-prefixed pattern as its own independent
+        # positive rule ("match anything not fitting this"), not a true exclusion - which matches nearly
+        # every file in the repo. 'some-with-excludes' makes the negated patterns actually exclude.
+        predicate-quantifier: 'some-with-excludes'
         filters: |
           relevant:
           - "k8s/bootstrap/helmfile/**"
