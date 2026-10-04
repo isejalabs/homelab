@@ -44,7 +44,11 @@ configuration — don't read them as authoritative for "what exists today."
     (list/start/stop/shutdown/reset).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant,
   non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the
-  repo, only the ones whose *why* would otherwise be lost to git-log archaeology.
+  repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see
+  [`decisions/README.md`](decisions/README.md) for the format).
+- **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never
+  edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how
+  findings turn into tracked issues).
 - **[`logs/`](logs)** — raw output logs kept as a historical/reference record of past bootstrap runs, not
   narrative documentation.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece
