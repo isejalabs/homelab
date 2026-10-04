@@ -73,6 +73,23 @@ Units exist for all 8 environments, even though all identities are consumed by t
 
 Using a created identity is a separate, manual step: copy its access key and secret from 1Password into the Checkmk `prod` site's Password Store (never into command-line arguments of the special-agent call, which are visible in process listings). To roll back, remove that Password Store entry first, then destroy the environment's `rustfs-bucket-reader` unit, which removes the RustFS user and policy and the managed 1Password item.
 
+## Verifying a RustFS monitoring identity
+
+After applying a `rustfs-bucket-reader` unit (and again after a RustFS upgrade, a module change, or when Checkmk reports UNKNOWN), check that the identity reads quota of its own buckets and nothing else:
+
+```sh
+scripts/rustfs-verify-monitoring.sh -e <env>
+```
+
+It reads the endpoint from `terragrunt/global-secrets.sops.yaml` and the identity's credentials from the `checkmk-monitoring#<env>` 1Password item, then runs only non-mutating requests: quota-stats on each own bucket must return 200, while quota-stats on another environment's bucket, object listing, `GetObject`/`DeleteObject` of a random non-existent key and the admin `info`/`scanner/status` routes must all return 403. It exits non-zero and shows the response body on any deviation. Not for CI: it needs 1Password and network access to the RustFS.
+
+Pitfalls it already accounts for, in case you query by hand:
+
+- `op read` and `op://` references cannot address these items: the secret reference syntax rejects the `#` in `checkmk-monitoring#<env>`. Use `op item get 'checkmk-monitoring#<env>' --vault K8S --fields label=ACCESS_KEY --reveal`.
+- A trailing slash in the endpoint turns requests into `//<path>`, which RustFS answers with a misleading `InvalidBucketName`.
+- `ListBuckets` (`GET /`) returned a 500 (`errBucketMetadataNotInitialized`) instead of a 403 on RustFS 1.0.0-beta.12 (not rechecked on 1.0.1); it is not one of the checks, and monitoring never calls it.
+- Pass credentials to curl on stdin (`-K -`), not as arguments, so they stay out of the process list.
+
 # Proxmox volume handling
 
 ## Import Proxmox volume

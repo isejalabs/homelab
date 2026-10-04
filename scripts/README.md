@@ -62,6 +62,16 @@ Wrapped by `just proxmox::snapshot::<create|list|rollback|delete>` and `just pro
 
 All source [`lib/proxmox.sh`](lib/proxmox.sh) (Proxmox API auth, VM discovery, task polling) in addition to `lib/common.sh` above.
 
+## RustFS monitoring identity
+
+Run manually (needs 1Password and network access to the RustFS, so not for CI) — see the "RustFS monitoring identity" section of [`terragrunt/README.md`](../terragrunt/README.md) for what the identity is and how to read the output.
+
+| Script | Purpose |
+| --- | --- |
+| [`rustfs-verify-monitoring.sh`](rustfs-verify-monitoring.sh) | verifies one environment's `<env>-checkmk-monitoring` identity reads quota of its own buckets and is denied everything else (non-mutating) |
+
+Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and unrecognized-flag handling.
+
 ## Cluster maintenance
 
 | Script | Purpose |
