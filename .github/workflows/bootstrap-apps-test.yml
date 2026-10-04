@@ -1,28 +1,37 @@
 name: "Bootstrap apps test"
 on:
   pull_request:
-    paths:
-    - "k8s/bootstrap/helmfile/**"
-    - "!k8s/bootstrap/helmfile/**/*.md" # none exist today, but keep this consistent with the other two
-    - ".mise.toml"
-    - "mise.lock"
-    - "scripts/bootstrap-apps-ci-test.sh"
-    - "scripts/lib/common.sh"
-    - ".github/workflows/bootstrap-apps-test.yml"
   push:
     branches:
     - main
-    paths:
-    - "k8s/bootstrap/helmfile/**"
-    - "!k8s/bootstrap/helmfile/**/*.md"
-    - ".mise.toml"
-    - "mise.lock"
-    - "scripts/bootstrap-apps-ci-test.sh"
-    - "scripts/lib/common.sh"
-    - ".github/workflows/bootstrap-apps-test.yml"
 
 jobs:
+  changes:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      id: filter
+      with:
+        filters: |
+          relevant:
+          - "k8s/bootstrap/helmfile/**"
+          - "!k8s/bootstrap/helmfile/**/*.md" # none exist today, but keep this consistent with the other two
+          - ".mise.toml"
+          - "mise.lock"
+          - "scripts/bootstrap-apps-ci-test.sh"
+          - "scripts/lib/common.sh"
+          - ".github/workflows/bootstrap-apps-test.yml"
+
   bootstrap-apps-test:
+    needs: changes
+    # job-level if, not a workflow-level paths: trigger filter, so this job still reports a status (skipped
+    # counts as passing for required-status-checks purposes) instead of never running at all -- see #1511.
+    if: needs.changes.outputs.relevant == 'true'
     permissions:
       contents: read
     runs-on: ubuntu-latest
