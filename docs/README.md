@@ -82,6 +82,29 @@ rewritten — a decision gets superseded by a new ADR that notes the old one, an
 follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to
 change over its life.
 
+### Keeping this current
+
+- **During a change**: covered by [Ownership](#ownership) above — update the doc in the same PR as the
+  code it describes.
+- **During incident follow-up**: an incident stays a GitHub issue — the investigation record, timeline, and
+  recovery log live there, not as a permanent incident document by default. Promote only the durable
+  learning to the right destination: operating/recovery knowledge → an operational doc (e.g.
+  [`disaster-recovery.md`](disaster-recovery.md)), authoritative current-state knowledge →
+  [`reference/`](reference), design rationale or a material change → [`architecture/`](architecture) and/or
+  a new [`decisions/`](decisions) ADR. The test: "would this be useful if the incident had never happened?"
+  If yes, record it in a concise "Learnings / follow-up" section on the incident issue itself, then promote
+  it from there into the right doc; otherwise leave it in the issue history. (First stated in
+  [#1336](https://github.com/isejalabs/homelab/issues/1336); restated here so it's discoverable without
+  reading that issue.)
+- **Periodic review**: no separate calendar-based cadence beyond the two rules above — same-PR updates and
+  incident-driven promotion are the mechanism, so docs stay current as a side effect of normal work rather
+  than needing a scheduled pass. A heavier, genuinely periodic audit (re-reading everything for drift, the
+  way the Sep 2026 documentation audit that started this whole effort did) is deliberately a separate, less
+  frequent process — see [#1348](https://github.com/isejalabs/homelab/issues/1348).
+- **Contributing**: follow [Where a new doc belongs](#where-a-new-doc-belongs) and
+  [Status labels](#status-labels) below; a PR's own test plan should say what was actually verified, the
+  same way it does for code — there's no separate documentation-review step beyond the PR review itself.
+
 ### Status labels
 
 Borrowed from the Sep 2026 documentation audit's own
