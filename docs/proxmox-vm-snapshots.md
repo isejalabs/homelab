@@ -1,5 +1,7 @@
 # Proxmox VM Snapshots & Rollback
 
+> **Status:** current
+
 ## Overview
 
 [#1296](https://github.com/isejalabs/homelab/issues/1296): a `just proxmox::snapshot::*` recipe set that

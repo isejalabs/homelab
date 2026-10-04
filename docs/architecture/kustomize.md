@@ -1,5 +1,7 @@
 # Kustomize overlay approach
 
+> **Status:** current
+
 Every unit under `k8s/infra/` and `k8s/apps/` (an "app") and every entry under `k8s/bootstrap/cluster/flux/sets/`
 (a Flux "set" — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md)) is built with
 [kustomize](https://kustomize.io/), composed the same way across all 8 environments

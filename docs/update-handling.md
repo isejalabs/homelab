@@ -1,5 +1,7 @@
 # Update Handling and Automerging of PRs
 
+> **Status:** current
+
 See [`docs/architecture/environments.md`](architecture/environments.md) for what each environment is for and
 how they differ structurally (sizing, which apps run, Flux reconciliation interval, ...). This doc only
 covers how *package-update* PRs get created, labeled, and merged — and, separately, how a Flux instance

@@ -1,5 +1,7 @@
 # Architecture overview
 
+> **Status:** current
+
 The homelab is a stack of layers, each provisioned/reconciled by the tool suited to it, handing off to the
 next: **Proxmox** hosts VMs, **Talos Linux** is the immutable OS those VMs run, **Kubernetes** is what Talos
 bootstraps, and **Flux CD** continuously reconciles everything Kubernetes-side from this repo. This page is

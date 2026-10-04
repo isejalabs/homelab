@@ -1,5 +1,7 @@
 # App storage
 
+> **Status:** current
+
 How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc-no-backup`
 (see [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md) for which one to
 pick). Scoped to the app-facing interface only -- not a Longhorn or Proxmox architecture doc.

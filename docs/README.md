@@ -89,11 +89,13 @@ and already in use in `decisions/*`'s `## Status` section:
 
 Where it's signalled depends on the doc type, since each already has its own natural home for it:
 
-- `architecture/*`: the **Status** column in the table below.
-- this folder's top-level procedural docs: assumed `current` (each describes a shipped mechanism); called
-  out inline if that's ever not the case.
+- `architecture/*` and this folder's top-level procedural docs: an explicit `> **Status:** ...` line right
+  under the title — `architecture/*` also repeats it in the **Status** column below, since that table is
+  the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
-- `audits/*`: implicit from the folder — everything there is `audit`, never `current`.
+- `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with
+  an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs.
+  "complete"), and these files are never rewritten after the fact (see Ownership above).
 - `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the
   root README's [folder structure](../README.md#folder-structure)).
 
@@ -110,6 +112,7 @@ Where it's signalled depends on the doc type, since each already has its own nat
 | [`architecture/storage.md`](architecture/storage.md) | current | Longhorn vs proxmox-csi, and when each is used |
 | [`architecture/workloads.md`](architecture/workloads.md) | current | catalog of every app/infra component deployed, what it is, and how it's installed |
 | [`architecture/repositories.md`](architecture/repositories.md) | current | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
+| [`architecture/ci.md`](architecture/ci.md) | current | every CI workflow, what it checks, tool provisioning via mise, and PR labeling/Mergify |
 
 Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document
 cluster settings and procedures").

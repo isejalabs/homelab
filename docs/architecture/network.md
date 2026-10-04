@@ -1,5 +1,7 @@
 # Networking
 
+> **Status:** current
+
 A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster:
 **Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium)
 terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the

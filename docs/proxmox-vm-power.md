@@ -1,5 +1,7 @@
 # Proxmox VM Power Lifecycle
 
+> **Status:** current
+
 ## Overview
 
 [#1431](https://github.com/isejalabs/homelab/issues/1431): a `just proxmox::vm::*` recipe set that

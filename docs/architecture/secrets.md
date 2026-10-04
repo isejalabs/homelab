@@ -1,5 +1,7 @@
 # Secrets management
 
+> **Status:** current
+
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is
 mechanical, not stylistic: **SOPS** for anything that has to exist *before* a Kubernetes cluster and Flux are
 running, and **sealed-secrets** / **1Password + External Secrets Operator (ESO)** for anything a running

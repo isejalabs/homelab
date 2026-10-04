@@ -1,5 +1,7 @@
 # Storage: Longhorn vs. proxmox-csi
 
+> **Status:** current
+
 Two storage backends are available in-cluster. This isn't a permanent 50/50 split: **Longhorn is replacing
 proxmox-csi step by step**, and proxmox-csi is being kept only where there's a specific benefit to sticking
 with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending

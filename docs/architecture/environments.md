@@ -1,5 +1,7 @@
 # Environments
 
+> **Status:** current
+
 Every environment shares the same overlay structure ([`kustomize.md`](kustomize.md)) — the same apps *could*
 run anywhere, and every environment has identical `envs/<env>/` folders throughout the repo. What actually
 differs per environment is: which subset of apps Flux deploys there, how much compute it gets, how
