@@ -65,14 +65,23 @@ within a few reconcile intervals (see [`environments.md`](architecture/environme
 for how long that takes per environment). A `Kustomization` stuck `False` here is a real problem to resolve
 before continuing, not something later steps will fix on their own.
 
-### 4. Restore in-cluster app/PVC data
+### 4. Verify in-cluster app/PVC data restored automatically
 
-For each app that had data worth keeping: [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) —
-`just backup::kopiur::restore <app> -e <env> -n <namespace>`. This is the one step in this whole procedure
-that's actually been validated end to end already (see the scenarios table above).
+No restore command needed here — this isn't an action step, just a checkpoint. Every app's PVC uses
+kopiur's CSI `dataSourceRef`/`Restore` populator
+(see [`kopiur-backup-restore.md`'s "Restore-on-create"](kopiur-backup-restore.md#restore-on-create-the-core-idea)),
+and step 3's Flux reconciliation creating each app's PVC fresh *is* the "full namespace recreation" case
+that mechanism already handles on its own: kopiur restores the latest matching snapshot before any pod can
+mount the volume, with no explicit restore command. This exact automatic-restore-on-create path is what the
+disposable `kopiur-test` app validated live in `rebuild` (see the scenarios table above) — not the manual
+recipe below.
 
-**Checkpoint**: the recipe itself waits for the new PVC to bind; additionally check the restored app's data
-is actually present (not just that the PVC exists) before considering the app recovered.
+**Checkpoint**: confirm each app's data is actually *present*, not just that its PVC is `Bound` — a PVC
+whose `Restore` found no matching snapshot still binds successfully (`onMissingSnapshot: Continue` populates
+an empty volume instead of blocking forever), which looks identical to a successful restore at the PVC
+level. [`kopiur-backup-restore.md`'s manual restore recipe](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup)
+(`just backup::kopiur::restore <app> -e <env> -n <namespace>`) is only needed if this checkpoint fails for a
+specific app — not part of the normal rebuild sequence.
 
 ### 5. Re-attach any `proxmox-csi`-pinned volumes
 

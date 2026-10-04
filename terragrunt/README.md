@@ -148,6 +148,12 @@ cp ~/.kube/config ~/.kube/config.bak
 KUBECONFIG=~/.kube/config:"$OUTPUT_DIR"/kube-config.yaml kubectl config view --flatten > /tmp/config && mv /tmp/config ~/.kube/config
 ```
 
+Second hacky alternative, a symlink instead of a variable -- same root cause/fix, just inlined into one line:
+
+```sh
+ln -s .terragrunt-cache/**/output output.workaround; cp ~/.kube/config ~/.kube/config.bak; KUBECONFIG=~/.kube/config:output.workaround/kube-config.yaml kubectl config view --flatten > /tmp/config && mv /tmp/config ~/.kube/config; rm output.workaround
+```
+
 # Cluster end of lifecycle
 
 
