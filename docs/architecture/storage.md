@@ -9,9 +9,12 @@ proxmox-csi step by step**, and proxmox-csi is being kept only where there's a s
 with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending
 on Longhorn's own backup/restore path. So the practical question for a new volume isn't "which is better" but
 "does this volume need the proxmox-csi property badly enough to justify it" — if not, it goes on Longhorn.
-That consolidation is also what's driving [issue #807](https://github.com/isejalabs/homelab/issues/807),
-currently being worked on, to give the cluster consistent, reliable storage provisioning and backup/restore
-in one place, rather than the two different lifecycle stories this doc otherwise has to describe.
+That consolidation was largely delivered by [issue #807](https://github.com/isejalabs/homelab/issues/807)
+(closed) rolling out [kopiur](https://github.com/home-operations/kopiur) as the common backup/restore
+operator (see [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)); the remaining storage/CSI
+fine-tuning discovered along the way — reviewing `reclaimPolicy: Retain` now that kopiur exists, and
+disabling Longhorn's native offsite backup once every app has migrated — is tracked separately at
+[issue #80](https://github.com/isejalabs/homelab/issues/80), open.
 
 ## proxmox-csi — Terragrunt-pinned volumes that survive a cluster rebuild
 
@@ -164,16 +167,19 @@ That's a genuinely dynamic PVC — no pre-created `PersistentVolume`, no Terragr
 StorageClass reference. This is the default pattern for any app that needs a volume: pick the
 `longhorn-*` class matching its consistency/performance needs, and let Longhorn provision and replicate it.
 Longhorn's own S3-backed `RecurringJob`s
-([`job-backup-default.yaml`](../../k8s/infra/longhorn-system/longhorn/base/job-backup-default.yaml)) are the
-backup mechanism for this tier today — there's no Terragrunt-style state-exclusion/re-import dance for
+([`job-backup-default.yaml`](../../k8s/infra/longhorn-system/longhorn/base/job-backup-default.yaml)) were
+the original backup mechanism for this tier — there's no Terragrunt-style state-exclusion/re-import dance for
 Longhorn volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned
-volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) is the tracked effort to make this
-more rigorous: it settled on [kopiur](https://github.com/home-operations/kopiur) over
+volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) (closed) made this more rigorous:
+it settled on [kopiur](https://github.com/home-operations/kopiur) over
 [VolSync](https://github.com/backube/volsync) as the backup/restore operator, split into the Kubernetes-side
 rollout ([#1127](https://github.com/isejalabs/homelab/issues/1127) — operator, components, StorageClasses),
 the S3 backup target in RustFS ([#1128](https://github.com/isejalabs/homelab/issues/1128)), and the
 1Password credentials kopiur needs to authenticate against it
-([#1129](https://github.com/isejalabs/homelab/issues/1129)).
+([#1129](https://github.com/isejalabs/homelab/issues/1129)) — see
+[`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for day-to-day use. Disabling the native
+`RecurringJob`s now that kopiur covers this is one of the two follow-ups tracked at
+[issue #80](https://github.com/isejalabs/homelab/issues/80).
 
 ## Choosing between them
 
