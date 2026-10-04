@@ -13,7 +13,7 @@ thing they describe.
 | What is this system?                             | the root [`README.md`](../README.md)                                                                                                              |
 | Why is it designed this way?                     | [`architecture/`](architecture), [`decisions/`](decisions)                                                                                        |
 | What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`reference/`](reference), and per-folder `README.md`s |
-| How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
+| How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`disaster-recovery.md`](disaster-recovery.md), [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
 | Why did it become this way?                      | [`decisions/`](decisions) (ADRs), [`audits/`](audits) (point-in-time assessments), the root README's [history](../README.md#a-bit-of-history)     |
 
 Current repository truth lives in the architecture, reference and procedural docs above, and in the
@@ -32,6 +32,8 @@ configuration — don't read them as authoritative for "what exists today."
 - **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
   - [`update-handling.md`](update-handling.md) — how renovate/labeler/mergify/Flux interact for automated
     dependency updates.
+  - [`disaster-recovery.md`](disaster-recovery.md) — the full cluster-rebuild sequence, composed from the
+    procedures below plus `AGENTS.md`'s Terragrunt section, with a validation checkpoint per step.
   - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class
     reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and
