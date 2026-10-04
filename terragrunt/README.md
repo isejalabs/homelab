@@ -40,7 +40,10 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `ro
 cd terragrunt/<account>/<region>/<env>/vehagn-k8s
 ```
 
-> **TODO** document more
+See [`../AGENTS.md`](../AGENTS.md)'s Terragrunt section for the actual `terragrunt plan`/`apply` invocation
+from here, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha for non-interactive shells, and the `prod`/`qa`
+main-branch-only rule — not duplicated here. See [`docs/disaster-recovery.md`](../docs/disaster-recovery.md)
+for how this step fits into a full cluster rebuild.
 
 # RustFS buckets/users for kopiur backup
 
