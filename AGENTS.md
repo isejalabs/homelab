@@ -24,8 +24,7 @@ A personal, IaC-driven homelab: Proxmox VMs → Talos Linux → Kubernetes, prov
   - `add-labels` — adds common labels (e.g. `reconcile.fluxcd.io/watch: "Enabled"`).
   - `set-flux-defaults` — sets default Flux `Kustomization`/`HelmRelease` reconciliation intervals.
   - `kopiur-secret-env` — rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket name (both otherwise stated once, generically, in `base/`).
-  - `suspend-kopiur-schedule` — force-suspends every `SnapshotSchedule` in environments without an active kopiur backup schedule (`dbg`/`head`/`poc`/`src`), regardless of which storage component an app picked.
-  See `k8s/components/README.md` for the folder structure.
+  - `suspend-kopiur-schedule` — force-suspends every `SnapshotSchedule` in environments without an active kopiur backup schedule (`dbg`/`head`/`poc`/`src`), regardless of which storage component an app picked. See `k8s/components/README.md` for the folder structure.
 - `scripts/` — helper shell scripts: `sops-encrypt-all.sh`/`sops-decrypt-all.sh` (bulk SOPS operations), `tg-state-rm.sh` (remove dangling/volume Terragrunt state before destroy), `volume-remove-state.sh`, `upgrade-k8s.sh`.
 - `_attic/`, `ZZ.bak/` — retired/old material, not part of the active implementation.
 
@@ -42,13 +41,7 @@ This runs two private sub-recipes in order:
 - `core` (namespaces and personal credential injection via `op inject` leveraging `k8s/bootstrap/kustomize`, as well as CRD extraction/apply from helmfile — see `k8s/bootstrap/helmfile/crds/helmfile.yaml.gotmpl`)
 - `apps` (helmfile sync of Cilium, sealed-secrets, cert-manager, external-secrets, onepassword-connect, flux-operator, flux-instance — see `k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl` for the authoritative list and ordering). After that, Flux CD takes over reconciliation from Git automatically — there is no separate "apply everything" command for `k8s/infra`/`k8s/apps`; changes land by being merged and reconciled by Flux (`flux get ks -A` to check status).
 
-**Testing a not-yet-merged branch against a live environment**: see the `track-branch` skill
-(`.agents/skills/track-branch/`) — points one environment's `flux-instance` at a branch via a `tmp(<env>): ...`
-commit made *on that same branch* (never `main`, never a separate branch) plus a direct `kubectl apply -k`
-to the live cluster. Fine for any non-prod environment (`dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src`)
-— never `prod`. Clean up any test-created resources afterward, including
-Retain-policy PVs/Longhorn volumes, which outlive the PVC/namespace that claimed them and need deleting
-both as the k8s `PersistentVolume` object and the underlying `volumes.longhorn.io` object.
+**Testing a not-yet-merged branch against a live environment**: see the `track-branch` skill (`.agents/skills/track-branch/`) — points one environment's `flux-instance` at a branch via a `tmp(<env>): ...` commit made *on that same branch* (never `main`, never a separate branch) plus a direct `kubectl apply -k` to the live cluster. Fine for any non-prod environment (`dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src`) — never `prod`. Clean up any test-created resources afterward, including Retain-policy PVs/Longhorn volumes, which outlive the PVC/namespace that claimed them and need deleting both as the k8s `PersistentVolume` object and the underlying `volumes.longhorn.io` object.
 
 Terragrunt (run from `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`):
 
@@ -81,7 +74,7 @@ There is no application source code, so CI (`.github/workflows/`) is limited to 
 - **Function documentation and the `scripts/README.md` index for scripts under `scripts/`** — see `.agents/instructions/shell-scripts.md`.
 - **Markdown formatting, GitHub reference linking, and branch naming/issue-first conventions** are imported from commons (see above) — no repo-specific override here.
 - **Environment identifiers** are one of `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — used consistently across `terragrunt/`, `k8s/*/envs/`, and `k8s/components/envs/`. See [`docs/architecture/environments.md`](docs/architecture/environments.md) for what each one is for.
-- **Flux `Kustomization.spec.dependsOn`**: only add it for ordering between two Flux-reconciled units (e.g. `onepassword-connect`'s `flux/ks.yaml` depends on `external-secrets`). Never add a `dependsOn` on something 
+- **Flux `Kustomization.spec.dependsOn`**: only add it for ordering between two Flux-reconciled units (e.g. `onepassword-connect`'s `flux/ks.yaml` depends on `external-secrets`). Never add a `dependsOn` on something
    - installed via the bootstrap `helmfile` (e.g., cilium, sealed-secrets, cert-manager, external-secrets, onepassword-connect, flux-operator/instance — see `k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl`) or
    - whose CRDs are installed via the bootstrap `helmfile` (e.g., grafana-operator, kube-prometheus-stack — see `k8s/bootstrap/helmfile/crds/helmfile.yaml.gotmpl`)
    

@@ -4,27 +4,13 @@ status: current
 
 # Cluster workload
 
-A catalog of everything actually running in the cluster — every app under
-[`k8s/apps/`](../../k8s/apps/) and every infra component under [`k8s/infra/`](../../k8s/infra/) — in the
-spirit of [billimek/k8s-gitops](https://github.com/billimek/k8s-gitops/)'s single-table workload overview.
-This doc only says **what** runs and **where**; for **how** the pieces work, see the other architecture docs
-it links out to rather than duplicates: [`kustomize.md`](kustomize.md) for the `base`/`envs/<env>`/`flux`
-overlay shape every entry below follows, and [`environments.md`](environments.md) for the minimal-vs-full
-app split referenced throughout.
+A catalog of everything actually running in the cluster — every app under [`k8s/apps/`](../../k8s/apps/) and every infra component under [`k8s/infra/`](../../k8s/infra/) — in the spirit of [billimek/k8s-gitops](https://github.com/billimek/k8s-gitops/)'s single-table workload overview. This doc only says **what** runs and **where**; for **how** the pieces work, see the other architecture docs it links out to rather than duplicates: [`kustomize.md`](kustomize.md) for the `base`/`envs/<env>`/`flux` overlay shape every entry below follows, and [`environments.md`](environments.md) for the minimal-vs-full app split referenced throughout.
 
-**Authoritative fields, and keeping this current**: `Category`/`App`/`Component` and `Manifest` are derived
-directly from the directory under `k8s/apps/`/`k8s/infra/` and its `base/` contents; `Flux set` and
-`Bootstrap helmfile?` are derived from `k8s/bootstrap/cluster/flux/sets/*/kustomization.yaml` and the
-bootstrap helmfiles respectively — all four are checkable against the repo, not editorial judgment. `What
-it is` is the one free-text field; keep it to what the thing *is*, linking out to an architecture doc for
-*why*. Per the standing ownership convention ([`docs/README.md`](../README.md#ownership)), add a row here in
-the same PR that wires a new unit into a Flux set — this table drifting from the Flux sets it's supposed to
-mirror is exactly the kind of gap [#1342](https://github.com/isejalabs/homelab/issues/1342) found and fixed.
+**Authoritative fields, and keeping this current**: `Category`/`App`/`Component` and `Manifest` are derived directly from the directory under `k8s/apps/`/`k8s/infra/` and its `base/` contents; `Flux set` and `Bootstrap helmfile?` are derived from `k8s/bootstrap/cluster/flux/sets/*/kustomization.yaml` and the bootstrap helmfiles respectively — all four are checkable against the repo, not editorial judgment. `What it is` is the one free-text field; keep it to what the thing *is*, linking out to an architecture doc for *why*. Per the standing ownership convention ([`docs/README.md`](../README.md#ownership)), add a row here in the same PR that wires a new unit into a Flux set — this table drifting from the Flux sets it's supposed to mirror is exactly the kind of gap [#1342](https://github.com/isejalabs/homelab/issues/1342) found and fixed.
 
 ## Apps (`k8s/apps/`)
 
-Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `rebuild` also get the six
-**optional** ones (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)).
+Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `rebuild` also get the six **optional** ones (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)).
 
 | Category | App | What it is | Manifest | Flux set |
 | --- | --- | --- | --- | --- |
@@ -40,11 +26,7 @@ Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `r
 
 ## Infra (`k8s/infra/`)
 
-Every environment gets the **full** infra set — both `minimal` and `optional` — regardless of which app set
-it runs (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)). A few
-of these are installed live by the bootstrap `helmfile` *before* Flux exists, in the dependency order shown,
-then handed off to Flux for ongoing management — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md)
-for the full bootstrap walkthrough; this table only says which ones.
+Every environment gets the **full** infra set — both `minimal` and `optional` — regardless of which app set it runs (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)). A few of these are installed live by the bootstrap `helmfile` *before* Flux exists, in the dependency order shown, then handed off to Flux for ongoing management — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md) for the full bootstrap walkthrough; this table only says which ones.
 
 | Category | Component | What it is | Bootstrap helmfile? | Flux set |
 | --- | --- | --- | --- | --- |
@@ -69,19 +51,11 @@ for the full bootstrap walkthrough; this table only says which ones.
 
 ### CRDs-only, not actually deployed
 
-[`o11y/grafana-operator`](../../k8s/infra/o11y/grafana-operator/) and
-[`o11y/kube-prometheus-stack`](../../k8s/infra/o11y/kube-prometheus-stack/) each contain only an
-`ocirepository.yaml` — no `HelmRelease`, no `flux/` folder, and neither is referenced by either Flux infra
-set. They exist solely so the bootstrap `crds` helmfile can extract and pre-install their CRDs
-(`--include-crds --no-hooks`, same mechanism `snapshot-controller`'s CRDs use above). **Neither release is
-actually running anywhere in this repo today** — if an observability stack (Grafana + Prometheus) gets built
-out, these are the CRD groundwork already laid for it, not evidence it already exists.
+[`o11y/grafana-operator`](../../k8s/infra/o11y/grafana-operator/) and [`o11y/kube-prometheus-stack`](../../k8s/infra/o11y/kube-prometheus-stack/) each contain only an `ocirepository.yaml` — no `HelmRelease`, no `flux/` folder, and neither is referenced by either Flux infra set. They exist solely so the bootstrap `crds` helmfile can extract and pre-install their CRDs (`--include-crds --no-hooks`, same mechanism `snapshot-controller`'s CRDs use above). **Neither release is actually running anywhere in this repo today** — if an observability stack (Grafana + Prometheus) gets built out, these are the CRD groundwork already laid for it, not evidence it already exists.
 
 ## Bootstrap install order
 
-The `apps` helmfile installs the bootstrap-managed pieces above in this dependency chain, before Flux exists
-to do it declaratively (see [`k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl`](../../k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl)
-for the authoritative `needs:` graph):
+The `apps` helmfile installs the bootstrap-managed pieces above in this dependency chain, before Flux exists to do it declaratively (see [`k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl`](../../k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl) for the authoritative `needs:` graph):
 
 ```
 cilium
@@ -90,8 +64,4 @@ cilium
   └─▶ external-secrets ─▶ onepassword-connect
 ```
 
-Everything else in the tables above — `proxmox-csi`, `external-dns`, `gateway-api-crds`, `gateway`,
-`kubelet-serving-cert-approver`, `common/ns`, `snapshot-controller`'s release itself, `longhorn-core`,
-`longhorn`, and every app in the first table — is purely Flux-managed from the start; the bootstrap helmfile
-never touches them (`snapshot-controller`, `grafana-operator`, and `kube-prometheus-stack` are pre-seeded
-CRDs-only, as noted above).
+Everything else in the tables above — `proxmox-csi`, `external-dns`, `gateway-api-crds`, `gateway`, `kubelet-serving-cert-approver`, `common/ns`, `snapshot-controller`'s release itself, `longhorn-core`, `longhorn`, and every app in the first table — is purely Flux-managed from the start; the bootstrap helmfile never touches them (`snapshot-controller`, `grafana-operator`, and `kube-prometheus-stack` are pre-seeded CRDs-only, as noted above).
