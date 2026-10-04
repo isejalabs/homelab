@@ -12,8 +12,10 @@ an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually p
 **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes),
 identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair
 of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is
-documented as one story anywhere else in the repo — each in-cluster app's own README is either a bare
-`kubectl` cheatsheet or nonexistent, and the physical-network side isn't in Git at all.
+documented as one story anywhere else in the repo — most in-cluster apps' own READMEs are either a bare
+`kubectl` cheatsheet or nonexistent (a few, like PowerDNS's and Cilium's, have grown real operational depth —
+linked from the relevant section below rather than repeated here), and the physical-network side isn't in
+Git at all.
 
 ## End-to-end flow
 
@@ -144,14 +146,11 @@ one automatically (`gatewayClassName: cilium` on every `Gateway`).
 | `external` | HTTPS:443 | `10.8.8.83` | reserved for public-facing routes (see [gap](#whats-not-here) below) |
 
 `internal` and `internal-http` deliberately **share one LB IP** via `io.cilium/lb-ipam-sharing-key`, split
-into two separate `Gateway` objects instead of one Gateway with two listeners —
-[`k8s/infra/gateway-api/gateway/README.md`](../../k8s/infra/gateway-api/gateway/README.md) explains why:
-Cilium's Gateway-API-to-Envoy translation leaks every app's exact-hostname HTTPS route into the HTTP
-listener's own route table too, and Envoy always prefers an exact-hostname match over the redirect's
-wildcard vhost — so a same-Gateway HTTP→HTTPS redirect silently stopped firing for any hostname that had its
-own route (tracked upstream as [cilium/cilium#44123](https://redirect.github.com/cilium/cilium/issues/44123)).
-Splitting the listeners into two Gateways avoids the route leak entirely, at the cost of `internal-http`
-restricting `allowedRoutes` to `from: Same` so only its own redirect route can attach.
+into two separate `Gateway` objects instead of one Gateway with two listeners, to avoid a Cilium/Envoy
+route-leak bug that silently broke the HTTP→HTTPS redirect — see
+[`k8s/infra/gateway-api/gateway/README.md`](../../k8s/infra/gateway-api/gateway/README.md) for the actual
+mechanism and upstream bug reference, not duplicated here. The split costs `internal-http` restricting
+`allowedRoutes` to `from: Same`, so only its own redirect route can attach.
 
 Apps attach an `HTTPRoute` to `internal` by `parentRefs`, e.g.
 [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml) (already
@@ -232,7 +231,10 @@ which row is which (this file's own frontmatter status covers the doc as a whole
 specific than that). Design rationale lives in
 [`docs/decisions/0001-powerdns-as-dns-server.md`](../decisions/0001-powerdns-as-dns-server.md) and
 [`0002-tsig-over-ip-acl-for-axfr.md`](../decisions/0002-tsig-over-ip-acl-for-axfr.md); this section is the
-current-state zone inventory, not the reasoning behind it.
+current-state zone inventory, not the reasoning behind it. For the operational mechanics — per-environment
+TSIG key setup, configuring `10.7.2.12` as a TSIG-authenticated slave, the AXFR/`pdnsutil` cheat sheet, and
+quirks encountered live — see [`k8s/apps/dns/powerdns/README.md`](../../k8s/apps/dns/powerdns/README.md)
+rather than this doc; nothing below duplicates it.
 
 AdGuard and Unbound above are **resolvers** — they answer queries on behalf of LAN clients but aren't
 authoritative for anything. [`k8s/apps/dns/powerdns/`](../../k8s/apps/dns/powerdns/) (one
@@ -263,7 +265,7 @@ Two small deliberate app-level changes were needed to make the zone actually cor
 
 **Known upstream bug (external-dns, not PowerDNS)**: when a name has more than one target sharing the same IP, external-dns's rfc2136 provider removes and re-adds that record (and any PTR pointing at it) on every single reconcile cycle, forever — harmless (the records stay correct and resolvable at any point in time), but wasteful. Root cause confirmed in external-dns's own source: `Targets.Same()` compares FQDN-valued targets (PTR/CNAME) without normalizing the trailing dot PowerDNS's AXFR always includes. Tracked upstream at [kubernetes-sigs/external-dns#6555](https://redirect.github.com/kubernetes-sigs/external-dns/pull/6555) (open, unmerged); tracked in this repo at [#1393](https://github.com/isejalabs/homelab/issues/1393). Mitigated (not fixed) by reducing external-dns's `--interval` to each environment's own `FLUX_RECONCILIATION_INTERVAL` instead of its 1m default, and largely avoided structurally by the Gateway-CNAME change above — the one remaining case still exposed to it is a Service assigned more than one LB IP (e.g. `unbound`'s `10.8.<env-id>.{8,11}`), confirmed live to still work correctly, just with the same underlying churn.
 
-`ns1.<env>.iseja.net` (every zone's own NS target and SOA MNAME, see `bootstrap-zone.sh`) needed the same explicit-hostname treatment as the standalone Services above, plus a one-time SOA fix: `pdnsutil`'s `default-soa-content` default seeds every new zone with a deliberately-fake MNAME placeholder (`a.misconfigured.dns.server.invalid`), which nothing had ever overridden — every zone's SOA now gets explicitly set to the real `ns1.<env>.iseja.net` MNAME at bootstrap time instead. This is one of three per-environment naming schemes — see [`docs/reference/environments.md#domain-and-naming`](../reference/environments.md#domain-and-naming) for the other two and the full per-environment table.
+`ns1.<env>.iseja.net` (every zone's own NS target and SOA MNAME) needed the same explicit-hostname treatment as the standalone Services above, plus a one-time fix for a PowerDNS default-seeded placeholder MNAME that nothing had previously overridden — see [`k8s/apps/dns/powerdns/README.md`](../../k8s/apps/dns/powerdns/README.md#soa-mname-and-ns1s-own-record) for the actual mechanism, not duplicated here. This is one of three per-environment naming schemes — see [`docs/reference/environments.md#domain-and-naming`](../reference/environments.md#domain-and-naming) for the other two and the full per-environment table.
 
 ## Physical network: OPNsense, UCS, and the root nameservers
 
