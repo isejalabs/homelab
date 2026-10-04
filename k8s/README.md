@@ -1,5 +1,4 @@
-See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a full catalog of every app and
-infra component actually deployed — what each one is, and how it's installed.
+See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a full catalog of every app and infra component actually deployed — what each one is, and how it's installed.
 
 ## Folder Structure
 
@@ -49,6 +48,4 @@ A `_ns` folder (e.g. `infra/cert-manager/_ns`) is the exception: it only has a `
 
 ## Kustomize overlay approach
 
-See [`docs/architecture/kustomize.md`](../docs/architecture/kustomize.md) for how the `base`/`envs/<env>`/`flux`
-overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers
-(domain rewriting, common labels, Flux `spec.path`/`spec.interval` rewriting) fit together.
+See [`docs/architecture/kustomize.md`](../docs/architecture/kustomize.md) for how the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers (domain rewriting, common labels, Flux `spec.path`/`spec.interval` rewriting) fit together.

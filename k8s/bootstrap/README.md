@@ -21,8 +21,7 @@ Provisioning the VMs in Proxmox and installing Talos OS Kubernetes distribution 
 
 ### Prerequisites
 
-- Tools installed (all pinned in the repo root's [`.mise.toml`](../../.mise.toml) — run `mise install` to
-  get them): `talosctl` (optional), `tofu`, `terragrunt`
+- Tools installed (all pinned in the repo root's [`.mise.toml`](../../.mise.toml) — run `mise install` to get them): `talosctl` (optional), `tofu`, `terragrunt`
 
 ## Deploying infrastructure and applications
 
@@ -32,8 +31,7 @@ Before running the `just` command, make sure that the initial cluster is ready a
 
 ### Prerequisites
 
-- Tools installed (all pinned in the repo root's [`.mise.toml`](../../.mise.toml) — run `mise install` to
-  get them): `gum`, `helmfile`, `jq` (optional), `just`, `kubectl`, `kustomize`, `minijinja-cli`, `op`, `yq`
+- Tools installed (all pinned in the repo root's [`.mise.toml`](../../.mise.toml) — run `mise install` to get them): `gum`, `helmfile`, `jq` (optional), `just`, `kubectl`, `kustomize`, `minijinja-cli`, `op`, `yq`
 - A signed-in 1Password CLI (`op`). Machine secrets never live in this repo; every `op://` reference in the manifests is resolved with an `op inject` during the bootstrapping (and later handled by [ESO](https://external-secrets.io/)).
 - A valid kube context configured and available with the naming scheme `admin@<env>-homelab`.
 
@@ -107,8 +105,7 @@ flux-instance    flux-system      oci://ghcr.io/controlplaneio-fluxcd/charts/flu
 just bootstrap cluster --env rebuild  6,59s user 2,29s system 2% cpu 6:15,81 total
 ```
 
-<details>
-<summary>Full version:</summary>
+<details> <summary>Full version:</summary>
 
 ```
 ❯ just bootstrap cluster --env rebuild
