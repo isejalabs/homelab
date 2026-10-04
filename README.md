@@ -17,7 +17,8 @@ up-to-date, browsable overview of the current implementation.
   [`environments.md`](docs/architecture/environments.md) for what each one is for.
 - **Status**: prod has been live since 9/2025; still in its foundation phase — see
   [history](#a-bit-of-history) below.
-- **Where to go next**: the [Documentation](#documentation) section below, or straight to
+- **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack
+  diagram, the [Documentation](#documentation) section below, or straight to
   [`docs/README.md`](docs/README.md).
 
 ## Principles
@@ -41,6 +42,8 @@ up-to-date, browsable overview of the current implementation.
   [`docs/architecture/kustomize.md`](docs/architecture/kustomize.md) for how it fits together.
 
 ## How it's built
+
+See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the full stack diagram; summary:
 
 - **Provisioning** ([`terragrunt/`](terragrunt/README.md)) — OpenTofu modules provision Proxmox VMs and
   install Talos, orchestrated per environment with Terragrunt for DRY multi-environment IaC.
