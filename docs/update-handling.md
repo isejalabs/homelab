@@ -25,7 +25,7 @@ decides what ref to reconcile from in the first place.
 - **Flux CD**: reconciles every environment's cluster continuously from Git — normally `refs/heads/main`.
   There is no separate "apply to the cluster" step distinct from merging: once a PR lands on `main`, Flux
   picks it up on its next reconcile (see [`kustomize.md`](architecture/kustomize.md) and
-  [`environments.md`](architecture/environments.md#flux-reconciliation-interval) for the per-environment
+  [`environments.md`](reference/environments.md#flux-reconciliation-interval) for the per-environment
   interval). This replaces an earlier draft of this doc that referenced Argo CD — **this repo has never used
   Argo CD**; Flux is the only GitOps controller here.
 
