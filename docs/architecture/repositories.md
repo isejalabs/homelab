@@ -1,6 +1,8 @@
-# Repositories and IaC tool boundaries
+---
+status: current
+---
 
-> **Status:** current
+# Repositories and IaC tool boundaries
 
 How the homelab is split across repositories, which tool manages which kind of thing, and where cross-repo issues live. The reasoning and the still-open decisions are in [ADR 0003](../decisions/0003-repository-and-tool-boundaries.md); this page is the current-state reference.
 

@@ -1,6 +1,8 @@
-# Secrets management
+---
+status: current
+---
 
-> **Status:** current
+# Secrets management
 
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is
 mechanical, not stylistic: **SOPS** for anything that has to exist *before* a Kubernetes cluster and Flux are

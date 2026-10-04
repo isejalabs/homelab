@@ -1,6 +1,8 @@
-# Update Handling and Automerging of PRs
+---
+status: current
+---
 
-> **Status:** current
+# Update Handling and Automerging of PRs
 
 See [`docs/architecture/environments.md`](architecture/environments.md) for what each environment is for and
 how they differ structurally (sizing, which apps run, Flux reconciliation interval, ...). This doc only

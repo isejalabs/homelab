@@ -1,6 +1,8 @@
-# CI
+---
+status: current
+---
 
-> **Status:** current
+# CI
 
 There's no application source code in this repo, so CI (`.github/workflows/`) is limited to static validation rather than tests: linting/formatting checks, rendering every templated manifest, and (for `bootstrap-apps-test.yml`) actually applying a subset of the bootstrap `helmfile` against a throwaway cluster. Everything below runs on every `pull_request` and every `push` to `main`, and — per [#1206](https://github.com/isejalabs/homelab/issues/1206) phase 1 — none of it is wired up as a required branch-protection check yet, so a red run doesn't block a merge at the GitHub level (treat it as if it did anyway — see the "PR discipline" section above).
 

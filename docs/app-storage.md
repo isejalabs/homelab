@@ -1,6 +1,8 @@
-# App storage
+---
+status: current
+---
 
-> **Status:** current
+# App storage
 
 How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc-no-backup`
 (see [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md) for which one to

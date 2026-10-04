@@ -1,6 +1,8 @@
-# Proxmox VM Power Lifecycle
+---
+status: current
+---
 
-> **Status:** current
+# Proxmox VM Power Lifecycle
 
 ## Overview
 

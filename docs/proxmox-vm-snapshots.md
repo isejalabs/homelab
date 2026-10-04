@@ -1,6 +1,8 @@
-# Proxmox VM Snapshots & Rollback
+---
+status: current
+---
 
-> **Status:** current
+# Proxmox VM Snapshots & Rollback
 
 ## Overview
 

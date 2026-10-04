@@ -89,8 +89,17 @@ and already in use in `decisions/*`'s `## Status` section:
 
 Where it's signalled depends on the doc type, since each already has its own natural home for it:
 
-- `architecture/*` and this folder's top-level procedural docs: an explicit `> **Status:** ...` line right
-  under the title — `architecture/*` also repeats it in the **Status** column below, since that table is
+- `architecture/*` and this folder's top-level procedural docs: a YAML frontmatter block at the very top
+  of the file, before the title —
+
+  ```yaml
+  ---
+  status: current
+  ---
+  ```
+
+  — which also doubles as the place for any other per-doc metadata later, without inventing a second
+  mechanism. `architecture/*` also repeats its status in the **Status** column below, since that table is
   the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with

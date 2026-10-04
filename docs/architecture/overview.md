@@ -1,6 +1,8 @@
-# Architecture overview
+---
+status: current
+---
 
-> **Status:** current
+# Architecture overview
 
 The homelab is a stack of layers, each provisioned/reconciled by the tool suited to it, handing off to the
 next: **Proxmox** hosts VMs, **Talos Linux** is the immutable OS those VMs run, **Kubernetes** is what Talos

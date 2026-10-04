@@ -1,6 +1,8 @@
-# Kopiur Backup & Restore
+---
+status: current
+---
 
-> **Status:** current
+# Kopiur Backup & Restore
 
 ## Overview
 

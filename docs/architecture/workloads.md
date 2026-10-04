@@ -1,6 +1,8 @@
-# Cluster workload
+---
+status: current
+---
 
-> **Status:** current
+# Cluster workload
 
 A catalog of everything actually running in the cluster — every app under
 [`k8s/apps/`](../../k8s/apps/) and every infra component under [`k8s/infra/`](../../k8s/infra/) — in the
