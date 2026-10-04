@@ -6,6 +6,20 @@ reference material. Docs tied 1:1 to one piece of tooling or one app/component s
 right next to that code instead (see below) — that's what keeps them from rotting out of sync with the
 thing they describe.
 
+## Finding what you need
+
+| You're asking…                                  | Where to look                                                                                                                                      |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| What is this system?                             | the root [`README.md`](../README.md)                                                                                                              |
+| Why is it designed this way?                     | [`architecture/`](architecture), [`decisions/`](decisions)                                                                                        |
+| What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`architecture/environments.md`](architecture/environments.md), and per-folder `README.md`s |
+| How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
+| Why did it become this way?                      | [`decisions/`](decisions) (ADRs), [`audits/`](audits) (point-in-time assessments), the root README's [history](../README.md#a-bit-of-history)     |
+
+Current repository truth lives in the architecture, reference and procedural docs above, and in the
+code itself. `audits/` and `decisions/` capture reasoning and point-in-time assessments, not current
+configuration — don't read them as authoritative for "what exists today."
+
 ## What goes where
 
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism
