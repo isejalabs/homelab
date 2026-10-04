@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Storage: Longhorn vs. proxmox-csi
 
 Two storage backends are available in-cluster. This isn't a permanent 50/50 split: **Longhorn is replacing

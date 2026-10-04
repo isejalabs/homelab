@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Kustomize overlay approach
 
 Every unit under `k8s/infra/` and `k8s/apps/` (an "app") and every entry under `k8s/bootstrap/cluster/flux/sets/`

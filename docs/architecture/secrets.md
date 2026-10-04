@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Secrets management
 
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is

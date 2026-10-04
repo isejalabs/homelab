@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Cluster workload
 
 A catalog of everything actually running in the cluster — every app under

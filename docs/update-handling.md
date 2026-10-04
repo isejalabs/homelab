@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Update Handling and Automerging of PRs
 
 See [`docs/architecture/environments.md`](architecture/environments.md) for what each environment is for and

@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Environments
 
 Every environment shares the same overlay structure ([`kustomize.md`](kustomize.md)) — the same apps *could*

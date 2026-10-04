@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # App storage
 
 How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc-no-backup`

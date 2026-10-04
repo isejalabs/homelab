@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Architecture overview
 
 The homelab is a stack of layers, each provisioned/reconciled by the tool suited to it, handing off to the

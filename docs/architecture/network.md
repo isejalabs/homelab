@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Networking
 
 A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster:
