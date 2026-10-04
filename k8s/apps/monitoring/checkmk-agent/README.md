@@ -100,8 +100,7 @@ cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#
 
 ### Token (Password)
 
-**Path:** `Setup > General > Passwords`
-Name: `k8s_dev-homelab_cmk-agent`
+**Path:** `Setup > General > Passwords` Name: `k8s_dev-homelab_cmk-agent`
 
 ```sh
 k get secrets -n checkmk-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
@@ -238,9 +237,7 @@ different per Edition
 
 ## Host name translation for piggybacked hosts
 
-**Path:** `Setup > Agents > Agent access rules > Host name translation for piggybacked hosts`
-Description: `Remove node_<cluster> prefix`
-Multiple regular expressions:
+**Path:** `Setup > Agents > Agent access rules > Host name translation for piggybacked hosts` Description: `Remove node_<cluster> prefix` Multiple regular expressions:
 
 | Regex            | Replacement |
 | ---------------- | ----------- |
@@ -254,8 +251,7 @@ Condition - Folder:
 
 ## Kubernetes node count
 
-Path: `Setup > Services > Service monitoring rules > Kubernetes node count`
-Description: `K8S node count`
+Path: `Setup > Services > Service monitoring rules > Kubernetes node count` Description: `K8S node count`
 
 | Setting                                     | Value                                          |
 | ------------------------------------------- | ---------------------------------------------- |

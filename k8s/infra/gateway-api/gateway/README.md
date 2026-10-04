@@ -1,5 +1,4 @@
-See [`docs/architecture/network.md`](../../../../docs/architecture/network.md) for how this Gateway setup
-fits into the overall networking story (LB IPAM, DNS, the physical network).
+See [`docs/architecture/network.md`](../../../../docs/architecture/network.md) for how this Gateway setup fits into the overall networking story (LB IPAM, DNS, the physical network).
 
 `http-route-redirect.yaml`'s `http-redirect-to-https` `HTTPRoute` has no `hostname` specification (it matches all hosts), so the domain-replacement/prefix components reject it by name to avoid a zero-match hard error - see `components/transformers/replace-domain/repl/httproute-replace-domain.yaml` and `components/transformers/prefix-domain/repl/httproute-prefix-domain.yaml`.
 

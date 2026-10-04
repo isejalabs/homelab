@@ -1,7 +1,6 @@
 ## Proxmox CSI
 
-See [`docs/architecture/storage.md`](../../../../docs/architecture/storage.md) for how this fits into the
-repo's overall storage story (proxmox-csi vs. Longhorn, and when each is used).
+See [`docs/architecture/storage.md`](../../../../docs/architecture/storage.md) for how this fits into the repo's overall storage story (proxmox-csi vs. Longhorn, and when each is used).
 
 
 ### Cheatsheet
