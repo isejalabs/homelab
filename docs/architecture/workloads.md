@@ -12,20 +12,31 @@ it links out to rather than duplicates: [`kustomize.md`](kustomize.md) for the `
 overlay shape every entry below follows, and [`environments.md`](environments.md) for the minimal-vs-full
 app split referenced throughout.
 
+**Authoritative fields, and keeping this current**: `Category`/`App`/`Component` and `Manifest` are derived
+directly from the directory under `k8s/apps/`/`k8s/infra/` and its `base/` contents; `Flux set` and
+`Bootstrap helmfile?` are derived from `k8s/bootstrap/cluster/flux/sets/*/kustomization.yaml` and the
+bootstrap helmfiles respectively — all four are checkable against the repo, not editorial judgment. `What
+it is` is the one free-text field; keep it to what the thing *is*, linking out to an architecture doc for
+*why*. Per the standing ownership convention ([`docs/README.md`](../README.md#ownership)), add a row here in
+the same PR that wires a new unit into a Flux set — this table drifting from the Flux sets it's supposed to
+mirror is exactly the kind of gap [#1342](https://github.com/isejalabs/homelab/issues/1342) found and fixed.
+
 ## Apps (`k8s/apps/`)
 
-Every environment gets the two **minimal** apps; only `head`, `prod`, `qa`, `rebuild` also get the five
+Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `rebuild` also get the six
 **optional** ones (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)).
 
 | Category | App | What it is | Manifest | Flux set |
 | --- | --- | --- | --- | --- |
 | `diag` | [`whoami`](../../k8s/apps/diag/whoami/) | Traefik's [`whoami`](https://github.com/traefik/whoami) HTTP echo/debug server (`ghcr.io/traefik/whoami`) | raw Deployment/Service | minimal |
+| `dns` | [`powerdns`](../../k8s/apps/dns/powerdns/) | [PowerDNS](https://www.powerdns.com/) — authoritative nameserver for the environment's own `<env>.iseja.net` zone (and PTR), dynamically populated by `external-dns` below (see [`network.md`](network.md#dns-authoritative-zones-powerdns)) | HelmRelease (`bjw-s-labs/app-template` OCI chart) | minimal |
 | `monitoring` | [`metrics-server`](../../k8s/apps/monitoring/metrics-server/) | Kubernetes [`metrics-server`](https://github.com/kubernetes-sigs/metrics-server) (resource metrics for `kubectl top`/HPA) | HelmRelease (OCI chart) | minimal |
 | `dns` | [`adguard`](../../k8s/apps/dns/adguard/) | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) — LAN DNS filtering/ad-blocking (see [`network.md`](network.md#dns-adguard--unbound)) | raw Deployment/Service, not a Helm chart | optional |
 | `dns` | [`unbound`](../../k8s/apps/dns/unbound/) | [Unbound](https://github.com/NLnetLabs/unbound) — recursive/validating DNS resolver, AdGuard's upstream for the internal domain (see [`network.md`](network.md#dns-adguard--unbound)) | raw Deployment/Service, not a Helm chart | optional |
 | `finances` | [`actualbudget`](../../k8s/apps/finances/actualbudget/) | [Actual Budget](https://github.com/actualbudget/actual) — personal finance/budgeting app | HelmRelease (`community-charts`) | optional |
 | `monitoring` | [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/) | [Checkmk](https://checkmk.com/) Kubernetes monitoring agent (cluster + node collectors) | HelmRelease (`checkmk.github.io/checkmk_kube_agent`) | optional |
-| `network` | [`unifi-controller`](../../k8s/apps/network/unifi-controller/) | [UniFi Network Application](https://www.ui.com/) — management UI for the physical WiFi APs/switches (see [`network.md`](network.md#physical-network-opnsense-ucs-and-the-root-nameservers)), plus its own MongoDB backing store on proxmox-csi (see [`storage.md`](storage.md)) | raw Deployments/Services (app + `mongo`), not a Helm chart | optional |
+| `network` | [`unifi-controller`](../../k8s/apps/network/unifi-controller/) | [UniFi Network Application](https://www.ui.com/) — management UI for the physical WiFi APs/switches (see [`network.md`](network.md#physical-network-opnsense-ucs-and-the-root-nameservers)) | raw Deployment/Service, not a Helm chart | optional |
+| `network` | [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) | MongoDB backing store for `unifi-controller` above, on proxmox-csi (see [`storage.md`](storage.md)) | raw Deployment/Service, not a Helm chart | optional |
 
 ## Infra (`k8s/infra/`)
 
@@ -42,6 +53,7 @@ for the full bootstrap walkthrough; this table only says which ones.
 | `external-secrets` | [`external-secrets`](../../k8s/infra/external-secrets/external-secrets/) | [External Secrets Operator](https://external-secrets.io/) (see [`secrets.md`](secrets.md)) | yes — needs `cilium` | minimal |
 | `external-secrets` | [`onepassword-connect`](../../k8s/infra/external-secrets/onepassword-connect/) | [1Password Connect](https://developer.1password.com/docs/connect/) server backing the `ClusterSecretStore` (see [`secrets.md`](secrets.md)) | yes — needs `external-secrets` | minimal |
 | `cert-manager` | [`cert-manager`](../../k8s/infra/cert-manager/cert-manager/) | [cert-manager](https://cert-manager.io/), Gateway API support enabled (see [`network.md`](network.md#gateway-api-cilium-as-the-implementation)) | yes — needs `sealed-secrets` | minimal |
+| `external-dns` | [`external-dns`](../../k8s/infra/external-dns/external-dns/) | [external-dns](https://github.com/kubernetes-sigs/external-dns) — populates `powerdns` above via RFC2136/TSIG (see [`network.md`](network.md#dns-authoritative-zones-powerdns)) | no — Flux-only | minimal |
 | `flux-system` | [`flux-operator`](../../k8s/infra/flux-system/flux-operator/) | ControlPlane's [Flux Operator](https://github.com/controlplaneio-fluxcd/flux-operator) | yes — needs `cert-manager` | minimal |
 | `flux-system` | [`flux-instance`](../../k8s/infra/flux-system/flux-instance/) | The `FluxInstance` CR — the actual Flux controllers, pointed at this repo/branch. Installing this is the bootstrap → Flux handoff point | yes — needs `flux-operator`; last bootstrap step | minimal |
 | `csi-proxmox` | [`proxmox-csi`](../../k8s/infra/csi-proxmox/proxmox-csi/) | [sergelogvinov/proxmox-csi-plugin](https://github.com/sergelogvinov/proxmox-csi-plugin) (see [`storage.md`](storage.md)) | no — Flux-only | minimal |
@@ -78,7 +90,7 @@ cilium
   └─▶ external-secrets ─▶ onepassword-connect
 ```
 
-Everything else in the tables above — `proxmox-csi`, `gateway-api-crds`, `gateway`,
+Everything else in the tables above — `proxmox-csi`, `external-dns`, `gateway-api-crds`, `gateway`,
 `kubelet-serving-cert-approver`, `common/ns`, `snapshot-controller`'s release itself, `longhorn-core`,
 `longhorn`, and every app in the first table — is purely Flux-managed from the start; the bootstrap helmfile
 never touches them (`snapshot-controller`, `grafana-operator`, and `kube-prometheus-stack` are pre-seeded

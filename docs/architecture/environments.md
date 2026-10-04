@@ -33,8 +33,8 @@ each environment at one of two Flux resource sets:
 
 | Set | Environments | Apps deployed |
 | --- | --- | --- |
-| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
-| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/) |
+| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
+| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
 
 Every environment still gets the **full infra set** either way —
 [`sets/minimal/kustomization.yaml`](../../k8s/bootstrap/cluster/flux/sets/minimal/kustomization.yaml)
