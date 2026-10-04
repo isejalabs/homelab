@@ -52,6 +52,7 @@ configuration — don't read them as authoritative for "what exists today."
 
 | Doc | Status | Covers |
 | --- | --- | --- |
+| [`architecture/overview.md`](architecture/overview.md) | done | top-level stack diagram (Proxmox → Talos → Kubernetes → Flux) and cross-cutting components, with links out to the rest of this table — start here |
 | [`architecture/kustomize.md`](architecture/kustomize.md) | done | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
 | [`architecture/secrets.md`](architecture/secrets.md) | done | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
 | `architecture/terraform-bootstrap.md` | planned ([#195](https://github.com/isejalabs/homelab/issues/195)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
