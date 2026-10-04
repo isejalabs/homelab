@@ -126,13 +126,26 @@ talosctl config merge .terragrunt-cache/**/output/talos-config.yaml
 ### kubeconfig
 
 ```sh
-talosctl kubeconfig -n 10.7.8.131
+talosctl kubeconfig -n 10.7.8.130
 ```
 
-Another hacky method:
+`10.7.8.130` is the cluster's own VIP, `10.7.8.1<id>0` -- substitute `<id>` for the target environment (e.g.
+`10.7.8.180` for `prod`, `id=8`); see
+[`docs/reference/environments.md#environment-id`](../docs/reference/environments.md#environment-id) for the
+full table. Querying the VIP rather than a specific node means this works regardless of which node is
+currently up.
+
+If the VIP isn't reachable yet (or you specifically want the kubeconfig Terraform generated, rather than a
+fresh one fetched live via the Talos API), extract it from the Terragrunt output instead. Resolve the cache
+path into a variable first, rather than using the `**` glob directly on the right-hand side of the
+`KUBECONFIG=` assignment -- a glob pattern there isn't expanded the way it is in a normal command argument
+position (confirmed: this is why the previous version of this doc, using a literal `output/kube-config.yaml`
+path with no explanation of how `output/` got there, never actually worked as written):
 
 ```sh
-cp ~/.kube/config ~/.kube/config.bak && KUBECONFIG=~/.kube/config:output/kube-config.yaml kubectl config view --flatten > /tmp/config && mv /tmp/config ~/.kube/config
+OUTPUT_DIR=$(ls -d .terragrunt-cache/**/output)
+cp ~/.kube/config ~/.kube/config.bak
+KUBECONFIG=~/.kube/config:"$OUTPUT_DIR"/kube-config.yaml kubectl config view --flatten > /tmp/config && mv /tmp/config ~/.kube/config
 ```
 
 # Cluster end of lifecycle
