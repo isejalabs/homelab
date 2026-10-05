@@ -19,7 +19,7 @@ Helmfile is used elsewhere in this repo, but only for the one-time bootstrap sta
 
 ## Decision
 
-Kustomize overlays are the environment-variation mechanism for everything Flux reconciles, regardless of whether the underlying workload is a raw manifest or a Helm chart wrapped in a `HelmRelease`. Helm/Helmfile stays scoped to chart packaging (`bjw-s-labs` app-template and similar, for apps that are charts) and the one-time bootstrap stage, respectively — neither competes with kustomize for the environment-variation role.
+Kustomize overlays are the environment-variation mechanism for everything Flux reconciles, regardless of whether the underlying workload is a raw manifest or a Helm chart wrapped in a `HelmRelease`. Helm/Helmfile stays scoped to chart packaging (`bjw-s-labs` app-template and similar, for apps that are charts) and the one-time bootstrap stage, respectively — neither competes with kustomize for the environment-variation role. Helm is otherwise a deliberately independent choice from kustomize, not a sub-decision of this one — see [ADR 0006](0006-helm-usage.md) for how Helm values themselves are composed and kept tool-agnostic.
 
 ## Consequences
 

@@ -39,8 +39,8 @@ current | planning | superseded
 | [0002](0002-opentofu-vs-terraform.md) | OpenTofu over Terraform | current |
 | [0003](0003-terragrunt.md) | Terragrunt for multi-environment OpenTofu | current |
 | [0004](0004-kustomize-overlays.md) | Kustomize overlays for the environment-variation axis | current |
-| [0005](0005-eight-environments.md) | Eight environments | current |
-| [0006](0006-why-production-differs.md) | Why production differs from the other environments | current |
+| [0005](0005-eight-environments.md) | Eight environments, and why production differs from the rest | current |
+| [0006](0006-helm-usage.md) | Helm usage: kept independent of kustomize, and of Flux's own value-composition features | planning |
 | [0007](0007-longhorn-vs-proxmox-csi.md) | Longhorn vs. proxmox-csi | current |
 | [0008](0008-cilium-bgp.md) | Cilium with BGP for LoadBalancer IP advertisement | current |
 | [0009](0009-flux-vs-argocd.md) | Flux over ArgoCD | current |
