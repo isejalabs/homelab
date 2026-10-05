@@ -10,6 +10,7 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | Why is it designed this way?                     | [`architecture/`](architecture), [`decisions/`](decisions)                                                                                        |
 | What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`reference/`](reference), and per-folder `README.md`s |
 | How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`disaster-recovery.md`](disaster-recovery.md), [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
+| Something's broken right now, how do I diagnose it? | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md) |
 | Why did it become this way?                      | [`decisions/`](decisions) (ADRs), [`audits/`](audits) (point-in-time assessments), the root README's [history](../README.md#a-bit-of-history)     |
 
 Current repository truth lives in the architecture, reference and procedural docs above, and in the code itself. `audits/` and `decisions/` capture reasoning and point-in-time assessments, not current configuration — don't read them as authoritative for "what exists today."
@@ -25,6 +26,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
   - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
   - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes (list/start/stop/shutdown/reset).
+  - [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md) — incident-response runbooks for a `Kustomization`/`HelmRelease` stuck or failing, a DNS resolution/record problem, and a PVC/Longhorn/proxmox-csi storage issue, respectively.
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
 - **[`logs/`](logs)** — raw output logs kept as a historical/reference record of past bootstrap runs, not narrative documentation.
