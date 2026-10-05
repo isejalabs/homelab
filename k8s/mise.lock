@@ -7,22 +7,7 @@ version = "0.8.0"
 backend = "aqua:yannh/kubeconform"
 specifiers = ["0.8.0"]
 
-[tools.kubeconform."platforms.linux-arm64"]
-checksum = "sha256:1f53fc8e81258197a35e8603054162a5af1de8c5af13746c71ab680d9534ed87"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612685"
-
-[tools.kubeconform."platforms.linux-arm64-musl"]
-checksum = "sha256:1f53fc8e81258197a35e8603054162a5af1de8c5af13746c71ab680d9534ed87"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-arm64.tar.gz"
-url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612685"
-
 [tools.kubeconform."platforms.linux-x64"]
-checksum = "sha256:9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz"
-url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612666"
-
-[tools.kubeconform."platforms.linux-x64-musl"]
 checksum = "sha256:9bc2bffbf71f261128533edaf912153948b7ff238f9a531ae6d34466ec287883"
 url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-linux-amd64.tar.gz"
 url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612666"
@@ -32,37 +17,12 @@ checksum = "sha256:f84f4dfbebf4a6b0b230385fa065a39ea35e02608c2b50d025dcf64775a69
 url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-arm64.tar.gz"
 url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612680"
 
-[tools.kubeconform."platforms.macos-x64"]
-checksum = "sha256:71dbc87ac9f24099a62b93570e65aa06312ba6ac8aea63b7f86e9d999edf5a92"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-darwin-amd64.tar.gz"
-url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612679"
-
-[tools.kubeconform."platforms.windows-x64"]
-checksum = "sha256:e3f56102bcf4f50b034a567e2482a1c5330799983ddd655952310211aef73d93"
-url = "https://github.com/yannh/kubeconform/releases/download/v0.8.0/kubeconform-windows-amd64.zip"
-url_api = "https://api.github.com/repos/yannh/kubeconform/releases/assets/438612665"
-
 [[tools.kustomize]]
 version = "5.8.1"
 backend = "aqua:kubernetes-sigs/kustomize"
 specifiers = ["5.8.1"]
 
-[tools.kustomize."platforms.linux-arm64"]
-checksum = "sha256:0953ea3e476f66d6ddfcd911d750f5167b9365aa9491b2326398e289fef2c142"
-url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160971"
-
-[tools.kustomize."platforms.linux-arm64-musl"]
-checksum = "sha256:0953ea3e476f66d6ddfcd911d750f5167b9365aa9491b2326398e289fef2c142"
-url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_linux_arm64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160971"
-
 [tools.kustomize."platforms.linux-x64"]
-checksum = "sha256:029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d"
-url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160972"
-
-[tools.kustomize."platforms.linux-x64-musl"]
 checksum = "sha256:029a7f0f4e1932c52a0476cf02a0fd855c0bb85694b82c338fc648dcb53a819d"
 url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_linux_amd64.tar.gz"
 url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160972"
@@ -71,13 +31,3 @@ url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/asset
 checksum = "sha256:8886f8a78474e608cc81234f729fda188a9767da23e28925802f00ece2bab288"
 url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_darwin_arm64.tar.gz"
 url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160975"
-
-[tools.kustomize."platforms.macos-x64"]
-checksum = "sha256:ee7cf0c1e3592aa7bb66ba82b359933a95e7f2e0b36e5f53ed0a4535b017f2f8"
-url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_darwin_amd64.tar.gz"
-url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160974"
-
-[tools.kustomize."platforms.windows-x64"]
-checksum = "sha256:8ec7f5e815e526d4622c06df0a7793d8cfb6eb1c74f816b46166097fef8b26c6"
-url = "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v5.8.1/kustomize_v5.8.1_windows_amd64.zip"
-url_api = "https://api.github.com/repos/kubernetes-sigs/kustomize/releases/assets/353160980"

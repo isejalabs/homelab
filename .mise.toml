@@ -29,3 +29,5 @@ lychee = "0.24.2"
 
 [settings]
 lockfile = true
+lockfile_platforms = ["macos-arm64", "linux-x64"]
+locked = true
