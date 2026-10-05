@@ -16,16 +16,16 @@ Remote state (S3) and its encryption weren't part of the original motivation —
 - **Copy-pasted per-environment Terraform configs** — the naive starting point, abandoned once a second environment made the duplication cost concrete.
 - **Terragrunt (chosen)** — a thin DRY layer over OpenTofu: one hierarchy of `.hcl`/`*-secrets.sops.yaml` files (global → account → region → env → local, see [`terragrunt/README.md`](../../terragrunt/README.md#folder-structure)) merged into each environment's own module invocation, plus shared `_envcommon/*.hcl` includes so a module's actual Terragrunt unit per environment stays small, while still referencing specific versioned module releases.
 
+The `<region>` level in that hierarchy is deliberate, not incidental, even though multi-region is unlikely to ever actually happen here: it's just one extra folder to `cd` into versus a real rearrangement of how state/config is structured later, so the room to grow costs little to keep.
+
 ## Decision
 
 Terragrunt, structured as `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>` with the global/account/region/env/local override hierarchy — see [`terragrunt/README.md`](../../terragrunt/README.md) for the live structure. Remote state (S3, SOPS-encrypted passphrase) was added later on top of this structure, not part of the original decision.
+
+Staying on the current nested-folder hierarchy rather than migrating to Terragrunt's newer [Stacks](https://terragrunt.gruntwork.io/docs/features/stacks/) feature — waived for now specifically because Stacks would consolidate all environments of a module into *one* `.hcl` file, which conflicts with the per-environment file separation Renovate relies on to track and bump `base`/`head`/`prod`-style version pins independently. Revisit if that constraint changes.
 
 ## Consequences
 
 - A new environment is cheap to add (a new `<env>/` directory plus env-specific `.hcl`/secrets overrides), which is what made scaling to 8 environments practical.
 - An extra layer of indirection on top of plain OpenTofu — a problem has to be diagnosed as either an OpenTofu/provider issue or a Terragrunt config-merging issue, and `terragrunt/README.md`'s own documented gotchas (state cleanup before destroy, the per-env `.envrc`/`TG_IAM_ASSUME_ROLE` direnv step) are specific to this layer.
 - Remote state and its encryption passphrase (via SOPS, see [`secrets.md`](../architecture/secrets.md)) now run through `root.hcl` for every unit uniformly, even though that wasn't the original reason for adopting Terragrunt.
-
-## Open decisions
-
-- Whether to stay on the current nested-folder-hierarchy structure or migrate to Terragrunt's newer [Stacks](https://terragrunt.gruntwork.io/docs/features/stacks/) feature — not yet decided.
