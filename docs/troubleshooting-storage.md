@@ -33,7 +33,21 @@ kubectl get csistoragecapacities -ocustom-columns=CLASS:.storageClassName,AVAIL:
 kubectl get pods -n csi-proxmox
 ```
 
-Remember proxmox-csi volumes in this repo are **Terragrunt-pinned, not dynamically provisioned** (see [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild)) — a PVC referencing one by `volumeName` failing to bind is more likely a mismatch between what the PVC expects and what Terragrunt actually created/imported than a transient driver issue. See [`terragrunt/README.md`](../terragrunt/README.md) for the actual import commands rather than re-deriving them here.
+Remember proxmox-csi volumes in this repo are **Terragrunt-pinned, not dynamically provisioned** (see [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild)) — a PVC referencing one by `volumeName` failing to bind is more likely a mismatch between what the PVC expects and what Terragrunt actually created/imported than a transient driver issue. Re-importing a volume into Terragrunt state itself (e.g. after a cluster rebuild) is a bootstrapping task, not a troubleshooting one — see [`terragrunt/README.md`](../terragrunt/README.md#import-proxmox-volume) for those commands rather than re-deriving them here.
+
+**A `Released` PV with a stale `claimRef` is the single most common cause for these specific volumes.** Because proxmox-csi volumes here are statically named and meant to be *reused* (e.g. `pv-unifi`, `pv-mongodb`), a PV that previously bound to a since-deleted PVC doesn't go back to `Available` on its own — its `spec.claimRef` keeps pointing at that old PVC, and a *new* PVC with a matching `volumeName:` reference can only bind to an `Available` volume, not a `Released` one. Confirm the state:
+
+```sh
+kubectl get pv
+```
+
+A `STATUS` of `Released` (not `Bound`, not `Available`) on the volume you expect to reuse is the tell. Clear the stale reference to make it `Available` again — **this is the right fix here, unlike case 3 below**: the volume and its underlying Proxmox disk are meant to be kept and reused, not torn down, so don't reach for case 3's `kubectl delete pv`/Terragrunt-state-removal flow on one of these by mistake:
+
+```sh
+kubectl patch pv <name> -p '{"spec":{"claimRef": null}}'
+```
+
+Then confirm the waiting PVC actually binds (see "Verify the fix actually took" below) before considering it resolved.
 
 ## 2. A Longhorn volume degraded or faulted
 
