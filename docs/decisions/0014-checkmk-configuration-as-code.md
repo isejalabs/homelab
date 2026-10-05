@@ -2,13 +2,13 @@
 
 ## Status
 
-planning
+current
 
 ## Context
 
 Checkmk (the `prod` site on `monitoring2`, 2.4 Raw edition) is configured through its web UI today. That was acceptable while the configuration was small, but the RustFS capacity monitoring ([#1438](https://github.com/isejalabs/homelab/issues/1438)) adds a repeatable set of objects: one Password Store entry per RustFS monitoring identity (up to one per environment, `<env>-checkmk-monitoring`), a host for the RustFS itself, a special-agent rule that references the stored passwords, and an activation of the changes. [ADR 0003](0003-repository-and-tool-boundaries.md) left open whether Checkmk host, password-store and rule setup stays manual or becomes code, and the tool-boundary rule there sends objects behind an API with a lifecycle to Terraform, while files on a long-lived host (such as the plugin files on `monitoring2`) go to Salt.
 
-This ADR records the options reviewed (October 2026, from documentation and source only; nothing was tested against a Checkmk site yet) and the resulting choice, so the reasoning survives if the choice is revisited.
+This ADR records the options reviewed (October 2026, from documentation and source) and the resulting choice, so the reasoning survives if the choice is revisited. The chosen option was then tested in a spike, whose results are below.
 
 ## Options considered
 
@@ -21,14 +21,24 @@ This ADR records the options reviewed (October 2026, from documentation and sour
 
 Use Terraform (OpenTofu through Terragrunt, with the module in `isejalabs/terraform-modules`) for the Checkmk API objects needed by the RustFS monitoring. Ansible is deliberately set aside for now because of its added complexity at the moment, not because it is unsuitable; the `checkmk.general` collection is the documented fallback and the likely successor if the Terraform provider proves too immature. Salt keeps delivering plugin files to `monitoring2`, as decided in ADR 0003.
 
-The decision stays `planning` until a spike against a throwaway Checkmk Raw 2.4 container confirms that the provider can create a password, a folder, a host, a rule for a built-in ruleset and a rule for a custom special-agent ruleset, and can activate the changes (tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529)).
+The spike required by the first version of this ADR was run (see "Spike results" below) and confirmed the provider can express everything the RustFS monitoring needs, so the decision is `current`. Implementation is tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529).
+
+## Spike results
+
+Run on 2026-10-05 against a throwaway Checkmk Raw container (2.4.0p37; the `prod` site is p36) with OpenTofu 1.12.6 and provider v0.0.5. Not yet tried against `monitoring2`.
+
+- **Works:** `checkmk_folder`, `checkmk_host`, `checkmk_password` (write-only towards the API, the API never returns the secret), `checkmk_rule` and `checkmk_activation`; a second plan showed no changes, and no changes were pending after activation. Destroy and re-apply from scratch also worked.
+- **Custom special-agent ruleset:** after installing a minimal plugin under `~/local/lib/python3/cmk_addons/plugins/<family>/` (`libexec`, `rulesets`, `server_side_calls`) and restarting Apache, the ruleset `special_agents:<name>` was visible through the REST API in the Raw edition, and `checkmk_rule` created a rule for it. `value_raw` is the Python-literal string of the rule value, and a password-store reference written as `('cmk_postprocessed', 'stored_password', ('<password id>', ''))` round-trips unchanged.
+- **Secret handling (answers the open point above):** with a `Secret` as command argument, Checkmk puts only a reference of the form `<id>:<path to var/check_mk/passwords_merged>` on the agent's command line, so the secret is never in the process list and no stdin workaround is needed. The agent resolves the reference itself with `cmk.utils.password_store.lookup(Path(path), id)`, and the spike agent resolved the full secret that way. These are Checkmk-internal modules (also used by its bundled agents), so the plugin needs re-checking after Checkmk upgrades. The merged password file is obfuscated, not plaintext.
+- **Provider quirks to design around:** `checkmk_rule` without `conditions` fails with "inconsistent result after apply" (a provider bug; the rule is still created), so every rule must set explicit conditions (a `host_name` condition for the RustFS host). `checkmk_activation` does not re-run for later changes by itself; give it `triggers`, or replace it. The provider is not listed in the OpenTofu registry (HTTP 404 there; it is in the Terraform registry, v0.0.1 to v0.0.5), so it has to be addressed as `registry.terraform.io/blackmesaltd/checkmk` or be requested for the OpenTofu registry, and the README's `~> 0.1` pin does not match the latest release 0.0.5. The password value is stored in plaintext in the Terraform state.
+- **Automation user:** a role cloned from `user` with these 14 permissions was enough to apply and destroy everything above, so the Terraform user does not need Administrator: `general.use`, `wato.use`, `wato.edit`, `wato.passwords`, `wato.edit_all_passwords`, `wato.edit_hosts`, `wato.manage_hosts`, `wato.edit_folders`, `wato.manage_folders`, `wato.all_folders`, `wato.see_all_folders`, `wato.rulesets`, `wato.activate`, `wato.activateforeign`. It is a working set, not proven minimal beyond dropping the three "see all" permissions.
 
 ## Consequences
 
 - The ADR 0003 open decision on Checkmk configuration is resolved in favour of code; objects not covered by the provider stay manual and documented rather than blocking the rest.
 - Provider maturity is the main risk: pin the provider version exactly, and re-validate after provider and Checkmk upgrades. Rule values change between Checkmk versions (2.5 changes the password reference representation), so a Checkmk upgrade needs a deliberate check.
 - Activation applies all pending changes, not only Terraform-managed ones, so unrelated pending UI edits would be activated by an apply. Prefer the provider's manual activation with an explicit activation resource, and avoid concurrent UI edits while applying.
-- The Password Store obfuscates rather than encrypts, with its key in the same site directory (see the Checkmk documentation on the [password store](https://docs.checkmk.com/2.4.0/en/password_store.html)); site filesystem access stays trusted, and the secret must not appear on a command line (the plugin API accepts stdin for special agents, but how a stored secret reaches stdin is unverified and must be proven in the plugin).
-- Checkmk is one site, while the identities are per environment, so where the units live is an open question: one shared unit, or per-environment units that each write their own entry into the shared site. This is the singleton-unit question of ADR 0003 for the first time with a real example.
-- A rule for a custom special-agent ruleset needs the plugin loaded on the site first, so the plugin work (via Salt) gates the rule part of the implementation. Whether the REST API accepts such a rule in the Raw edition is unverified.
-- If the Terraform route fails the spike, revisit this ADR: either keep the missing pieces manual, or revisit Ansible with the collection above.
+- The Password Store obfuscates rather than encrypts, with its key in the same site directory (see the Checkmk documentation on the [password store](https://docs.checkmk.com/2.4.0/en/password_store.html)); site filesystem access stays trusted. The secret stays off the command line by using a `Secret` argument and resolving the reference inside the agent (see the spike results).
+- Checkmk is one site, while the identities are per environment. Decided (owner, 2026-10-05): per-environment units for the Password Store entries, so each environment owns its own entry, plus one shared unit for the host and the rules. This is the first singleton-style unit, which is the open question of ADR 0003; its directory is chosen in the implementation.
+- A rule for a custom special-agent ruleset needs the plugin loaded on the site first, so the plugin work (via Salt) gates the rule part of the implementation. The REST API accepting such a rule in the Raw edition was verified in the spike.
+- The provider's maturity risk remains (single maintainer, v0.0.5, registry gap, quirks above). If it proves unworkable in practice, revisit this ADR: keep the affected pieces manual, or revisit Ansible with the collection above.
