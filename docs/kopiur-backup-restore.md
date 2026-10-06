@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Kopiur Backup & Restore
 
 ## Overview
@@ -110,12 +114,7 @@ Similarly, for a Helm-based app the PVC itself is a *plain manifest* owned by a 
    ❯ kubectl delete pvc <app> -n <namespace>
    ❯ kubectl delete restore <app> -n <namespace>
    ```
-   Both, not just the PVC -- confirmed live (qa, 2026-09-13): `Restore.status.resolved` pins its snapshot
-   resolution once (`pinnedAt`/`resolution`) and does not re-evaluate it on a later PVC claim. An app's very
-   first deploy resolves to `NoSnapshot` (nothing exists yet) and pins that; deleting only the PVC afterward
-   recreates an *empty* volume again, silently reusing the stale `NoSnapshot` pin instead of picking up a
-   snapshot that was taken in the meantime. Deleting the `Restore` object too forces Flux to recreate it
-   fresh on the next reconcile, so it resolves against whatever snapshots actually exist right now.
+   Both, not just the PVC -- confirmed live (qa, 2026-09-13): `Restore.status.resolved` pins its snapshot resolution once (`pinnedAt`/`resolution`) and does not re-evaluate it on a later PVC claim. An app's very first deploy resolves to `NoSnapshot` (nothing exists yet) and pins that; deleting only the PVC afterward recreates an *empty* volume again, silently reusing the stale `NoSnapshot` pin instead of picking up a snapshot that was taken in the meantime. Deleting the `Restore` object too forces Flux to recreate it fresh on the next reconcile, so it resolves against whatever snapshots actually exist right now.
 5. **Resume**, and for a Helm-based app, also force-reconcile the PVC's own owning Kustomization (found from its labels before step 4 deleted it — for a plain-manifest app this is the same Kustomization already resumed here, so skip the second command):
    ```sh
    ❯ flux resume kustomization <name>            # or: flux resume helmrelease <name> -n <namespace>

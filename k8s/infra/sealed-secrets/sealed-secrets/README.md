@@ -1,5 +1,4 @@
-See [`docs/architecture/secrets.md`](../../../../docs/architecture/secrets.md) for how this fits into the
-repo's overall secrets-management story (SOPS vs. sealed-secrets vs. 1Password/ESO).
+See [`docs/architecture/secrets.md`](../../../../docs/architecture/secrets.md) for how this fits into the repo's overall secrets-management story (SOPS vs. sealed-secrets vs. 1Password/ESO).
 
 ## Usage
 

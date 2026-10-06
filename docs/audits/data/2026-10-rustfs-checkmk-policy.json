@@ -1,0 +1,25 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetBucketQuota"
+      ],
+      "Resource": [
+        "arn:aws:s3:::dbg-kopiur-backup",
+        "arn:aws:s3:::dev-kopiur-backup",
+        "arn:aws:s3:::head-kopiur-backup",
+        "arn:aws:s3:::poc-kopiur-backup",
+        "arn:aws:s3:::prod-kopiur-backup",
+        "arn:aws:s3:::qa-kopiur-backup",
+        "arn:aws:s3:::rebuild-kopiur-backup",
+        "arn:aws:s3:::src-kopiur-backup",
+        "arn:aws:s3:::dev-longhorn-backup",
+        "arn:aws:s3:::prod-longhorn-backup",
+        "arn:aws:s3:::qa-longhorn-backup",
+        "arn:aws:s3:::rebuild-longhorn-backup"
+      ]
+    }
+  ]
+}

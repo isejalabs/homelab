@@ -192,7 +192,7 @@ spec:
             # TSIG-only dynamic updates (RFC2136) for external-dns. No IP-ACL:
             # auth is by TSIG key name, not source address, so it doesn't
             # matter which node a replica lands on -- see
-            # docs/decisions/0002-tsig-over-ip-acl-for-axfr.md.
+            # docs/decisions/0012-tsig-over-ip-acl-for-axfr.md.
             dnsupdate=yes
             dnsupdate-require-tsig=yes
             # Left empty deliberately: only the per-zone TSIG-ALLOW-DNSUPDATE
@@ -305,6 +305,36 @@ spec:
                 # peak. First-creation-only avoids ever touching the SOA
                 # again after that.
                 pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone hostmaster.$$zone 0 10800 3600 604800 3600"
+              fi
+              # Self-heals the MNAME on zones created before this fix existed
+              # (issue #1485), without resetting the serial like the
+              # creation-time seed above does: reads the zone's *current*
+              # SOA and, only if its MNAME is still PowerDNS's placeholder,
+              # replaces just that one field while keeping every other field
+              # (rname/serial/refresh/retry/expire/minimum) exactly as
+              # PowerDNS already has it -- preserving whatever real serial
+              # SOA-EDIT-DNSUPDATE has already bumped it to. Unconditional,
+              # same reasoning as the zone-kind fix below: no regression risk,
+              # since a freshly-created zone's MNAME is already correct and
+              # the grep simply won't match, a no-op for the common case.
+              #
+              # Must also bump the serial: a secondary (ns2 included) only
+              # ever re-transfers on a strictly-increasing serial (RFC1982)
+              # -- rewriting the MNAME at the *same* serial fixes what this
+              # instance itself answers immediately, but is invisible to any
+              # secondary already slaving the zone, which keeps serving its
+              # old cached copy (placeholder MNAME and all) forever, with no
+              # further trigger to notice, since the next restart's grep
+              # against the now-corrected MNAME won't match either. Confirmed
+              # live: exactly this happened to qa.iseja.net against ns2
+              # before this bump was added. `zone increase-serial` already
+              # does the one thing needed here (SOA-EDIT-aware +1), no need
+              # to hand-roll the arithmetic.
+              current_soa="$$(pdnsutil list-zone "$$z" | awk -v z="$$z" '$1==z && $4=="SOA"')"
+              if printf '%s' "$$current_soa" | grep -q 'a\.misconfigured\.dns\.server\.invalid\.'; then
+                rest="$$(printf '%s' "$$current_soa" | awk '{$1=$2=$3=$4=$5=""; sub(/^ +/,""); print}')"
+                pdnsutil rrset replace "$$z" "$$z" SOA 3600 "ns1.$$zone $$rest"
+                pdnsutil zone increase-serial "$$z"
               fi
               # Declares 10.7.2.12's own hostname (ns2.home.iseja.net,
               # UCS-managed) as a second nameserver for this zone ahead of

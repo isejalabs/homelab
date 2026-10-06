@@ -1,15 +1,10 @@
+---
+status: current
+---
+
 # Networking
 
-A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster:
-**Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium)
-terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the
-management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely:
-an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, a redundant pair of
-**UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes),
-identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair
-of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is
-documented as one story anywhere else in the repo — each in-cluster app's own README is either a bare
-`kubectl` cheatsheet or nonexistent, and the physical-network side isn't in Git at all.
+A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster: **Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium) terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely: an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, a redundant pair of **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes), identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is documented as one story anywhere else in the repo — most in-cluster apps' own READMEs are either a bare `kubectl` cheatsheet or nonexistent (a few, like PowerDNS's and Cilium's, have grown real operational depth — linked from the relevant section below rather than repeated here), and the physical-network side isn't in Git at all.
 
 ## End-to-end flow
 
@@ -36,8 +31,7 @@ Kubernetes Service → Pod
 
 ## Cilium: LB IPAM and BGP route advertisement
 
-[`k8s/infra/kube-system/cilium/base/values.yaml`](../../k8s/infra/kube-system/cilium/base/values.yaml) turns
-on the two Cilium features everything else here depends on:
+[`k8s/infra/kube-system/cilium/base/values.yaml`](../../k8s/infra/kube-system/cilium/base/values.yaml) turns on the two Cilium features everything else here depends on:
 
 ```yaml
 ipam:
@@ -48,9 +42,7 @@ bgpControlPlane:
   enabled: true
 ```
 
-**LB IPAM** — each environment gets its own `/24`-ish block via a
-[`CiliumLoadBalancerIPPool`](../../k8s/infra/kube-system/cilium/envs/) named `bgp-pool`, e.g.
-[`envs/prod/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/prod/ip-pool-bgp.yaml):
+**LB IPAM** — each environment gets its own `/24`-ish block via a [`CiliumLoadBalancerIPPool`](../../k8s/infra/kube-system/cilium/envs/) named `bgp-pool`, e.g. [`envs/prod/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/prod/ip-pool-bgp.yaml):
 
 ```yaml
 apiVersion: cilium.io/v2alpha1
@@ -63,46 +55,11 @@ spec:
       stop: 10.8.8.250
 ```
 
-Every `LoadBalancer` Service or Gateway requests a specific address from that pool with the
-`io.cilium/lb-ipam-ips` annotation — see [`kustomize.md`](kustomize.md) for how a `base/` placeholder IP
-(e.g. `192.168.1.253`) gets patched to the real per-env address (e.g. `10.8.8.53`) via `envs/<env>/`
-overlays. Offsets are kept stable across environments so the same app always lands on the same last octet
-(e.g. `.8`/`.11` = unbound, `.53` = adguard, `.80` = internal gateway, `.83` = external gateway) — only the
-`10.8.<N>` block changes per environment, and `<N>` is exactly the environment's single-digit
-[environment ID](environments.md#environment-id) (`prod`'s pool is `10.8.8.0/24` because `prod`'s ID is `8`,
-same `<id>` used for its Proxmox VM IDs and BGP ASN). The full set of per-environment pools
-([`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/)):
+Every `LoadBalancer` Service or Gateway requests a specific address from that pool with the `io.cilium/lb-ipam-ips` annotation — see [`kustomize.md`](kustomize.md) for how a `base/` placeholder IP (e.g. `192.168.1.253`) gets patched to the real per-env address (e.g. `10.8.8.53`) via `envs/<env>/` overlays. Offsets are kept stable across environments so the same app always lands on the same last octet (e.g. `.8`/`.11` = unbound, `.53` = adguard, `.80` = internal gateway, `.83` = external gateway) — only the `10.8.<N>` block changes per environment, and `<N>` is exactly the environment's single-digit [environment ID](../reference/environments.md#environment-id) (`prod`'s pool is `10.8.8.0/24` because `prod`'s ID is `8`, same `<id>` used for its Proxmox VM IDs and BGP ASN; e.g. `poc`'s, `id=6`, is `10.8.6.0/24`). See [`docs/reference/environments.md#environment-id`](../reference/environments.md#environment-id) for the full per-environment pool table ([`k8s/infra/kube-system/cilium/envs/<env>/ip-pool-bgp.yaml`](../../k8s/infra/kube-system/cilium/envs/) is the source) — each pool's actual `CiliumLoadBalancerIPPool` block only spans `.8`–`.250` of its `/24`, leaving the low and high ends free for infrastructure/reservations.
 
-| env | pool |
-| --- | --- |
-| `head` | `10.8.1.0/24` |
-| `qa` | `10.8.2.0/24` |
-| `dev` | `10.8.3.0/24` |
-| `src` | `10.8.5.0/24` |
-| `poc` | `10.8.6.0/24` |
-| `rebuild` | `10.8.7.0/24` |
-| `prod` | `10.8.8.0/24` |
-| `dbg` | `10.8.9.0/24` |
+**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the rest of the network, and the choice matters here for a specific reason: the `10.8.0.0/16` range those pools carve `/24`s out of (informally "the Kubernetes BGP net") is a completely different subnet from `10.7.8.0/24`, the one the Talos nodes' own network interfaces actually sit in — a VLAN dedicated solely to cluster nodes, isolated from every other VLAN/net on the network (DMZ, LAN, other servers, ...). No node has an interface anywhere in `10.8.0.0/16` at all. L2 announcement (Cilium's other LB-IP mechanism, gratuitous-ARP-based) requires the advertised IP to sit in the *same* L2 segment as the node advertising it — it couldn't work across that subnet boundary. BGP has no such requirement: it's a routing-layer (L3) protocol, so any node can advertise a route for any `10.8.x.x/32` IP regardless of what subnet its own interface lives in, and the router (OPNsense, below) just adds that route to its table like any other. That's what makes the LB-IP address space fully independent of node placement — an IP can be reassigned to any node, or advertised redundantly from several, without needing any node to actually hold it as a local address.
 
-(each pool's actual `CiliumLoadBalancerIPPool` block only spans `.8`–`.250` of its `/24`, leaving the low and
-high ends free for infrastructure/reservations.)
-
-**BGP** — not L2 announcements — is how those LB IPs actually become reachable from the rest of the network,
-and the choice matters here for a specific reason: the `10.8.0.0/16` range those pools carve `/24`s out of
-(informally "the Kubernetes BGP net") is a completely different subnet from `10.7.8.0/24`, the one the Talos
-nodes' own network interfaces actually sit in — a VLAN dedicated solely to cluster nodes, isolated from every
-other VLAN/net on the network (DMZ, LAN, other servers, ...). No node has an interface anywhere in
-`10.8.0.0/16` at all. L2 announcement (Cilium's other LB-IP mechanism, gratuitous-ARP-based) requires the
-advertised IP to sit in the *same* L2 segment as the node advertising it — it couldn't work across that
-subnet boundary. BGP has no such requirement: it's a routing-layer (L3) protocol, so any node can advertise a
-route for any `10.8.x.x/32` IP regardless of what subnet its own interface lives in, and the router (OPNsense,
-below) just adds that route to its table like any other. That's what makes the LB-IP address space fully
-independent of node placement — an IP can be reassigned to any node, or advertised redundantly from several,
-without needing any node to actually hold it as a local address.
-
-Every environment's
-[`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) peers from
-the worker nodes (control-plane nodes are explicitly excluded) to two fixed router addresses:
+Every environment's [`CiliumBGPClusterConfig`](../../k8s/infra/kube-system/cilium/envs/prod/bgp-cluster-config.yaml) peers from the worker nodes (control-plane nodes are explicitly excluded) to two fixed router addresses:
 
 ```yaml
 apiVersion: cilium.io/v2
@@ -124,24 +81,11 @@ spec:
           peerAddress: 10.7.8.3
 ```
 
-`10.7.8.2`/`10.7.8.3` sit on the same subnet (VLAN, `10.7.8.0/24`) the Talos nodes themselves live on
-(confirmed per-environment in `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, e.g.
-`gateway = "10.7.8.1"`). These two addresses are **not** documented in this repo — they're a pair of
-[OPNsense](https://opnsense.org/) firewalls/routers running in an HA setup (physical infrastructure entirely
-outside Git); `10.7.8.1` is the standard/virtual gateway IP that VMs and nodes actually route through
-day-to-day, while `.2`/`.3` are the individual OPNsense boxes' own addresses, each peering BGP independently
-so a route stays advertised even if one box is down.
-[`bgp-advertisement.yaml`](../../k8s/infra/kube-system/cilium/base/bgp-advertisement.yaml) advertises every
-`LoadBalancerIP` (Service and Gateway alike) into that BGP session, and
-[`k8s/infra/kube-system/cilium/README.md`](../../k8s/infra/kube-system/cilium/README.md) has captured
-`cilium bgp peers`/`cilium bgp routes` output confirming this is live in practice — nodes peer successfully
-and advertise routes like `10.8.8.80/32`.
+`10.7.8.2`/`10.7.8.3` sit on the same subnet (VLAN, `10.7.8.0/24`) the Talos nodes themselves live on (confirmed per-environment in `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, e.g. `gateway = "10.7.8.1"`). These two addresses are **not** documented in this repo — they're a pair of [OPNsense](https://opnsense.org/) firewalls/routers running in an HA setup (physical infrastructure entirely outside Git); `10.7.8.1` is the standard/virtual gateway IP that VMs and nodes actually route through day-to-day, while `.2`/`.3` are the individual OPNsense boxes' own addresses, each peering BGP independently so a route stays advertised even if one box is down. [`bgp-advertisement.yaml`](../../k8s/infra/kube-system/cilium/base/bgp-advertisement.yaml) advertises every `LoadBalancerIP` (Service and Gateway alike) into that BGP session, and [`k8s/infra/kube-system/cilium/README.md`](../../k8s/infra/kube-system/cilium/README.md) has captured `cilium bgp peers`/`cilium bgp routes` output confirming this is live in practice — nodes peer successfully and advertise routes like `10.8.8.80/32`.
 
 ## Gateway API: Cilium as the implementation
 
-No `GatewayClass` resource exists in the repo — `gatewayAPI.enabled: true` makes the Cilium operator create
-one automatically (`gatewayClassName: cilium` on every `Gateway`).
-[`k8s/infra/gateway-api/gateway/base/`](../../k8s/infra/gateway-api/gateway/base/) defines three:
+No `GatewayClass` resource exists in the repo — `gatewayAPI.enabled: true` makes the Cilium operator create one automatically (`gatewayClassName: cilium` on every `Gateway`). [`k8s/infra/gateway-api/gateway/base/`](../../k8s/infra/gateway-api/gateway/base/) defines three:
 
 | Gateway | Listener | LB IP (prod) | Purpose |
 | --- | --- | --- | --- |
@@ -149,29 +93,11 @@ one automatically (`gatewayClassName: cilium` on every `Gateway`).
 | `internal-http` | HTTP:80 | `10.8.8.80` (shared) | HTTP→HTTPS redirect only |
 | `external` | HTTPS:443 | `10.8.8.83` | reserved for public-facing routes (see [gap](#whats-not-here) below) |
 
-`internal` and `internal-http` deliberately **share one LB IP** via `io.cilium/lb-ipam-sharing-key`, split
-into two separate `Gateway` objects instead of one Gateway with two listeners —
-[`k8s/infra/gateway-api/gateway/README.md`](../../k8s/infra/gateway-api/gateway/README.md) explains why:
-Cilium's Gateway-API-to-Envoy translation leaks every app's exact-hostname HTTPS route into the HTTP
-listener's own route table too, and Envoy always prefers an exact-hostname match over the redirect's
-wildcard vhost — so a same-Gateway HTTP→HTTPS redirect silently stopped firing for any hostname that had its
-own route (tracked upstream as [cilium/cilium#44123](https://redirect.github.com/cilium/cilium/issues/44123)).
-Splitting the listeners into two Gateways avoids the route leak entirely, at the cost of `internal-http`
-restricting `allowedRoutes` to `from: Same` so only its own redirect route can attach.
+`internal` and `internal-http` deliberately **share one LB IP** via `io.cilium/lb-ipam-sharing-key`, split into two separate `Gateway` objects instead of one Gateway with two listeners, to avoid a Cilium/Envoy route-leak bug that silently broke the HTTP→HTTPS redirect — see [`k8s/infra/gateway-api/gateway/README.md`](../../k8s/infra/gateway-api/gateway/README.md) for the actual mechanism and upstream bug reference, not duplicated here. The split costs `internal-http` restricting `allowedRoutes` to `from: Same`, so only its own redirect route can attach.
 
-Apps attach an `HTTPRoute` to `internal` by `parentRefs`, e.g.
-[`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml) (already
-covered in [`kustomize.md`](kustomize.md) as the domain-templating example) — the same pattern repeats for
-`whoami`, `checkmk-agent`, `longhorn-core`'s UI, `flux-operator`'s UI, and `actualbudget`. No app in the repo
-currently attaches an `HTTPRoute` to `external`.
+Apps attach an `HTTPRoute` to `internal` by `parentRefs`, e.g. [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml) (already covered in [`kustomize.md`](kustomize.md) as the domain-templating example) — the same pattern repeats for `whoami`, `checkmk-agent`, `longhorn-core`'s UI, `flux-operator`'s UI, and `actualbudget`. No app in the repo currently attaches an `HTTPRoute` to `external`.
 
-**TLS** is one wildcard `Certificate` per Gateway, not per app —
-[`k8s/infra/gateway-api/gateway/base/cert.yaml`](../../k8s/infra/gateway-api/gateway/base/cert.yaml) issues
-`*.example.com` (templated to the real per-env domain), referenced by both `internal` and `external`'s
-`tls.certificateRefs`. The issuer
-([`k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml`](../../k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml))
-solves ACME DNS-01 via Cloudflare (currently pointed at **Let's Encrypt staging**, not production — worth
-noticing before relying on the resulting cert being trusted by real clients):
+**TLS** is one wildcard `Certificate` per Gateway, not per app — [`k8s/infra/gateway-api/gateway/base/cert.yaml`](../../k8s/infra/gateway-api/gateway/base/cert.yaml) issues `*.example.com` (templated to the real per-env domain), referenced by both `internal` and `external`'s `tls.certificateRefs`. The issuer ([`k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml`](../../k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml)) solves ACME DNS-01 via Cloudflare (currently pointed at **Let's Encrypt staging**, not production — worth noticing before relying on the resulting cert being trusted by real clients):
 
 ```yaml
 spec:
@@ -183,18 +109,11 @@ spec:
             apiTokenSecretRef: {name: cloudflare-api-token, key: api-token}
 ```
 
-The Cloudflare API token itself is a `SealedSecret` — see [`secrets.md`](secrets.md#sealed-secrets--for-secrets-committed-as-ciphertext)
-for how it got there. This is Cloudflare's **only** role in this architecture: issuing certificates. There is
-no Cloudflare Tunnel or other public-ingress path anywhere in `k8s/` — see the gap noted below.
+The Cloudflare API token itself is a `SealedSecret` — see [`secrets.md`](secrets.md#sealed-secrets--for-secrets-committed-as-ciphertext) for how it got there. This is Cloudflare's **only** role in this architecture: issuing certificates. There is no Cloudflare Tunnel or other public-ingress path anywhere in `k8s/` — see the gap noted below.
 
 ## DNS: AdGuard + Unbound
 
-These are two separate apps, not a sidecar pair —
-[`k8s/apps/dns/adguard/`](../../k8s/apps/dns/adguard/) and
-[`k8s/apps/dns/unbound/`](../../k8s/apps/dns/unbound/) each have their own Deployment and `LoadBalancer`
-Service. AdGuard is the LAN's actual DNS server (filtering/ad-blocking); Unbound is its upstream resolver for
-anything under the internal domain —
-[`k8s/apps/dns/adguard/base/config/AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml):
+These are two separate apps, not a sidecar pair — [`k8s/apps/dns/adguard/`](../../k8s/apps/dns/adguard/) and [`k8s/apps/dns/unbound/`](../../k8s/apps/dns/unbound/) each have their own Deployment and `LoadBalancer` Service. AdGuard is the LAN's actual DNS server (filtering/ad-blocking); Unbound is its upstream resolver for anything under the internal domain — [`k8s/apps/dns/adguard/base/config/AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml):
 
 ```yaml
 upstream_dns:
@@ -203,13 +122,7 @@ upstream_dns:
   - "[/10.in-addr.arpa/]10.8.8.8 10.9.9.9"
 ```
 
-`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the
-OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of
-these two `upstream_dns` entries lists Unbound first, then that OPNsense-hosted resolver as a fallback if
-Unbound is unreachable. AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything
-else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for
-the real domain
-([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
+`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of these two `upstream_dns` entries lists Unbound first, then that OPNsense-hosted resolver as a fallback if Unbound is unreachable. AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for the real domain ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
 
 ```
 stub-zone:
@@ -218,46 +131,24 @@ stub-zone:
     stub-addr: 10.7.2.12
 ```
 
-`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're a pair of small Debian LXC containers acting as
-the root/authoritative nameservers for the `iseja.net` zone (see
-[below](#physical-network-opnsense-ucs-and-the-root-nameservers)), not UCS: UCS's own DNS role is scoped to
-the `dir.iseja.net`/`home.iseja.net` subdomains, not the root zone.
+`10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're a pair of small Debian LXC containers acting as the root/authoritative nameservers for the `iseja.net` zone (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)), not UCS: UCS's own DNS role is scoped to the `dir.iseja.net`/`home.iseja.net` subdomains, not the root zone.
 
-Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (preserves the client source IP —
-relevant for AdGuard's per-client filtering rules) and a fixed `io.cilium/lb-ipam-ips` annotation per
-environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached only through the Gateway
-(`adguard.<domain>` → `internal`), never through the DNS-serving LoadBalancer IP.
-[`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) has `dhcp.enabled: false` —
-AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises
-AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
+Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (preserves the client source IP — relevant for AdGuard's per-client filtering rules) and a fixed `io.cilium/lb-ipam-ips` annotation per environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached only through the Gateway (`adguard.<domain>` → `internal`), never through the DNS-serving LoadBalancer IP. [`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) has `dhcp.enabled: false` — AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
 
 ## DNS: authoritative zones (PowerDNS)
 
-**Status: partially in progress, partially planning** — see the table below for which row is which. Design
-rationale lives in [`docs/decisions/0001-powerdns-as-dns-server.md`](../decisions/0001-powerdns-as-dns-server.md)
-and [`0002-tsig-over-ip-acl-for-axfr.md`](../decisions/0002-tsig-over-ip-acl-for-axfr.md); this section is
-the current-state zone inventory, not the reasoning behind it.
+This section documents a mix of live and planned zones — see the **Status** column in the table below for which row is which (this file's own frontmatter status covers the doc as a whole; per-zone status is more specific than that). Design rationale lives in [`docs/decisions/0011-powerdns-as-dns-server.md`](../decisions/0011-powerdns-as-dns-server.md) and [`0012-tsig-over-ip-acl-for-axfr.md`](../decisions/0012-tsig-over-ip-acl-for-axfr.md); this section is the current-state zone inventory, not the reasoning behind it. For the operational mechanics — per-environment TSIG key setup, configuring `10.7.2.12` as a TSIG-authenticated slave, the AXFR/`pdnsutil` cheat sheet, and quirks encountered live — see [`k8s/apps/dns/powerdns/README.md`](../../k8s/apps/dns/powerdns/README.md) rather than this doc; nothing below duplicates it.
 
-AdGuard and Unbound above are **resolvers** — they answer queries on behalf of LAN clients but aren't
-authoritative for anything. [`k8s/apps/dns/powerdns/`](../../k8s/apps/dns/powerdns/) (one
-[`bjw-s-labs` app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template)
-`HelmRelease` per environment) is the first **authoritative** nameserver this repo runs — until now, every
-authoritative record for `iseja.net` lived outside Git entirely, manually maintained on the two LXCs
-mentioned [below](#physical-network-opnsense-ucs-and-the-root-nameservers).
+AdGuard and Unbound above are **resolvers** — they answer queries on behalf of LAN clients but aren't authoritative for anything. [`k8s/apps/dns/powerdns/`](../../k8s/apps/dns/powerdns/) (one [`bjw-s-labs` app-template](https://github.com/bjw-s-labs/helm-charts/tree/main/charts/other/app-template) `HelmRelease` per environment) is the first **authoritative** nameserver this repo runs — until now, every authoritative record for `iseja.net` lived outside Git entirely, manually maintained on the two LXCs mentioned [below](#physical-network-opnsense-ucs-and-the-root-nameservers).
 
 | Zone | Master | Slaves | Mechanism | Status |
 | --- | --- | --- | --- | --- |
-| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | `10.7.2.12` (once delegated — see below) | Dynamically populated by external-dns (`gateway-httproute`+`service` sources) via RFC2136, TSIG-gated (no IP-ACL — see ADR 0002); `NOTIFY-DNSUPDATE`/`ALSO-NOTIFY` push changes to the slave promptly | in progress — PowerDNS and external-dns are both deployed and live-verified end to end on `dev` (real HTTPRoutes auto-registered, idempotent on repeat sync); PowerDNS also has a real LB IP (`10.8.<env-id>.10`) and a TSIG-signed AXFR-out relationship ready for `10.7.2.12`, but real NS delegation from the current `iseja.net` master (`10.7.2.10`) hasn't happened yet — that's the point of this phase, testing the mechanism before the actual cutover |
+| `<env>.iseja.net` (one per environment, e.g. `prod.iseja.net`) | in-cluster PowerDNS (`gsqlite3` backend) | `10.7.2.12` (once delegated — see below) | Dynamically populated by external-dns (`gateway-httproute`+`service` sources) via RFC2136, TSIG-gated (no IP-ACL — see ADR 0012); `NOTIFY-DNSUPDATE`/`ALSO-NOTIFY` push changes to the slave promptly | in progress — PowerDNS and external-dns are both deployed and live-verified end to end on `dev` (real HTTPRoutes auto-registered, idempotent on repeat sync); PowerDNS also has a real LB IP (`10.8.<env-id>.10`) and a TSIG-signed AXFR-out relationship ready for `10.7.2.12`, but real NS delegation from the current `iseja.net` master (`10.7.2.10`) hasn't happened yet — that's the point of this phase, testing the mechanism before the actual cutover |
 | `<env-id>.8.10.in-addr.arpa.` (PTR zone for that environment's own `10.8.<env-id>.0/24` LB-IP range, one per environment) | in-cluster PowerDNS (`gsqlite3` backend, same instance as the forward zone above) | `10.7.2.12` (once delegated — see below) | Dynamically populated by external-dns's `--create-ptr`, same RFC2136/TSIG mechanism as the forward zone; zone name comes from each env's own `DNS_REVERSE_ZONE` cluster-param value (see `k8s/components/transformers/reverse-zone-env`), not derived from the domain like the forward zone is | in progress — same live-verification status as the forward zone above |
 | `iseja.net` (root zone) | in-cluster PowerDNS, prod only (`bind` backend, SOPS-encrypted zone file) | `10.7.2.12` | IaC/git-managed records, TSIG-signed AXFR out | planning — supersedes `10.7.2.10`, see [below](#physical-network-opnsense-ucs-and-the-root-nameservers) |
 | `dir.iseja.net`, `7.10.in-addr.arpa.` | UCS (unchanged) | in-cluster PowerDNS, prod only | TSIG-signed AXFR in — PowerDNS is a secondary here, UCS stays the real source of truth | planning |
 
-The dynamic per-environment zones have no external master to resync from, so each environment's PowerDNS
-data lives on a `longhorn-ha` PersistentVolumeClaim (via the `apps/storage/pvc` component, so it's also
-kopiur-backed) rather than being reconstructed on every restart. The (planned) root-zone and UCS-slave-zone
-data on the prod instance follows the same reasoning for the parts *this repo* owns, but a UCS or LXC outage
-simply means those specific slaved zones go stale until reachable again — normal secondary-nameserver
-behavior, not a design gap.
+The dynamic per-environment zones have no external master to resync from, so each environment's PowerDNS data lives on a `longhorn-ha` PersistentVolumeClaim (via the `apps/storage/pvc` component, so it's also kopiur-backed) rather than being reconstructed on every restart. The (planned) root-zone and UCS-slave-zone data on the prod instance follows the same reasoning for the parts *this repo* owns, but a UCS or LXC outage simply means those specific slaved zones go stale until reachable again — normal secondary-nameserver behavior, not a design gap.
 
 Two small deliberate app-level changes were needed to make the zone actually correct, beyond the originally-planned "no app changes" scope:
 
@@ -267,52 +158,22 @@ Two small deliberate app-level changes were needed to make the zone actually cor
 
 **Known upstream bug (external-dns, not PowerDNS)**: when a name has more than one target sharing the same IP, external-dns's rfc2136 provider removes and re-adds that record (and any PTR pointing at it) on every single reconcile cycle, forever — harmless (the records stay correct and resolvable at any point in time), but wasteful. Root cause confirmed in external-dns's own source: `Targets.Same()` compares FQDN-valued targets (PTR/CNAME) without normalizing the trailing dot PowerDNS's AXFR always includes. Tracked upstream at [kubernetes-sigs/external-dns#6555](https://redirect.github.com/kubernetes-sigs/external-dns/pull/6555) (open, unmerged); tracked in this repo at [#1393](https://github.com/isejalabs/homelab/issues/1393). Mitigated (not fixed) by reducing external-dns's `--interval` to each environment's own `FLUX_RECONCILIATION_INTERVAL` instead of its 1m default, and largely avoided structurally by the Gateway-CNAME change above — the one remaining case still exposed to it is a Service assigned more than one LB IP (e.g. `unbound`'s `10.8.<env-id>.{8,11}`), confirmed live to still work correctly, just with the same underlying churn.
 
-`ns1.<env>.iseja.net` (every zone's own NS target and SOA MNAME, see `bootstrap-zone.sh`) needed the same explicit-hostname treatment as the standalone Services above, plus a one-time SOA fix: `pdnsutil`'s `default-soa-content` default seeds every new zone with a deliberately-fake MNAME placeholder (`a.misconfigured.dns.server.invalid`), which nothing had ever overridden — every zone's SOA now gets explicitly set to the real `ns1.<env>.iseja.net` MNAME at bootstrap time instead.
+`ns1.<env>.iseja.net` (every zone's own NS target and SOA MNAME) needed the same explicit-hostname treatment as the standalone Services above, plus a one-time fix for a PowerDNS default-seeded placeholder MNAME that nothing had previously overridden — see [`k8s/apps/dns/powerdns/README.md`](../../k8s/apps/dns/powerdns/README.md#soa-mname-and-ns1s-own-record) for the actual mechanism, not duplicated here. This is one of three per-environment naming schemes — see [`docs/reference/environments.md#domain-and-naming`](../reference/environments.md#domain-and-naming) for the other two and the full per-environment table.
 
 ## Physical network: OPNsense, UCS, and the root nameservers
 
-Everything in this section is physical infrastructure with no representation in this repo at all — it's
-documented here only because Cilium's BGP config and Unbound's stub-zone both reference it by IP. Almost all
-of it (per its owner) is itself a future migration candidate into Kubernetes, same as everything else in this
-homelab.
+Everything in this section is physical infrastructure with no representation in this repo at all — it's documented here only because Cilium's BGP config and Unbound's stub-zone both reference it by IP. Almost all of it (per its owner) is itself a future migration candidate into Kubernetes, same as everything else in this homelab.
 
-**OPNsense** — a pair of [OPNsense](https://opnsense.org/) firewalls/routers in an HA configuration is the
-network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everything else routes through, while
-`10.7.8.2`/`.3` are the two boxes' individual addresses, each independently peering BGP with the cluster's
-worker nodes (see [above](#cilium-lb-ipam-and-bgp-route-advertisement)) so LoadBalancer/Gateway routes stay
-advertised even if one box is down. The boxes also run a DNS resolver of their own, reachable at a separate
-virtual IP, `10.9.9.9` — AdGuard's [`upstream_dns`](#dns-adguard--unbound) config lists it as the fallback
-behind Unbound for the internal domain.
+**OPNsense** — a pair of [OPNsense](https://opnsense.org/) firewalls/routers in an HA configuration is the network's routing layer: `10.7.8.1` is the standard/virtual gateway IP everything else routes through, while `10.7.8.2`/`.3` are the two boxes' individual addresses, each independently peering BGP with the cluster's worker nodes (see [above](#cilium-lb-ipam-and-bgp-route-advertisement)) so LoadBalancer/Gateway routes stay advertised even if one box is down. The boxes also run a DNS resolver of their own, reachable at a separate virtual IP, `10.9.9.9` — AdGuard's [`upstream_dns`](#dns-adguard--unbound) config lists it as the fallback behind Unbound for the internal domain.
 
-**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are *not* these —
-see below) provide DHCP and identity management (Kerberos, LDAP, and Active Directory — UCS bundles a
-Samba/AD-compatible domain controller) for the network, plus DNS scoped specifically to the
-`dir.iseja.net`/`home.iseja.net` subdomains (not the `iseja.net` root zone itself). Being on their own VLAN,
-DHCP requests from client VLANs reach UCS via the **DHCP relay** service running on the OPNsense boxes —
-clients broadcast on their local segment, OPNsense relays the request across to UCS's VLAN, and the response
-is relayed back.
+**UCS (Univention Corporate Server)** — a redundant pair of UCS machines (`10.7.2.10`/`.12` are *not* these — see below) provide DHCP and identity management (Kerberos, LDAP, and Active Directory — UCS bundles a Samba/AD-compatible domain controller) for the network, plus DNS scoped specifically to the `dir.iseja.net`/`home.iseja.net` subdomains (not the `iseja.net` root zone itself). Being on their own VLAN, DHCP requests from client VLANs reach UCS via the **DHCP relay** service running on the OPNsense boxes — clients broadcast on their local segment, OPNsense relays the request across to UCS's VLAN, and the response is relayed back.
 
-**The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a
-*separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone
-itself, distinct from UCS's subdomain-scoped DNS role. `10.7.2.10` (today's master) is planned to be
-superseded by the in-cluster PowerDNS instance described [above](#dns-authoritative-zones-powerdns); `10.7.2.12`
-keeps its existing slave-only role unchanged, just re-pointed at the new master once that cutover happens.
+**The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a *separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone itself, distinct from UCS's subdomain-scoped DNS role. `10.7.2.10` (today's master) is planned to be superseded by the in-cluster PowerDNS instance described [above](#dns-authoritative-zones-powerdns); `10.7.2.12` keeps its existing slave-only role unchanged, just re-pointed at the new master once that cutover happens.
 
-**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its
-own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the
-management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows
-through, and not a BGP peer, DHCP/identity provider, or nameserver. Its
-[README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
+**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows through, and not a BGP peer, DHCP/identity provider, or nameserver. Its [README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
 
 ## What's not here
 
-- **No WAN-facing ingress path.** The `external` Gateway exists (and gets its own LB IP and cert), but no
-  `HTTPRoute` in the repo attaches to it, and there's no Cloudflare Tunnel or other public-ingress mechanism
-  anywhere in `k8s/`. Cloudflare's only confirmed role is DNS-01 certificate issuance. Whether `external`'s
-  LB IP is NAT'd/port-forwarded to the internet at OPNsense is a router-config question outside this repo
-  either way.
-- **ACME staging, not production** — the `ClusterIssuer` currently points at Let's Encrypt's staging
-  endpoint, so certificates it issues won't be trusted by real browsers/clients until that's switched over.
-- **The physical network itself (OPNsense, UCS, the root nameservers) isn't in Git** — everything in the
-  section above is documented from IP references found in-cluster, not from any config this repo actually
-  owns, and most of it is itself a future Kubernetes-migration candidate.
+- **No WAN-facing ingress path.** The `external` Gateway exists (and gets its own LB IP and cert), but no `HTTPRoute` in the repo attaches to it, and there's no Cloudflare Tunnel or other public-ingress mechanism anywhere in `k8s/`. Cloudflare's only confirmed role is DNS-01 certificate issuance. Whether `external`'s LB IP is NAT'd/port-forwarded to the internet at OPNsense is a router-config question outside this repo either way.
+- **ACME staging, not production** — the `ClusterIssuer` currently points at Let's Encrypt's staging endpoint, so certificates it issues won't be trusted by real browsers/clients until that's switched over.
+- **The physical network itself (OPNsense, UCS, the root nameservers) isn't in Git** — everything in the section above is documented from IP references found in-cluster, not from any config this repo actually owns, and most of it is itself a future Kubernetes-migration candidate.

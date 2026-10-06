@@ -35,5 +35,4 @@ These components can then be included in the `kustomization.yaml` files of indiv
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur SnapshotSchedules in environments without active backup
 ```
 
-See each subfolder's own README for details -- `k8s/components/apps/<app>/README.md` and
-`k8s/components/transformers/<name>/README.md`, where present.
+See each subfolder's own README for details -- `k8s/components/apps/<app>/README.md` and `k8s/components/transformers/<name>/README.md`, where present.

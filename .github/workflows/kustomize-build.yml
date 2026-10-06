@@ -1,30 +1,42 @@
 name: "Kustomize build"
 on:
   pull_request:
-    paths:
-    - "k8s/**"
-    - "!k8s/**/*.md" # a README under k8s/ (there are ~17) isn't a manifest kustomize-build validates
-    - ".mise.toml"
-    - "mise.lock"
-    - "scripts/kustomize-build-all.sh"
-    - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
-    - "scripts/lib/common.sh"
-    - ".github/workflows/kustomize-build.yml"
   push:
     branches:
     - main
-    paths:
-    - "k8s/**"
-    - "!k8s/**/*.md"
-    - ".mise.toml"
-    - "mise.lock"
-    - "scripts/kustomize-build-all.sh"
-    - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
-    - "scripts/lib/common.sh"
-    - ".github/workflows/kustomize-build.yml"
 
 jobs:
+  changes:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      id: filter
+      with:
+        # default predicate-quantifier ('some') treats a '!'-prefixed pattern as its own independent
+        # positive rule ("match anything not fitting this"), not a true exclusion - which matches nearly
+        # every file in the repo. 'some-with-excludes' makes the negated patterns actually exclude.
+        predicate-quantifier: 'some-with-excludes'
+        filters: |
+          relevant:
+          - "k8s/**"
+          - "!k8s/**/*.md" # a README under k8s/ (there are ~17) isn't a manifest kustomize-build validates
+          - ".mise.toml"
+          - "mise.lock"
+          - "scripts/kustomize-build-all.sh"
+          - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
+          - "scripts/lib/common.sh"
+          - ".github/workflows/kustomize-build.yml"
+
   kustomize-build:
+    needs: changes
+    # job-level if, not a workflow-level paths: trigger filter, so this job still reports a status (skipped
+    # counts as passing for required-status-checks purposes) instead of never running at all -- see #1511.
+    if: needs.changes.outputs.relevant == 'true'
     permissions:
       contents: read
     runs-on: ubuntu-latest
