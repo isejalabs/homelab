@@ -22,7 +22,7 @@ Whatever server does this needs to, in one tool if possible:
 - **Technitium DNS Server** — modern, has its own web UI/REST API, growing homelab popularity. Ruled out: far less production track record for something this load-bearing (the root zone for the whole network), and no dedicated external-dns provider (would mean going through its HTTP API by hand or a generic webhook provider).
 - **Knot DNS** — same technical class as PowerDNS (TSIG, AXFR, dynamic updates all present). Lost mainly on ecosystem/tooling fit for this specific combination of roles, not capability — a reasonable alternative if PowerDNS turns out to have problems in practice.
 - **NSD** — ruled out early and structurally, not on a close call: authoritative-only, no dynamic-update support at all. Can't serve the `<env>.iseja.net` role regardless of anything else about it.
-- **CoreDNS + etcd** — CoreDNS's `etcd` plugin plus external-dns's `coredns` provider is a well-trodden path elsewhere, but would mean standing up an application-level etcd cluster with zero precedent in this repo, purely to get a store external-dns can write into. Once TSIG/RFC2136 (see [ADR 0002](0002-tsig-over-ip-acl-for-axfr.md)) solved the auth question for a SQL-backed PowerDNS instead, this stopped having a real advantage.
+- **CoreDNS + etcd** — CoreDNS's `etcd` plugin plus external-dns's `coredns` provider is a well-trodden path elsewhere, but would mean standing up an application-level etcd cluster with zero precedent in this repo, purely to get a store external-dns can write into. Once TSIG/RFC2136 (see [ADR 0012](0012-tsig-over-ip-acl-for-axfr.md)) solved the auth question for a SQL-backed PowerDNS instead, this stopped having a real advantage.
 
 ## Decision
 
