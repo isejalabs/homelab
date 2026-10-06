@@ -21,7 +21,7 @@ This ADR records the options reviewed (October 2026, from documentation and sour
 
 ## Decision
 
-Use Terraform (OpenTofu through Terragrunt, with the module in `isejalabs/terraform-modules`) for the Checkmk API objects needed by the RustFS monitoring. Ansible is deliberately set aside for now because of its added complexity at the moment, not because it is unsuitable; the `checkmk.general` collection is the documented fallback and the likely successor if the Terraform provider proves too immature. Salt keeps delivering plugin files to `monitoring2`, as decided in ADR 0003.
+Use Terraform (OpenTofu through Terragrunt, with the module in `isejalabs/terraform-modules`) for the Checkmk API objects needed by the RustFS monitoring. Ansible is deliberately set aside for now because of its added complexity at the moment, not because it is unsuitable; the `checkmk.general` collection is the documented fallback and the likely successor if the Terraform provider proves too immature. Salt keeps delivering plugin files to `monitoring2`, as decided in ADR 0013.
 
 The spike required by the first version of this ADR was run (see "Spike results" below) and confirmed the provider can express everything the RustFS monitoring needs, so the decision is `current`. Implementation is tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529).
 
