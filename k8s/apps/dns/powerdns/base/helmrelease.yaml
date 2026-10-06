@@ -192,7 +192,7 @@ spec:
             # TSIG-only dynamic updates (RFC2136) for external-dns. No IP-ACL:
             # auth is by TSIG key name, not source address, so it doesn't
             # matter which node a replica lands on -- see
-            # docs/decisions/0002-tsig-over-ip-acl-for-axfr.md.
+            # docs/decisions/0012-tsig-over-ip-acl-for-axfr.md.
             dnsupdate=yes
             dnsupdate-require-tsig=yes
             # Left empty deliberately: only the per-zone TSIG-ALLOW-DNSUPDATE

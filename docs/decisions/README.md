@@ -10,7 +10,7 @@ Write an ADR when a choice is both non-obvious and likely to be revisited, and n
 
 ## Linking conventions
 
-An architecture/reference doc whose content depends on a decision links to that decision's ADR instead of restating the reasoning (e.g. [`network.md`](../architecture/network.md) linking to 0001/0002, [`repositories.md`](../architecture/repositories.md) linking to 0003) — the ADR is the one place the *why* lives. The reverse link (an ADR pointing back to the architecture doc with the current-state detail) is useful too where one exists, as 0001's Context section already does for `network.md`, but isn't required when there's no single obvious doc to point to.
+An architecture/reference doc whose content depends on a decision links to that decision's ADR instead of restating the reasoning (e.g. [`network.md`](../architecture/network.md) linking to 0011/0012, [`repositories.md`](../architecture/repositories.md) linking to 0013) — the ADR is the one place the *why* lives. The reverse link (an ADR pointing back to the architecture doc with the current-state detail) is useful too where one exists, as 0011's Context section already does for `network.md`, but isn't required when there's no single obvious doc to point to.
 
 ## Format
 
@@ -35,6 +35,6 @@ current | planning | superseded
 
 | # | Title | Status |
 | --- | --- | --- |
-| [0001](0001-powerdns-as-dns-server.md) | PowerDNS as the in-cluster authoritative DNS server | current |
-| [0002](0002-tsig-over-ip-acl-for-axfr.md) | TSIG over IP-ACL for AXFR and dynamic-update authorization | current |
-| [0003](0003-repository-and-tool-boundaries.md) | Repository and IaC tool boundaries | planning |
+| [0011](0011-powerdns-as-dns-server.md) | PowerDNS as the in-cluster authoritative DNS server | current |
+| [0012](0012-tsig-over-ip-acl-for-axfr.md) | TSIG over IP-ACL for AXFR and dynamic-update authorization | current |
+| [0013](0013-repository-and-tool-boundaries.md) | Repository and IaC tool boundaries | planning |
