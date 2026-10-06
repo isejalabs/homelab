@@ -49,3 +49,4 @@ current | planning | superseded
 | [0012](0012-tsig-over-ip-acl-for-axfr.md) | TSIG over IP-ACL for AXFR and dynamic-update authorization | current |
 | [0013](0013-repository-and-tool-boundaries.md) | Repository and IaC tool boundaries | planning |
 | [0014](0014-longhorn-vs-proxmox-csi.md) | Longhorn vs. proxmox-csi | current |
+| [0015](0015-checkmk-configuration-as-code.md) | Checkmk configuration as code: Terraform provider, Ansible deferred | current |
