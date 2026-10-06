@@ -33,7 +33,7 @@ Colocate code that shares a change unit and a toolchain, not everything that is 
 | Objects behind an API with a create/destroy lifecycle | Terraform/OpenTofu via Terragrunt | S3 state and IAM roles, RustFS buckets, users and policies, 1Password items, VM existence, Talos |
 | Configuration inside a long-lived Linux host | Salt | Packages, files, services and cron on Proxmox hosts, monitoring2, loghost, ns2; Checkmk agents and plugins |
 | Anything running in Kubernetes | Flux | Everything under `k8s/infra` and `k8s/apps` |
-| Checkmk site configuration (password store, hosts, rules) | Terraform (planned, [ADR 0014](../decisions/0014-checkmk-configuration-as-code.md)); Ansible is set aside for now | Via the community provider; objects it cannot express stay manual and documented |
+| Checkmk site configuration (password store, hosts, rules) | Terraform (planned, [ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)); Ansible is set aside for now | Via the community provider; objects it cannot express stay manual and documented |
 | Application settings of other appliances | Manual, documented | TrueNAS |
 | GitHub repository/branch settings | Manual, documented | `main`'s branch protection (required status checks, PR-before-merge) — see [`ci.md`](ci.md) for what's actually required and why; no Terraform GitHub provider exists in this repo, this is a deliberate exception for a low-churn setting rather than new IaC surface area |
 
@@ -67,7 +67,7 @@ Tracked in [#1438](https://github.com/isejalabs/homelab/issues/1438); design in 
 | --- | --- | --- |
 | One monitoring user per environment with a bucket-scoped `s3:GetBucketQuota` policy, credentials into 1Password | Terraform | New module tracked in [isejalabs/terraform-modules#34](https://github.com/isejalabs/terraform-modules/issues/34), instantiated per environment in `terragrunt/` here |
 | Checkmk special agent and check plugin on monitoring2, secret read from 1Password | Salt | `sebiklamar/salt-iseja.net` |
-| Checkmk host, password-store entries and rules | Terraform (planned, [ADR 0014](../decisions/0014-checkmk-configuration-as-code.md)), tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529) | Not yet implemented; manual and documented until then |
+| Checkmk host, password-store entries and rules | Terraform (planned, [ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)), tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529) | Not yet implemented; manual and documented until then |
 
 ## Known inconsistencies
 
