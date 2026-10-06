@@ -1,4 +1,4 @@
-# Eight environments, and why production differs from the rest
+# Multiple environments, and why production differs from the rest
 
 ## Status
 
@@ -45,7 +45,8 @@ Keep 8 distinct environments, each scoped to one purpose per [`environments.md`]
 - A `prod`-only version-pinning bug can't be caught by `head`/`dev` alone, since they deliberately don't mirror `prod`'s own pin — `qa` validating the exact version destined for `prod` is what actually covers this gap.
 - **Neither `qa` nor `rebuild` runs a 3-controlplane HA topology** (both 1+3, per [`reference/environments.md`](../reference/environments.md#per-environment-resource-sizing-terragrunt)) — an HA-specific control-plane issue (e.g. etcd quorum behavior, a leader-election edge case) can't be caught by either pre-prod environment, only in `prod` itself. This is an accepted gap, not an oversight: full HA costs more per non-prod environment than the risk has justified paying for so far.
 
+`qa` and `rebuild` are sized identically to each other — both differ from `prod` only by a smaller worker disk size, not from one another. Not relevant to this decision either way, noted here only to correct an earlier draft of this ADR that assumed otherwise.
+
 ## Open decisions
 
-- Whether `rebuild`'s sizing is meant to be larger than `qa`'s — the current `terragrunt.hcl` for both shows identical worker tier selectors (`work_disk_size-medium`, `work_ram-big`), not a deliberate difference. Worth confirming whether this should actually diverge, or whether the intent was already satisfied some other way this doc doesn't capture.
 - Whether "how a change gets validated before landing in `prod`" (the `dev`→`qa`→`prod` promotion flow, what actually gets tested at each stage) deserves its own write-up. This reads more like an operational process/workflow than a structural "which option and why" decision, so it likely belongs as an expansion of `environments.md` or a new top-level procedural doc rather than a new ADR — not decided here, flagging for a separate call.
