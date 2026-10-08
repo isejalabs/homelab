@@ -67,7 +67,7 @@ Tracked in [#1438](https://github.com/isejalabs/homelab/issues/1438); design in 
 | --- | --- | --- |
 | One monitoring user per environment with a bucket-scoped `s3:GetBucketQuota` policy, credentials into 1Password | Terraform | New module tracked in [isejalabs/terraform-modules#34](https://github.com/isejalabs/terraform-modules/issues/34), instantiated per environment in `terragrunt/` here |
 | Checkmk special agent and check plugin on monitoring2, secret read from 1Password | Salt | `sebiklamar/salt-iseja.net` |
-| Checkmk password-store entries (per environment), then host and rules (one shared unit) | Terraform ([ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)), tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529) | Password entries: `checkmk-password` units, see [`terragrunt/README.md`](../../terragrunt/README.md#checkmk-configuration); host and rules still to do |
+| Checkmk password-store entries (per environment), then the API-only host and special-agent rules (one shared unit) | Terraform ([ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)), tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529) | `checkmk-password` and `checkmk-rustfs-monitoring` units, see [`terragrunt/README.md`](../../terragrunt/README.md#checkmk-configuration); the rules stay disabled until the plugin is installed |
 
 ## Known inconsistencies
 

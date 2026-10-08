@@ -102,6 +102,18 @@ The provider authenticates as the Checkmk automation user `terraform` through th
 
 Rollback: remove or edit any rule that references the entry first, then destroy the environment's `checkmk-password` unit (this removes the Password Store entry only; the RustFS identity and the 1Password item are untouched).
 
+## Host and rules (`checkmk-rustfs-monitoring`)
+
+One shared unit, `prod/eu-central-1/prod/checkmk-rustfs-monitoring`, creates the Checkmk side of the RustFS quota monitoring through [`checkmk-rustfs-monitoring`](https://github.com/isejalabs/terraform-modules/tree/main/modules/checkmk-rustfs-monitoring): a dedicated API-only host `rustfs.fiona.home.iseja.net` in the folder `/container/pve4` (the folder must exist), one special-agent rule per RustFS monitoring identity, and an activation.
+
+**Why a host of its own:** `fiona.home.iseja.net` already exists in that folder with the normal Checkmk agent, and a special-agent rule on a host with the normal agent *replaces* its agent connection (verified: Checkmk then generates only the special-agent program and no TCP connection), which would silence its existing checks. The new host has no IP address and no agent, only the special agents.
+
+**Rules are off until the plugin exists.** `rules_enabled` in the unit is `false`: the ruleset `special_agents:rustfs_quota` is defined by the RustFS quota special-agent plugin, which has to be installed on the Checkmk site first (through Salt), and Checkmk rejects a rule for a ruleset it does not know. Until then the unit creates only the host. The rules follow a fixed contract (`endpoint`, `access_key`, `secret_key` as a Password Store reference, `buckets`; see the module README) that the plugin has to implement. They reference the Password Store entries created by the `checkmk-password` units, so apply those first. Which environments get a rule is the `identity_envs` list in `_envcommon/checkmk-rustfs-monitoring.hcl`: add an environment once its `rustfs-bucket-reader` and `checkmk-password` units are applied. Which environments have a Longhorn backup bucket is stated once in [`global.hcl`](global.hcl).
+
+**Activation never forces other people's changes.** The unit activates the pending changes after each change of the host or the rules, but with `force_foreign_changes = false`: if someone else has pending changes in the Checkmk UI, the apply fails with "Activation Failed ... status 401" and activates nothing (this module's own changes stay pending). Resolve the other pending changes in Checkmk (activate or discard them), then run the apply again.
+
+Enabling the rules later: install the plugin on the site, set `rules_enabled = true` in the unit, and apply. Rollback: destroy the unit (removes the rules and the host; the Password Store entries and the RustFS identities are untouched), or set `rules_enabled = false` to remove only the rules. Do not edit the host in the Checkmk UI: the provider replaces a host's attributes as a whole, so Terraform would reset it.
+
 ## The automation user's role
 
 `terraform` does not need to be an administrator. Create a role from the built-in `no_permissions` role with exactly the 14 permissions the Checkmk modules need, and give it to the user. This was verified against a Checkmk Raw 2.4 site: with only this role the provider applied, re-planned without changes and destroyed everything the spike created. (A role cloned from `user` also works but carries about 370 inherited permissions, including 16 more Setup ones, so do not use it.) Use an existing Checkmk admin account for these calls and read its secret without echoing it:
