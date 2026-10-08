@@ -2,7 +2,7 @@
 # CI schema/build validation (kustomize-build.yml) - split out of the root .mise.toml so a bump here
 # doesn't also retrigger terragrunt-validate.yml, which has nothing to do with these tools. See #1426.
 kubeconform = "0.8.0"
-kustomize = "5.8.2"
+kustomize = "5.8.3"
 
 [settings]
 lockfile = true
