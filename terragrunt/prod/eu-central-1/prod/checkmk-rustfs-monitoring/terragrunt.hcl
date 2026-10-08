@@ -35,6 +35,11 @@ inputs = {
   host_name = "rustfs.fiona.home.iseja.net"
   folder    = "/container/pve4"
 
+  # How often Checkmk fetches the host's data and checks its services (minutes). Each run queries every bucket once and
+  # RustFS logs each query as a warning-level event; Checkmk's default of 1 minute would mean about 17,000 requests a day
+  # for 12 buckets, the monitoring plan calls for 15 minutes.
+  check_interval_minutes = 15
+
   # Keep false until the RustFS quota special agent plugin (which defines the ruleset special_agents:rustfs_quota) is
   # installed on the Checkmk site; Checkmk rejects a rule for a ruleset it does not know.
   rules_enabled = false
