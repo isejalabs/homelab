@@ -47,9 +47,9 @@ locals {
 
   ### Common variables for the component across all environments
 
-  # TEMPORARY: tracks the module's feature branch because no release tag exists yet. Switch to a tag
-  # (checkmk-password-v0.1.0, as rustfs-kopiur-backup does) before merging.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-password?ref=issue/44_checkmk-password"
+  # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
+  # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-password?ref=checkmk-password-v0.1.0"
 
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
