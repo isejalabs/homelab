@@ -13,6 +13,7 @@ How the homelab is split across repositories, which tool manages which kind of t
 | [`isejalabs/homelab`](https://github.com/isejalabs/homelab) | Live config, k8s platform | Kustomize/Flux manifests (`k8s/`), Terragrunt instantiation of modules (`terragrunt/`), bootstrap, docs |
 | [`isejalabs/terraform-modules`](https://github.com/isejalabs/terraform-modules) | Reusable modules | Versioned, per-module-tagged Terraform/OpenTofu modules with no environment knowledge (RustFS buckets/users, 1Password items, PoC VM/Talos modules) |
 | [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) | Reusable module | The Proxmox + Talos cluster module, a fork of an upstream project, kept separate to track upstream |
+| [`isejalabs/checkmk-modules`](https://github.com/isejalabs/checkmk-modules) | Reusable plugins | Checkmk extension packages (MKP): special agents and check plugins in Python, versioned per package (`<package>-v<semver>`) with the MKP attached to the release. Only builds the plugins; the Checkmk objects around them are Terraform ([ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)) and installing a release on `monitoring2` is Salt |
 | [`sebiklamar/salt-iseja.net`](https://github.com/sebiklamar/salt-iseja.net) | Live config, Linux and physical layer | Salt states for Proxmox hosts, the monitoring/Checkmk LXCs, loghost, ns2 and the Checkmk agents. Pillar data lives on the salt-master only, not in git |
 | [`isejalabs/commons`](https://github.com/isejalabs/commons) | Shared conventions | Agent conventions, branching rules and repo settings, imported as the `.commons` submodule |
 
@@ -66,7 +67,8 @@ Tracked in [#1438](https://github.com/isejalabs/homelab/issues/1438); design in 
 | Piece | Tool | Where |
 | --- | --- | --- |
 | One monitoring user per environment with a bucket-scoped `s3:GetBucketQuota` policy, credentials into 1Password | Terraform | New module tracked in [isejalabs/terraform-modules#34](https://github.com/isejalabs/terraform-modules/issues/34), instantiated per environment in `terragrunt/` here |
-| Checkmk special agent and check plugin on monitoring2, secret read from 1Password | Salt | `sebiklamar/salt-iseja.net` |
+| Checkmk special agent and check plugin (Python) | Built and released from `checkmk-modules` (package `rustfs_quota`); the secret stays in the Checkmk Password Store, resolved by the agent | `isejalabs/checkmk-modules` |
+| Installing a released plugin package on monitoring2 | Salt, pinned version | `sebiklamar/salt-iseja.net` |
 | Checkmk password-store entries (per environment), then the API-only host and special-agent rules (one shared unit) | Terraform ([ADR 0015](../decisions/0015-checkmk-configuration-as-code.md)), tracked in [#1529](https://github.com/isejalabs/homelab/issues/1529) | `checkmk-password` and `checkmk-rustfs-monitoring` units, see [`terragrunt/README.md`](../../terragrunt/README.md#checkmk-configuration); the rules stay disabled until the plugin is installed |
 
 ## Known inconsistencies
