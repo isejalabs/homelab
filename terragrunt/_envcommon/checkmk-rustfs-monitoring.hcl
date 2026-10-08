@@ -5,9 +5,8 @@
 # ---------------------------------------------------------------------------------------------------------------------
 
 locals {
-  # Automatically load global- and environment-level variables
-  global_vars      = read_terragrunt_config(find_in_parent_folders("global.hcl"))
-  environment_vars = read_terragrunt_config(find_in_parent_folders("env.hcl"))
+  # Automatically load global-level variables
+  global_vars = read_terragrunt_config(find_in_parent_folders("global.hcl"))
 
   ### The following is duplicate code from the `root.hcl` configuration b/c TerraGrunt does not allow
   ### including `root.hcl` here again (no 2-level includes).
@@ -25,12 +24,12 @@ locals {
   # in the merge below).
   secret_defaults = {
     rustfs = {
-      endpoint      = "https://ci-placeholder"
-      access_key    = "ci-placeholder"
-      access_secret = "ci-placeholder"
+      endpoint = "ci-placeholder.example.com:9000"
     }
-    onepassword = {
-      service_account_token = "ci-placeholder"
+    checkmk = {
+      url      = "https://ci-placeholder/site"
+      username = "ci-placeholder"
+      secret   = "ci-placeholder"
     }
   }
 
@@ -45,46 +44,41 @@ locals {
     local.local_secret_vars,
   )
 
-  ### Common variables for the component across all environments
+  ### Common variables for the component
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/rustfs-bucket-reader?ref=rustfs-bucket-reader-v0.2.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-rustfs-monitoring?ref=checkmk-rustfs-monitoring-v0.1.0"
 
-  # Only the env differs per environment. Each environment gets its own monitoring identity (all of them used by the
-  # one Checkmk site), scoped to that environment's own buckets only.
-  env = local.environment_vars.locals.env
+  # Environments whose RustFS monitoring identity (rustfs-bucket-reader unit) and Password Store entry
+  # (checkmk-password unit) are applied. Add an environment here once both are applied.
+  identity_envs = ["dev", "qa", "prod"]
 
-  # The module only references buckets by name, it doesn't manage them. Which environments have a Longhorn backup
-  # bucket besides the kopiur one is stated once in global.hcl.
-  bucket_names = concat(
-    ["${local.env}-kopiur-backup"],
-    contains(local.global_vars.locals.longhorn_backup_envs, local.env) ? ["${local.env}-longhorn-backup"] : [],
-  )
+  # The same RustFS endpoint the other RustFS units use (a "host:port" in the secrets, https assumed). Used by the special
+  # agent to query the buckets.
+  rustfs_endpoint = can(regex("^https?://", local.secret_vars.rustfs.endpoint)) ? trimsuffix(local.secret_vars.rustfs.endpoint, "/") : "https://${trimsuffix(local.secret_vars.rustfs.endpoint, "/")}"
 
-  # Named after consumer and environment; the module uses it verbatim as user, policy base and 1Password item title.
-  name = "${local.env}-checkmk-monitoring"
-
-  # The 1Password item follows the vault's "<thing>#<env>" convention (like kopiur-backup#<env>) instead of the
-  # RustFS-side "<env>-<thing>" naming used for the user and policy above.
-  item_title = "checkmk-monitoring#${local.env}"
-
-  # 1Password "K8S" vault, shared with other components -- see global.hcl.
-  onepassword_vault_id = local.global_vars.locals.onepassword_vault_id
+  # One identity per environment, named like the rustfs-bucket-reader unit names its user and the checkmk-password unit
+  # its Password Store entry, scoped to that environment's own buckets (the Longhorn bucket only where one exists).
+  identities = { for env in local.identity_envs : env => {
+    access_key  = "${env}-checkmk-monitoring"
+    password_id = "${env}_checkmk_monitoring"
+    buckets = concat(
+      ["${env}-kopiur-backup"],
+      contains(local.global_vars.locals.longhorn_backup_envs, env) ? ["${env}-longhorn-backup"] : [],
+    )
+  } }
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
 # MODULE PARAMETERS
-# These are the variables we have to pass in to use the module. This defines the parameters that are common across all
-# environments.
+# These are the variables we have to pass in to use the module. The host-specific values (host name, folder, whether the
+# rules are enabled) are set in the unit itself, as this component is a singleton.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
-  rustfs      = local.secret_vars.rustfs
-  onepassword = local.secret_vars.onepassword
+  checkmk = local.secret_vars.checkmk
 
-  name                 = local.name
-  item_title           = local.item_title
-  bucket_names         = local.bucket_names
-  onepassword_vault_id = local.onepassword_vault_id
+  endpoint   = local.rustfs_endpoint
+  identities = local.identities
 }
