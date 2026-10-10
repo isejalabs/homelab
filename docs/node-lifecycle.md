@@ -30,7 +30,11 @@ Every environment's `vehagn-k8s/terragrunt.hcl` already has this flag present-bu
    kubectl drain <node> --ignore-daemonsets --delete-emptydir-data
    ```
 
-   `kubectl cordon` (which `drain` does first, automatically) is literally a taint under the hood (`node.kubernetes.io/unschedulable:NoSchedule`) — this is the same mechanism, not a separate step to remember. For a **control-plane node** specifically, also have it leave `etcd` cleanly before its VM is destroyed:
+   `kubectl cordon` (which `drain` does first, automatically) is literally a taint under the hood (`node.kubernetes.io/unschedulable:NoSchedule`) — this is the same mechanism, not a separate step to remember.
+
+   **`drain` still evicts immediately, leaving a brief gap** until the evicted pod's replacement is scheduled and `Ready` elsewhere — it doesn't wait for a replacement to come up first. The real way to avoid that gap for a workload that can tolerate it: cordon the node (no eviction yet), then `kubectl rollout restart deployment/<name> -n <namespace>` so the Deployment's own `maxSurge` creates a replacement pod on a schedulable node *before* the old one is touched, wait for `kubectl rollout status deployment/<name> -n <namespace>` to confirm it's `Ready`, and only then remove the old pod (`drain` at that point is a fast no-op for that workload, since it's already moved). This needs a second replica to surge to and a storage class that can be mounted from two nodes at once — **neither holds for any workload in this repo today**: every `Deployment` here runs `replicas: 1` (`whoami`, `adguard`, `unifi-controller`, `unifi-mongodb`, even Longhorn's own manager), and the default PVC access mode is `ReadWriteOnce` (see [`app-storage.md`](app-storage.md)), so a second pod couldn't mount the same volume on another node even temporarily. With exactly one instance, moving it means stopping it here and starting it there — a real, if brief, gap that can be minimized (fast image pull, quick readiness probe) but not scheduled away. Accepted as-is for this homelab; revisit only if a workload here ever genuinely needs multiple replicas.
+
+   For a **control-plane node** specifically, also have it leave `etcd` cleanly before its VM is destroyed:
 
    ```sh
    talosctl --nodes <node-ip> etcd leave
@@ -71,7 +75,7 @@ For replacing one node (hardware failure, moving to a different Proxmox host) wh
    talosctl reset --nodes <node-ip> --graceful --reboot
    ```
 
-   A graceful reset cordons the node in Kubernetes, drains its workloads, and — for a control-plane node — leaves the `etcd` cluster cleanly, before wiping and shutting down. Confirm a control-plane node actually left `etcd` before proceeding:
+   A graceful reset cordons the node in Kubernetes, drains its workloads, and — for a control-plane node — leaves the `etcd` cluster cleanly, before wiping and shutting down. Same eviction-gap caveat as [Talos OS upgrade](#1-talos-os-upgrade) above applies here too — this drains immediately rather than waiting for a replacement elsewhere. Confirm a control-plane node actually left `etcd` before proceeding:
 
    ```sh
    talosctl --nodes <any-remaining-control-plane-ip> etcd members
