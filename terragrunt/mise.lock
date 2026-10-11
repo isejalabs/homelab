@@ -3,19 +3,19 @@
 lockfile_version = 2
 
 [[tools.opentofu]]
-version = "1.12.6"
+version = "1.12.7"
 backend = "aqua:opentofu/opentofu"
-specifiers = ["1.12.6"]
+specifiers = ["1.12.7"]
 
 [tools.opentofu."platforms.linux-x64"]
-checksum = "sha256:50a6106fa4de523d09c87af85f3db1dd47535fc005727fdca6852146476b88ec"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.12.6/tofu_1.12.6_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/520762723"
+checksum = "sha256:8b0967cc14715bfb03d5e04dd0da0a47c668dcb33cb3a84996413a48b1aa51c0"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.12.7/tofu_1.12.7_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/603882964"
 
 [tools.opentofu."platforms.macos-arm64"]
-checksum = "sha256:f958ec5e511063be9feb180ca015a4cb7977566a9cf6a8550bba8c2a9b5aba74"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.12.6/tofu_1.12.6_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/520762710"
+checksum = "sha256:02d84784a9b0d6ce43f55e6c7e069a07909c392b067261d5a6aed924e96e5c76"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.12.7/tofu_1.12.7_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/603883066"
 
 [[tools.talosctl]]
 version = "1.14.2"
