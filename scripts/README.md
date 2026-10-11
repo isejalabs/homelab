@@ -9,7 +9,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | Script | Checks |
 | --- | --- |
 | [`kustomize-build-all.sh`](kustomize-build-all.sh) | `kubectl kustomize` + kubeconform across every `k8s/` overlay |
-| [`terragrunt-validate-all.sh`](terragrunt-validate-all.sh) | `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit |
+| [`terragrunt-validate-all.sh`](terragrunt-validate-all.sh) | `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (or only the given ones); `prod`/`qa` units must also have a committed provider lock file and are init'd with `-lockfile=readonly` |
 | [`helmfile-template-all.sh`](helmfile-template-all.sh) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment |
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |
 | [`bootstrap-apps-ci-test.sh`](bootstrap-apps-ci-test.sh) | the bootstrap `apps` helmfile stage, against an ephemeral kind cluster |
