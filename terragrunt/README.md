@@ -46,6 +46,8 @@ git add .terraform.lock.hcl
 
 The second command adds the hashes for macOS on Apple silicon and Linux on amd64 (the platforms of the maintainer's machine and of CI) to the lock; it does not change a locked version. It needs no cloud credentials. To move to newer providers, run the first command with `-upgrade` and commit the result. To check that a lock is complete, run `init -backend=false -lockfile=readonly`: it fails instead of changing the file.
 
+CI enforces this: `scripts/terragrunt-validate-all.sh` fails for a `prod` or `qa` unit without a committed lock file and runs `init` on those units with `-lockfile=readonly`, so a lock that lacks a provider, or the hashes for CI's platform, fails the check instead of being extended on the fly. To check a unit the way CI does: `scripts/terragrunt-validate-all.sh terragrunt/prod/eu-central-1/prod/<unit>`.
+
 If an apply leaves a modified or untracked `.terraform.lock.hcl` behind anyway (a provider version or hash that was not in the committed file), commit it through a pull request like any other change. A leftover untracked copy that is identical to a newly committed lock has to be deleted before pulling, as git does not overwrite untracked files.
 
 # Directory handling
