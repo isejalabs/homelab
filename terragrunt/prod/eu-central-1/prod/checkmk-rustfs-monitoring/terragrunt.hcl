@@ -40,7 +40,8 @@ inputs = {
   # for 12 buckets, the monitoring plan calls for 15 minutes.
   check_interval_minutes = 15
 
-  # Keep false until the RustFS quota special agent plugin (which defines the ruleset special_agents:rustfs_quota) is
-  # installed on the Checkmk site; Checkmk rejects a rule for a ruleset it does not know.
-  rules_enabled = false
+  # The special-agent rules; they need the rustfs_quota plugin package (it defines the ruleset special_agents:rustfs_quota)
+  # to be installed on the Checkmk site first (isejalabs/checkmk-modules, installed through Salt on monitoring2): Checkmk
+  # rejects a rule for a ruleset it does not know. Set back to false and apply BEFORE removing the plugin.
+  rules_enabled = true
 }
