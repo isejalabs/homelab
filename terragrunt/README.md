@@ -31,6 +31,23 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `ro
 └── 📁 prod                          # account: prod environment only, same account/region/env/module shape as non-prod
 ```
 
+# Provider lock files
+
+The provider versions of a unit are pinned by its `.terraform.lock.hcl`, next to the unit's `terragrunt.hcl`. They are tracked in git for the **`prod` and `qa`** units; for every other environment `.gitignore` ignores them (`terragrunt/non-prod/**/.*.lock.hcl`, except `qa`). Without a lock file every fresh `init` takes the newest provider version the module allows, so a `prod` apply could silently use a different provider than the one tested in the pull request.
+
+**Create the lock file in the pull request that adds or changes a `prod`/`qa` unit,** not by the apply: `prod` and `qa` are applied by hand from `main` after the merge, and a lock file created only then ends up as an untracked file in the applying checkout and never gets committed. A committed lock is also validated by CI, and the apply from `main` then finds it and does not create or change a file.
+
+```sh
+cd terragrunt/<account>/<region>/<env>/<unit>   # e.g. terragrunt/prod/eu-central-1/prod/checkmk-password
+terragrunt run --non-interactive -- init -backend=false -input=false
+terragrunt run --non-interactive -- providers lock -platform=darwin_arm64 -platform=linux_amd64
+git add .terraform.lock.hcl
+```
+
+The second command adds the hashes for macOS on Apple silicon and Linux on amd64 (the platforms of the maintainer's machine and of CI) to the lock; it does not change a locked version. It needs no cloud credentials. To move to newer providers, run the first command with `-upgrade` and commit the result. To check that a lock is complete, run `init -backend=false -lockfile=readonly`: it fails instead of changing the file.
+
+If an apply leaves a modified or untracked `.terraform.lock.hcl` behind anyway (a provider version or hash that was not in the committed file), commit it through a pull request like any other change. A leftover untracked copy that is identical to a newly committed lock has to be deleted before pulling, as git does not overwrite untracked files.
+
 # Directory handling
 
 ```sh
