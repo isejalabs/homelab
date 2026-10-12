@@ -6,4 +6,6 @@ metadata:
 spec:
   values:
     csi:
+      attacherReplicaCount: 2
+      provisionerReplicaCount: 2
       snapshotterReplicaCount: 2
