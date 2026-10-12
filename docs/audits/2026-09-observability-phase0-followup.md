@@ -159,6 +159,11 @@ The earlier passes deliberately did not query the USB disks. This time the owner
 - The two Samsung SSDs report `Total_LBAs_Written` of 99,528,201,226 (`sdd`) and 80,344,988,320 (`sde`); at 512 bytes per LBA that is about 51 TB and 41 TB over their life. Their `Wear_Leveling_Count` raw values are 84 and 22. These are lifetime figures; no rate can be derived from a single reading.
 - No disk shows reallocated, pending or uncorrectable sectors or interface CRC errors. `sdb` and `sdc` have 36k and 51k load cycles, which is worth watching for drives that spin down and up (WD Red class drives are specified for 600k).
 - pve1's SanDisk does not answer SMART through its USB bridge (`Unknown USB bridge [0x0781:0x558c]`; the NVMe passthrough variants returned only zeros, which are not real readings and are not recorded). Its health cannot be monitored through SMART with the current enclosure.
-- The Checkmk agent's daily `smart_posix` run already collects the same attributes on pve4 (see the earlier inventory), so no new collector is needed for these disks; the question that stays open is only whether that daily run wakes sleeping disks, which this one-off query cannot answer.
+- The Checkmk agent's daily `smart_posix` run already collects the same attributes on pve4 (see the earlier inventory), so no new collector is needed for these disks. **Owner statement (2026-10-12): that daily SMART run wakes the USB disks once per day.** The existing cadence is therefore one spin-up per day, which is the baseline a new collector must not add to: any further SMART or disk-touching check on these disks has to piggyback on that daily run or read cached values.
 
-Still open in #1437: a full-container restore if wanted, whether the daily SMART run wakes sleeping USB disks, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
+### Owner statements (2026-10-12)
+
+- Full-container restores are part of daily operations (for example for `test-home-assistant2`), so restore capability of the PBS backups is exercised in practice; the file-level tests above add the Checkmk RRD evidence.
+- pve6 is shut down and powered on only on purpose. Its thermal history (warning-temperature time +950 min, critical +136 min over 250 powered hours) and memory change are a separate follow-up, together with offloading pve5 (for example moving the `rebuild` and other on-request clusters from pve5 to pve6).
+
+Still open in #1437: the agreed pilot resource/write budget (the baseline above is its input), and the pve5 offloading follow-up. The USB-disk question is answered (one daily spin-up from the Checkmk SMART run).
