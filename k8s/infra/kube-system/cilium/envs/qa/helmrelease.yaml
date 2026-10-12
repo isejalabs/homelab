@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: cilium
+spec:
+  values:
+    operator:
+      # Lease renewal every 10 s instead of 2 s (fewer writes to etcd)
+      extraArgs:
+        - --leader-election-lease-duration=60s
+        - --leader-election-renew-deadline=40s
+        - --leader-election-retry-period=10s
