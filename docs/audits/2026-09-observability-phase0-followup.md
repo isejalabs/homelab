@@ -167,3 +167,59 @@ The earlier passes deliberately did not query the USB disks. This time the owner
 - pve6 is shut down and powered on only on purpose. Its thermal history (warning-temperature time +950 min, critical +136 min over 250 powered hours) and memory change are a separate follow-up, together with offloading pve5 (for example moving the `rebuild` and other on-request clusters from pve5 to pve6).
 
 Still open in #1437: the agreed pilot resource/write budget (the baseline above is its input), and the pve5 offloading follow-up. The USB-disk question is answered (one daily spin-up from the Checkmk SMART run).
+
+## Where the SSD host writes come from — 2026-10-12
+
+**Origin:** Claude, read-only, at the owner's request ("critical operational issue": 250-300 GB/day on pve1 and pve4). Everything below was measured with short windows (45-90 s) on one morning, plus cumulative counters since boot; no daily profile was taken, so nightly backups and the Sunday scrub are not represented. Nothing was changed on any host.
+
+### Result in one paragraph
+
+The writes are real I/O at the block layer (not a SMART artifact), they do not come from the loghost, and Proxmox's own statistics are a small part. The VM disks on ZFS are the source: the guests ask for 0.6-0.7 MB/s, but the NVMe receives 2.8-2.9 MB/s, an amplification of about 4-5. The biggest single guest cause is the **Talos control-plane nodes' etcd**, driven mostly by Kubernetes leader-election and node lease renewals.
+
+### Measurements
+
+| | pve1 | pve4 |
+|---|---|---|
+| NVMe block writes (90 s) | 2.80 MB/s (242 GB/day) | 2.92 MB/s (252 GB/day) |
+| SMART average, 30 Sep → 12 Oct | 288 GB/day | 298 GB/day |
+| Logical writes of the VM disks (zvols) | 0.74 MB/s (64 GB/day) | 0.56 MB/s (48 GB/day) |
+| Pool `tank` / `rpool` write bandwidth | 2.58 / 0.39 MB/s | 2.70 / 0.19 MB/s |
+| ZFS intent log (sync writes, no SLOG, so in the main pool) | 0.50 MB/s, 49 commits/s | 0.52 MB/s, 70 commits/s |
+| Average transaction group on `tank` | 10.0 MB written per 5 s (about 2.0 MB/s) | 9.5 MB per 5 s (about 1.9 MB/s) |
+| Average transaction group on `rpool` | 1.7 MB | 1.2 MB |
+
+- **Not the loghost:** about 42 MB/day of syslog, against about 250 GB/day.
+- **Not Proxmox's statistics:** `pmxcfs` writes about 0.02 MB/s (about 2 GB/day); the whole host pool `rpool` is 16-34 GB/day including OS, logs and cluster config.
+- **Pool layout:** one NVMe per host with `rpool` (28.5 GB) and `tank` (398 GB), both `ashift=12`, `compression=on`, `atime=on`, `sync=standard`, `logbias=latency`; the zvols have `volblocksize` 16K (8K for some). The guests use `cache=writethrough`, and there is no separate log device.
+- **Reading of the amplification (inference, not isolated by an experiment):** the ZIL writes sync data once and the transaction group writes it again; small random guest writes on 16K blocks cause read-modify-write plus metadata updates. The transaction groups carry more dirty data (22-23 MB) than the zvols alone explain, so writes outside the zvols (container datasets, metadata) also contribute.
+
+### Largest guest writers (logical, GB/day)
+
+| Host | Guest | GB/day |
+|---|---|---|
+| pve1 | prod-ctrl-01 (data disk, 6 GB) | 18 |
+| pve1 | polina (Proxmox Backup Server VM) | 16 |
+| pve1 | gw2, adelheid | 9, 9 |
+| pve4 | qa-ctrl-02 (data disk) | 16 |
+| pve4 | prod-ctrl-02 (data disk) | 15 |
+| pve4 | fiona (TrueNAS) | 14 |
+
+The Talos worker nodes write little (0.2-0.6 GB/day per disk, prod). The control-plane nodes' 6 GB data disk is the heavy one.
+
+### Inside the prod control planes (Talos API and Kubernetes metrics, read-only)
+
+- The 6 GB data disk of each of the three nodes receives 14.4-16.0 GB/day at the block layer (60 s sample); since boot, all `sd*` devices of the nodes average 14.6-16.5 GB/day.
+- `etcd` passes about 19-20 GB/day to `write()` on each node (process `wchar` since start). Its `write_bytes` counter is 26-27 GB/day on two nodes, but 233 GB/day on prod-ctrl-01 and 224 GB/day in a 51 s window there; the cause (a one-off such as a defragmentation, or counting of memory-mapped database pages) is **not established**, but the disk of that node does not show it.
+- An API server sees 4.2 successful write requests per second, **77% of them lease updates (3.25/s)**. There are 6 node leases and about 25 leader-election leases (kube-controller-manager, kube-scheduler, cilium-operator, Flux controllers, the Longhorn and CSI sidecars, external-secrets, cert-manager, kopiur) with 15-60 s lease durations, each renewed every few seconds by its holder. Everything else is a few percent: token and access reviews (6% and 2%), Longhorn objects (about 6%), Flux Kustomization patches (2%).
+- This is one cluster; the dev, qa and rebuild clusters on the same hosts add their own control planes.
+
+### Options (none applied)
+
+1. **`atime=off` on `tank` and `rpool`** (safe, reversible with `zfs set atime=on`). The change was prepared and denied for the assistant to apply directly; to be run by the owner on each host: `zfs set atime=off tank rpool`. Expected effect: small, not measured.
+2. **Fewer lease renewals:** raise the leader-election retry/renew periods of components that allow it (Helm values for Flux, Longhorn, external-secrets, cert-manager, cilium-operator, the CSI sidecars; flags for kube-controller-manager and kube-scheduler via the Talos machine config), at the price of slower fail-over. Since leases are about three quarters of the API writes, this is the largest lever on etcd traffic.
+3. **Smaller block size for the etcd disks:** the control-plane data disks are 16K-block zvols for 4K-sized etcd writes. A 4K `volblocksize` can only be set when a disk is created (Proxmox storage `blocksize` option for new disks), so it would be tested on a non-prod cluster first and measured with the commands above.
+4. **Separate log device for the intent log, or `logbias=throughput` for the etcd disks:** reduces the double write of sync data, with a trade-off in latency or hardware; to be tested, not assumed.
+5. **Replacement SSD for pve1** (owner: soon): choose a drive with much higher endurance. At the measured 250-300 GB/day, 600 TBW is used in about 5-6 years, before any reduction.
+6. Spreading the three heavy guests (prod-ctrl-01, polina, qa-ctrl-02) across hosts does not reduce the total, only shares it.
+
+Each option should be verified by repeating the same measurements (`/proc/diskstats` of the NVMe, `zpool iostat`, ZIL and transaction-group statistics) before and after.
