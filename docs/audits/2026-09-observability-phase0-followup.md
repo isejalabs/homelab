@@ -143,4 +143,22 @@ A **file-level restore from the nightly Proxmox Backup Server snapshot** of moni
 
 The history spans come from counting non-empty rows of the coarsest tier (six hours per row) with `rrdtool fetch`, so they are approximate; the point is that all three layouts, including PNP4Nagios, restore into files `rrdtool` reads, with real values in the recent rows (for example the restored `prod` file ends with load values of 0.05). Together with monitoring1 this covers a file from each of the sites checked, but not every file: the other RRDs of a site are the same format and were not each verified. Old graph usability is therefore shown for the RRD data; the WATO configuration of the sites was not part of this test.
 
-Still open in #1437: a full-container restore if wanted, USB backup-disk polling behavior, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
+### USB-attached disks: SMART readings (owner-approved query)
+
+The earlier passes deliberately did not query the USB disks. This time the owner asked for a direct query (2026-10-12 06:33 UTC, `smartctl -a -j` after `hdparm -C`, no self-tests started, nothing mounted or changed). `hdparm -C` ran before each SMART query: `sdb` to `sde` reported `active/idle` already, `sda` reported `unknown` (the USB bridge does not pass the power-mode command), so the query did not wake a sleeping disk as far as that command can tell.
+
+| Host / device | Model | Health | Temp | Power-on hours | Reallocated / pending / uncorrectable | CRC errors | Load cycles | Power cycles | Last self-test |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| pve4 `sda` | WDC WD80EZAZ (8 TB) | PASSED | 50°C | 16,685 | 0 / 0 / 0 | 0 | 893 | 192 | none logged |
+| pve4 `sdb` | WDC WD80EFZZ (8 TB) | PASSED | 43°C | 31,732 | 0 / 0 / 0 | 0 | 36,414 | 39 | none logged |
+| pve4 `sdc` | WDC WD60EFZX (6 TB) | PASSED | 42°C | 39,128 | 0 / 0 / 0 | 0 | 51,359 | 63 | completed without error |
+| pve4 `sdd` | Samsung MZ7TE256 (SSD) | PASSED | 37°C | 76,191 | 0 / n.a. | n.a. | n.a. | 1,579 | completed without error |
+| pve4 `sde` | Samsung MZ7TE256 (SSD) | PASSED | 35°C | 68,208 | 0 / n.a. | n.a. | n.a. | 6,076 | completed without error |
+| pve1 `sda` | SanDisk Extreme Portable SSD (1 TB) | not readable | | | | | | | |
+
+- The two Samsung SSDs report `Total_LBAs_Written` of 99,528,201,226 (`sdd`) and 80,344,988,320 (`sde`); at 512 bytes per LBA that is about 51 TB and 41 TB over their life. Their `Wear_Leveling_Count` raw values are 84 and 22. These are lifetime figures; no rate can be derived from a single reading.
+- No disk shows reallocated, pending or uncorrectable sectors or interface CRC errors. `sdb` and `sdc` have 36k and 51k load cycles, which is worth watching for drives that spin down and up (WD Red class drives are specified for 600k).
+- pve1's SanDisk does not answer SMART through its USB bridge (`Unknown USB bridge [0x0781:0x558c]`; the NVMe passthrough variants returned only zeros, which are not real readings and are not recorded). Its health cannot be monitored through SMART with the current enclosure.
+- The Checkmk agent's daily `smart_posix` run already collects the same attributes on pve4 (see the earlier inventory), so no new collector is needed for these disks; the question that stays open is only whether that daily run wakes sleeping disks, which this one-off query cannot answer.
+
+Still open in #1437: a full-container restore if wanted, whether the daily SMART run wakes sleeping USB disks, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
