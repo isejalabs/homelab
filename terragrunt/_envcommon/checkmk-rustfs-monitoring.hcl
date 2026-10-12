@@ -48,7 +48,7 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-rustfs-monitoring?ref=checkmk-rustfs-monitoring-v0.1.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-rustfs-monitoring?ref=checkmk-rustfs-monitoring-v0.2.0"
 
   # Environments whose RustFS monitoring identity (rustfs-bucket-reader unit) and Password Store entry
   # (checkmk-password unit) are applied. Add an environment here once both are applied.

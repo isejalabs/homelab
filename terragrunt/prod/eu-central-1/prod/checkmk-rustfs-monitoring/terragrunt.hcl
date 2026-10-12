@@ -30,10 +30,12 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 
 inputs = {
-  # A dedicated API-only host: a special-agent rule on fiona.home.iseja.net itself (a host with the normal Checkmk agent)
-  # would replace its agent connection and silence its existing checks. The folder must already exist.
-  host_name = "rustfs.fiona.home.iseja.net"
-  folder    = "/container/pve4"
+  # One dedicated API-only host per environment (%s = dev, qa, prod): Checkmk runs only the first matching rule of the
+  # special-agent ruleset per host, so the identities cannot share a host, and a special-agent rule on
+  # fiona.home.iseja.net itself (a host with the normal Checkmk agent) would replace its agent connection and silence its
+  # existing checks. The folder must already exist.
+  host_name_format = "rustfs-%s.fiona.home.iseja.net"
+  folder           = "/container/pve4"
 
   # How often Checkmk fetches the host's data and checks its services (minutes). Each run queries every bucket once and
   # RustFS logs each query as a warning-level event; Checkmk's default of 1 minute would mean about 17,000 requests a day
