@@ -14,6 +14,10 @@ spec:
     grafanaDashboard:
       enabled: true
     leaderElect: true
+    # Lease renewal every 10 s instead of 2 s (fewer writes to etcd); the lease must outlive the renew deadline
+    leaderElectionLeaseDuration: 60s
+    leaderElectionRenewDeadline: 40s
+    leaderElectionRetryPeriod: 10s
     serviceMonitor:
       enabled: true
     webhook:

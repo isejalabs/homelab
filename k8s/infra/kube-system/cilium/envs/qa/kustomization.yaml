@@ -8,6 +8,3 @@ resources:
   - ../../base
   - ip-pool-bgp.yaml
   - bgp-cluster-config.yaml
-
-patches:
-  - path: helmrelease.yaml

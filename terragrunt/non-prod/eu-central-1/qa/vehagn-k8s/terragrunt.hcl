@@ -184,7 +184,7 @@ inputs = {
 
   talos_config_patches = [
     {
-      path         = "assets/talos/patches/controlplane/leader-election.yaml"
+      path         = "${local.root_path}/_envcommon/talos-patches/leader-election.yaml"
       machine_type = "controlplane"
     },
   ]
