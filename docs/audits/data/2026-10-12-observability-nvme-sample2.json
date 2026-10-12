@@ -34,8 +34,21 @@
     },
     {
       "host": "pve6.home.iseja.net",
-      "sample_utc": null,
-      "note": "SSH and ping timed out on 2026-10-12 (about 06:12-06:20 UTC); not sampled"
+      "sample_utc": "2026-10-12T06:18:21Z",
+      "device": "/dev/nvme0n1",
+      "model": "PM991a NVMe Samsung 512GB",
+      "data_units_written": 37090385,
+      "percentage_used": 6,
+      "temperature_c": 34,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 2485,
+      "warning_temp_time_minutes": 2454,
+      "critical_comp_time_minutes": 312,
+      "mem_total_mib": 31823,
+      "mem_available_mib": 29276,
+      "load_15m": 0.11,
+      "note": "Host was unreachable until the owner powered it on; sampled when it had been up for under a minute, so temperature, memory and load are those of an idle fresh boot"
     }
   ]
 }

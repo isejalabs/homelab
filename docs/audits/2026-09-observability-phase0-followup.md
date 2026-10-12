@@ -109,18 +109,18 @@ The planned seven-day repeat (2026-10-07) was taken 11.6 days after the baseline
 | --- | --- | --- | --- | --- | --- | --- |
 | pve1 | 2026-09-30 16:40:40 → 2026-10-12 06:11:54 UTC (11.56 d) | 449,590,531 → 456,092,277 (+6,501,746) | about 3.33 TB | about 288 GB/day | 94% → 95% | 54°C → 49°C |
 | pve4 | 2026-09-30 16:37:52 → 2026-10-12 06:11:55 UTC (11.57 d) | 265,420,810 → 272,146,624 (+6,725,814) | about 3.44 TB | about 298 GB/day | 63% → 65% | 54°C → **69°C** |
-| pve6 | | | | not sampled: SSH and ping timed out | | |
+| pve6 | 2026-09-30 16:38:09 → 2026-10-12 06:18:21 UTC (11.57 d, host was off for part of it) | 31,896,142 → 37,090,385 (+5,194,243) | about 2.66 TB | about 230 GB/day over the whole interval, about 10.6 GB per powered-on hour | 4% → 6% | 81°C → 34°C (idle, just booted) |
 
-Critical warning and media errors stayed 0 on both sampled hosts. Power-on hours advanced by 279 h (pve1) and 278 h (pve4), consistent with the elapsed time, so both ran continuously.
+Critical warning and media errors stayed 0 on all three hosts. Power-on hours advanced by 279 h (pve1) and 278 h (pve4), consistent with the elapsed time, so both ran continuously. pve6 advanced by only 250 h of the 277.7 h elapsed, and was unreachable until the owner powered it on for this sample (it had been up for under a minute), so the average over calendar time understates its rate while it runs.
 
 Observations, without drawing conclusions the data does not support:
 
 - pve1 gained one percentage point of wear in under 12 days. At that pace (a rough extrapolation of a vendor estimate, not a failure forecast) the remaining 5% would be used in about two months; the endurance indicator can exceed 100%. The write rate is the budget to compare monitoring and logging overhead against.
 - pve4's temperature rose by 15°C compared with the baseline sample; its 15-minute load was 7.45 at sampling. A single reading does not show whether this is sustained.
-- pve6 was unreachable, so its temperature follow-up from the baseline (81°C) and its write rate remain open. Whether it is down or moved is not known from this pass.
+- pve6: its cumulative time above the warning temperature grew from 1,504 to 2,454 minutes (+950) and above the critical composite temperature from 176 to 312 minutes (+136) while it ran 250 hours, so the 81°C reading from the baseline was not a one-off, and the follow-up on cooling or workload stays open. Today's 34°C only reflects an idle fresh boot. Its wear indicator rose from 4% to 6% with 2.66 TB written, a steeper ratio than pve1 or pve4, which is a different drive model (Samsung PM991a rather than Intel); the indicator is coarse at low values. Its memory is now 31,823 MiB total, against 47,903 MiB at the baseline: 16 GiB less, cause unknown from this pass (a DIMM not detected after the power-on, or a changed VM memory setting are possibilities, neither checked).
 
 ### Loghost, same day
 
 At 2026-10-12 06:14 UTC: 512 MiB RAM (about 298 MiB free, 74 MiB cache), syslog-ng and salt-minion active; root 1,035,206,656 of 2 GiB used (49%) and `/var/log` 813,039,616 of 3 GiB used (26%), against 797,573,120 on 2026-09-30 (+15.5 MB). Daily syslog rotations stayed in the same range as before: 301,875–316,854 lines per rotated day (5–11 October), about 3.0–3.3 MB compressed each; the current day's file already has 336,990 lines and 42.6 MB. 364 compressed archives (the 365-rotation policy is full) plus the current file occupy about 790 MB by file size. As before, these are logical file sizes, not SSD write volume.
 
-Still open in #1437: Checkmk backup recoverability with a restored graph, USB backup-disk polling behavior, the pilot resource/write budget, and pve6.
+Still open in #1437: Checkmk backup recoverability with a restored graph, USB backup-disk polling behavior, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
