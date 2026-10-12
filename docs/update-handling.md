@@ -95,7 +95,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 Labeled `updateStrategy:manual` in [`automerge-disable.json5`](../.github/renovate/automerge-disable.json5), excluded from automerge by both renovate and mergify:
 
 - Packages: `quay.io/cilium/charts/cilium`, `github.com/isejalabs/terraform-proxmox-talos`, `kubernetes/kubernetes`, `siderolabs/talos`.
-- Paths: `.github/**`, `terragrunt/**`, `tofu/**` — there's no CI in this repo (see [`../CLAUDE.md`](../CLAUDE.md)'s PR discipline notes), so a Terragrunt/Terraform change always needs a human to review the `plan` before merging. This is also why these changes get exercised in `qa` before `prod` (see [`environments.md`](architecture/environments.md#what-each-environment-is-for)): unlike a Kustomize/Flux change, which affects at most one app, a bad Terragrunt/Tofu apply is infrastructure-level and can take down the whole cluster (nodes, CNI, control plane).
+- Paths: `.github/**`, `terragrunt/**`, `tofu/**` — CI does not produce or review Terragrunt plans: [`terragrunt-validate.yml`](../.github/workflows/terragrunt-validate.yml) formats and validates units without planning against remote state. A human must review the `plan` before merging (see the [CI guide](architecture/ci.md)). This is also why these changes get exercised in `qa` before `prod` (see [`environments.md`](architecture/environments.md#what-each-environment-is-for)): unlike a Kustomize/Flux change, which affects at most one app, a bad Terragrunt/Tofu apply is infrastructure-level and can take down the whole cluster (nodes, CNI, control plane).
 
 ## Pending
 
