@@ -22,6 +22,16 @@ spec:
         - notification-controller
       distribution:
         artifact: oci://ghcr.io/controlplaneio-fluxcd/flux-operator-manifests:v0.55.0
+      kustomize:
+        patches:
+          # Lease renewal every 15 s instead of 5 s (fewer writes to etcd); the defaults are lease 35 s, renew deadline 30 s
+          - patch: |
+              - op: add
+                path: /spec/template/spec/containers/0/args/-
+                value: --leader-election-retry-period=15s
+            target:
+              kind: Deployment
+              name: (source-controller|kustomize-controller|helm-controller|notification-controller)
       sync:
         kind: GitRepository
         interval: 10m

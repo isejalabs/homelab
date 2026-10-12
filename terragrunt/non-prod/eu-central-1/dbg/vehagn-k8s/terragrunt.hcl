@@ -183,6 +183,13 @@ inputs = {
     values_file_path = "${local.root_path}/../${local.cilium_path}/base/values.yaml"
   }
 
+  talos_config_patches = [
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"
+      machine_type = "controlplane"
+    },
+  ]
+
   volumes = {
     longhorn = {
       size = include.envcommon.locals.disk_longhorn-small

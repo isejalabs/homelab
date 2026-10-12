@@ -43,6 +43,11 @@ loadBalancer:
   algorithm: maglev
 
 operator:
+  # Lease renewal every 10 s instead of 2 s (fewer writes to etcd)
+  extraArgs:
+    - --leader-election-lease-duration=60s
+    - --leader-election-renew-deadline=40s
+    - --leader-election-retry-period=10s
   resources:
     limits:
       cpu: 500m

@@ -10,6 +10,12 @@ spec:
     name: snapshot-controller
   interval: 1h
   values:
+    controller:
+      # Lease renewal every 10 s instead of 5 s (fewer writes to etcd)
+      extraArgs:
+        - --leader-election-lease-duration=60s
+        - --leader-election-renew-deadline=40s
+        - --leader-election-retry-period=10s
     monitoring:
       serviceMonitor:
         enabled: true
