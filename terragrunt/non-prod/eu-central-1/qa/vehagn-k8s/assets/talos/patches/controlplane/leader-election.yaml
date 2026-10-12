@@ -1,0 +1,14 @@
+# Slower leader-election renewals of kube-controller-manager and kube-scheduler: each renewal is a write to etcd.
+# Renew every 10 s instead of 2 s; the lease (60 s) has to outlive the renew deadline (40 s), which has to exceed the
+# retry period. Cost: after a crash of the leader without releasing the lease, fail-over takes up to 60 s instead of 15 s.
+cluster:
+  controllerManager:
+    extraArgs:
+      leader-elect-lease-duration: 60s
+      leader-elect-renew-deadline: 40s
+      leader-elect-retry-period: 10s
+  scheduler:
+    extraArgs:
+      leader-elect-lease-duration: 60s
+      leader-elect-renew-deadline: 40s
+      leader-elect-retry-period: 10s
