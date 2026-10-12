@@ -98,3 +98,29 @@ Live TrueNAS/RustFS inspection was blocked when the workstation's SSH agent fail
 5. Reconcile the original assessment and plan with verified inventory corrections. Keep the existing audits' provenance and distinguish reported results from independently reproduced evidence.
 
 Phase 0 remains open. Neither a candidate backend nor an incremental resource budget has been selected on the basis of these partial measurements.
+
+## Second sample — 2026-10-12
+
+**Origin:** Claude, read-only, for [#1437](https://github.com/isejalabs/homelab/issues/1437). SSH as `root` with the agent key (the first pass above used the same access), strict host-key checking, internal NVMe only (`smartctl -a -j /dev/nvme0n1`); no USB SMART probes, self-tests or changes. Raw values in [sample JSON](data/2026-10-12-observability-nvme-sample2.json).
+
+The planned seven-day repeat (2026-10-07) was taken 11.6 days after the baseline. The workload of the interval (backups, restores, VM rebuilds) was not recorded, so the rates are averages over an unknown mix. One NVMe data unit is 512,000 bytes; these are **host** writes, not physical NAND writes.
+
+| Host | Interval | Data units written (Δ) | Host writes | Average rate | Wear used | Temperature |
+| --- | --- | --- | --- | --- | --- | --- |
+| pve1 | 2026-09-30 16:40:40 → 2026-10-12 06:11:54 UTC (11.56 d) | 449,590,531 → 456,092,277 (+6,501,746) | about 3.33 TB | about 288 GB/day | 94% → 95% | 54°C → 49°C |
+| pve4 | 2026-09-30 16:37:52 → 2026-10-12 06:11:55 UTC (11.57 d) | 265,420,810 → 272,146,624 (+6,725,814) | about 3.44 TB | about 298 GB/day | 63% → 65% | 54°C → **69°C** |
+| pve6 | | | | not sampled: SSH and ping timed out | | |
+
+Critical warning and media errors stayed 0 on both sampled hosts. Power-on hours advanced by 279 h (pve1) and 278 h (pve4), consistent with the elapsed time, so both ran continuously.
+
+Observations, without drawing conclusions the data does not support:
+
+- pve1 gained one percentage point of wear in under 12 days. At that pace (a rough extrapolation of a vendor estimate, not a failure forecast) the remaining 5% would be used in about two months; the endurance indicator can exceed 100%. The write rate is the budget to compare monitoring and logging overhead against.
+- pve4's temperature rose by 15°C compared with the baseline sample; its 15-minute load was 7.45 at sampling. A single reading does not show whether this is sustained.
+- pve6 was unreachable, so its temperature follow-up from the baseline (81°C) and its write rate remain open. Whether it is down or moved is not known from this pass.
+
+### Loghost, same day
+
+At 2026-10-12 06:14 UTC: 512 MiB RAM (about 298 MiB free, 74 MiB cache), syslog-ng and salt-minion active; root 1,035,206,656 of 2 GiB used (49%) and `/var/log` 813,039,616 of 3 GiB used (26%), against 797,573,120 on 2026-09-30 (+15.5 MB). Daily syslog rotations stayed in the same range as before: 301,875–316,854 lines per rotated day (5–11 October), about 3.0–3.3 MB compressed each; the current day's file already has 336,990 lines and 42.6 MB. 364 compressed archives (the 365-rotation policy is full) plus the current file occupy about 790 MB by file size. As before, these are logical file sizes, not SSD write volume.
+
+Still open in #1437: Checkmk backup recoverability with a restored graph, USB backup-disk polling behavior, the pilot resource/write budget, and pve6.

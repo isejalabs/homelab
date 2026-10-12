@@ -1,0 +1,41 @@
+{
+  "collection": "Read-only SSH as root with the agent key and strict host-key checking; internal NVMe only (smartctl -a -j /dev/nvme0n1); no USB SMART queries or self-tests",
+  "baseline": "2026-09-30-observability-nvme-baseline.json",
+  "samples": [
+    {
+      "host": "pve1.home.iseja.net",
+      "sample_utc": "2026-10-12T06:11:54Z",
+      "device": "/dev/nvme0n1",
+      "model": "INTEL SSDPEKNW512G8",
+      "data_units_written": 456092277,
+      "percentage_used": 95,
+      "temperature_c": 49,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 28662,
+      "mem_total_mib": 47903,
+      "mem_available_mib": 8382,
+      "load_15m": 3.42
+    },
+    {
+      "host": "pve4.home.iseja.net",
+      "sample_utc": "2026-10-12T06:11:55Z",
+      "device": "/dev/nvme0n1",
+      "model": "INTEL SSDPEKNW512G8",
+      "data_units_written": 272146624,
+      "percentage_used": 65,
+      "temperature_c": 69,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 14945,
+      "mem_total_mib": 64031,
+      "mem_available_mib": 15131,
+      "load_15m": 7.45
+    },
+    {
+      "host": "pve6.home.iseja.net",
+      "sample_utc": null,
+      "note": "SSH and ping timed out on 2026-10-12 (about 06:12-06:20 UTC); not sampled"
+    }
+  ]
+}
