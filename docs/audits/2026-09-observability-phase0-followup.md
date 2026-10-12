@@ -130,7 +130,17 @@ A **file-level restore from the nightly Proxmox Backup Server snapshot** of moni
 
 - The extracted file has the exact size listed in the snapshot (1,918,040 bytes) and a valid `RRD0003` header; `rrdtool info` shows step 60 and the four-tier layout (1 min × 2880, 30 min × 4320 = 90 days, 6 h × 5840 = 1460 days, plus a 5-minute tier) for AVERAGE, MAX and MIN, five GAUGE data sources, last update 2026-04-06 (the host has been gone since then, which makes it a historical series).
 - `rrdtool fetch` returned real values from the restored file: the recent rows carry CPU utilization values, and 323 non-empty six-hour rows (about 80 days) in the 1,000 days before the last update. So old graph data is demonstrably readable from the backup, not only present as a file.
-- Not done: a full restore of the container (it would create a guest and is not read-only), PBS verification state of the newer snapshots (only 2026-10-08's shows a verification result `ok` in the storage listing; the later ones show none yet), and the other sites on monitoring2 (SSH to monitoring2 failed strict host-key verification again: no key is known, and it was not bypassed). The `prod` site uses PNP4Nagios, so its RRD layout needs its own test.
-- Observation: the snapshot size fell from 15.6 GB (2026-10-10) to 11.4 GB (2026-10-11). Whether that is a deliberate cleanup is not known from this pass.
+- Not done: a full restore of the container (it would create a guest and is not read-only), and PBS verification state of the newer snapshots (only 2026-10-08's shows a verification result `ok` in the storage listing; the later ones show none yet).
+- The snapshot size fell from 15.6 GB (2026-10-10) to 11.4 GB (2026-10-11): the owner removed packages on monitoring1, so this is expected.
 
-Still open in #1437: the same restore test for monitoring2's sites (needs its host key trusted), USB backup-disk polling behavior, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
+**monitoring2 (CT 7002056, snapshot `ct/7002056/2026-10-11T21:22:38Z`, 16.4 GB, extracted via pve4)** after the owner trusted its host key. One RRD per site was extracted, shipped over SSH to monitoring2 and parsed with the `prod` site's `rrdtool` binary, then deleted:
+
+| Site | File | Size = listing | Header | Tiers (AVERAGE) | History found | Last update |
+| --- | --- | --- | --- | --- | --- | --- |
+| `prod` (Nagios core, PNP4Nagios) | `var/pnp4nagios/perfdata/adelheid.dir.iseja.net/CPU_load_load1.rrd` | 384,952 B, yes | `RRD0003` | 1 min × 2880, 5 min × 2880, 30 min × 4320, 6 h × 5840 | about 5,560 six-hour rows, roughly 3.8 years | live (2026-10-11) |
+| `free` (CMC) | `var/check_mk/rrd/gw.home.iseja.net/Check_MK.rrd` | 2,684,584 B, yes | `RRD0003` | the same four tiers | about 740 six-hour rows, roughly 6 months | 2023-09-29 (the host has been gone since) |
+| `prod_k8s` (CMC, 2.5) | `var/check_mk/rrd/cmk-k8s-cluster-collector.prod.iseja.net/CPU_resources.rrd` | 2,684,584 B, yes | `RRD0003` | the same four tiers | about 1,070 six-hour rows, roughly 9 months | live (2026-10-11) |
+
+The history spans come from counting non-empty rows of the coarsest tier (six hours per row) with `rrdtool fetch`, so they are approximate; the point is that all three layouts, including PNP4Nagios, restore into files `rrdtool` reads, with real values in the recent rows (for example the restored `prod` file ends with load values of 0.05). Together with monitoring1 this covers a file from each of the sites checked, but not every file: the other RRDs of a site are the same format and were not each verified. Old graph usability is therefore shown for the RRD data; the WATO configuration of the sites was not part of this test.
+
+Still open in #1437: a full-container restore if wanted, USB backup-disk polling behavior, the pilot resource/write budget, and the pve6 thermal and memory follow-ups.
