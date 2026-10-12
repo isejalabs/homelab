@@ -12,7 +12,7 @@ This composes already-documented, individually-verified procedures into one orde
 | --- | --- | --- |
 | Whole cluster lost (Proxmox VMs, Talos, Kubernetes all gone) | [Full cluster rebuild](#full-cluster-rebuild) below | No — composed from tested pieces, not yet rehearsed as one sequence |
 | In-cluster app data lost (PVC deleted/corrupted, cluster otherwise fine) | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) | Yes — validated live in `rebuild` with a disposable test app |
-| A single Proxmox VM/LXC lost (not the whole cluster) | Proxmox vzdump/PBS restore | Not yet documented at all — tracked at [#1509](https://github.com/isejalabs/homelab/issues/1509) |
+| A single Proxmox VM/LXC lost (not the whole cluster) | [`proxmox-backup-restore.md`](proxmox-backup-restore.md) | Yes — a live restore-to-new-VMID was validated end to end (see that doc's Live-tested record) |
 | A `proxmox-csi` volume's data needs to survive the rebuild below | [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild) | Yes — this is the property proxmox-csi is specifically kept for |
 | Root-zone DNS (the two LXC nameservers) lost | Outside this repo entirely — see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Not covered here |
 
@@ -62,6 +62,5 @@ No single existing doc covers this, since it's specific to "is the whole homelab
 
 ## What this doesn't cover yet
 
-- A single Proxmox VM/LXC lost without the rest of the cluster — the vzdump/PBS restore procedure doesn't exist in writing yet; tracked at [#1509](https://github.com/isejalabs/homelab/issues/1509).
 - Root-zone DNS recovery if both LXC nameservers are lost — physical infrastructure with no representation in this repo at all (see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)).
 - A dated, timed record of having actually run the full sequence above — see the opening paragraph.
