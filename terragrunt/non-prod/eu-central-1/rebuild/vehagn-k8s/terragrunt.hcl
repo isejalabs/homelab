@@ -35,9 +35,9 @@ locals {
   root_path   = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
-  cilium_path         = include.envcommon.locals.cilium_path
-  cpu_type            = include.envcommon.locals.cpu_type
-  ctrl_cpu            = include.envcommon.locals.ctrl_cpu
+  cilium_path = include.envcommon.locals.cilium_path
+  cpu_type    = include.envcommon.locals.cpu_type
+  ctrl_cpu    = include.envcommon.locals.ctrl_cpu
   # Control-plane disks on a storage with 4K blocks, to test the effect on the etcd disk writes (#1615)
   ctrl_datastore      = "local-zfs-4k"
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
