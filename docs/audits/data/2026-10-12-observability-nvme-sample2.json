@@ -48,7 +48,26 @@
       "mem_total_mib": 31823,
       "mem_available_mib": 29276,
       "load_15m": 0.11,
-      "note": "Host was unreachable until the owner powered it on; sampled when it had been up for under a minute, so temperature, memory and load are those of an idle fresh boot"
+      "note": "Host was unreachable until the owner powered it on; sampled when it had been up for under a minute, so temperature, memory and load are those of an idle fresh boot",
+      "memory_dimms": "2 x 16 GB DIMM (DIMM 1, DIMM 2), 3200 MT/s, after the owner swapped a 32 GB bar with pve5's 16 GB bar on 2026-10-12"
+    },
+    {
+      "host": "pve5.home.iseja.net",
+      "sample_utc": "2026-10-12T06:23:20Z",
+      "device": "/dev/nvme0n1",
+      "model": "INTEL SSDPEKNW512G8",
+      "data_units_written": 1682800,
+      "percentage_used": 0,
+      "temperature_c": 62,
+      "critical_warning": 0,
+      "media_errors": 0,
+      "power_on_hours": 58,
+      "warning_temp_time_minutes": 0,
+      "critical_comp_time_minutes": 0,
+      "mem_total_mib": 47903,
+      "mem_available_mib": 13684,
+      "load_15m": 5.76,
+      "note": "No baseline: pve5 is a new node (power-on hours 58, up 19 h at sampling); the 0.86 TB written so far is the initial fill, including the guests moved to it from pve6 (#1320 context)"
     }
   ]
 }
