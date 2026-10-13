@@ -4,17 +4,32 @@ status: current
 
 # Disaster recovery
 
-This composes already-documented, individually-verified procedures into one ordered path for recovering the cluster, rather than duplicating any of them — each step below links to the doc that owns the actual mechanism. Per [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability) of the documentation audit, this is explicit about what's actually been tested versus what's only expected to work: **the full sequence below has not yet been run start-to-finish as one timed rehearsal and recorded here** — individual pieces have (kopiur's restore path was validated directly in `rebuild` via a disposable test app), but composing them has not. Treat the next `rebuild` exercise (see [`environments.md`](architecture/environments.md#what-each-environment-is-for) for why that environment exists) as the opportunity to actually run this procedure and update this paragraph with the result.
+This guide describes cluster recovery, not complete homelab recovery. The owner reports that the `rebuild` environment is torn down and reconstructed from Git on an irregular, roughly monthly cadence, with app data configured for kopiur backed up by that system. That exercises cluster recovery as `prod` evolves. The exact date, duration, and result of the latest exercise are not recorded here, and the sequence below is not a timed rehearsal record. The cluster's recovery boundary should not be confused with full homelab recoverability: some out-of-cluster components are incompletely documented or backed up, and secrets maintained in 1Password have no periodic backup. This follows up on [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability), which called for clear verification status.
 
 ## Recovery scenarios
 
-| Scenario | Mechanism | Tested end-to-end? |
+| Scenario | Mechanism | Recovery status |
 | --- | --- | --- |
-| Whole cluster lost (Proxmox VMs, Talos, Kubernetes all gone) | [Full cluster rebuild](#full-cluster-rebuild) below | No — composed from tested pieces, not yet rehearsed as one sequence |
+| Whole cluster lost (Proxmox VMs, Talos, Kubernetes all gone) | [Full cluster rebuild](#full-cluster-rebuild) below | Exercised periodically in `rebuild` on an irregular, roughly monthly cadence; not timed or recorded here for each run |
 | In-cluster app data lost (PVC deleted/corrupted, cluster otherwise fine) | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) | Yes — validated live in `rebuild` with a disposable test app |
 | A single Proxmox VM/LXC lost (not the whole cluster) | [`proxmox-backup-restore.md`](proxmox-backup-restore.md) | Yes — a live restore-to-new-VMID was validated end to end (see that doc's Live-tested record) |
 | A `proxmox-csi` volume's data needs to survive the rebuild below | [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild) | Yes — this is the property proxmox-csi is specifically kept for |
 | Root-zone DNS (the two LXC nameservers) lost | Outside this repo entirely — see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Not covered here |
+| 1Password-held secrets unavailable | Secrets are sourced from 1Password for bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | No periodic backup is maintained; recovery procedure is not documented here |
+
+## Recovery boundaries outside the cluster
+
+The cluster rebuild does not restore every service the homelab depends on. This is an initial inventory from the repository's documentation, not a complete inventory of every physical or external dependency:
+
+| Dependency | Role and source documentation | Recovery / backup coverage |
+| --- | --- | --- |
+| Proxmox hosts | Host the cluster VMs; this repo provisions VMs through Terragrunt, but not the physical Proxmox hosts | Host-level recovery and backup coverage are not documented here |
+| TrueNAS S3 NAS (`fiona`) | Stores the S3-compatible kopiur repositories; see [`kopiur-backup-restore.md`](kopiur-backup-restore.md#overview) | App data configured for kopiur is backed up to this NAS; recovery or independent backup of the NAS itself is not documented here |
+| OPNsense routers and UCS servers | External routing, DHCP, identity, and DNS dependencies described in [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Configuration recovery and backup coverage are not documented here |
+| Root-zone DNS LXCs | Authoritative DNS for `iseja.net`, described in [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Recovery procedure is not documented here |
+| 1Password vault | Holds secrets used by bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | The owner reports no periodic backup of vault secrets; recovery procedure is not documented here |
+
+These are known boundaries, not a claim that no external backups exist. Where this guide says coverage is not documented, confirm the actual protection and restore method before relying on it.
 
 ## Full cluster rebuild
 
@@ -63,4 +78,6 @@ No single existing doc covers this, since it's specific to "is the whole homelab
 ## What this doesn't cover yet
 
 - Root-zone DNS recovery if both LXC nameservers are lost — physical infrastructure with no representation in this repo at all (see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)).
-- A dated, timed record of having actually run the full sequence above — see the opening paragraph.
+- A complete inventory and recovery plan for out-of-cluster components. The repository does not yet document which external dependencies are fully backed up and restorable.
+- Recovery of 1Password-held secrets: there is no periodic backup, and this guide does not define how to restore or recreate those vault items.
+- A dated, timed record for each `rebuild` exercise — the cadence and scope above are owner-reported, but individual run results are not recorded here.
