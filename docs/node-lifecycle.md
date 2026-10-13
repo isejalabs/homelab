@@ -120,10 +120,12 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
 
 **After the move** (the new node is `Ready` in Kubernetes)
 
-4. The Longhorn node object still exists with the old disk record. Remove the disk entry and add the same path again (no replicas may be scheduled on it, which the eviction ensured):
+4. The Longhorn node object still exists with the old disk record. Longhorn refuses to delete a disk that is still schedulable ("Please disable the disk ... and remove all replicas and backing images first"), so disable it first, then remove the entry and add the same path again (no replicas or backing images may be on it; the eviction before the move ensured that, and on a freshly recreated node there are none):
    ```sh
    kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
-     -p '{"spec":{"disks":{"<disk-id>":null}}}'        # e.g. default-disk-082000000000
+     -p '{"spec":{"disks":{"<disk-id>":{"allowScheduling":false}}}}'     # e.g. default-disk-082000000000
+   kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
+     -p '{"spec":{"disks":{"<disk-id>":null}}}'
    kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
      -p '{"spec":{"disks":{"<disk-id>":{"path":"/var/mnt/longhorn","diskType":"filesystem","allowScheduling":true,"evictionRequested":false}}}}'
    ```
