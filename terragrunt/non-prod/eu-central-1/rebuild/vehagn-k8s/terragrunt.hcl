@@ -124,7 +124,7 @@ inputs = {
     #   # update        = true
     # }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve5"
+      host_node     = "pve6" # moved off pve5 to balance load (pve5 also hosts work-03)
       machine_type  = "controlplane"
       ip            = "10.7.8.173"
       vm_id         = 7008173
