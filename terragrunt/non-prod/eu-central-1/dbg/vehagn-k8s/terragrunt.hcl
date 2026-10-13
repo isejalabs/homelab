@@ -38,7 +38,6 @@ locals {
   cilium_path         = include.envcommon.locals.cilium_path
   cpu_type            = include.envcommon.locals.cpu_type
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
-  ctrl_datastore      = "local-zfs-4k" # 4K-block storage for the etcd disk, test of #1615
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
   datastore           = include.envcommon.locals.datastore
@@ -129,7 +128,7 @@ inputs = {
       ip            = "10.7.8.193"
       vm_id         = 7008193
       cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
+      datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
