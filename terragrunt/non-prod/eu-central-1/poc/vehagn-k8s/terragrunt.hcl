@@ -96,7 +96,7 @@ inputs = {
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve1"
+      host_node     = "pve6"
       machine_type  = "controlplane"
       ip            = "10.7.8.161"
       vm_id         = 7008161
@@ -135,7 +135,7 @@ inputs = {
     #   # update        = true
     # }
     "${local.env}-work-01.${local.domain}" = {
-      host_node     = "pve1"
+      host_node     = "pve6"
       machine_type  = "worker"
       ip            = "10.7.8.164"
       vm_id         = 7008164
@@ -148,11 +148,11 @@ inputs = {
       vlan_id       = local.vlan_id
       # update        = true
     }
-    "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve4"
+    "${local.env}-work-03.${local.domain}" = {
+      host_node     = "pve5"
       machine_type  = "worker"
-      ip            = "10.7.8.165"
-      vm_id         = 7008165
+      ip            = "10.7.8.166"
+      vm_id         = 7008166
       cpu           = local.work_cpu
       cpu_type      = local.cpu_type
       datastore     = local.datastore
