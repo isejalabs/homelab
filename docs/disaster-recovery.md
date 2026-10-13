@@ -15,7 +15,7 @@ This guide describes cluster recovery, not complete homelab recovery. The owner 
 | A single Proxmox VM/LXC lost (not the whole cluster) | [`proxmox-backup-restore.md`](proxmox-backup-restore.md) | Yes — a live restore-to-new-VMID was validated end to end (see that doc's Live-tested record) |
 | A `proxmox-csi` volume's data needs to survive the rebuild below | [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild) | Yes — this is the property proxmox-csi is specifically kept for |
 | Root-zone DNS (the two LXC nameservers) lost | Outside this repo entirely — see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Not covered here |
-| 1Password-held secrets unavailable | Secrets are sourced from 1Password for bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | No periodic backup is maintained; recovery procedure is not documented here |
+| 1Password-held secrets unavailable | Secrets are sourced from 1Password for bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | No periodic backup is maintained; recovery procedure is not documented here. Tracked in [#1636](https://github.com/isejalabs/homelab/issues/1636) |
 
 ## Recovery boundaries outside the cluster
 
@@ -27,7 +27,7 @@ The cluster rebuild does not restore every service the homelab depends on. This 
 | TrueNAS S3 NAS (`fiona`) | Stores the S3-compatible kopiur repositories; see [`kopiur-backup-restore.md`](kopiur-backup-restore.md#overview) | App data configured for kopiur is backed up to this NAS; recovery or independent backup of the NAS itself is not documented here |
 | OPNsense routers and UCS servers | External routing, DHCP, identity, and DNS dependencies described in [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Configuration recovery and backup coverage are not documented here |
 | Root-zone DNS LXCs | Authoritative DNS for `iseja.net`, described in [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers) | Recovery procedure is not documented here |
-| 1Password vault | Holds secrets used by bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | The owner reports no periodic backup of vault secrets; recovery procedure is not documented here |
+| 1Password vault | Holds secrets used by bootstrap and External Secrets Operator; see [`secrets.md`](architecture/secrets.md#1password--external-secrets-operator--for-secrets-sourced-live-from-a-vault) | The owner reports no periodic backup of vault secrets; recovery procedure is not documented here. Tracked in [#1636](https://github.com/isejalabs/homelab/issues/1636) |
 
 These are known boundaries, not a claim that no external backups exist. Where this guide says coverage is not documented, confirm the actual protection and restore method before relying on it.
 
