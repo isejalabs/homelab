@@ -112,7 +112,7 @@ This is also distinct from changing only a node's **`datastore`** (storage pool)
 
 ### Longhorn disk of a replaced or moved worker
 
-Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were moved from `pve6` to `pve5`: the data VM's zvols were created new (the Longhorn disk held 0.7 MB to 323 MB afterwards), Longhorn kept its old record of the disk, found a different disk UUID and marked the disk `Ready=False, DiskFilesystemChanged` (`kubectl get nodes.longhorn.io -n longhorn-system -o yaml`, `status.diskStatus`). Nothing recovers by itself: replicas stay at the reduced count (`ROBUSTNESS: degraded`, `numberOfReplicas` 3 for `longhorn-ha` cannot be satisfied with the node out) until the disk is re-registered. Steps, to be done for **each moved worker, one at a time**. The eviction part (before the move) is not yet exercised end to end; try it on `dev` or `rebuild` first.
+Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were moved from `pve6` to `pve5`: the data VM's zvols were created new (the Longhorn disk held 0.7 MB to 323 MB afterwards), Longhorn kept its old record of the disk, found a different disk UUID and marked the disk `Ready=False, DiskFilesystemChanged` (`kubectl get nodes.longhorn.io -n longhorn-system -o yaml`, `status.diskStatus`). Nothing recovers by itself: replicas stay at the reduced count (`ROBUSTNESS: degraded`, `numberOfReplicas` 3 for `longhorn-ha` cannot be satisfied with the node out) until the disk is re-registered. Steps, to be done for **each moved worker, one at a time**. The full procedure, including the eviction step before the move, has since been verified exhaustively by moving `rebuild`'s cluster nodes.
 
 **Before the move**
 
