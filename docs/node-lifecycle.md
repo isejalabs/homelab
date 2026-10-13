@@ -116,11 +116,13 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
 
 1. All volumes `healthy`: `kubectl get volumes.longhorn.io -n longhorn-system`. Do not start while anything is degraded.
 2. Check the free space of the *other* nodes (`status.diskStatus.*.storageAvailable` of `nodes.longhorn.io`) against what the leaving node holds (`scheduledReplica`); the disks are only 20-30 GB. A 3-replica volume (`longhorn-ha`) cannot place its third replica on a 3-worker cluster once one node is out, so it stays degraded for the duration; decide that consciously (these hold the important data, for example `powerdns`).
-3. Stop scheduling on the node's disk and ask Longhorn to evict its replicas (Longhorn UI: Node → Edit node and disks, or `spec.disks.<id>.allowScheduling: false` and `evictionRequested: true`), wait until `scheduledReplica` of that disk is empty and the evictable volumes are `healthy` again. Then drain and reset the node as in the sections above.
+3. Stop scheduling on the node's disk and ask Longhorn to evict its replicas (Longhorn UI: Node → Edit node and disks, or `spec.disks.<id>.allowScheduling: false` and `evictionRequested: true`), wait until the evictable volumes are `healthy` again and their replicas have left the disk. Volumes with as many replicas as there are workers (for example `powerdns` with 3 on 3 workers) keep their replica on the node: there is nowhere to rebuild it, so it disappears with the move and the volume runs `degraded` until the disk is re-registered. Eviction briefly attaches detached volumes (the `kopiur-cache-*` ones); they detach again afterwards (verified on `rebuild`, 2026-10-13).
+   Then drain the node (`kubectl drain <node> --ignore-daemonsets --delete-emptydir-data`).
 
 **After the move** (the new node is `Ready` in Kubernetes)
 
-4. The Longhorn node object still exists with the old disk record. Longhorn refuses to delete a disk that is still schedulable ("Please disable the disk ... and remove all replicas and backing images first"), so disable it first, then remove the entry and add the same path again (no replicas or backing images may be on it; the eviction before the move ensured that, and on a freshly recreated node there are none):
+4. A worker moved in place keeps its Kubernetes `Node` object, so the cordon of the drain survives the move: `kubectl uncordon <node>` (the node shows `Ready,SchedulingDisabled` otherwise).
+5. The Longhorn node object still exists with the old disk record. Longhorn refuses to delete a disk that is still schedulable ("Please disable the disk ... and remove all replicas and backing images first"), so disable it first, then remove the entry and add the same path again (no replicas or backing images may be on it; the eviction before the move ensured that, and on a freshly recreated node there are none):
    ```sh
    kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
      -p '{"spec":{"disks":{"<disk-id>":{"allowScheduling":false}}}}'     # e.g. default-disk-082000000000
@@ -131,8 +133,8 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
    ```
    The last command has to be retried: right after the removal Longhorn's webhook answers `spec and status of disks on node <node> are being syncing and please retry later` (confirmed on `qa`, 2026-10-13), hence the `until ... do sleep` loop.
    (the same can be done in the Longhorn UI). Check that `Ready` and `Schedulable` are `True` for the disk.
-5. Longhorn rebuilds the missing replicas onto the new disk. Wait until every volume is `healthy` again (`status.rebuildStatus` of the engine shows the progress) **before moving the next node**.
-6. Housekeeping that showed up: a corrupted cache volume of kopiur (`kopiur-cache-<app>`, filesystem errors at mount) keeps its backup pod in `ContainerCreating`; the cache is disposable. Delete the stuck kopiur `Snapshot` (job, pod and the temporary `<app>-<timestamp>-src` volume go with it), the cache PVC, its retained PV and the Longhorn volume; kopiur recreates the cache and runs the next backup.
+6. Longhorn rebuilds the missing replicas onto the new disk. Wait until every volume is `healthy` again (`status.rebuildStatus` of the engine shows the progress) **before moving the next node**.
+7. Housekeeping that showed up: a corrupted cache volume of kopiur (`kopiur-cache-<app>`, filesystem errors at mount) keeps its backup pod in `ContainerCreating`; the cache is disposable. Delete the stuck kopiur `Snapshot` (job, pod and the temporary `<app>-<timestamp>-src` volume go with it), the cache PVC, its retained PV and the Longhorn volume; kopiur recreates the cache and runs the next backup.
 
 ## Verify the change actually took
 
