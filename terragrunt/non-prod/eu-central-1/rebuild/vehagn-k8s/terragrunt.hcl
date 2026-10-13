@@ -151,7 +151,7 @@ inputs = {
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
-      host_node     = "pve4"
+      host_node     = "pve5"
       machine_type  = "worker"
       ip            = "10.7.8.175"
       vm_id         = 7008175
