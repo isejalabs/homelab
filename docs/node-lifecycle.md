@@ -121,7 +121,7 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
 
 **After the move** (the new node is `Ready` in Kubernetes)
 
-4. A worker moved in place keeps its Kubernetes `Node` object, so the cordon of the drain survives the move: `kubectl uncordon <node>` (the node shows `Ready,SchedulingDisabled` otherwise).
+4. A worker moved in place keeps its Kubernetes `Node` object, so the cordon of the drain survives the move: `kubectl uncordon <node>` (the node shows `Ready,SchedulingDisabled` otherwise). Do this **as soon as the node is `Ready`, while `terragrunt apply` is still waiting**, or before re-running it: the module's `talos_cluster_health` check includes "all k8s nodes to report schedulable" and otherwise fails after 10 minutes with just `cluster health check failed ... context deadline exceeded` (confirmed on `rebuild`, 2026-10-13; `talosctl health --control-plane-nodes <ip> --worker-nodes <ips>` names the failing check).
 5. The Longhorn node object still exists with the old disk record. Longhorn refuses to delete a disk that is still schedulable ("Please disable the disk ... and remove all replicas and backing images first"), so disable it first, then remove the entry and add the same path again (no replicas or backing images may be on it; the eviction before the move ensured that, and on a freshly recreated node there are none):
    ```sh
    kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
