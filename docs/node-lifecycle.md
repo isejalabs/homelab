@@ -126,9 +126,10 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
      -p '{"spec":{"disks":{"<disk-id>":{"allowScheduling":false}}}}'     # e.g. default-disk-082000000000
    kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
      -p '{"spec":{"disks":{"<disk-id>":null}}}'
-   kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
-     -p '{"spec":{"disks":{"<disk-id>":{"path":"/var/mnt/longhorn","diskType":"filesystem","allowScheduling":true,"evictionRequested":false}}}}'
+   until kubectl -n longhorn-system patch nodes.longhorn.io <node> --type merge \
+     -p '{"spec":{"disks":{"<disk-id>":{"path":"/var/mnt/longhorn","diskType":"filesystem","allowScheduling":true,"evictionRequested":false}}}}'; do sleep 3; done
    ```
+   The last command has to be retried: right after the removal Longhorn's webhook answers `spec and status of disks on node <node> are being syncing and please retry later` (confirmed on `qa`, 2026-10-13), hence the `until ... do sleep` loop.
    (the same can be done in the Longhorn UI). Check that `Ready` and `Schedulable` are `True` for the disk.
 5. Longhorn rebuilds the missing replicas onto the new disk. Wait until every volume is `healthy` again (`status.rebuildStatus` of the engine shows the progress) **before moving the next node**.
 6. Housekeeping that showed up: a corrupted cache volume of kopiur (`kopiur-cache-<app>`, filesystem errors at mount) keeps its backup pod in `ContainerCreating`; the cache is disposable. Delete the stuck kopiur `Snapshot` (job, pod and the temporary `<app>-<timestamp>-src` volume go with it), the cache PVC, its retained PV and the Longhorn volume; kopiur recreates the cache and runs the next backup.
