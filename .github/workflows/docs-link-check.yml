@@ -4,6 +4,11 @@ on:
   push:
     branches:
     - main
+  # Lets us backfill the "docs-link-check" required status check on a PR branch that predates
+  # this workflow and therefore never got a pull_request event to run it on (that commit would
+  # otherwise be permanently stuck with the check "Expected" and the PR unmergeable). Dispatch
+  # with `--ref <branch>` to post the check onto that branch's head commit.
+  workflow_dispatch:
 
 jobs:
   docs-link-check:
