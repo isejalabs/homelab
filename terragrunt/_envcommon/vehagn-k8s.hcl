@@ -52,6 +52,7 @@ locals {
   ctrl_cpu              = 2
   ctrl_disk_size        = 6
   ctrl_ram              = 4096
+  ctrl_datastore        = "local-enc" # block size of the zvol is fixed at creation, see #1615
   datastore             = "local-enc"
   dns                   = ["10.8.8.8", "10.9.9.9"]
   domain                = "test.iseja.net"
