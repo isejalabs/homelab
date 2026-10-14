@@ -120,7 +120,7 @@ inputs = {
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
       vlan_id       = local.vlan_id
-      # update        = true
+      update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
       host_node     = "pve5"
