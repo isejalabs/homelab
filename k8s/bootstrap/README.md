@@ -1,5 +1,9 @@
 # Bootstrapping the cluster
 
+**Common tasks:** [provision VMs and install Talos](../../terragrunt/README.md#directory-handling) → [bootstrap or re-sync foundational services](#cluster-deployment-with-just-and-flux-cd) → [check Flux reconciliation](#flux-cd). For a full rebuild, use the [disaster-recovery sequence](../../docs/disaster-recovery.md#full-cluster-rebuild).
+
+**On this page:** [Bootstrap stages](#stages-of-bootstrapping) · [Provision VMs and install Talos](#provision-vms-and-install-talos-os-kubernetes-distribution-by-using-terragrunt) · [Prerequisites and checks](#deploying-infrastructure-and-applications) · [Deploy with `just`](#cluster-deployment-with-just-and-flux-cd) · [Flux CD](#flux-cd)
+
 ## Stages of bootstrapping
 
 Bootstrapping the cluster is done in 3 phases:

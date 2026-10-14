@@ -4,6 +4,10 @@ status: current
 
 # Kopiur Backup & Restore
 
+**Choose a task:** routine backup listing and manual snapshots are under [Daily tasks](#daily-tasks); a lost PVC normally restores automatically when recreated, while an operator-driven restore is available for a specific app. [Restore an app](#restore-an-app-from-its-latest-backup) covers the normal latest-snapshot path and explains the manual steps for an older snapshot; [Give an app a blank volume](#give-an-app-a-blank-volume-bypassing-its-existing-backups) and [Prune old backups](#prune-old-backups) are exceptional maintenance operations.
+
+**On this page:** [How backups work](#how-it-works) · [Daily tasks](#daily-tasks) · [Automatic per-environment credentials](#automatic-per-env-credentials) · [Known caveats](#known-caveats)
+
 ## Overview
 
 [kopiur](https://github.com/home-operations/kopiur) is the Kubernetes-native backup operator used in this cluster. It snapshots PVC data via CSI `VolumeSnapshot`s, uploads it with [kopia](https://kopia.io) (a content-addressable, deduplicating backup engine) to an S3-compatible repository, and can populate new PVCs from those backups via the standard Kubernetes CSI PVC-populator mechanism.

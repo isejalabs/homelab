@@ -9,7 +9,16 @@ A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven h
 - **Stack**: Proxmox → Talos Linux → Kubernetes, provisioned by OpenTofu/Terragrunt, reconciled by Flux CD.
 - **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see [`environments.md`](docs/architecture/environments.md) for what each one is for.
 - **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#a-bit-of-history) below.
-- **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, the [Documentation](#documentation) section below, or straight to [`docs/README.md`](docs/README.md).
+- **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, or [`docs/README.md`](docs/README.md) for the documentation index.
+
+## I need to…
+
+| Task | Start here |
+| --- | --- |
+| Provision or bootstrap a cluster | [`terragrunt/README.md`](terragrunt/README.md) to provision VMs and install Talos, then [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) to install foundational services and hand off to Flux |
+| Diagnose a live issue | [`docs/README.md`'s troubleshooting paths](docs/README.md#finding-what-you-need) |
+| Upgrade Talos/Kubernetes or replace a node | [`docs/node-lifecycle.md`](docs/node-lifecycle.md) |
+| Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 
 ## Principles
 

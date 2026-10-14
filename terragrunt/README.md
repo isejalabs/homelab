@@ -2,6 +2,10 @@ See [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how SO
 
 # Folder Structure
 
+**Common tasks:** [plan/apply an environment](#directory-handling) · [import a Proxmox volume](#import-proxmox-volume) · [reconnect cluster access after bootstrap](#cluster-bootstrap) · [clean up state or destroy a cluster](#cluster-end-of-lifecycle).
+
+**On this page:** [Folder structure](#folder-structure) · [Provider lock files](#provider-lock-files) · [Plan/apply an environment](#directory-handling) · [RustFS backup and monitoring identities](#rustfs-bucketsusers-for-kopiur-backup) · [Proxmox volume handling](#proxmox-volume-handling) · [Cluster bootstrap](#cluster-bootstrap) · [Cluster end of lifecycle](#cluster-end-of-lifecycle) · [Proxmox VM snapshots](#proxmox-vms)
+
 Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`. `root.hcl` merges `account.hcl`/`region.hcl`/`env.hcl` locals and SOPS-encrypted `*-secrets.sops.yaml` at each level (global → account → region → env → local, each overriding the last), and wires the S3 remote-state backend.
 
 ```
