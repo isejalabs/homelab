@@ -53,3 +53,7 @@ Re-run the original `terragrunt plan`/`apply`. It should proceed past the lock-a
 ## Verify the fix actually took
 
 The retried command gets past "Error acquiring the state lock" and reaches its normal refresh/plan output. If it immediately fails with the *same* lock ID again, something re-acquired it between your delete and your retry (a concurrent run, or your own retry racing a still-exiting previous process) — wait a few seconds and check `Who`/`Created` again rather than deleting in a loop.
+
+## Verification status and sources
+
+The direct S3 deletion fallback was used in the incident that prompted [PR #1624](https://github.com/isejalabs/homelab/pull/1624). The alternative `terragrunt force-unlock` command is documented as the normal path, but a separate live use of it is not recorded here. The authoritative backend setting is [`use_lockfile = true` in `terragrunt/root.hcl`](../terragrunt/root.hcl); for a real recovery, the runtime error's `Path` and lock `ID` are authoritative for that unit, not the example values in this guide.
