@@ -59,7 +59,7 @@ inputs = {
   env = local.env
 
   image = {
-    version        = "v1.13.11"
+    version        = "v1.14.2"
     update_version = "v1.14.2" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
@@ -88,14 +88,11 @@ inputs = {
       hostDNS:
         forwardKubeDNSToHost: false
     EOT
-    name                = "${local.env}-${local.projectname}"
-    on_boot             = local.on_boot
-    proxmox_cluster     = "iseja-lab"
-    # talos_machine_config_version intentionally unset during the staged 1.14.2 rollout below, so
-    # each node's machine-config format tracks its own `update` flag (falls back to
-    # `image.version`/`image.update_version`) instead of jumping all nodes to the new format at once.
-    # Re-pin once every node below has `update = true` and image.version matches update_version.
-    vip = "10.7.8.120"
+    name                          = "${local.env}-${local.projectname}"
+    on_boot                       = local.on_boot
+    proxmox_cluster               = "iseja-lab"
+    talos_machine_config_version = "v1.14.2" # renovate: github-releases=siderolabs/talos
+    vip                           = "10.7.8.120"
   }
 
   nodes = {
@@ -123,7 +120,6 @@ inputs = {
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
       vlan_id       = local.vlan_id
-      update        = true
     }
     # "${local.env}-ctrl-03.${local.domain}" = {
     #   host_node     = "pve5"
@@ -150,7 +146,6 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
       host_node     = "pve4"
@@ -164,7 +159,6 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
       host_node     = "pve5"
@@ -178,7 +172,6 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
     }
   }
 
