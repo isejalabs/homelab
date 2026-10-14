@@ -36,6 +36,10 @@ Every `vm::*` recipe accepts `-e/--environment` (required, matching `snapshot::*
 - **`list`** (`scripts/proxmox-vm-list.sh`) -- discovers the environment's VMs (`VMID`/`NAME`/`NODE`/ `STATUS`). Read-only, no per-VM snapshot API calls -- see [`docs/proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) for the sibling `proxmox::snapshot::list`, which additionally lists each VM's snapshots.
 - **`start`/`shutdown`/`stop`/`reset`** (`scripts/proxmox-vm-power.sh --action <verb>`, one shared script parameterized by action rather than four near-duplicate files) -- resolves the selected VM(s) (all of `-e`'s environment, or just `--vmid`), gates on confirmation per the rule above, then calls `POST /nodes/<node>/qemu/<vmid>/status/<action>` for each **in parallel** (no cross-VM ordering dependency, unlike `snapshot::rollback`'s per-VM stop-then-rollback-then-start sequence within a single VM), waiting for each resulting Proxmox task to complete.
 
+## Verification status and sources
+
+The merged [PR #1432](https://github.com/isejalabs/homelab/pull/1432) records live tests against `dbg`: single-VM `start` then `stop`; environment-wide `start`; environment-wide `stop` after the typed confirmation; and an environment-wide `shutdown` with an incorrect confirmation, which aborted without touching any VM. An actual `shutdown` and any `reset` action are not recorded as live-tested. The current recipe arguments and action mapping are defined in [`scripts/proxmox-vm.just`](../scripts/proxmox-vm.just) and [`scripts/proxmox-vm-power.sh`](../scripts/proxmox-vm-power.sh); environment-to-VM discovery is implemented in [`scripts/lib/proxmox.sh`](../scripts/lib/proxmox.sh).
+
 ## Known follow-ups (not yet implemented)
 
 - No `reboot` (graceful restart) action -- only `reset` (hard). Proxmox exposes both; add `reboot` the same way if a real need for it comes up.
