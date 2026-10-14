@@ -74,25 +74,25 @@ inputs = {
       "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
       "https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/v0.11.0/deploy/standalone-install.yaml",
     ]
-    gateway             = "10.7.8.1"
-    gateway_api_version = local.gateway_api_version
-    kubernetes_version  = "v1.34.11" # renovate: github-releases=kubernetes/kubernetes
-    kubelet             = <<-EOT
+    gateway                      = "10.7.8.1"
+    gateway_api_version          = local.gateway_api_version
+    kubernetes_version           = "v1.34.11" # renovate: github-releases=kubernetes/kubernetes
+    kubelet                      = <<-EOT
       extraArgs:
         # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
         rotate-server-certificates: true
       registerWithFQDN: true
     EOT
-    machine_features    = <<-EOT
+    machine_features             = <<-EOT
       # https://www.talos.dev/v1.8/kubernetes-guides/network/deploying-cilium/#known-issues
       hostDNS:
         forwardKubeDNSToHost: false
     EOT
-    name                          = "${local.env}-${local.projectname}"
-    on_boot                       = local.on_boot
-    proxmox_cluster               = "iseja-lab"
+    name                         = "${local.env}-${local.projectname}"
+    on_boot                      = local.on_boot
+    proxmox_cluster              = "iseja-lab"
     talos_machine_config_version = "v1.14.2" # renovate: github-releases=siderolabs/talos
-    vip                           = "10.7.8.120"
+    vip                          = "10.7.8.120"
   }
 
   nodes = {
