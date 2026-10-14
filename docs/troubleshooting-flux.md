@@ -73,7 +73,30 @@ flux reconcile helmrelease <name> -n <namespace>
 
 Confirmed live (dev, rebuild) per [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup): `flux resume helmrelease`/a successful reconcile can report `Ready=True` while a field that's unchanged between the HelmRelease's two most recent revisions (typically `replicas`) still doesn't match git, because `helm upgrade` diffs against the *previous release's own declared values*, not live cluster state. If a Helm-based app looks reconciled but a specific field still looks wrong, check that field explicitly (`kubectl get <resource> -n <namespace> -o yaml`) rather than trusting `READY=True` alone for it.
 
-## 5. If nothing above explains it: check what the environment is actually tracking
+**A `Stalled: RetriesExceeded` HelmRelease does not get retried by a plain `flux reconcile`.** Confirmed live, 2026-10-14: `cilium`'s HelmRelease had failed upgrading `1.18.13` -> `1.18.14` on `timeout waiting for: [DaemonSet/... status: 'InProgress']`, even though the live DaemonSet was already fully healthy at the new version (Helm's own release bookkeeping just never caught up). `flux reconcile helmrelease` immediately re-reported the same stale `Stalled`/`RetriesExceeded` status without attempting anything — only `flux suspend helmrelease` followed by `flux resume helmrelease` actually resets the retry counter and triggers a real attempt (which then resolved in seconds, since the DaemonSet had nothing left to change). Worth checking for proactively: a stuck HelmRelease like this silently blocks every Kustomization that depends on it via `dependsOn`, for as long as nobody notices.
+
+## 5. A Kustomization reconcile deadlocked mid-flight, not just failing
+
+A row that's `READY=Unknown`/`Reconciling: True` for far longer than its usual interval — not `False` with an error, and not caught by case 2 above — can mean the *current* reconcile attempt is genuinely wedged, not slow. This happens when the Kustomization's health check is polling a resource (e.g. a PVC) that gets deleted out-of-band while that same reconcile call is still running: the call blocks inside its health-check wait (up to `spec.timeout`, e.g. `59m30s`) for a resource that will never reappear on its own, and every later `flux suspend`/`resume`/`reconcile --with-source` request just gets queued behind it — annotated, accepted, but never actually serviced — until that one call's timeout finally elapses.
+
+Confirm this before trying anything else:
+
+```sh
+kubectl get kustomization <name> -n flux-system -o jsonpath='{.metadata.generation}{" obs="}{.status.observedGeneration}{"\n"}'
+kubectl -n flux-system logs deploy/kustomize-controller --since=10m | jq -r 'select(.Kustomization.name=="<name>") | "\(.ts) \(.msg)"'
+```
+
+A growing gap between `generation` (bumped by every suspend/resume toggle and reconcile-annotation request) and `observedGeneration` (stuck), with no new `"server-side apply completed"` log line appearing for that Kustomization despite those requests, confirms a wedged call rather than a slow or failing one.
+
+**Fix: restart the controller, don't keep retrying `resume`/`reconcile`.**
+
+```sh
+kubectl -n flux-system rollout restart deployment/kustomize-controller
+```
+
+This kills the stuck in-process reconcile and makes the controller re-list and re-reconcile everything fresh on startup — routine, no resource or data changes, and the few-second restart briefly pauses reconciliation cluster-wide for that environment. Confirmed live, 2026-10-14: `observedGeneration` caught up to `metadata.generation` within seconds of the restart, and the queued apply (recreating a deleted PVC) ran immediately after.
+
+## 6. If nothing above explains it: check what the environment is actually tracking
 
 ```sh
 kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
