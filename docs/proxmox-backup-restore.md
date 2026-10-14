@@ -4,6 +4,10 @@ status: current
 
 # Proxmox VM/LXC Backup & Restore (vzdump/PBS)
 
+**Choose a restore path:** [restore to a new VMID](#restore-to-a-new-vmid-side-by-side-recovery) to validate recovery or preserve the current VM/LXC; [restore to the same VMID](#full-restore-to-the-same-vmid) when replacing a lost instance. Finish with [verification](#verify-the-restore-actually-took).
+
+**On this page:** [PBS target and coverage](#the-pbs-target) · [Browse backups](#listingbrowsing-backups-for-a-given-vmlxc) · [Restore procedures](#restore-procedures) · [Verify the restore](#verify-the-restore-actually-took)
+
 [#1509](https://github.com/isejalabs/homelab/issues/1509): every Proxmox VM/LXC in scope for this backup tier is backed up nightly via `vzdump` to a [Proxmox Backup Server](https://www.proxmox.com/en/proxmox-backup-server) target — but until now the actual **restore** procedure wasn't written down anywhere in this repo.
 
 This is the backup/restore tier for when a whole VM/LXC is lost or corrupted, not just its application data — a different failure mode than anything else documented here:

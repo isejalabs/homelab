@@ -4,14 +4,20 @@ This folder holds documentation that doesn't belong to a single folder in the re
 
 ## Finding what you need
 
-| You're asking…                                  | Where to look                                                                                                                                      |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- |
-| What is this system?                             | the root [`README.md`](../README.md)                                                                                                              |
-| Why is it designed this way?                     | [`architecture/`](architecture), [`decisions/`](decisions)                                                                                        |
-| What currently exists / is deployed?             | [`architecture/workloads.md`](architecture/workloads.md), [`reference/`](reference), and per-folder `README.md`s |
-| How do I change, operate, or recover something?  | this folder's top-level procedural docs (e.g. [`disaster-recovery.md`](disaster-recovery.md), [`kopiur-backup-restore.md`](kopiur-backup-restore.md), [`proxmox-vm-power.md`](proxmox-vm-power.md)) and per-folder `README.md`s |
-| Something's broken right now, how do I diagnose it? | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
-| Why did it become this way?                      | [`decisions/`](decisions) (ADRs), [`audits/`](audits) (point-in-time assessments), the root README's [history](../README.md#a-bit-of-history)     |
+| I need to… | Start here |
+| --- | --- |
+| Understand the system | The root [`README.md`](../README.md) for a summary; [`architecture/overview.md`](architecture/overview.md) for the stack diagram |
+| Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#directory-handling) |
+| Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
+| Diagnose Flux, DNS, storage, or stale Terraform state | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), or [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
+| Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](node-lifecycle.md) |
+| Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks) |
+| Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](proxmox-backup-restore.md#restore-procedures) |
+| Rebuild a whole cluster | [`disaster-recovery.md`](disaster-recovery.md#full-cluster-rebuild) |
+| Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
+| See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
+| Read a point-in-time assessment | [`audits/`](audits) |
+| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
 
 Current repository truth lives in the architecture, reference and procedural docs above, and in the code itself. `audits/` and `decisions/` capture reasoning and point-in-time assessments, not current configuration — don't read them as authoritative for "what exists today."
 
