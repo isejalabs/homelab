@@ -60,7 +60,7 @@ inputs = {
 
   image = {
     version        = "v1.12.6"
-    update_version = "v1.12.6" # renovate: github-releases=siderolabs/talos
+    update_version = "v1.13.11" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
@@ -107,7 +107,7 @@ inputs = {
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
       vlan_id       = local.vlan_id
-      # update        = true
+      update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
       host_node     = "pve4"
