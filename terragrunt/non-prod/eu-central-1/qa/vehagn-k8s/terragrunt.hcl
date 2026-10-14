@@ -59,7 +59,7 @@ inputs = {
   env = local.env
 
   image = {
-    version        = "v1.12.11"
+    version        = "v1.13.11"
     update_version = "v1.13.11" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
@@ -91,7 +91,7 @@ inputs = {
     name                         = "${local.env}-${local.projectname}"
     on_boot                      = local.on_boot
     proxmox_cluster              = "iseja-lab"
-    talos_machine_config_version = "v1.12.11" # renovate: github-releases=siderolabs/talos
+    talos_machine_config_version = "v1.13.11" # renovate: github-releases=siderolabs/talos
     vip                          = "10.7.8.120"
   }
 
@@ -120,7 +120,7 @@ inputs = {
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
       vlan_id       = local.vlan_id
-      update        = true
+      # update        = true
     }
     # "${local.env}-ctrl-03.${local.domain}" = {
     #   host_node     = "pve5"
@@ -147,7 +147,7 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
+      # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
       host_node     = "pve4"
@@ -161,7 +161,7 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
+      # update        = true
     }
     "${local.env}-work-03.${local.domain}" = {
       host_node     = "pve5"
@@ -175,7 +175,7 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      update        = true
+      # update        = true
     }
   }
 
