@@ -22,7 +22,7 @@ sops = "3.13.2" # pinned below latest (3.13.3): that version's aqua-registry ent
 "github:home-operations/flate" = "0.6.5"
 
 # CI pre-commit hooks (pre-commit.yml)
-pre-commit = "4.6.2"
+pre-commit = "4.7.0"
 
 # CI docs link-check (docs-link-check.yml)
 lychee = "0.24.2"
