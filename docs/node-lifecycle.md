@@ -144,6 +144,33 @@ The storage a node's disks live on is set per node by `datastore` (workers: `loc
 
 **Check afterwards:** `pvesm list <storage>` on the Proxmox host shows the node's volumes (OS disk, cloud-init, the data VM's disk `<vmid>0`) on the new storage and nothing is left on the old one; for a block size change `zfs get volblocksize <pool>/<volume>` shows the expected value; `terragrunt plan` shows no infrastructure changes (only the usual in-place namespace updates).
 
+#### If the datastore was flipped in Terraform anyway
+
+A plain `datastore` flip fails at the data VM's disks (see above) and leaves a half-moved node. Observed on `rebuild-ctrl-03` (2026-10-15, `local-zfs-4k` back to `local-enc`), VM `7008173`, data VM `70081730`, both stopped:
+
+- Talos VM: `ide2` (cloud-init) on `local-enc`, `scsi0` (OS disk) and `scsi1` (data disk) still on `local-zfs-4k`.
+- Data VM: `scsi0` on `local-enc` (moved copy, created at the move), while the Talos VM's `scsi1` still points to the `local-zfs-4k` copy, which the node actually ran with. `pvesm list` shows `vm-70081730-disk-0` on both storages.
+- `terragrunt plan` wants to move the OS disk (`local-zfs-4k` to `local-enc`) and start the VM.
+
+The generic guideline, with the choice between keeping the copy on the new datastore (variant A) or the live copy (variant B), is in the module doc [Recovering a node with a flipped datastore](https://github.com/isejalabs/terraform-proxmox-talos/blob/main/docs/storage.md#recovering-a-node-with-a-flipped-datastore) (to be merged with [isejalabs/terraform-proxmox-talos#278](https://redirect.github.com/isejalabs/terraform-proxmox-talos/pull/278)). Which copy: the moved copy on `local-enc` was made at 15:41 while the node was still running, the node was shut down gracefully about 50 seconds later, so the copy lags by that last minute. `rebuild` has a single control plane, so variant B (keep the live copy) is the safe choice here. The commands with the real values, run on `pve6`:
+
+```sh
+qm config 7008173 > /root/qm-7008173.before; qm config 70081730 > /root/qm-70081730.before
+# 1. drop the lagging copy on local-enc
+qm set 70081730 --delete scsi0
+qm unlink 70081730 --idlist unused0 --force 1
+# 2. attach the live copy (local-zfs-4k) to the data VM
+qm set 70081730 --scsi0 'local-zfs-4k:vm-70081730-disk-0,aio=io_uring,backup=1,cache=writethrough,discard=on,iothread=1,replicate=1,size=6G,ssd=1'
+# 3. move it through its owner, source stays as unused0
+qm disk move 70081730 scsi0 local-enc
+# 4. point the Talos VM at the moved volume
+qm set 7008173 --scsi1 'local-enc:vm-70081730-disk-0,aio=io_uring,backup=1,cache=writethrough,discard=on,iothread=1,replicate=1,size=6G,ssd=1'
+```
+
+Then `terragrunt apply` for `rebuild` (it moves the OS disk, which the Talos VM owns, and starts the VM; run `kubectl uncordon` if the node was drained), wait for `Ready`, check `pvesm list local-enc` / `local-zfs-4k` and a clean `terragrunt plan`, and only then free the old copy: `qm unlink 70081730 --idlist unused0 --force 1`.
+
+*Status: derived, not run yet; the outcome and any correction go here once `rebuild-ctrl-03` is recovered ([#1694](https://github.com/isejalabs/homelab/issues/1694)).*
+
 ### Longhorn disk of a replaced or moved worker
 
 Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were moved from `pve6` to `pve5`: the data VM's zvols were created new (the Longhorn disk held 0.7 MB to 323 MB afterwards), Longhorn kept its old record of the disk, found a different disk UUID and marked the disk `Ready=False, DiskFilesystemChanged` (`kubectl get nodes.longhorn.io -n longhorn-system -o yaml`, `status.diskStatus`). Nothing recovers by itself: replicas stay at the reduced count (`ROBUSTNESS: degraded`, `numberOfReplicas` 3 for `longhorn-ha` cannot be satisfied with the node out) until the disk is re-registered. Steps, to be done for **each moved worker, one at a time**. The full procedure, including the eviction step before the move, has since been verified exhaustively by moving `rebuild`'s cluster nodes.
