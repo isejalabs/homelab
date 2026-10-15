@@ -181,7 +181,7 @@ inputs = {
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
       vlan_id       = local.vlan_id
-      # update        = true
+      update        = true
     }
   }
 
