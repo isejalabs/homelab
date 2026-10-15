@@ -100,42 +100,45 @@ inputs = {
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve1"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.181"
-      vm_id         = 7008181
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve1"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.181"
+      vm_id                = 7008181
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.182"
-      vm_id         = 7008182
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve4"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.182"
+      vm_id                = 7008182
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve5"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.183"
-      vm_id         = 7008183
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve5"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.183"
+      vm_id                = 7008183
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-work-01.${local.domain}" = {
@@ -186,11 +189,10 @@ inputs = {
     values_file_path = "${local.root_path}/../${local.cilium_path}/base/values.yaml"
   }
 
-  # talos_config_patches intentionally emptied during the staged 1.14.2 rollout below: the
-  # leader-election patch has no per-node scoping (machine_type = "controlplane" applies it to
-  # ALL control planes identically), and its 1.14+ variant uses document kinds a still-1.13.11
-  # control plane would reject. Re-add the 1.14+ variant (leader-election-1.14.yaml) once all
-  # control planes are on v1.14.2.
+  # The leader-election patch moved from here (machine_type = "controlplane", applied to ALL
+  # control planes identically) to a per-node `nodes[*].talos_config_patches` entry below, so it
+  # can be switched to the 1.14+ variant one control plane at a time during the staged rollout
+  # without pushing a document kind a still-1.13.11 control plane would reject to the others.
   talos_config_patches = []
 
   volumes = {
