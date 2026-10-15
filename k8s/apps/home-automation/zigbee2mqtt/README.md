@@ -1,6 +1,6 @@
 # Zigbee2MQTT
 
-Zigbee2MQTT runs in the dev cluster first, using the ConBee II passed through to `dev-work-01.home.iseja.net` on Proxmox host `pve1`. The application continues to use the existing MQTT broker at `mqtt.home.iseja.net`; broker deployment and public frontend routing are out of scope for this component.
+Zigbee2MQTT runs in the dev cluster first, using the ConBee II passed through to `dev-work-01.home.iseja.net` on Proxmox host `pve1`. The application continues to use the existing MQTT broker at `mqtt.home.iseja.net`. Its frontend is exposed through the internal Gateway at `dev-zigbee2mqtt.dev.iseja.net` in dev.
 
 ## Setup and migration
 
