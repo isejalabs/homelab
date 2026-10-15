@@ -146,6 +146,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      usb_devices   = [{ host = "1cf1:0030" }]
       vlan_id       = local.vlan_id
       # update        = true
     }
