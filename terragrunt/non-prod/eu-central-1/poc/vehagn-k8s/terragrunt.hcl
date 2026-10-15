@@ -37,7 +37,7 @@ locals {
   cilium_path         = include.envcommon.locals.cilium_path
   cpu_type            = include.envcommon.locals.cpu_type
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
-  ctrl_datastore      = "local-zfs-4k" # 4K-block storage for the etcd disk, #1615
+  ctrl_datastore      = include.envcommon.locals.ctrl_datastore
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
   datastore           = include.envcommon.locals.datastore
