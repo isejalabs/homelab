@@ -16,7 +16,6 @@ spec:
   postBuild:
     substitute:
       APP: unifi-controller
-      STORAGE_CACHE_CAPACITY: 500M
       STORAGE_CAPACITY: 500M
   dependsOn:
     - name: cilium

@@ -51,7 +51,7 @@ kubectl exec -n zigbee2mqtt zigbee2mqtt-data-migration -- ls -la /data
 
 Confirm `configuration.yaml` and `database.db` are present before starting Zigbee2MQTT. Delete the migration pod after the copy and before starting Zigbee2MQTT; Longhorn's RWO PVC cannot be mounted by the app and migration pod at the same time.
 
-The app's persistent data PVC is `10Mi`; logs are written below `/app/data/log` by default, which is mounted as a `1Gi` `emptyDir`. The pod's local ephemeral-storage limit is also `1Gi` (with a `64Mi` request), and logs are discarded when the pod is replaced. Zigbee2MQTT also writes logs to stdout, visible with `kubectl logs`. Kubernetes enforces local ephemeral-storage limits through kubelet measurement and pod eviction when supported by the node's filesystem/runtime; this is not a filesystem-level hard quota.
+The app's persistent data PVC is `10Mi`; the shared storage component still uses `STORAGE_CAPACITY` for the Kopia cache, so Zigbee2MQTT sets it to `1Gi` and overrides only its PVC request. Logs are written below `/app/data/log` by default, which is mounted as a `1Gi` `emptyDir`. The pod's local ephemeral-storage limit is also `1Gi` (with a `64Mi` request), and logs are discarded when the pod is replaced. Zigbee2MQTT also writes logs to stdout, visible with `kubectl logs`. Kubernetes enforces local ephemeral-storage limits through kubelet measurement and pod eviction when supported by the node's filesystem/runtime; this is not a filesystem-level hard quota.
 
 The cut-over sequence is:
 

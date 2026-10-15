@@ -9,7 +9,7 @@ spec:
     compressor: zstd
   mover:
     cache:
-      capacity: ${STORAGE_CACHE_CAPACITY:=5Gi}
+      capacity: ${STORAGE_CAPACITY:=5Gi}
       mode: Persistent
       storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
     securityContext:

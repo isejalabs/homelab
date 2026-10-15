@@ -51,7 +51,6 @@ spec:
     substitute:
       APP: myapp
       # STORAGE_CAPACITY: 10Gi
-      # STORAGE_CACHE_CAPACITY: 1Gi
       # STORAGE_CLASS: longhorn-xfs           # if this app needs xfs
       # STORAGE_STAGING_CLASS: longhorn-scratch-xfs  # required alongside an xfs STORAGE_CLASS
       # PUID: "1001"

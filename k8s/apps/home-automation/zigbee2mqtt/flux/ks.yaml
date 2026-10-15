@@ -19,7 +19,6 @@ spec:
       APP: zigbee2mqtt
       PGID: "0"
       PUID: "0"
-      STORAGE_CACHE_CAPACITY: 1Gi
-      STORAGE_CAPACITY: 10Mi
+      STORAGE_CAPACITY: 1Gi
   dependsOn:
     - name: longhorn

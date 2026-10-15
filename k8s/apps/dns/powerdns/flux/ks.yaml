@@ -20,6 +20,5 @@ spec:
       # hundred records) -- 128Mi leaves headroom above ext4's own overhead
       # and SQLite's WAL file without following the 5Gi default meant for
       # actual application data.
-      STORAGE_CACHE_CAPACITY: 128Mi
       STORAGE_CAPACITY: 128Mi
       STORAGE_CLASS: longhorn-ha
