@@ -101,7 +101,7 @@ Temporarily or permanently changing how many nodes an environment runs — e.g. 
 
 Relocating a node's physical placement (`host_node` in its `terragrunt.hcl` entry) without changing its logical identity otherwise — distinct from [node replacement](#3-node-replacement), which swaps the node itself (new name/IP/VM ID), though the two procedures overlap heavily for a control-plane node.
 
-This is also distinct from changing only a node's **`datastore`** (storage pool) with `host_node` left unchanged: that's an in-place move attempt rather than a destroy/recreate, and hits a different, currently-unresolved limitation — Proxmox refuses to move the EPHEMERAL/attached data-VM disks through the Talos VM, since it isn't their owner. See the module's [storage docs](https://github.com/isejalabs/terraform-proxmox-talos/blob/main/docs/storage.md#changing-the-datastore-of-an-existing-node--ownership-limitation-on-attached-disks) for the error and manual workaround, and [#1615](https://redirect.github.com/isejalabs/homelab/issues/1615) for the homelab context it came up in.
+This is also distinct from changing only a node's **`datastore`** (storage pool) with `host_node` left unchanged: a plain flip is an in-place move attempt that fails for the data-VM disks, see [Changing the datastore of a node](#changing-the-datastore-of-a-node) for what to do instead ([#1615](https://redirect.github.com/isejalabs/homelab/issues/1615) has the homelab context).
 
 - **Worker node**: change `host_node` in place on the existing entry and `terragrunt apply`. This is a **destroy and recreate** (never a live migration): the Talos VM *and* its data VM, with the Longhorn disk, are created new and empty on the target host. That is no HA concern for the cluster itself, but it **is** for Longhorn: the node loses every replica it held, and its Longhorn disk needs to be re-registered, see [Longhorn disk of a replaced or moved worker](#longhorn-disk-of-a-replaced-or-moved-worker). Move one worker at a time.
 - **Control-plane node in a single-control-plane environment**: changing `host_node` in place would mean destroying and recreating the *only* control-plane node directly — a full control-plane outage for the duration, and real quorum risk if anything goes wrong mid-move. The safe path, **confirmed working end to end** (`dbg`, moving its sole control-plane from `pve6` to `pve1`, 2026-10-11):
@@ -113,6 +113,36 @@ This is also distinct from changing only a node's **`datastore`** (storage pool)
   **Two real blockers found while verifying this, worth knowing about rather than mistaking for a fundamental limitation**: neither was the control-plane VIP being unreachable, nor skipping the `etcd leave` step (both were suspected going in) —
   - The `bpg/proxmox` Terraform provider needs direct SSH access (not just the Proxmox API) to the *target* Proxmox host for some disk operations when creating the new VM — if the session's `ssh-agent` has no key authorized there, VM creation fails with `unable to authenticate user "root" over SSH`, even though everything else (API calls, Talos bootstrap) would have worked fine.
   - The stale-`Node`-object gotcha from [Node replacement](#3-node-replacement) step 4 applies here identically when retiring the original node.
+
+  **Verified again on `rebuild` and `dev`** (2026-10-13), each time with an interim `ctrl-02` on `pve4` (the standard location of any `-02` node), then the original `ctrl-03` moved to `pve6` (the interim node is retired the same way; `dev` additionally got the etcd disk on another datastore this way, see [Changing the datastore of a node](#changing-the-datastore-of-a-node)):
+  - The stale-`Node` gotcha is not optional: the apply that removes the retired node **always fails** the first time with `cluster health check failed`. Delete the `Node` (`kubectl delete node <name>`) and run `terragrunt plan` / `apply` again, it then converges.
+  - `talosctl etcd members` before `etcd leave` and after: the retiring node must be the only entry that disappears. Run `etcd leave` on the node that leaves.
+  - Re-adding a node with the *same* name, IP and VM ID after retiring it works: the destroy removes the data VM as well, so there is no leftover disk (checked on `dev`: nothing remains on the old storage).
+  - Adding a control-plane node makes Talos re-apply the machine config on the workers; the CRI restarts there and Longhorn volumes on a worker can flap `attached`/`unknown` for about 5 minutes (`rebuild`, 2026-10-13). Wait until all attached volumes are `healthy` before the next step.
+  - **Changing the storage (`datastore`) of an existing node**: not in place, see [Changing the datastore of a node](#changing-the-datastore-of-a-node).
+
+### Changing the datastore of a node
+
+The storage a node's disks live on is set per node by `datastore` (workers: `local.datastore`, control planes: `local.ctrl_datastore`, both defaulting to `local-enc` from `terragrunt/_envcommon/vehagn-k8s.hcl`). The block size of a zvol is fixed at creation, so a different block size means a different storage. The 4K storage `local-zfs-4k` was tried for etcd and is not used any more: the A/B test in [#1615](https://redirect.github.com/isejalabs/homelab/issues/1615) measured about 11 to 12% *more* physical write amplification than with 16K, so control planes go back to the default (`local-enc`, 16K) with this procedure.
+
+**Do not just change `datastore` on an existing node and apply.** That is planned as an in-place update. Proxmox moves the disks the Talos VM owns (OS disk, cloud-init), but refuses the EPHEMERAL/attached disks of the data VM (`Cannot move ... it is not owned by this VM!`, [isejalabs/terraform-proxmox-talos#258](https://redirect.github.com/isejalabs/terraform-proxmox-talos/pull/258), reproduced in both directions on `dbg-work-03`) and leaves a half-moved node behind. Always replace the node's disks instead; both paths below create fresh disks on the new storage and are verified.
+
+- **Control-plane node: through an interim control-plane node** (verified on `dev`, `local-enc` to `local-zfs-4k`, 2026-10-13/14, no etcd downtime; the other direction works the same, the original node also moved from `pve5` to `pve6` on the way). Same procedure as the [control-plane move](#5-moving-a-node-to-another-proxmox-host) above, with the new storage in the entries:
+  1. Add the interim node (for example `ctrl-02` on `pve4`) with `datastore = local.ctrl_datastore` set to the **new** storage. Keep the `datastore` of the original node **unchanged** while doing this, otherwise the same plan tries to move its disks and fails. Apply, check `kubectl get nodes` and `talosctl etcd members` show both.
+  2. Drain the original node, `talosctl etcd leave` on it, remove or comment out its entry, apply. The first apply fails the health check because of the stale `Node` (see [Node replacement](#3-node-replacement) step 4): `kubectl delete node <name>`, run `terragrunt plan`/`apply` again.
+  3. Add the original node again (same name, IP and VM ID are fine, the destroy removed its data VM) with the new storage, apply, wait for it to join `etcd`.
+  4. Retire the interim node the same way as in step 2.
+- **Worker node: replace both VMs** (verified on `dbg-work-03`, `local-zfs-4k` to `local-enc`, 2026-10-14). Set the new `datastore` in the entry, then plan and apply with the Talos VM and the data VM named for replacement:
+  ```sh
+  terragrunt plan -out=tfplan \
+    -replace='module.talos.proxmox_virtual_environment_vm.this["<node-fqdn>"]' \
+    -replace='module.talos.proxmox_virtual_environment_vm.data_vm["<node-fqdn>"]'
+  terragrunt apply tfplan
+  ```
+  Check in the plan that only that node's VM, data VM and machine configuration are replaced. The node comes back **empty** (the Longhorn disk included), so treat it like a [moved worker](#longhorn-disk-of-a-replaced-or-moved-worker): evict and drain before (drain's cordon survives, `kubectl uncordon` afterwards), re-register the Longhorn disk after, one worker at a time. A cluster without Longhorn data (for example `dbg`) needs none of that.
+- **If the data must survive in place** (no replacement possible): the manual, out-of-band `qm set` repoint documented in the module's [storage docs](https://github.com/isejalabs/terraform-proxmox-talos/blob/main/docs/storage.md#changing-the-datastore-of-an-existing-node--ownership-limitation-on-attached-disks). Not used so far; Terraform state and Proxmox must agree afterwards, so check with a plan.
+
+**Check afterwards:** `pvesm list <storage>` on the Proxmox host shows the node's volumes (OS disk, cloud-init, the data VM's disk `<vmid>0`) on the new storage and nothing is left on the old one; for a block size change `zfs get volblocksize <pool>/<volume>` shows the expected value; `terragrunt plan` shows no infrastructure changes (only the usual in-place namespace updates).
 
 ### Longhorn disk of a replaced or moved worker
 
