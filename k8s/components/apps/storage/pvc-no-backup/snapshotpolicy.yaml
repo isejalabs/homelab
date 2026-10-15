@@ -9,12 +9,12 @@ spec:
     compressor: zstd
   mover:
     cache:
-      capacity: ${STORAGE_CAPACITY:=5Gi}
-      mode: Persistent
-      storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
+      capacity: ${STORAGE_CACHE_CAPACITY:=5Gi}
+    mode: Persistent
     securityContext:
       runAsGroup: ${PGID:=1000}
       runAsUser: ${PUID:=1000}
+    storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
   repository:
     kind: ClusterRepository
     name: fiona

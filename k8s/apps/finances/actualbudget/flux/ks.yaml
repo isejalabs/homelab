@@ -19,4 +19,5 @@ spec:
   postBuild:
     substitute:
       APP: actualbudget
+      STORAGE_CACHE_CAPACITY: 1Gi
       STORAGE_CAPACITY: 1Gi

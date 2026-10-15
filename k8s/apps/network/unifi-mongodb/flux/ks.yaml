@@ -22,6 +22,7 @@ spec:
       APP: unifi-mongodb
       PGID: "999"
       PUID: "999"
+      STORAGE_CACHE_CAPACITY: 2Gi
       STORAGE_CAPACITY: 2Gi
       STORAGE_CLASS: longhorn-xfs
       STORAGE_STAGING_CLASS: longhorn-scratch-xfs
