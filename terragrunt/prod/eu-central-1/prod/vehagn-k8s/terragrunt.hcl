@@ -124,8 +124,8 @@ inputs = {
       disk_size            = local.ctrl_disk_size
       ram_dedicated        = local.ctrl_ram
       vlan_id              = local.vlan_id
-      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
-      # update        = true
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"]
+      update               = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
       host_node            = "pve5"
