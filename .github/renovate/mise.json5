@@ -1,0 +1,11 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "packageRules": [
+    {
+      "description": "Group updates for tools managed by mise",
+      "matchManagers": ["mise"],
+      "groupName": "Mise Tools",
+      "groupSlug": "mise-tools"
+    }
+  ]
+}
