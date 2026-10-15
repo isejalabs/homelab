@@ -12,5 +12,4 @@ resources:
   - ns.yaml
   - externalsecret.yaml
   - helmrelease.yaml
-  - http-route.yaml
   - ocirepository.yaml
