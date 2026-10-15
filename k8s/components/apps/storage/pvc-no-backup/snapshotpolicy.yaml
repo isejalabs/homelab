@@ -10,11 +10,11 @@ spec:
   mover:
     cache:
       capacity: ${STORAGE_CACHE_CAPACITY:=5Gi}
-    mode: Persistent
+      mode: Persistent
+      storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
     securityContext:
       runAsGroup: ${PGID:=1000}
       runAsUser: ${PUID:=1000}
-    storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
   repository:
     kind: ClusterRepository
     name: fiona
