@@ -60,7 +60,7 @@ inputs = {
 
   image = {
     version        = "v1.13.11"
-    update_version = "v1.13.11" # renovate: github-releases=siderolabs/talos
+    update_version = "v1.14.2" # renovate: github-releases=siderolabs/talos
     schematic_path = "assets/talos/schematic.yaml"
   }
 
@@ -74,65 +74,71 @@ inputs = {
       "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/${local.gateway_api_version}/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml",
       "https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/v0.11.0/deploy/standalone-install.yaml",
     ]
-    gateway                      = "10.7.8.1"
-    gateway_api_version          = local.gateway_api_version
-    kubernetes_version           = "v1.34.6" # renovate: github-releases=kubernetes/kubernetes
-    kubelet                      = <<-EOT
+    gateway             = "10.7.8.1"
+    gateway_api_version = local.gateway_api_version
+    kubernetes_version  = "v1.34.6" # renovate: github-releases=kubernetes/kubernetes
+    kubelet             = <<-EOT
       extraArgs:
         # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
         rotate-server-certificates: true
       registerWithFQDN: true
     EOT
-    machine_features             = <<-EOT
+    machine_features    = <<-EOT
       # https://www.talos.dev/v1.8/kubernetes-guides/network/deploying-cilium/#known-issues
       hostDNS:
         forwardKubeDNSToHost: false
     EOT
-    name                         = "${local.env}-${local.projectname}"
-    on_boot                      = local.on_boot
-    proxmox_cluster              = "iseja-lab"
-    talos_machine_config_version = "v1.13.11" # renovate: github-releases=siderolabs/talos
-    vip                          = "10.7.8.180"
+    name                = "${local.env}-${local.projectname}"
+    on_boot             = local.on_boot
+    proxmox_cluster     = "iseja-lab"
+    # talos_machine_config_version intentionally unset during the staged 1.14.2 rollout below, so
+    # each node's machine-config format tracks its own `update` flag (falls back to
+    # `image.version`/`image.update_version`) instead of jumping all nodes to the new format at once.
+    # Re-pin once every node below has `update = true` and image.version matches update_version.
+    vip = "10.7.8.180"
   }
 
   nodes = {
     "${local.env}-ctrl-01.${local.domain}" = {
-      host_node     = "pve1"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.181"
-      vm_id         = 7008181
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve1"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.181"
+      vm_id                = 7008181
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-ctrl-02.${local.domain}" = {
-      host_node     = "pve4"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.182"
-      vm_id         = 7008182
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve4"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.182"
+      vm_id                = 7008182
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-ctrl-03.${local.domain}" = {
-      host_node     = "pve5"
-      machine_type  = "controlplane"
-      ip            = "10.7.8.183"
-      vm_id         = 7008183
-      cpu           = local.ctrl_cpu
-      datastore     = local.ctrl_datastore
-      dns           = local.dns
-      disk_size     = local.ctrl_disk_size
-      ram_dedicated = local.ctrl_ram
-      vlan_id       = local.vlan_id
+      host_node            = "pve5"
+      machine_type         = "controlplane"
+      ip                   = "10.7.8.183"
+      vm_id                = 7008183
+      cpu                  = local.ctrl_cpu
+      datastore            = local.ctrl_datastore
+      dns                  = local.dns
+      disk_size            = local.ctrl_disk_size
+      ram_dedicated        = local.ctrl_ram
+      vlan_id              = local.vlan_id
+      talos_config_patches = ["${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"]
       # update        = true
     }
     "${local.env}-work-01.${local.domain}" = {
@@ -183,12 +189,11 @@ inputs = {
     values_file_path = "${local.root_path}/../${local.cilium_path}/base/values.yaml"
   }
 
-  talos_config_patches = [
-    {
-      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election.yaml"
-      machine_type = "controlplane"
-    },
-  ]
+  # The leader-election patch moved from here (machine_type = "controlplane", applied to ALL
+  # control planes identically) to a per-node `nodes[*].talos_config_patches` entry below, so it
+  # can be switched to the 1.14+ variant one control plane at a time during the staged rollout
+  # without pushing a document kind a still-1.13.11 control plane would reject to the others.
+  talos_config_patches = []
 
   volumes = {
     longhorn = {
