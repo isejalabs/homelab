@@ -20,14 +20,14 @@ spec:
               ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
                 valueFrom:
                   secretKeyRef:
-                    key: MQTT_PASSWORD
                     name: zigbee2mqtt-mqtt
+                    key: MQTT_PASSWORD
               ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mqtt.home.iseja.net:1883
               ZIGBEE2MQTT_CONFIG_MQTT_USER:
                 valueFrom:
                   secretKeyRef:
-                    key: MQTT_USER
                     name: zigbee2mqtt-mqtt
+                    key: MQTT_USER
               ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: deconz
               ZIGBEE2MQTT_CONFIG_SERIAL_PORT: /dev/ttyACM0
             image:
@@ -35,19 +35,19 @@ spec:
               tag: 2.14.2 # renovate: docker=ghcr.io/koenkk/zigbee2mqtt
             probes:
               liveness:
-                custom: true
-                enabled: true
                 spec:
                   periodSeconds: 30
                   tcpSocket:
                     port: 8080
-              readiness:
                 custom: true
                 enabled: true
+              readiness:
                 spec:
                   periodSeconds: 10
                   tcpSocket:
                     port: 8080
+                custom: true
+                enabled: true
             resources:
               limits:
                 cpu: 500m
