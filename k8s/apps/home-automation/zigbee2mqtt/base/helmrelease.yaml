@@ -85,6 +85,18 @@ spec:
         sizeLimit: 1Gi
         type: emptyDir
 
+    route:
+      main:
+        enabled: true
+        hostnames:
+          - zigbee2mqtt.example.com
+        kind: HTTPRoute
+        parentRefs:
+          - group: gateway.networking.k8s.io
+            kind: Gateway
+            name: internal
+            namespace: gateway-api
+
     service:
       main:
         controller: main
