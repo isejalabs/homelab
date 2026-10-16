@@ -6,117 +6,38 @@ planning
 
 ## Context
 
-The current identity and network source of truth is UCS on-prem: it provides the
-`DIR.ISEJA.NET` directory, DHCP, DNS, Kerberos, Active Directory, and the SAML
-service used by `ucs-sso.dir.iseja.net`. The domain currently has two UCS
-servers, with `baerbel` acting as the second domain controller. The live UCS
-versions, Keycloak proof-of-concept state, and exact SAML/LDAP configuration
-still need verification. See [#1715](https://github.com/isejalabs/homelab/issues/1715).
+The current identity and network source of truth is UCS on-prem: it provides the `DIR.ISEJA.NET` directory, DHCP, DNS, Kerberos, Active Directory, and the SAML service used by `ucs-sso.dir.iseja.net`. The domain currently has two UCS servers, with `baerbel` acting as the second domain controller. The live UCS versions, Keycloak proof-of-concept state, and exact SAML/LDAP configuration still need verification. See [#1715](https://github.com/isejalabs/homelab/issues/1715).
 
-The target is MFA-protected browser SSO for homelab web applications, with a
-longer-term goal of using the user's OS Kerberos login to provide web SSO.
-Windows and macOS login federation is outside the current scope. The user wants
-to keep separate everyday and administrative identities, including
-`sebi-adm`, and retain local break-glass access for core services where
-appropriate. Service-to-service identities and monitoring credentials remain
-separate from human SSO under [#1714](https://github.com/isejalabs/homelab/issues/1714).
+The target is MFA-protected browser SSO for homelab web applications, with a longer-term goal of using the user's OS Kerberos login to provide web SSO. Windows and macOS login federation is outside the current scope. The user wants to keep separate everyday and administrative identities, including `sebi-adm`, and retain local break-glass access for core services where appropriate. Service-to-service identities and monitoring credentials remain separate from human SSO under [#1714](https://github.com/isejalabs/homelab/issues/1714).
 
-Nubus on Kubernetes is a possible longer-term direction, but the current UCS
-installation must remain authoritative for the integrated domain services
-that Kubernetes Nubus does not replace. The existing Keycloak proof of concept
-was installed on UCS hosts with separate local PostgreSQL instances; those
-databases did not replicate, so that setup did not provide a shared-state HA
-design. A replicated Longhorn volume can support recovery of a database
-instance, but does not itself replicate database contents between independent
-instances or establish database HA.
+Nubus on Kubernetes is a possible longer-term direction, but the current UCS installation must remain authoritative for the integrated domain services that Kubernetes Nubus does not replace. The existing Keycloak proof of concept was installed on UCS hosts with separate local PostgreSQL instances; those databases did not replicate, so that setup did not provide a shared-state HA design. A replicated Longhorn volume can support recovery of a database instance, but does not itself replicate database contents between independent instances or establish database HA.
 
-The Kubernetes direction also needs a bounded technical proof. The repository
-pins Cilium 1.20.2 for `head`, and 1.18.14 for `poc` and `prod`; the `poc`
-Kubernetes version in IaC is 1.34.11. Cilium 1.20 adds Gateway API's
-experimental `HTTPRoute` `ExternalAuth` filter ([Cilium v1.20 release
-notes](https://github.com/cilium/cilium/releases/tag/v1.20.0)), but its
-[upgrade guidance](https://docs.cilium.io/en/stable/operations/upgrade/)
-requires Gateway API v1.6.1 or later. This repository currently installs
-Gateway API v1.4.1 standard CRDs plus a standalone experimental TLSRoute CRD.
-The PoC therefore needs a staged Cilium upgrade from 1.18 to 1.19 to 1.20 and
-a Gateway API CRD upgrade, including preserving existing TLSRoute API
-versions. A supported filter alone does not prove browser login redirects,
-callback handling, session cookies, logout, identity headers, or fail-closed
-behavior. [GEP-1494](https://gateway-api.sigs.k8s.io/geps/gep-1494/) remains
-experimental.
+The Kubernetes direction also needs a bounded technical proof. The repository pins Cilium 1.20.2 for `head`, and 1.18.14 for `poc` and `prod`; the `poc` Kubernetes version in IaC is 1.34.11. Cilium 1.20 adds Gateway API's experimental `HTTPRoute` `ExternalAuth` filter ([Cilium v1.20 release notes](https://github.com/cilium/cilium/releases/tag/v1.20.0)), but its [upgrade guidance](https://docs.cilium.io/en/stable/operations/upgrade/) requires Gateway API v1.6.1 or later. This repository currently installs Gateway API v1.4.1 standard CRDs plus a standalone experimental TLSRoute CRD. The PoC therefore needs a staged Cilium upgrade from 1.18.14 through 1.19.8 to 1.20.2 and a Gateway API CRD upgrade, including preserving existing TLSRoute API versions. A supported filter alone does not prove browser login redirects, callback handling, session cookies, logout, identity headers, or fail-closed behavior. [GEP-1494](https://gateway-api.sigs.k8s.io/geps/gep-1494/) remains experimental.
 
 ## Options considered
 
-- **Use UCS SAML directly for each compatible application.** This keeps
-  authentication close to the current directory and may work for applications
-  that support SAML. It does not provide the OIDC interface needed by services
-  such as Immich and does not establish a common path for the full service set.
-- **Install Keycloak on the UCS servers.** This is not the preferred direction:
-  the proof of concept used independent PostgreSQL databases, and extending
-  UCS through manual host changes conflicts with the desired IaC/GitOps
-  ownership. Reconsider only if a supported shared database and operations
-  model is identified.
-- **Run a separate OIDC/SAML identity layer managed as code, with UCS as its
-  current user and group authority.** This best fits the OIDC requirement and
-  the preference to keep identity-provider lifecycle outside UCS. The provider
-  is not selected yet; Keycloak, Nubus, and other candidates need evaluation
-  against the required federation, Kerberos SSO, MFA, backup, and recovery
-  behavior.
-- **Use Cilium Gateway `ExternalAuth` for every application.** This could
-  centralize browser authentication for applications without native SSO, but
-  it is experimental, currently requires a Cilium and Gateway API upgrade in
-  `poc`, and cannot be assumed to replace application-native OIDC or API and
-  mobile authentication.
+- **Use UCS SAML directly for each compatible application.** This keeps authentication close to the current directory and may work for applications that support SAML. It does not provide the OIDC interface needed by services such as Immich and does not establish a common path for the full service set.
+- **Install Keycloak on the UCS servers.** This is not the preferred direction: the proof of concept used independent PostgreSQL databases, and extending UCS through manual host changes conflicts with the desired IaC/GitOps ownership. Reconsider only if a supported shared database and operations model is identified.
+- **Run a separate OIDC/SAML identity layer managed as code, with UCS as its current user and group authority.** This best fits the OIDC requirement and the preference to keep identity-provider lifecycle outside UCS. The provider is not selected yet; Keycloak, Nubus, and other candidates need evaluation against the required federation, Kerberos SSO, MFA, backup, and recovery behavior.
+- **Use Cilium Gateway `ExternalAuth` for every application.** This could centralize browser authentication for applications without native SSO, but it is experimental, currently requires a Cilium and Gateway API upgrade in `poc`, and cannot be assumed to replace application-native OIDC or API and mobile authentication.
 
 ## Decision
 
-Proceed with the following architecture direction while keeping the specific
-identity provider and production availability design open:
+Proceed with the following architecture direction while keeping the specific identity provider and production availability design open:
 
-1. Keep UCS as the authoritative source for human identities and groups while
-   UCS remains the integrated domain master. Treat Nubus as a future migration
-   candidate, not a replacement for the current UCS domain services today.
-2. Manage any additional identity-provider service separately from UCS using
-   repository-owned IaC/GitOps. Do not install another Keycloak instance on
-   UCS as the default deployment pattern.
-3. Prefer an application's native OIDC integration when available. Use
-   Gateway API `ExternalAuth` only for browser-only applications that lack a
-   suitable native SSO integration, after the end-to-end PoC succeeds.
-4. Require MFA for browser web SSO. Keep Windows/macOS OS login federation out
-   of scope for this phase; test Kerberos-backed web SSO as a separate
-   capability, including the user's everyday and administrative accounts.
-5. Preserve a documented local break-glass path for core infrastructure
-   services. Keep machine identities and monitoring credentials independent
-   from human SSO.
-6. Do not claim HA from a Longhorn replica count alone. Validate database
-   restart/failover, backup, restore, and recovery objectives for the chosen
-   provider topology. A PostgreSQL cluster is not a requirement; a single
-   database instance with recoverable persistent storage remains an option.
-7. Prove Cilium `ExternalAuth` in `poc` before adopting it for shared services.
-   Upgrade Cilium one minor release at a time, confirm Kubernetes
-   compatibility, and install Gateway API v1.6.1 experimental CRDs before
-   Cilium 1.20, following the [Cilium upgrade
-   guide](https://docs.cilium.io/en/stable/operations/upgrade/). Test
-   successful login, redirect/callback, session persistence, logout,
-   identity-header handling, fail-closed behavior, and that protected
-   backends cannot be reached around the Gateway.
+1. Keep UCS as the authoritative source for human identities and groups while UCS remains the integrated domain master. Treat Nubus as a future migration candidate, not a replacement for the current UCS domain services today.
+2. Manage any additional identity-provider service separately from UCS using repository-owned IaC/GitOps. Do not install another Keycloak instance on UCS as the default deployment pattern.
+3. Prefer an application's native OIDC integration when available. Use Gateway API `ExternalAuth` only for browser-only applications that lack a suitable native SSO integration, after the end-to-end PoC succeeds.
+4. Require MFA for browser web SSO. Keep Windows/macOS OS login federation out of scope for this phase; test Kerberos-backed web SSO as a separate capability, including the user's everyday and administrative accounts.
+5. Preserve a documented local break-glass path for core infrastructure services. Keep machine identities and monitoring credentials independent from human SSO.
+6. Do not claim HA from a Longhorn replica count alone. Validate database restart/failover, backup, restore, and recovery objectives for the chosen provider topology. A PostgreSQL cluster is not a requirement; a single database instance with recoverable persistent storage remains an option.
+7. Prove Cilium `ExternalAuth` in `poc` before adopting it for shared services. Upgrade Cilium from 1.18.14 through 1.19.8 to 1.20.2, confirm Kubernetes compatibility, and install Gateway API v1.6.1 experimental CRDs before Cilium 1.20, following the [Cilium upgrade guide](https://docs.cilium.io/en/stable/operations/upgrade/). Test successful login, redirect/callback, session persistence, logout, identity-header handling, fail-closed behavior, and that protected backends cannot be reached around the Gateway.
 
 ## Consequences
 
-- This records the target boundaries and verification plan, not a final
-  identity-provider selection or production deployment approval.
-- App-specific implementation remains tracked by sub-issues of
-  [#1715](https://github.com/isejalabs/homelab/issues/1715), including
-  Longhorn, Flux Operator, Zigbee2MQTT, Immich, Checkmk, Proxmox, RustFS,
-  OPNsense, and TrueNAS.
-- The live UCS version, deployed Keycloak remnants, directory federation
-  details, account model, and actual cluster versions still need confirmation.
-- Cilium `ExternalAuth` remains unproven for this environment. The `poc`
-  manifest change must account for Cilium's required upgrade sequence and the
-  Gateway API TLSRoute migration before any live rollout.
-- The identity service must be recoverable independently of applications it
-  protects. Longhorn and Flux administration also need a documented recovery
-  path that does not depend solely on the SSO service.
-- Revisit this ADR after the UCS inventory and `poc` proof are complete; record
-  the selected provider and supported recovery model here or in a superseding
-  ADR.
+- This records the target boundaries and verification plan, not a final identity-provider selection or production deployment approval.
+- App-specific implementation remains tracked by sub-issues of [#1715](https://github.com/isejalabs/homelab/issues/1715), including Longhorn, Flux Operator, Zigbee2MQTT, Immich, Checkmk, Proxmox, RustFS, OPNsense, and TrueNAS.
+- The live UCS version, deployed Keycloak remnants, directory federation details, account model, and actual cluster versions still need confirmation.
+- Cilium `ExternalAuth` remains unproven for this environment. The `poc` manifest change must account for Cilium's required upgrade sequence and the Gateway API TLSRoute migration before any live rollout.
+- The identity service must be recoverable independently of applications it protects. Longhorn and Flux administration also need a documented recovery path that does not depend solely on the SSO service.
+- Revisit this ADR after the UCS inventory and `poc` proof are complete; record the selected provider and supported recovery model here or in a superseding ADR.
