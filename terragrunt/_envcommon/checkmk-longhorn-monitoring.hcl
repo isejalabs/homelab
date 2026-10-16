@@ -43,10 +43,9 @@ locals {
 
   ### Common variables for the component
 
-  # TEMPORARY: pinned to the module's PR branch rather than a tagged release, same as checkmk-rustfs-monitoring did
-  # before its own module merged. Do not apply until isejalabs/terraform-modules#59 has merged, been tagged
-  # checkmk-longhorn-monitoring-v0.1.0, and this ref has been changed to that tag.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-longhorn-monitoring?ref=issue/58_checkmk-longhorn-monitoring"
+  # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
+  # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-longhorn-monitoring?ref=checkmk-longhorn-monitoring-v0.1.0"
 
   # Environments monitored so far. Staged rollout, same precedent as checkmk-rustfs-monitoring's identity_envs: the
   # always-on environments first, not the on-demand ones (dbg/head/poc/rebuild/src) whose Longhorn would otherwise be
