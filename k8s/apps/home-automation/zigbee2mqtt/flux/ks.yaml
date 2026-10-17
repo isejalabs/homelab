@@ -17,7 +17,7 @@ spec:
   postBuild:
     substitute:
       APP: zigbee2mqtt
-      # The upstream image defaults to root; the backup mover must preserve data ownership.
-      PGID: "0"
-      PUID: "0"
+      # Match the app's non-root identity so Kopia restores files with usable ownership.
+      PGID: "1000"
+      PUID: "1000"
       STORAGE_CAPACITY: 2Gi

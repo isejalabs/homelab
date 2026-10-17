@@ -53,6 +53,8 @@ Confirm `configuration.yaml` and `database.db` are present before starting Zigbe
 
 The app's persistent data PVC is `10Mi`. Its Kopia deduplication cache is separate and set to `2Gi` to accommodate the repository's configured cache budgets; the cache can be regenerated and does not need to match the data PVC. Zigbee2MQTT is configured to log to stdout only, so use `kubectl logs` to inspect output. The pod has a `128Mi` ephemeral-storage limit for container writable layers and runtime logs; Kubernetes enforces this through kubelet measurement and pod eviction when supported by the node's filesystem/runtime, not as a filesystem-level hard quota.
 
+The container runs as UID/GID `1000` with `fsGroup: 1000`; the Kopia mover uses the same identity so restored files remain writable. The coordinator is passed through as a hostPath character device. Before enabling replicas, verify the device exists on `dev-work-01` and that its ownership/mode permits access to the pod's groups; the dev worker did not expose `/dev/ttyACM0` during the initial probe.
+
 The cut-over sequence is:
 
 1. Test broker DNS, network access, and credentials from a short-lived MQTT client pod before touching the coordinator. Use the `zigbee2mqtt-mqtt` Secret and a temporary topic under `zigbee2mqtt/` for a publish/subscribe round trip.
