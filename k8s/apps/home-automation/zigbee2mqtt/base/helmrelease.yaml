@@ -17,6 +17,8 @@ spec:
             env:
               ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT: '["console"]'
               ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+              # the migrated configuration.yaml sets the frontend to the Home Assistant add-on port 8099
+              ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: "8080"
               ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
               ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
                 valueFrom:
