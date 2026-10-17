@@ -80,6 +80,9 @@ locals {
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
-  proxmox           = local.secret_vars.proxmox
-  proxmox_api_token = local.secret_vars.proxmox_api_token
+  proxmox               = local.secret_vars.proxmox
+  proxmox_api_token     = local.secret_vars.proxmox_api_token
+  # Optional: set `proxmox_root_password` in an env's secrets so the module's VM resources authenticate as root@pam,
+  # which Proxmox requires for raw host USB devices. Absent, the module keeps using the API token only.
+  proxmox_root_password = try(local.secret_vars.proxmox_root_password, null)
 }
