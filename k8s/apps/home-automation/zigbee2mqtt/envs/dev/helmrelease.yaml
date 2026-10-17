@@ -6,6 +6,10 @@ spec:
   values:
     controllers:
       main:
+        containers:
+          main:
+            image:
+              tag: 1.39.1
         replicas: 0
     defaultPodOptions:
       nodeSelector:
