@@ -63,6 +63,21 @@ spec:
               runAsGroup: 1000
               runAsNonRoot: true
               runAsUser: 1000
+        initContainers:
+          # Talos creates serial devices as root:root 0600, so the non-root main container could not open the
+          # coordinator. Hand the node's device to group 1000 before it starts.
+          fix-device:
+            command:
+              - sh
+              - -c
+              - chown 0:1000 /dev/ttyACM0 && chmod 0660 /dev/ttyACM0
+            image:
+              repository: busybox
+              tag: "1.37" # renovate: docker=busybox
+            securityContext:
+              privileged: true
+              runAsNonRoot: false
+              runAsUser: 0
         replicas: 0
         strategy: Recreate
 
