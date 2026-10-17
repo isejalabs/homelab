@@ -87,10 +87,10 @@ spec:
 
     route:
       main:
+        kind: HTTPRoute
         enabled: true
         hostnames:
           - zigbee2mqtt.example.com
-        kind: HTTPRoute
         parentRefs:
           - kind: Gateway
             name: internal
