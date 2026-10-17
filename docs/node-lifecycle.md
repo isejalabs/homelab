@@ -169,7 +169,7 @@ qm set 7008173 --scsi1 'local-enc:vm-70081730-disk-0,aio=io_uring,backup=1,cache
 
 Then `terragrunt apply` for `rebuild` (it moves the OS disk, which the Talos VM owns, and starts the VM; run `kubectl uncordon` if the node was drained), wait for `Ready`, check `pvesm list local-enc` / `local-zfs-4k` and a clean `terragrunt plan`, and only then free the old copy: `qm unlink 70081730 --idlist unused0 --force 1`.
 
-*Status: derived, not run yet; the outcome and any correction go here once `rebuild-ctrl-03` is recovered ([#1694](https://github.com/isejalabs/homelab/issues/1694)).*
+**Verified 2026-10-17 on `pve6`:** At the start of verification, the repair commands 1–4 and the `rebuild` apply were already reflected in the live configs, so they were not replayed: VM 7008173 was running with its OS disk and data disk on `local-enc`; data VM 70081730 was stopped with `scsi0` on `local-enc` and the former `local-zfs-4k` disk as `unused0`. All four Kubernetes nodes reported `Ready`. The targeted `terragrunt plan -target='module.talos'` reported no changes; a full plan in this fresh checkout is blocked by the intentionally absent, gitignored sealed-secrets certificate/key pair (see [`terragrunt/README.md`](../terragrunt/README.md), which documents targeted planning for this case). After those checks, `qm unlink 70081730 --idlist unused0 --force 1` removed the old copy: `pvesm list` now shows `vm-70081730-disk-0` only on `local-enc`, no entry on `local-zfs-4k`, and all four Kubernetes nodes remained `Ready`.
 
 ### Longhorn disk of a replaced or moved worker
 
