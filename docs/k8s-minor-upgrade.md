@@ -65,9 +65,11 @@ Then check what the new version removes or changes — this is independent of th
 
    | Order | Environment | Why |
    | --- | --- | --- |
-   | 1 | `dbg`, `dev` (and `rebuild` if convenient) | cheap to break; surface API and chart problems |
-   | 2 | `qa` | closest to `prod`: same app sets, same backup schedules, `main`-only apply. A clean `qa` is the gate for `prod` |
+   | 1 | `dev` | the usual maintenance track starts here; cheap to break, surfaces API and chart problems |
+   | 2 | `qa` | closest to `prod`: more apps, same backup schedules, `main`-only apply. A clean `qa` is the gate for `prod` |
    | 3 | `prod` | last; soak `qa` for a few days first, and have a fresh kopiur backup |
+
+   `dbg` is left out of the rollout (it is for ad-hoc debugging), and `rebuild` follows whenever convenient. When `dev` is busy with parallel feature work, the first run may swap the first two rows (`qa` first), accepting that `qa` is then the first environment to see problems; say so in the tracking issue.
 
    `head` and `poc` are already ahead of the pin and are not part of the rollout.
 
