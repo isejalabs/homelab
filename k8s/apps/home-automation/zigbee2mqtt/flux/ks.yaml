@@ -17,6 +17,7 @@ spec:
   postBuild:
     substitute:
       APP: zigbee2mqtt
+      # The upstream image defaults to root; the backup mover must preserve data ownership.
       PGID: "0"
       PUID: "0"
-      STORAGE_CAPACITY: 1Gi
+      STORAGE_CAPACITY: 2Gi

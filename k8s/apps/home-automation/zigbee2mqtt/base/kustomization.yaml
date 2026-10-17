@@ -15,8 +15,7 @@ resources:
   - ocirepository.yaml
 
 patches:
-  # STORAGE_CAPACITY also sizes the shared Kopia cache, so keep that value
-  # useful for backups and shrink only this app's data claim.
+  # Keep the data PVC small; STORAGE_CAPACITY separately sizes the Kopia cache.
   - target:
       kind: PersistentVolumeClaim
       version: v1

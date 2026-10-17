@@ -4,6 +4,12 @@ metadata:
   name: zigbee2mqtt
 spec:
   values:
+    controllers:
+      main:
+        replicas: 0
+    defaultPodOptions:
+      nodeSelector:
+        kubernetes.io/hostname: dev-work-01.test.iseja.net
     route:
       main:
         hostnames:

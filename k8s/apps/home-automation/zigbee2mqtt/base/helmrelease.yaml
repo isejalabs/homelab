@@ -15,6 +15,7 @@ spec:
         containers:
           main:
             env:
+              ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT: '["console"]'
               ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
               ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
               ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
@@ -51,21 +52,17 @@ spec:
             resources:
               limits:
                 cpu: 500m
-                ephemeral-storage: 1Gi
+                ephemeral-storage: 128Mi
                 memory: 512Mi
               requests:
                 cpu: 50m
                 ephemeral-storage: 64Mi
                 memory: 256Mi
             securityContext:
-              # Access to the USB serial device requires root and a privileged container.
+              # The image runs as root by default. Privileged mode grants access to the host USB device.
               privileged: true
         replicas: 0
         strategy: Recreate
-
-    defaultPodOptions:
-      nodeSelector:
-        kubernetes.io/hostname: dev-work-01.test.iseja.net
 
     persistence:
       coordinator:
@@ -79,12 +76,6 @@ spec:
         globalMounts:
           - path: /app/data
         type: persistentVolumeClaim
-      logs:
-        globalMounts:
-          - path: /app/data/log
-        sizeLimit: 1Gi
-        type: emptyDir
-
     route:
       main:
         kind: HTTPRoute

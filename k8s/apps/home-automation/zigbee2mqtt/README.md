@@ -51,12 +51,12 @@ kubectl exec -n zigbee2mqtt zigbee2mqtt-data-migration -- ls -la /data
 
 Confirm `configuration.yaml` and `database.db` are present before starting Zigbee2MQTT. Delete the migration pod after the copy and before starting Zigbee2MQTT; Longhorn's RWO PVC cannot be mounted by the app and migration pod at the same time.
 
-The app's persistent data PVC is `10Mi`; the shared storage component still uses `STORAGE_CAPACITY` for the Kopia cache, so Zigbee2MQTT sets it to `1Gi` and overrides only its PVC request. Logs are written below `/app/data/log` by default, which is mounted as a `1Gi` `emptyDir`. The pod's local ephemeral-storage limit is also `1Gi` (with a `64Mi` request), and logs are discarded when the pod is replaced. Zigbee2MQTT also writes logs to stdout, visible with `kubectl logs`. Kubernetes enforces local ephemeral-storage limits through kubelet measurement and pod eviction when supported by the node's filesystem/runtime; this is not a filesystem-level hard quota.
+The app's persistent data PVC is `10Mi`. Its Kopia deduplication cache is separate and set to `2Gi` to accommodate the repository's configured cache budgets; the cache can be regenerated and does not need to match the data PVC. Zigbee2MQTT is configured to log to stdout only, so use `kubectl logs` to inspect output. The pod has a `128Mi` ephemeral-storage limit for container writable layers and runtime logs; Kubernetes enforces this through kubelet measurement and pod eviction when supported by the node's filesystem/runtime, not as a filesystem-level hard quota.
 
 The cut-over sequence is:
 
 1. Test broker DNS, network access, and credentials from a short-lived MQTT client pod before touching the coordinator. Use the `zigbee2mqtt-mqtt` Secret and a temporary topic under `zigbee2mqtt/` for a publish/subscribe round trip.
-2. With the Home Assistant add-on stopped and ConBee II attached to `dev-work-01`, start Kubernetes Zigbee2MQTT at `ghcr.io/koenkk/zigbee2mqtt:1.39.1`. The `-1` suffix in `1.39.1-1` is the Home Assistant add-on revision; the upstream image uses `1.39.1`. Verify it loads existing devices/groups and connects to MQTT.
+2. With the Home Assistant add-on stopped and ConBee II attached to `dev-work-01`, temporarily change the dev HelmRelease image tag from `2.14.2` to `1.39.1` and start Kubernetes Zigbee2MQTT. The `-1` suffix in `1.39.1-1` is the Home Assistant add-on revision; the upstream image uses `1.39.1`. Verify it loads existing devices/groups and connects to MQTT. Restore tag `2.14.2` only after stopping v1 and taking the pre-upgrade backup in step 3.
 3. Stop the Kubernetes v1 pod by setting the dev HelmRelease replicas to zero and waiting for termination. Create the same temporary migration pod again and back up the PVC before upgrading:
 
    ```sh
