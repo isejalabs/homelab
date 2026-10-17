@@ -86,7 +86,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 | `quay.io/cilium/charts/cilium` | Pin previous minor, manual | Pinned to the previous minor (`<=1.18`) for stability — a critical cluster component where even `patch` updates have caused issues before (e.g. [#725](https://github.com/isejalabs/homelab/issues/725)); `head`/`poc` track `>=1.18` instead, labeled `updateStrategy:pinWatch`. |
 | `github.com/isejalabs/terraform-proxmox-talos` | Manual | No automated updates at all — applied manually via `terragrunt`/`tofu` after bumping the version, since it provisions the cluster's own VMs/Talos install. |
 | `kubernetes-sigs/gateway-api` | Pin minor | Pinned to `<=1.4` for `cilium` compatibility; `head`/`poc` track `>=1.4`. |
-| `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.34` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.34`. |
+| `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.34` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.34`. To move to the next minor, follow [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md). |
 | `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
 | `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
 

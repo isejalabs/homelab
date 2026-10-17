@@ -11,6 +11,7 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
 | Diagnose Flux, DNS, storage, or stale Terraform state | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), or [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
 | Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](node-lifecycle.md) |
+| Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) |
 | Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](proxmox-backup-restore.md#restore-procedures) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](disaster-recovery.md#full-cluster-rebuild) |
@@ -37,6 +38,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`proxmox-backup-restore.md`](proxmox-backup-restore.md) — the vzdump/PBS backup tier for manually-managed "pet" VMs/LXCs (not the Terraform-managed `vehagn-k8s` environments) and how to restore one.
   - [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) — incident-response runbooks for a `Kustomization`/`HelmRelease` stuck or failing, a DNS resolution/record problem, a PVC/Longhorn/proxmox-csi storage issue, and a stale Terraform/OpenTofu state lock, respectively.
   - [`project-board.md`](project-board.md) — what each `Status` value on the org project boards means and which workflow sets it.
+  - [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) — runbook for a Kubernetes *minor* upgrade: compatibility checks across the infrastructure components, lifting the Renovate pin, staged rollout (non-prod, `qa`, then `prod`) and verification.
   - [`node-lifecycle.md`](node-lifecycle.md) — moving a Talos/Kubernetes version forward and replacing a single node, in an otherwise-healthy cluster.
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
