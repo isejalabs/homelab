@@ -1,6 +1,6 @@
 # Zigbee2MQTT
 
-Zigbee2MQTT runs in the dev cluster first, using the ConBee II passed through to `dev-work-01.home.iseja.net` on Proxmox host `pve1`. The application continues to use the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway; in dev its hostname is `dev-zigbee2mqtt.dev.iseja.net`.
+Zigbee2MQTT runs in the dev cluster first, using the ConBee II passed through to the `dev-work-01` worker on Proxmox host `pve1`. The pod is pinned to the worker's Kubernetes hostname label, `dev-work-01.test.iseja.net`. The application continues to use the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway; in dev its hostname is `dev-zigbee2mqtt.dev.iseja.net`.
 
 ## Setup and migration
 

@@ -65,7 +65,7 @@ spec:
 
     defaultPodOptions:
       nodeSelector:
-        kubernetes.io/hostname: dev-work-01.home.iseja.net
+        kubernetes.io/hostname: dev-work-01.test.iseja.net
 
     persistence:
       coordinator:
