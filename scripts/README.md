@@ -1,6 +1,6 @@
 Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
 
-Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
+Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh`, `longhorn-snapshot-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
 
 ## CI validation
 
@@ -46,6 +46,29 @@ Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](
 | [`kopiur-restore.sh`](kopiur-restore.sh) | restores an app's PVC from its latest snapshot (deletes and repopulates the PVC) |
 
 All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
+
+## Longhorn volume snapshots
+
+Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/longhorn-snapshots.md`](../docs/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
+
+| Script | Purpose |
+| --- | --- |
+| [`longhorn-snapshot-list.sh`](longhorn-snapshot-list.sh) | lists Longhorn `Snapshot` CRs per app (PVC), newest first, for one app or every app in scope |
+| [`longhorn-snapshot-create.sh`](longhorn-snapshot-create.sh) | triggers a manual snapshot, for one app or every Longhorn volume in scope (`--all`); manual snapshots are never auto-pruned |
+| [`longhorn-snapshot-restore.sh`](longhorn-snapshot-restore.sh) | rolls an app's PVC back to a snapshot: automates the Flux suspend/scale-down/scale-up and pauses for the manual revert in the Longhorn UI; takes a `pre-restore-*` safety snapshot first |
+
+All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/longhorn.sh) (PVC → Longhorn volume lookup).
+
+## Longhorn volume snapshots
+
+Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/longhorn-snapshots.md`](../docs/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
+
+| Script | Purpose |
+| --- | --- |
+| [`longhorn-snapshot-list.sh`](longhorn-snapshot-list.sh) | lists Longhorn `Snapshot` CRs per app (PVC), newest first, for one app or every app in scope |
+| [`longhorn-snapshot-create.sh`](longhorn-snapshot-create.sh) | triggers a manual snapshot, for one app or every Longhorn volume in scope (`--all`); manual snapshots are never auto-pruned |
+
+All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/longhorn.sh) (PVC → Longhorn volume lookup).
 
 ## Proxmox VM snapshot/power management
 
