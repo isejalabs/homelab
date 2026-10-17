@@ -1,0 +1,104 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.bjw-s.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zigbee2mqtt
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+  interval: 1h
+  values:
+    controllers:
+      main:
+        containers:
+          main:
+            env:
+              ZIGBEE2MQTT_CONFIG_ADVANCED_LOG_OUTPUT: '["console"]'
+              ZIGBEE2MQTT_CONFIG_FRONTEND_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
+              ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
+                valueFrom:
+                  secretKeyRef:
+                    name: zigbee2mqtt-mqtt
+                    key: MQTT_PASSWORD
+              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mqtt.home.iseja.net:1883
+              ZIGBEE2MQTT_CONFIG_MQTT_USER:
+                valueFrom:
+                  secretKeyRef:
+                    name: zigbee2mqtt-mqtt
+                    key: MQTT_USER
+              ZIGBEE2MQTT_CONFIG_SERIAL_ADAPTER: deconz
+              ZIGBEE2MQTT_CONFIG_SERIAL_PORT: /dev/ttyACM0
+            image:
+              repository: ghcr.io/koenkk/zigbee2mqtt
+              tag: 2.14.2 # renovate: docker=ghcr.io/koenkk/zigbee2mqtt
+            probes:
+              liveness:
+                spec:
+                  periodSeconds: 30
+                  tcpSocket:
+                    port: 8080
+                custom: true
+                enabled: true
+              readiness:
+                spec:
+                  periodSeconds: 10
+                  tcpSocket:
+                    port: 8080
+                custom: true
+                enabled: true
+            resources:
+              limits:
+                cpu: 500m
+                ephemeral-storage: 128Mi
+                memory: 512Mi
+              requests:
+                cpu: 50m
+                ephemeral-storage: 64Mi
+                memory: 256Mi
+            securityContext:
+              privileged: true
+              runAsGroup: 1000
+              runAsNonRoot: true
+              runAsUser: 1000
+        replicas: 0
+        strategy: Recreate
+
+    defaultPodOptions:
+      securityContext:
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsNonRoot: true
+
+    persistence:
+      coordinator:
+        globalMounts:
+          - path: /dev/ttyACM0
+        hostPath: /dev/ttyACM0
+        hostPathType: CharDevice
+        type: hostPath
+      data:
+        existingClaim: ${APP}
+        globalMounts:
+          - path: /app/data
+        type: persistentVolumeClaim
+    route:
+      main:
+        kind: HTTPRoute
+        enabled: true
+        hostnames:
+          - zigbee2mqtt.example.com
+        parentRefs:
+          - kind: Gateway
+            name: internal
+            namespace: gateway-api
+            group: gateway.networking.k8s.io
+
+    service:
+      main:
+        controller: main
+        ports:
+          http:
+            port: 8080
