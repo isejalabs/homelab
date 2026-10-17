@@ -77,4 +77,4 @@ Keep the Home Assistant add-on stopped throughout the Kubernetes v1 and v2 stage
 
 The ConBee II uses the `deconz` adapter type. Its coordinator backup support is limited; keep an independent copy of the existing data directory and verify the ConBee II firmware before cutover.
 
-The deployment is intentionally registered only in dev while the module USB-passthrough change is reviewed and the migration is tested. Promote it to QA and production after the dev cutover is verified.
+The ConBee II is attached to the `dev-work-01` VM manually (`qm set <vmid> --usb0 host=1cf1:0030` on `pve1`) because Terraform cannot yet set raw host USB devices; see [isejalabs/terraform-proxmox-talos#292](https://github.com/isejalabs/terraform-proxmox-talos/issues/292). The deployment is intentionally registered only in dev while the migration is tested. Promote it to QA and production after the dev cutover is verified.
