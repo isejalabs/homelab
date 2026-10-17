@@ -66,6 +66,9 @@ spec:
               runAsNonRoot: true
               runAsUser: 1000
         initContainers:
+          # Privileged containers get the node's /dev, so no hostPath mount for the device: containerd creates a
+          # directory at a missing hostPath source, which then blocks the kernel from recreating /dev/ttyACM0 after
+          # the stick re-enumerates.
           # Talos creates serial devices as root:root 0600, so the non-root main container could not open the
           # coordinator. Hand the node's device to group 1000 before it starts.
           fix-device:
@@ -90,12 +93,6 @@ spec:
         runAsNonRoot: true
 
     persistence:
-      coordinator:
-        globalMounts:
-          - path: /dev/ttyACM0
-        hostPath: /dev/ttyACM0
-        hostPathType: CharDevice
-        type: hostPath
       data:
         existingClaim: ${APP}
         globalMounts:
