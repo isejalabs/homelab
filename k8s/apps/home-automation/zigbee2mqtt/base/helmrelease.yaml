@@ -25,7 +25,7 @@ spec:
                   secretKeyRef:
                     name: zigbee2mqtt-mqtt
                     key: MQTT_PASSWORD
-              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtt://mqtt.home.iseja.net:1883
+              ZIGBEE2MQTT_CONFIG_MQTT_SERVER: mqtts://mqtt.home.iseja.net:8883
               ZIGBEE2MQTT_CONFIG_MQTT_USER:
                 valueFrom:
                   secretKeyRef:
