@@ -45,13 +45,16 @@ spec:
 YAML
 
 kubectl wait -n zigbee2mqtt --for=condition=Ready pod/zigbee2mqtt-data-migration --timeout=120s
-kubectl exec -i -n zigbee2mqtt zigbee2mqtt-data-migration -- tar -C /data -xpf - < "$SOURCE_ARCHIVE"
+kubectl exec -i -n zigbee2mqtt zigbee2mqtt-data-migration -- tar --no-same-owner -C /data -xzpf - < "$SOURCE_ARCHIVE"
+kubectl exec -n zigbee2mqtt zigbee2mqtt-data-migration -- chown -R 1000:1000 /data
 kubectl exec -n zigbee2mqtt zigbee2mqtt-data-migration -- ls -la /data
 ```
 
+`--no-same-owner` keeps the archive's original owner (a UID from the old host) from being applied; `chown -R 1000:1000` then gives the files to the UID/GID the app runs as, so it can write `configuration.yaml`, `database.db`, `state.json` and the other files it updates. Use `-xpf` instead of `-xzpf` for an uncompressed tar. Without the `chown`, the extracted files are owned by `root` and only readable by the app.
+
 Confirm `configuration.yaml` and `database.db` are present before starting Zigbee2MQTT. Delete the migration pod after the copy and before starting Zigbee2MQTT; Longhorn's RWO PVC cannot be mounted by the app and migration pod at the same time.
 
-The app's persistent data PVC is `10Mi`. Its Kopia deduplication cache is separate and set to `2Gi` to accommodate the repository's configured cache budgets; the cache can be regenerated and does not need to match the data PVC. Zigbee2MQTT is configured to log to stdout only, so use `kubectl logs` to inspect output. The pod has a `128Mi` ephemeral-storage limit for container writable layers and runtime logs; Kubernetes enforces this through kubelet measurement and pod eviction when supported by the node's filesystem/runtime, not as a filesystem-level hard quota.
+The app's persistent data PVC is `100Mi`. Its Kopia deduplication cache is separate and set to `2Gi` to accommodate the repository's configured cache budgets; the cache can be regenerated and does not need to match the data PVC. Zigbee2MQTT is configured to log to stdout only, so use `kubectl logs` to inspect output. The pod has a `128Mi` ephemeral-storage limit for container writable layers and runtime logs; Kubernetes enforces this through kubelet measurement and pod eviction when supported by the node's filesystem/runtime, not as a filesystem-level hard quota.
 
 The container runs as UID/GID `1000` with `fsGroup: 1000`; the Kopia mover uses the same identity so restored files remain writable. The coordinator is passed through as a hostPath character device. Before enabling replicas, verify the device exists on `dev-work-01` and that its ownership/mode permits access to the pod's groups; the dev worker did not expose `/dev/ttyACM0` during the initial probe.
 
