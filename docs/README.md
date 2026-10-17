@@ -17,6 +17,7 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Read a point-in-time assessment | [`audits/`](audits) |
+| Know what a project board status means | [`project-board.md`](project-board.md) |
 | Read the project history | The root README's [history](../README.md#a-bit-of-history) |
 
 Current repository truth lives in the architecture, reference and procedural docs above, and in the code itself. `audits/` and `decisions/` capture reasoning and point-in-time assessments, not current configuration — don't read them as authoritative for "what exists today."
@@ -34,6 +35,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes (list/start/stop/shutdown/reset).
   - [`proxmox-backup-restore.md`](proxmox-backup-restore.md) — the vzdump/PBS backup tier for manually-managed "pet" VMs/LXCs (not the Terraform-managed `vehagn-k8s` environments) and how to restore one.
   - [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) — incident-response runbooks for a `Kustomization`/`HelmRelease` stuck or failing, a DNS resolution/record problem, a PVC/Longhorn/proxmox-csi storage issue, and a stale Terraform/OpenTofu state lock, respectively.
+  - [`project-board.md`](project-board.md) — what each `Status` value on the org project boards means and which workflow sets it.
   - [`node-lifecycle.md`](node-lifecycle.md) — moving a Talos/Kubernetes version forward and replacing a single node, in an otherwise-healthy cluster.
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
