@@ -20,8 +20,8 @@ parameters:
   # VolumeSnapshot restore is a raw block-level copy, not a reformat, so
   # mounting it with a different fsType than the source fails outright
   # ("wrong fs type, bad superblock"). Use this class for ext4-backed sources
-  # (longhorn-standard/longhorn-ext4); see longhorn-scratch-xfs for
-  # xfs-backed sources (longhorn-xfs/longhorn-fast/longhorn-ha).
+  # (every class except longhorn-xfs); see longhorn-scratch-xfs for
+  # xfs-backed sources (longhorn-xfs).
   fsType: ext4
 
   # No redundancy: skips replica sync entirely, halving write overhead.
