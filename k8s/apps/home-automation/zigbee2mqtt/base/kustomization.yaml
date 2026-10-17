@@ -18,8 +18,8 @@ patches:
   # STORAGE_CAPACITY also sizes the shared Kopia cache, so keep that value
   # useful for backups and shrink only this app's data claim.
   - target:
-      version: v1
       kind: PersistentVolumeClaim
+      version: v1
     patch: |-
       - op: replace
         path: /spec/resources/requests/storage

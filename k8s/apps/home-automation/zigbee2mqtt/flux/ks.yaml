@@ -20,5 +20,3 @@ spec:
       PGID: "0"
       PUID: "0"
       STORAGE_CAPACITY: 1Gi
-  dependsOn:
-    - name: longhorn

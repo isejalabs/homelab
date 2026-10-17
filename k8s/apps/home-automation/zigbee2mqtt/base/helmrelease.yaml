@@ -92,10 +92,10 @@ spec:
           - zigbee2mqtt.example.com
         kind: HTTPRoute
         parentRefs:
-          - group: gateway.networking.k8s.io
-            kind: Gateway
+          - kind: Gateway
             name: internal
             namespace: gateway-api
+            group: gateway.networking.k8s.io
 
     service:
       main:
