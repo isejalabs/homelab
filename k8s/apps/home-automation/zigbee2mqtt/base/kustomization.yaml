@@ -1,0 +1,25 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: zigbee2mqtt
+
+components:
+  - ../../../../components/apps/storage/pvc
+
+resources:
+  - ns.yaml
+  - externalsecret.yaml
+  - helmrelease.yaml
+  - ocirepository.yaml
+
+patches:
+  # Keep the data PVC small; STORAGE_CAPACITY separately sizes the Kopia cache.
+  - target:
+      kind: PersistentVolumeClaim
+      version: v1
+    patch: |-
+      - op: replace
+        path: /spec/resources/requests/storage
+        value: 100Mi
