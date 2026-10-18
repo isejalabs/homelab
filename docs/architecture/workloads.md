@@ -23,7 +23,7 @@ Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `r
 | `monitoring` | [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/) | [Checkmk](https://checkmk.com/) Kubernetes monitoring agent (cluster + node collectors) | HelmRelease (`checkmk.github.io/checkmk_kube_agent`) | optional |
 | `network` | [`unifi-controller`](../../k8s/apps/network/unifi-controller/) | [UniFi Network Application](https://www.ui.com/) — management UI for the physical WiFi APs/switches (see [`network.md`](network.md#physical-network-opnsense-ucs-and-the-root-nameservers)) | raw Deployment/Service, not a Helm chart | optional |
 | `network` | [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) | MongoDB backing store for `unifi-controller` above, on proxmox-csi (see [`storage.md`](storage.md)) | raw Deployment/Service, not a Helm chart | optional |
-| `home-automation` | [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) | [Zigbee2MQTT](https://www.zigbee2mqtt.io/) — bridge between the Zigbee network (ConBee II passed through to one worker) and the MQTT broker for Home Assistant | HelmRelease (`app-template`) | none — registered per environment: `prod` (final) and `dev` (test), because there is a single coordinator |
+| `home-automation` | [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) | [Zigbee2MQTT](https://www.zigbee2mqtt.io/) — bridge between the Zigbee network (ConBee II passed through to one worker) and the MQTT broker for Home Assistant | HelmRelease (`app-template`) | none — registered in `prod` only, because there is a single physical coordinator |
 
 ## Infra (`k8s/infra/`)
 

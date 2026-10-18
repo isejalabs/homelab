@@ -1,6 +1,8 @@
 # Zigbee2MQTT
 
-Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kubernetes worker, so it can only run in **one** environment at a time. It is deployed to dev first, where the migration from the legacy instance was tested (`dev-work-01` on Proxmox host `pve1`, node label `dev-work-01.test.iseja.net`), and then moves to prod (`prod-work-01` on `pve1`, `prod-work-01.home.iseja.net`) for good; no other environment registers the app, although every environment has the usual overlay folder. The application uses the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway (`dev-zigbee2mqtt.dev.iseja.net` in dev, `zigbee2mqtt.prod.iseja.net` in prod; the hostnames are set in the overlays because the domain replacement does not reach HelmRelease values).
+Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kubernetes worker, so it can only run in **one** environment at a time. It runs in prod (`prod-work-01` on Proxmox host `pve1`, node label `prod-work-01.home.iseja.net`); no other environment registers the app, although every environment has the usual overlay folder. The migration from the legacy instance was tested in dev first (`dev-work-01` on `pve1`) and moved to prod on 2026-10-18; the dev registration was removed after the soak period. The application uses the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway (`zigbee2mqtt.prod.iseja.net`; the hostname is set in the prod overlay because the domain replacement does not reach HelmRelease values).
+
+The sections below keep the runbook of the migration as it was done (dev as test stage, then the cut-over to prod); use it again if the stick and data ever have to move to another environment.
 
 ## Setup and migration
 
