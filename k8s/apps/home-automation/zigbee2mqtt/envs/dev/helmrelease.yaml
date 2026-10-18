@@ -10,7 +10,7 @@ spec:
           main:
             image:
               tag: 1.39.1
-        replicas: 0
+        replicas: 1
     defaultPodOptions:
       nodeSelector:
         kubernetes.io/hostname: dev-work-01.test.iseja.net
