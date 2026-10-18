@@ -143,7 +143,11 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
-      vlan_id       = local.vlan_id
+      # ConBee II: attached manually (`qm set 7008184 --usb0 host=1cf1:0030` on pve1) because the API token cannot set raw host USB
+      # devices (isejalabs/terraform-proxmox-talos#292). Kept here so Terraform sees no difference and does not try to
+      # remove it, which fails the same way; keep this and the VM's actual USB entry in sync until #292 is resolved.
+      usb_devices = [{ host = "1cf1:0030" }]
+      vlan_id     = local.vlan_id
     }
     "${local.env}-work-02.${local.domain}" = {
       host_node     = "pve4"

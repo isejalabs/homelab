@@ -89,7 +89,7 @@ Prod is registered with zero replicas and the Talos udev rule (`terragrunt/_envc
 **Preparation (no downtime)**
 
 1. Apply the prod Talos configuration from `main` (`terragrunt apply` in `terragrunt/prod/eu-central-1/prod/vehagn-k8s`, source its `.envrc` first; exclude the two Flux-owned namespaces as in [isejalabs/terraform-proxmox-talos#264](https://github.com/isejalabs/terraform-proxmox-talos/issues/264)). Check that the udev rule landed: `talosctl -n <prod-work-01 ip> logs udevd` shows no `Unknown group`.
-2. Wait for the `zigbee2mqtt` Kustomization in prod, then create the temporary migration pod from the setup section in prod (namespace `zigbee2mqtt`, PVC `zigbee2mqtt`).
+2. Create the temporary migration pod from the setup section in prod (namespace `zigbee2mqtt`, PVC `zigbee2mqtt`), pinned to `prod-work-01` with `runAsUser: 1000`/`fsGroup: 1000`. The prod PVC stays `Pending` (`WaitForFirstConsumer`) and the `zigbee2mqtt` Kustomization reports "in progress" until a pod mounts it, so create the pod first; delete it again after the copy.
 3. Pre-seed the prod volume from the running dev instance, which proves the restore and the ownership without a downtime. The live `database.db` may be mid-write; the copy is only a dry run:
 
    ```sh
