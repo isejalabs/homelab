@@ -30,20 +30,18 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 
 inputs = {
-  # One dedicated API-only host per environment (%s = dev, qa, prod): Checkmk runs only the first matching rule of the
-  # special-agent ruleset per host, so the environments cannot share a host, and a special-agent rule on a host with
-  # the normal Checkmk agent would replace its agent connection and silence its existing checks. The folder must
-  # already exist; reusing the same /misc folder checkmk-rustfs-monitoring's API-only hosts live in.
-  host_name_format = "longhorn-%s.home.iseja.net"
-  folder           = "/misc"
+  # One dedicated API-only host per environment, with its real Longhorn hostname (module v0.2.0+ derives it from
+  # each environment's endpoint). The folder must already exist; reusing the same /misc folder
+  # checkmk-rustfs-monitoring's API-only hosts live in.
+  folder = "/misc"
 
   # Longhorn disk polling, per the monitoring plan: start at five minutes, matching the standard service interval
   # (15 minutes is also acceptable where sufficient, but five is where this starts).
   check_interval_minutes = 5
 
-  # The special-agent rules need the longhorn_capacity plugin package (isejalabs/checkmk-modules#8, not merged/released
-  # yet) installed on the Checkmk site first (through Salt on monitoring2): Checkmk rejects a rule for a ruleset it
-  # does not know. Keep false until the plugin is installed and the host-only apply below has been verified; set back
-  # to false and apply BEFORE removing the plugin, same as checkmk-rustfs-monitoring.
-  rules_enabled = false
+  # The special-agent rules need the longhorn_capacity plugin package (isejalabs/checkmk-modules#8, released and
+  # installed on the Checkmk site through Salt on monitoring2, confirmed via `mkp list`): Checkmk rejects a rule
+  # for a ruleset it does not know. Set back to false and apply BEFORE removing the plugin, same as
+  # checkmk-rustfs-monitoring.
+  rules_enabled = true
 }
