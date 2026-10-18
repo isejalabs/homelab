@@ -146,9 +146,11 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
-      # ConBee II (1cf1:0030) is attached manually (`qm set <vmid> --usb0 host=1cf1:0030`): the API token cannot set raw
-      # host USB devices. Re-enable as `usb_devices = [{ host = "1cf1:0030" }]` once isejalabs/terraform-proxmox-talos#292 lands.
-      vlan_id = local.vlan_id
+      # ConBee II: attached manually (`qm set <vmid> --usb0 host=1cf1:0030`) because the API token cannot set raw host USB
+      # devices (isejalabs/terraform-proxmox-talos#292). Kept here so Terraform sees no difference and does not try to
+      # remove it, which fails the same way; keep this and the VM's actual USB entry in sync until #292 is resolved.
+      usb_devices = [{ host = "1cf1:0030" }]
+      vlan_id     = local.vlan_id
       # update        = true
     }
     "${local.env}-work-02.${local.domain}" = {
