@@ -4,7 +4,6 @@ kind: Kustomization
 namespace: longhorn-system
 
 resources:
-  - job-backup-default.yaml
   - job-fs-trim-default.yaml
   - job-snapshot.yaml
   - sc-ext4.yaml
