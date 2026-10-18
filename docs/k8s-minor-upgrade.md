@@ -127,7 +127,7 @@ Checkmk states support per minor (it supports four Kubernetes minors at a time) 
 
 1. **Before** the upgrade, record the baseline: the service list with states and the agent sections. For example on the site (replace the host name):
    ```sh
-   echo 'GET services\nFilter: host_name = <k8s-host>\nColumns: description state has_been_checked' | lq | sort > before-services.txt
+   printf 'GET services\nFilter: host_name = <k8s-host>\nColumns: description state has_been_checked\n' | lq | sort > before-services.txt
    cmk -d <k8s-host> | grep '^<<<' | sort | uniq -c > before-sections.txt
    ```
 2. **After**, repeat into `after-*.txt` and `diff` them. Expect no services gone, none `PENDING`/stale, no new `UNKNOWN`, and no section missing; new services are fine.
