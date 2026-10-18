@@ -1,0 +1,8 @@
+# Give group 1000 (the Zigbee2MQTT container's group) read/write access to the ConBee II (dresden elektronik,
+# 1cf1:0030) whenever the kernel (re-)creates its device node. Talos creates serial devices as root:root 0600, and the
+# stick re-enumerates on every USB reset, so a one-time chown of the node does not survive. Harmless on nodes without
+# the stick.
+apiVersion: v1alpha1
+kind: UdevRulesConfig
+rules:
+  - SUBSYSTEM=="tty", ATTRS{idVendor}=="1cf1", ATTRS{idProduct}=="0030", GROUP="1000", MODE="0660"

@@ -190,6 +190,10 @@ inputs = {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
     },
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/zigbee-coordinator-udev.yaml"
+      machine_type = "worker"
+    },
   ]
 
   volumes = {
