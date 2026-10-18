@@ -20,6 +20,8 @@ spec:
               # the migrated configuration.yaml sets the frontend to the Home Assistant add-on port 8099
               ZIGBEE2MQTT_CONFIG_FRONTEND_PORT: "8080"
               ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_ENABLED: "true"
+              # zigbee2mqtt v2 no longer discovers the sensor.*_action entities the existing blueprint automations trigger on; temporary until they are migrated to device triggers
+              ZIGBEE2MQTT_CONFIG_HOMEASSISTANT_LEGACY_ACTION_SENSOR: "true"
               ZIGBEE2MQTT_CONFIG_MQTT_PASSWORD:
                 valueFrom:
                   secretKeyRef:
