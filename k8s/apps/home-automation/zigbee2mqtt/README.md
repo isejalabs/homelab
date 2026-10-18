@@ -1,6 +1,6 @@
 # Zigbee2MQTT
 
-Zigbee2MQTT runs in the dev cluster first, using the ConBee II passed through to the `dev-work-01` worker on Proxmox host `pve1`. The pod is pinned to the worker's Kubernetes hostname label, `dev-work-01.test.iseja.net`. The application continues to use the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway; in dev its hostname is `dev-zigbee2mqtt.dev.iseja.net`.
+Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kubernetes worker, so it can only run in **one** environment at a time. It is deployed to dev first, where the migration from the legacy instance was tested (`dev-work-01` on Proxmox host `pve1`, node label `dev-work-01.test.iseja.net`), and then moves to prod (`prod-work-01` on `pve1`, `prod-work-01.home.iseja.net`) for good; no other environment registers the app, although every environment has the usual overlay folder. The application uses the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway (`dev-zigbee2mqtt.dev.iseja.net` in dev, `zigbee2mqtt.prod.iseja.net` in prod; the hostnames are set in the overlays because the domain replacement does not reach HelmRelease values).
 
 ## Setup and migration
 
@@ -80,4 +80,34 @@ Keep the Home Assistant add-on stopped throughout the Kubernetes v1 and v2 stage
 
 The ConBee II uses the `deconz` adapter type. Its coordinator backup support is limited; keep an independent copy of the existing data directory and verify the ConBee II firmware before cutover.
 
-The ConBee II is attached to the `dev-work-01` VM manually (`qm set <vmid> --usb0 host=1cf1:0030` on `pve1`) because Terraform cannot yet set raw host USB devices; see [isejalabs/terraform-proxmox-talos#292](https://github.com/isejalabs/terraform-proxmox-talos/issues/292). The HelmRelease base stays at zero replicas so that no environment starts with an empty data directory (which would create a new Zigbee network); an environment opts in by setting `replicas: 1` in its overlay once its data is imported, as dev does now. The deployment is intentionally registered only in dev while the migration is tested. Promote it to QA and production after the dev cutover is verified.
+The ConBee II is attached to the VM manually (`qm set <vmid> --usb0 host=1cf1:0030` on `pve1`) because Terraform cannot yet set raw host USB devices; see [isejalabs/terraform-proxmox-talos#292](https://github.com/isejalabs/terraform-proxmox-talos/issues/292). The `usb_devices` entry stays in the unit of the environment that currently has the stick so that Terraform does not try to remove it. The HelmRelease base stays at zero replicas so that no environment starts with an empty data directory (which would create a new Zigbee network); an environment opts in by setting `replicas: 1` in its overlay once its data is imported.
+
+## Promotion to production
+
+Prod is registered with zero replicas and the Talos udev rule (`terragrunt/_envcommon/vehagn-k8s/talos-patches/zigbee-coordinator-udev.yaml`, all workers) but without `usb_devices` and without data, so merging the registration does not touch the running Zigbee network. The cut-over then has a preparation part without downtime and a short downtime part. Use `admin@dev-homelab` and `admin@prod-homelab` as the kubectl contexts.
+
+**Preparation (no downtime)**
+
+1. Apply the prod Talos configuration from `main` (`terragrunt apply` in `terragrunt/prod/eu-central-1/prod/vehagn-k8s`, source its `.envrc` first; exclude the two Flux-owned namespaces as in [isejalabs/terraform-proxmox-talos#264](https://github.com/isejalabs/terraform-proxmox-talos/issues/264)). Check that the udev rule landed: `talosctl -n <prod-work-01 ip> logs udevd` shows no `Unknown group`.
+2. Wait for the `zigbee2mqtt` Kustomization in prod, then create the temporary migration pod from the setup section in prod (namespace `zigbee2mqtt`, PVC `zigbee2mqtt`).
+3. Pre-seed the prod volume from the running dev instance, which proves the restore and the ownership without a downtime. The live `database.db` may be mid-write; the copy is only a dry run:
+
+   ```sh
+   kubectl --context admin@dev-homelab exec -n zigbee2mqtt deploy/zigbee2mqtt -- tar -C /app/data -czpf - . \
+     | kubectl --context admin@prod-homelab exec -i -n zigbee2mqtt zigbee2mqtt-data-migration -- tar --no-same-owner -C /data -xzpf -
+   kubectl --context admin@prod-homelab exec -n zigbee2mqtt zigbee2mqtt-data-migration -- chown -R 1000:1000 /data
+   kubectl --context admin@prod-homelab exec -n zigbee2mqtt zigbee2mqtt-data-migration -- ls -la /data
+   ```
+
+4. Take a Longhorn snapshot of the dev volume (it is the rollback source), and keep the dev volume untouched afterwards.
+
+**Cut-over (downtime)**
+
+1. Prepare one commit on `main` (a normal PR) that: sets `replicas: 0` in the dev overlay, removes `usb_devices` from the dev unit, adds `usb_devices = [{ host = "1cf1:0030" }]` to `prod-work-01` and sets `replicas: 1` in the prod overlay. Do not merge it yet.
+2. Stop dev: scale the dev deployment down and make sure it stays down (suspend its Kustomization or merge the dev part first). Two instances must never run at the same time (same MQTT topics, one network).
+3. Repeat the copy from step 3 above with the stopped dev volume mounted in a migration pod in dev instead of `deploy/zigbee2mqtt` (`tar -C /data -czpf - .`), so the database is consistent, then delete both migration pods.
+4. On `pve1`: `qm set 7008134 --delete usb0` (dev VM), then `qm set 7008184 --usb0 host=1cf1:0030` (prod VM) and check `/dev/ttyACM0` in the `talosctl dmesg` output with mode `0666`.
+5. Merge the commit from step 1, reconcile the prod Kustomization (`flux reconcile ks zigbee2mqtt -n flux-system --with-source --context admin@prod-homelab`) and watch the pod: it must report the 56 devices, connect to MQTT and start the frontend.
+6. Check Home Assistant (entities, one light, one switch automation) and take a kopiur backup in prod on the next schedule.
+
+**Rollback**: scale prod down, move the stick back to the dev VM (`qm set`), scale dev up again; the dev volume was not modified. If Zigbee2MQTT in dev changed the network meanwhile, restore the dev volume from the snapshot taken in step 4.
