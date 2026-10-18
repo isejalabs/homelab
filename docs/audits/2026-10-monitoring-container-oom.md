@@ -1,10 +1,10 @@
 # Checkmk container OOMs — 2026-10-18
 
-**Date:** 2026-10-18. **Status:** Mechanism established; trigger probable, not proven; fixes proposed, none applied. **Scope:** cgroup OOM kills in the two Checkmk containers (`monitoring1` on pve5, `monitoring2` on pve4) on 2026-10-18, and corrections to the September 2026 observability audits. **Origin:** Claude (Claude Code), read-only SSH to pve4 and pve5, plus the owner's `grep` of the central syslog and the shell history of `monitoring2`. Nothing was changed on any host. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780).
+**Date:** 2026-10-18. **Status:** Mechanism established; trigger not identified; fixes proposed, none applied. **Scope:** cgroup OOM kills in the two Checkmk containers (`monitoring1` on pve5, `monitoring2` on pve4) on 2026-10-18, and corrections to the September 2026 observability audits. **Origin:** Claude (Claude Code), read-only SSH to pve4 and pve5, plus the owner's `grep` of the central syslog and the shell history of `monitoring2`. Nothing was changed on any host. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780).
 
 ## Result
 
-Not a host or kernel fault. pve4 had about 16 GiB available, no panic, hung task or lockup was logged, and the pve4 reboot on 2026-10-10 (kernel 7.0.14-5 to 7.0.14-20) was a clean one. Every kill is `constraint=CONSTRAINT_MEMCG`: the container hit its own memory limit (no swap), after the Checkmk 2.5.0p15 upgrade of the same day.
+Not a host or kernel fault. pve4 had about 16 GiB available, no panic, hung task or lockup was logged, and the pve4 reboot on 2026-10-10 (kernel 7.0.14-5 to 7.0.14-20) was a clean one. Every kill is `constraint=CONSTRAINT_MEMCG`: the container hit its own memory limit (no swap), on the day of the Checkmk 2.5.0p15 upgrade.
 
 ## Events
 
@@ -23,12 +23,14 @@ The kills hit `cmk-ui-job-sche` (the UI background-job scheduler), `apache2` and
 - Proxmox excludes file-backed pages including `shmem`, so it shows about 64 %. Checkmk's own maximum of about 78 % since 18:20 is also roughly the idle level of `anon` + `shmem` (about 6.3 GiB of 8). See [reading container memory](../reference/monitoring-sites.md#reading-container-memory).
 - The spike on top of that was about 1.6 GiB and short. The Proxmox RRD (1-minute maximum of 10-second samples) shows 5.9 GiB at 20:13 and 6.3 GiB at 20:14, still without `shmem`.
 
-## Probable trigger
+## Trigger: not identified
 
-- Checkmk's scheduled **Auto-discovery** job in site `prod` started at 20:13:25, 23 seconds before the first kill. Its automation-helper log shows `autodiscovery` processing the hosts' autochecks at that moment. Timing is the only evidence.
-- The containers carry a larger steady load than before: each site runs two `cmk-automation-helper[worker]` processes of about 170 MB, several apache workers of 250–300 MB, and a UI job scheduler (up to about 330 MB per job process).
-- The 2.4 baseline was already high. `monitoring1`'s 28-day history before the upgrade was 6.79–8.29 GB used (average 7.23 GB, see [`2026-09-observability-phase0-findings-claude.md`](2026-09-observability-phase0-findings-claude.md)). On 2026-10-18 the Proxmox RRD shows a steady 9.0–9.3 GiB of 10 GiB, and `anon` is 9.6 GB.
-- Not established: what part of the spike each process contributed, whether 2.5 or the new editions raised the baseline, and the trigger on `monitoring1`. The `monitoring1` jobs had no auto-discovery job record near 20:32 or 21:20.
+- **Auto-discovery is not special.** Each site runs Checkmk's `autodiscovery` job every 5 minutes (`prod`: 20:03, 20:08, 20:13). The 20:13:25 run came 23 seconds before the first kill, but the runs at 20:03 and 20:08 caused no OOM. It may have contributed on top of an already high level; that is unproven.
+- **Not the upgrade work itself.** The `omd update` runs (`prod` 06:57, `free` 16:58, `prod_k8s` 17:27) and the agent re-registration through Salt (16:39–16:43 and later) ended hours before the first kill. A parallel investigation of stale cross-site piggyback data between `free` and `prod` ended at about 18:40. Until 18:34:44 the `prod` RabbitMQ log recorded about 2,866 `Shovel ... failed` lines per hour since at least 11:00. That is log churn: both RabbitMQ `beam.smp` processes use only about 150 MB each, and the failures stopped 1 h 40 min before the first kill.
+- **Another session started at 20:16** (a `dev_k8s` credentials fix in the repo), and one began a QA Kubernetes upgrade at 20:38. Both came after the `monitoring2` kills; the `monitoring1` kills at 20:32 and 21:20 are not explained by either.
+- **Steady-state load is high.** Each site runs two `cmk-automation-helper[worker]` processes of about 170 MB, several apache workers of 250–300 MB, and a UI job scheduler (up to about 330 MB per job process).
+- **The 2.4 baseline was already high.** `monitoring1`'s 28-day history before the upgrade was 6.79–8.29 GB used (average 7.23 GB, see [`2026-09-observability-phase0-findings-claude.md`](2026-09-observability-phase0-findings-claude.md)). On 2026-10-18 the Proxmox RRD shows a steady 9.0–9.3 GiB of 10 GiB, and `anon` is 9.6 GB.
+- **Not established:** what the 20:13 spike consisted of, whether 2.5 raised the baseline, and the `monitoring1` trigger. A useful next step is sampling per-process memory once a minute (for example into a file) so the next spike can be attributed.
 
 ## Corrections to the September 2026 audits
 
