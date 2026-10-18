@@ -23,6 +23,18 @@ Dependency-update/automerge policy per environment is deliberately not a column 
 
 See [`docs/architecture/environments.md#what-each-environment-is-for`](../architecture/environments.md#what-each-environment-is-for) for the reasoning behind the `purpose` column above.
 
+## Checkmk monitoring of the clusters
+
+Each cluster is monitored by its own Checkmk site, fed by the in-cluster `checkmk-agent` collectors (see [`workloads.md`](../architecture/workloads.md)). Verified read-only on 2026-10-18; only `dev`, `qa` and `prod` were looked up. Site versions drift, so read them with `omd sites` on the monitoring host instead of copying them here.
+
+| env | Checkmk site | monitoring host | cluster host (runs the Kubernetes special agent) |
+| --- | --- | --- | --- |
+| `dev` | `dev_k8s` | `monitoring1.home.iseja.net` | `dev-cmk-k8s-cluster-collector.dev.iseja.net` |
+| `qa` | `qa_k8s` | `monitoring1.home.iseja.net` | `qa-cmk-k8s-cluster-collector.qa.iseja.net` |
+| `prod` | `prod_k8s` | `monitoring2.home.iseja.net` | `cmk-k8s-cluster-collector.prod.iseja.net` |
+
+Besides the cluster host, a site holds hosts piggybacked from it: one per node (the node FQDN, e.g. `qa-ctrl-02.test.iseja.net`) and one each for namespaces, deployments and daemonsets, named `namespace_<cluster>_<ns>`, `deployment_<cluster>_<ns>_<name>` and `daemonset_<cluster>_<ns>_<name>` with `<cluster>` being `<env>-homelab`. Before and after a Kubernetes upgrade, compare these (see [`k8s-minor-upgrade.md`](../k8s-minor-upgrade.md#checkmk-what-supported-means-and-how-to-test-it)). `lq` and `cmk` are available as the site user (`su - <site>` on the monitoring host).
+
 ## Per-environment resource sizing (Terragrunt)
 
 Each environment's `terragrunt/<non-prod|prod>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl` overrides the shared [`_envcommon/vehagn-k8s.hcl`](../../terragrunt/_envcommon/vehagn-k8s.hcl) include, which wraps the [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module (the actual Proxmox VM + Talos provisioning logic — not vendored into this repo). `env.hcl` itself is trivial (`locals { env = "<name>" }`) — the real differentiation is node topology, sizing tier, and which Talos/Kubernetes version and module ref each environment tracks:
