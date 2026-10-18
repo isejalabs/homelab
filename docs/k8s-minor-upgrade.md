@@ -125,7 +125,7 @@ Then per area, in this order (platform first, apps last):
 
 Checkmk states support per minor (it supports four Kubernetes minors at a time) and announces a new Kubernetes minor in a Werk, some time after its release. "Supported" therefore means "covered by Checkmk's own tests and fixes", not "will work in our setup", and a patch-level fix that enables a new minor can land in a specific site patch: take the newest patch of the site's minor (no need to hunt for the exact one) and read the Werks since your current patch for Kubernetes entries. Because a quiet failure mode is likely (a section that stops being parsed disappears rather than turning CRIT), a service that stays OK is not enough evidence. Compare *before* and *after* instead, on the environment's Kubernetes host in the site:
 
-1. **Before** the upgrade, record the baseline: the service list with states and the agent sections. For example on the site (replace the host name):
+1. **Before** the upgrade, record the baseline (query the services; `cmk -d <host>` on a Kubernetes cluster host can take minutes, so do not rely on it for the baseline and run it in the background if you want the section list): the service list with states and the agent sections. For example on the site (replace the host name):
    ```sh
    printf 'GET services\nFilter: host_name = <k8s-host>\nColumns: description state has_been_checked\n' | lq | sort > before-services.txt
    cmk -d <k8s-host> | grep '^<<<' | sort | uniq -c > before-sections.txt
@@ -156,5 +156,7 @@ Repeat steps 3 and 4 for the next row of the table in [step 2](#2-plan-the-pin-a
 ## Known issues
 
 - **`cilium-install` Job: `field is immutable`.** At the end of `talosctl upgrade-k8s` (and in `--dry-run`), the manifest sync fails to re-apply the inline Cilium install Job because its `spec.template` is immutable. The node upgrades have already happened by then; check the kubelet versions as shown in [step 3](#3-upgrade-one-environment) rather than relying on the exit code. Tracked in [isejalabs/terraform-proxmox-talos#204](https://github.com/isejalabs/terraform-proxmox-talos/issues/204).
+- **Flux Kustomization stuck on "Reconciliation in progress" after the control plane restarted.** On a single-control-plane environment (`qa`, `dev`, ...) the kube-apiserver is briefly gone during the upgrade. A Kustomization that was mid-reconcile can fail with `failed to update status: timed out waiting for the condition` and then sit in `Reconciling`/`Unknown` with its next retry an hour away, and its dependants stay `dependency not ready`. Nothing is wrong with the cluster: request a normal reconcile (`kubectl annotate ks <name> -n flux-system reconcile.fluxcd.io/requestedAt="$(date +%s)" --overwrite`) and re-check `kubectl get ks,hr -A`.
+- **`zsh` does not word-split `$VAR`**, so `T="--context x -n y"; talosctl $T ...` fails with a usage error; spell the flags out when scripting from zsh.
 - **`talosctl health` reports "unexpected nodes"** when only `--control-plane-nodes` is passed and the cluster has workers. Pass `--worker-nodes` too.
 - **Terragrunt plan fails on missing `sealed-secrets.cert`/`.key`** in a fresh worktree: those gitignored files live only in the main checkout (`.../vehagn-k8s/assets/sealed-secrets/certificate/`). Plan from a checkout that has them, or exclude the sealed-secrets module for the plan.
