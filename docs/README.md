@@ -119,5 +119,6 @@ Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab
 | Doc | Status | Covers |
 | --- | --- | --- |
 | [`reference/environments.md`](reference/environments.md) | current | per-environment sizing, Flux interval, domain/naming schemes, and the ID/ASN/LB-pool/API-VIP tables — split out of `architecture/environments.md` per [#1350](https://github.com/isejalabs/homelab/issues/1350) |
+| [`reference/monitoring-sites.md`](reference/monitoring-sites.md) | current | Checkmk containers and sites, their monitoring roles, and representative live host assignments |
 
 See [`reference/README.md`](reference/README.md) for what belongs in this folder.
