@@ -29,9 +29,9 @@ spec:
   staging:
     # Must use the same filesystem as ${STORAGE_CLASS} (the app's own
     # data PVC): a VolumeSnapshot restore is a raw block-level copy, not a
-    # reformat, so staging an xfs-backed source (longhorn-xfs/longhorn-fast/
-    # longhorn-ha) on longhorn-scratch-ext4 -- or an ext4-backed source
-    # (longhorn-standard/longhorn-ext4, the default) on longhorn-scratch-xfs
+    # reformat, so staging an xfs-backed source (longhorn-xfs) on
+    # longhorn-scratch-ext4 -- or an ext4-backed source (every other class,
+    # the default) on longhorn-scratch-xfs
     # -- fails outright at mount time ("wrong fs type, bad superblock").
     # Override STORAGE_STAGING_CLASS to longhorn-scratch-xfs for any app
     # whose STORAGE_CLASS is xfs-backed. See docs/app-storage.md.
