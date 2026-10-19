@@ -1,3 +1,7 @@
+---
+status: current
+---
+
 # Monitoring sites
 
 **Status:** current as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
