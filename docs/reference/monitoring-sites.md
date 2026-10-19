@@ -1,8 +1,8 @@
 # Monitoring sites
 
-**Status:** current as of 2026-10-18. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
-Authoritative inventory of the Checkmk containers and sites. Values marked *(owner)* come from the owner, everything else was read from the live hosts on 2026-10-18. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
+Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
 ## Containers
 
@@ -19,15 +19,15 @@ All sites run Checkmk 2.5.0p15 since the upgrade on 2026-10-18 (`omd update` fro
 
 | Site | Container | Edition | Purpose |
 | --- | --- | --- | --- |
-| `prod` | monitoring2 | Community | Main Community-edition site. |
-| `free` | monitoring2 | Community | *(owner)* Physical hosts and general (non-Kubernetes) infrastructure: DNS, HTTP/SSL, SMTP and TCP checks. Also monitors some Kubernetes nodes and services that `*_k8s` and `prod` monitor too (duplicate monitoring). See [why `free` exists](#why-free-exists). |
+| `prod` | monitoring2 | Community (formerly RAW) | Main distributed-monitoring site. Monitors virtual hosts and general infrastructure checks such as DNS, HTTP/SSL, SMTP and TCP. Some of those checks are still assigned to `free` in the live configuration and appear in the combined view through distributed monitoring. Also monitors selected Kubernetes hosts and services, with nodes, namespaces and deployments added manually; the `*_k8s` sites provide automatic, dynamic Kubernetes monitoring. |
+| `free` | monitoring2 | Community (formerly RAW) | Monitors physical hosts, including remote sites, and critical network infrastructure implemented as virtual OPNsense HA gateways. Live configuration confirms Proxmox nodes (for example `pve4`) and a gateway VM (`gw3`) are assigned here. It does not monitor Kubernetes hosts. Its data is included in `prod` through distributed monitoring. See [why `free` exists](#why-free-exists). |
 | `prod_k8s` | monitoring2 | Ultimate | Production Kubernetes cluster. |
 | `dev_k8s`, `qa_k8s` | monitoring1 | Ultimate | Dev and QA Kubernetes clusters. |
-| `core` | monitoring1 | Ultimate | *(owner)* Meant for Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping stopped working. Kept for now; a decommissioning candidate, not decided. |
+| `core` | monitoring1 | Ultimate | Meant for Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping stopped working. Kept for now; a decommissioning candidate, not decided. |
 
 ### Why `free` exists
 
-*(owner)* Hosts were once moved out of `prod` into a new site on a commercial edition, which offered Smart Ping and other features. Checkmk used to allow integrating such a remote site into the Community site for one combined view, then dropped that. `free` was therefore downgraded to Community and the split stayed. Merging `free` back into `prod` is possible but needs a data migration, so it has not been done. It is a recorded follow-up, not a plan.
+Hosts were once moved out of `prod` into a new site on a commercial edition, which offered Smart Ping and other features. Checkmk used to allow integrating such a remote site into the Community site for one combined view, then dropped that. `free` was therefore downgraded to Community and the split stayed. Merging `free` back into `prod` is possible but needs a data migration, so it has not been done. It is a recorded follow-up, not a plan.
 
 ## Reading container memory
 

@@ -38,7 +38,7 @@ These audits remain unedited; where they conflict, [`monitoring-sites.md`](../re
 
 | Statement | Correction |
 | --- | --- |
-| `free` is a "historical sibling" of `prod` ([`2026-09-observability.md`](2026-09-observability.md)) | `free` is a live site that monitors the physical hosts and general infrastructure and is not redundant with `prod`. Its consolidation into `prod` is a follow-up. |
+| `free` is a "historical sibling" of `prod` ([`2026-09-observability.md`](2026-09-observability.md)) | `prod` is the main distributed-monitoring site for virtual hosts and general infrastructure checks, plus selected manually configured Kubernetes hosts and services. `free` monitors physical hosts (including remote sites) and critical network infrastructure implemented as virtual OPNsense HA gateways. Some general checks remain assigned to `free` in the live configuration; both sites' data is shown in `prod` through distributed monitoring. `free` does not monitor Kubernetes hosts. |
 | `monitoring1` is an LXC on pve6 | It runs on pve5 (observed 2026-10-18). |
 | `prod`/`free` are 2.4.0p36.cre, `dev_k8s`/`qa_k8s` are 2.4.0p36.cce | All sites are 2.5.0p15 as of 2026-10-18; `prod` and `free` are Community, the others Ultimate. |
 | `core` is "Smart Ping ... explicitly outside this project" | Still outside this project, but Smart Ping stopped working; kept deliberately for now. |
