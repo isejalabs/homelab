@@ -62,7 +62,7 @@ A dash means the CPU value was not kept (only the twelve largest were). Several 
 | pve5 | 3.9 (466 hourly samples only) | 7.5 | 25% | 2.2 cores | 3.7% |
 | pve6 | 3.9 (about 0.8 in the last week) | 7.7 | 26% | 0.6 cores | 4.4% |
 
-By hour of day (30-day average, hourly samples) pve1 and pve5 are flat. pve4 sits at about 7 to 9.5 load all day with the highest value at 00:00. The nightly backup jobs are therefore not visible as a separate peak at this resolution: a short job inside an hourly average disappears. The finer week data would show them.
+By hour of day (30-day average, hourly samples) pve1 and pve5 are flat. pve4 sits at about 7 to 9.5 load all day with the highest value at 00:00. The nightly backup jobs are therefore not visible as a separate peak at this resolution: a short job inside an hourly average disappears. The 30-minute view in the next section shows them.
 
 ### Nightly profile (22:00 to 05:00 CEST)
 
@@ -90,14 +90,32 @@ Source: the same week of RRD data in its native 30-minute steps, averaged per ti
 | 01:00 to 03:00 | 3.6 to 5.2 / 37% | 5.6 to 6.7 / 40% | 3.5 to 4.3 / 28% | quiet, `polina` verify and replication |
 | 03:30 | 4.6 / 37% | 7.9 / 48% | 4.6 / 30% | kopiur backups from the workers |
 | 04:30 | 5.6 / 37% | 8.6 / 46% | 4.5 / 30% | Longhorn backups from the workers |
-| 12:00 and 15:00 (for comparison) | 4.1 to 4.3 / 36% | **7.8 to 8.3 / 47%** | 4.6 to 6.3 / 29% | daytime baseline |
+| 08:00 to 22:00 (for comparison, 13 Oct left out) | — | 5.7 / 42% | — | daytime baseline |
 
-- **The night is not what makes pve4 busy.** Apart from the one spike around 23:30, pve4's load at night (5.1 to 6.7) is below its daytime level (7.8 to 8.3). The monthly figure of 7.6 is mostly the daytime baseline plus that spike.
+- **The night is not what makes pve4 busy.** Apart from the spike around 23:30, its load at night (5.1 to 6.7 in the table) is about the same as by day (mean 5.7, median 5.4 from 08:00 to 22:00, against 6.9 and 5.7 from 22:00 to 06:00, both with 13 October left out). pve4 is loaded around the clock; see [pve4 outside the nights](#pve4-outside-the-nights).
 - **The 23:30 spike is host work.** Weekly means: `polina` 0.72 cores and `fiona` 1.16 cores, but the host CPU rises to 72% on pve4 and 51% on pve1, which is more than the guests account for. `vzdump` compression and I/O run on the Proxmox host, outside any guest. It affects all three nodes because every node backs up its own guests.
 - **`fiona` is not CPU-heavy at night.** It stays at 0.2 to 0.4 cores. Its disk reads are 28 to 46 MB/s from 00:30 until at least 05:00, so the nightly cost on pve4 is mostly storage reads, not CPU.
 - **`monitoring2` is flat around the clock** at about 1.0 core (0.95 to 1.1, 1.44 at 23:30), so it adds to the baseline both day and night.
 - **The k8s backups (03:00 and 04:00) raise the load on all three nodes,** by about 2 to 3 on pve4 and about 1 on pve1 and pve5.
-- **Daytime spikes on pve4 are higher than anything at night:** the largest value in a 30-minute step is 25 around noon and 23 at 15:00. They were not attributed.
+
+### pve4 outside the nights
+
+The first pass over the week showed pve4 at 75 to 99% host CPU and load 20 to 85 from Tuesday 07:00 to 21:00. That is 2026-10-13, the day of the interim control-plane rollouts on `rebuild` and `dev` ([`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host)). The interim `ctrl-02` VMs ran on pve4 and were retired again, so they are not in today's guest list, and image imports and VM creation run on the host as well. The attribution to that work is an inference from the dates; the per-guest data of the destroyed VMs no longer exists. Its daily mean load that day was 22.6 at 75% CPU. This one day lifted every average that included it; it is left out of the comparisons here.
+
+Without that day pve4 is steady, not bursty:
+
+| Node | Daily mean load (range over 14 days, 13 Oct left out) | Daily mean host CPU | Median load (30 days) |
+| --- | --- | --- | --- |
+| pve1 | 3.0 to 6.2 | 26 to 42% | 3.1 |
+| pve4 | 5.3 to 8.3 | 36 to 49% | 6.5 |
+| pve5 | 2.6 to 5.4 | 19 to 35% | 3.6 |
+
+- **The difference is a higher baseline, not events.** pve4 carries about 3.3 cores of guest CPU against 2.6 on pve1 and 2.2 on pve5, and its load and CPU are about 50% above pve1's at all hours. Load per percent of CPU is similar on all nodes.
+- **Who uses the CPU on pve4 (7-day average, in cores, day and night about the same):** `monitoring2` 1.05 to 1.09, `qa-ctrl-02` 0.41, `prod-work-02` 0.39 to 0.41, `qa-work-02` 0.38, `prod-ctrl-02` 0.38, `dev-work-02` 0.29, `fiona` 0.24 by day and 0.33 at night. The remaining guests are below 0.05. `monitoring2` is by far the largest single user. The number of Kubernetes VMs does not explain the gap: pve4 hosts five, pve1 five and pve5 six, so the difference is `monitoring2` plus `fiona`.
+- **`monitoring2` is bursty inside its average.** A live sample on 2026-10-20 06:46 showed the `prod_k8s` Kubernetes special agent (`agent_kube`, one Python process) at 91% of a core, together with the host check helper of `monitoring2` itself, while `kvm` processes of the Kubernetes VMs sat at 29 to 40% of a core each. This is one sample and not a time series.
+- **Kernel time is a large share.** `vmstat` over four 5-second samples showed 8 to 21% user and 5 to 15% system CPU, with 4 to 23% iowait and 22 to 34 runnable tasks in the busiest sample. The `top` snapshot read 30% user and 21% system. System time at this level is typically virtualization and network overhead of many VMs; the share was not broken down further.
+- **The CPU governor is `performance`** on pve4, so the nodes already run at full clock (`/proc/cpuinfo` showed 2.5 GHz).
+- **Scheduling pressure:** `/proc/pressure/cpu` showed that some task waited for a CPU for 12.3% of the last 5 minutes (`some avg300`).
 
 ### Reading load average against host CPU
 
@@ -133,7 +151,7 @@ It is not recorded which devices are on the plug, so these numbers are not a per
 
 ## Open
 
-- **What drives pve4's daytime load** (7.8 to 8.3 average, spikes of 23 to 25) and whether it matters for the workers' responsiveness.
+- **Whether pve4's constant load matters for the workers' responsiveness:** its CPU pressure (PSI `some`) was 12% over 5 minutes on 2026-10-20 06:46, that is some task waited for a CPU in 12% of the time. Not compared with pve1 and pve5.
 - **The exact slot of the `vzdump` spike:** the 30-minute steps cannot separate the three `vzdump` jobs and the `natascha-data` borgmatic run; a finer view (day timeframe, 1-minute steps) is needed within one week of the event.
 - **Power per node** and the electricity price, to compute the yearly cost of the current three nodes and of a permanent pve6.
 - **Whether worker peaks at 100% of allocation are page cache or real demand,** before sizing workers up or down.
