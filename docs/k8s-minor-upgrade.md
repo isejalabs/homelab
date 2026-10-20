@@ -162,7 +162,7 @@ If something fails: stop, do **not** roll on, and roll forward by fixing the cau
 
 Repeat steps 3 and 4 for the next row of the table in [step 2](#2-plan-the-pin-and-the-rollout). Between `qa` and `prod`:
 
-- Let `qa` run for several days across at least one kopiur backup cycle, and read the Checkmk view for it.
+- **Soak `qa` for a bounded time, not an open-ended one.** Minimum about 22 hours and **at least one night in between**, so the nightly cron jobs and the kopiur backup runs have run on the new version; maximum about 3 days, so the environments do not drift apart and the upgrade keeps its momentum (prod once sat on an old patch version for a long time because the next step was left waiting). The time is only a floor for the *events* you need to observe; what counts is the quality of the checks: the [Verify](#4-verify) list passed, the Checkmk before/after comparison is clean, and the first scheduled backups after the upgrade succeeded. If those are done after one night, there is no reason to wait longer.
 - Confirm a recent successful kopiur backup for every stateful app in `prod`, and that Longhorn volumes are `Healthy`.
 - Do the `prod` upgrade in a quiet window, control planes first, as the upgrade command does by itself.
 
