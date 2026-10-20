@@ -11,7 +11,10 @@ Free about 1.2 to 1.5 GiB on `monitoring2` (pve4) and about 2.3 GiB on `monitori
 - A 5-minute interval is fine for the services of `free` ("service checks in prod, incl. those migrated from `free`, are okay to run at 5 minutes").
 - Host pings on Nagios (Community) run at 1 minute, for physical hosts and for VMs and LXCs, as long as they stay cheap.
 - Pings that must be quick (down to one second) do not belong on Nagios. They belong on a CMC site: `core`, or `prod_k8s` as the production-grade commercial site. The aim is fewer sites: `free` into `prod`, `core` into `prod_k8s`.
-- For `core` merged into `prod_k8s`, only the ping host checks are needed, not the services (these are covered by `prod` and `free`).
+- For `core` merged into `prod_k8s`, only the ping host checks are needed, not the services (these are covered by `prod` and `free`). `core` was only used for Smart Ping, so it is not needed any more once Smart Ping runs somewhere else.
+- `pve2` and `pve3` (test Proxmox hosts, offline for months) stay in monitoring and in the inventory in case they are powered on. If keeping them costs load, remove their services and find another solution (to be decided).
+- History: keep and migrate the history of the Proxmox hosts of `free` (long-term CPU and memory figures). The history of the other hosts of `free` (ping statistics and events of local and remote network gear) may be lost.
+- `prod_k8s` is for dynamic monitoring of the production Kubernetes cluster only. Services that `prod` already covers may be removed there, in particular the services of the Kubernetes nodes (`prod-ctrl-0x`, `prod-work-0x`, 19 services each).
 
 ## Starting point
 
@@ -20,7 +23,9 @@ Free about 1.2 to 1.5 GiB on `monitoring2` (pve4) and about 2.3 GiB on `monitori
 | `prod` | monitoring2 | Nagios (Community) | Central site, remote site `free` attached | 0.44 cores / 1.2 GiB |
 | `free` | monitoring2 | Nagios (Community) | Remote site (`replication: slave`), physical hosts and network | 0.31 cores / 1.5 GiB |
 | `prod_k8s` | monitoring2 | CMC (Ultimate, licence state Free) | Production Kubernetes cluster | 0.10 cores / 2.8 GiB |
-| `core` | monitoring1 | CMC (Ultimate, licence state Free) | Smart Ping of 22 hosts, plus 636 services | 0.04 cores / 2.3 GiB |
+| `core` | monitoring1 | CMC (Ultimate, licence state Free) | Smart Ping of 22 hosts (12 at 1 second, 10 at 6 seconds), plus 636 services | 0.04 cores / 2.3 GiB |
+
+`core` monitors 17 of its 22 hosts a second time: the 12 one-second hosts below and `pve1` to `pve5` also exist in `free` (with their own agent services, for example 74 services for `pve1` in `core` against 77 in `free`). Only `monitoring1`, `ns-quad9`, `pi4.dir`, `plug-trockner` and `plug-waschmaschine` exist only in `core`; the two plugs and `pve2`/`pve3` are DOWN (the plugs are `unavailable` in Home Assistant as well).
 
 The one-second pings in `free` come from two folder rules that set the host check interval to 0.0167 minutes: folder `external_sites` (4 WAN targets, `check_icmp -n 6 -t 20`) and folder `network-2` (8 hosts: `gw`, `gw2`, `gw3`, `gw4`, `sw01`, `core-switch`, `ap-kueche`, `ap-wozi`). The 1-minute services come from the default: the only `free` rule that lengthens the interval ("Longer check interval", 5 minutes) matches `Check_MK$` only.
 
@@ -41,7 +46,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 1. Take a Proxmox snapshot or `vzdump` of CT 7002056 (monitoring2) and CT 7002061 (monitoring1), see [`proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md).
 2. Record the baseline: cumulative CPU per site (the method of the audit), `host_checks_rate` and `service_checks_rate` from `lq "GET status"`, and the process spawn rate. The audit has the values of 2026-10-20.
 3. Find out why Smart Ping in `core` is reported as not working ([`monitoring-sites.md`](../reference/monitoring-sites.md#sites)), because phase 2 relies on it. The measurement shows its host checks run (13.6 per second).
-4. Decide for `pve2` and `pve3` (DOWN in `free`, 1-minute checks with a 3.8 second timeout): remove from monitoring or keep.
+4. Quantify what `pve2` and `pve3` cost: each has 54 services in `free` (108 of 609, 18%), checked every 5 minutes with about 14 to 16 seconds of execution time per round (mostly waiting for timeouts), plus a host check every minute that waits 3.8 seconds. The CPU is small; the cost is mainly the scheduled checks and the noise in the problem views. Keep the hosts and their inventory; options to reduce the cost, to be decided: set both hosts to "no agent, ping only" (the 108 services vanish after a rediscovery; the RRD history stays), or a downtime/disabled-checks rule if one exists that stops the active checks.
 
 ### Phase 1 — `free`: intervals (configuration only)
 
@@ -52,20 +57,32 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 5. **Verify:** `lq "GET status"` on `free` shows lower `service_checks_rate` (target below 2 per second, from 3.3 to 5.4) and, after step 3, `host_checks_rate` below 1 per second (from 5.8); the spawn rate drops; no new UNKNOWN or PEND services; the cumulative CPU of `free` falls over the next hours.
 6. **Rollback:** revert the rule changes and activate.
 
-### Phase 2 — One-second pings on `prod_k8s`, retire `core`
+### Phase 2 — Make room in `prod_k8s`, then move the pings and retire `core`
 
-1. Test with one host first: create a host in `prod_k8s` with no agent and no SNMP (ping only), host check via Smart Ping, and confirm it has **no services** (the service count of `prod_k8s` stays at 679). Whether CMC allows a host without services and which Smart Ping settings apply is documented only in general terms ([CMC differences](https://docs.checkmk.com/latest/en/cmc_differences.html)): check on the test host.
-2. Add the 12 hosts of `free` (`external_sites` and `network-2`) and the hosts of `core` as host-only hosts in `prod_k8s`, with the "Normal check interval for host checks" rule set to the wanted value (default 6 seconds, 1 second where the owner wants it) and the "Settings for host checks via Smart PING" rule set for the timeout. WAN targets may need a different timeout.
+**2a. Remove the node services from `prod_k8s`.** The six Kubernetes node hosts have 19 services each in `prod_k8s` (114 of 679). `prod` already monitors the same hosts from the same piggyback source (`cmk-k8s-cluster-collector.prod.iseja.net`) and shows the same services with the same values (compared on `prod-ctrl-03`: the 17 data services such as `CPU load`, `Kubelet`, `Pod resources`, `Condition` and `Info` exist in both). Only `Check_MK Discovery` and `Check_MK HW/SW Inventory` exist only in `prod_k8s`. Overall 191 of the 679 services of `prod_k8s` also exist on the same host in `prod`: 102 of 114 on nodes, 35 of 347 on deployments, 45 of 128 on namespaces, 9 of 10 on the cluster host.
+
+1. Remove the services of the six node hosts in `prod_k8s` (for example with the rule set "Disabled services" for the six host names, or by excluding the node objects in the dynamic host configuration); the dynamic connection must not recreate them. Which mechanism to use is to be checked in the Checkmk interface.
+2. Do not touch deployments, namespaces and daemonsets in this step. Their overlap is partial (a deployment host exists in `prod` for only 5 of 38) and they are the dynamic part that `prod_k8s` is for.
+3. **Verify:** the service count of `prod_k8s` falls from 679 to about 565 (headroom from 71 to about 185), the scheduled executions of `prod_k8s` fall by about 21% (114 of 535 per minute), and `prod` keeps all 21 services on each node.
+4. **Rollback:** remove the rule and rediscover.
+
+**2b. One-second pings on `prod_k8s`.**
+
+1. Test with one host first: create a host in `prod_k8s` with no agent and no SNMP (ping only), host check via Smart Ping, and confirm it has **no services** (the service count stays as measured after 2a). Whether CMC allows a host without services and which Smart Ping settings apply is documented only in general terms ([CMC differences](https://docs.checkmk.com/latest/en/cmc_differences.html)): check on the test host. Smart Ping sends one packet every n seconds (default 6) and marks a host DOWN when no packet arrives within a timeout (default 15 seconds, 2.5 intervals at the default), which the rule set "Settings for host checks via Smart PING" changes per host; set the timeout together with the 1-second interval and check how quickly a DOWN is reported.
+2. Add as host-only hosts: the 12 one-second hosts (`ap-kueche`, `ap-wozi`, `core-switch`, `google-dns`, `gw`, `gw-kdg`, `gw2`, `gw3`, `gw4`, `mailbox.rollernet.us`, `sw01`, `www.heise.de`) with the interval of the rule set "Normal check interval for host checks" at 1 second, and the hosts that exist only in `core` and are still relevant (`monitoring1`, `ns-quad9`, `pi4.dir`; the two plugs are DOWN, decide whether to keep them) at the 6-second default. The Proxmox hosts stay in `prod` after phase 3 with a 1-minute ping and need no Smart Ping unless the owner wants it.
 3. Keep the same host names as in `prod` and `free` only if Checkmk allows duplicates across unconnected sites without confusing notifications; otherwise use a suffix.
 4. Run both for a few days. Compare outage detection between the old and the new ping.
-5. Stop `core`: `omd stop core` and `omd config core set AUTOSTART off` (the way `dev_k8s` was stopped), keep the data as a restorable archive. Then reduce the memory of CT 7002061 (monitoring1) once its new peak is known, which relieves pve5.
-6. **Verify:** `prod_k8s` services unchanged (679), host checks per second as expected, CPU of `prod_k8s` and of the `monitoring2` container, memory of `monitoring1` after the stop, the pve5 memory headroom.
-7. **Rollback:** `omd start core` and `omd config core set AUTOSTART on`; remove the new hosts from `prod_k8s`.
+5. Set the host check interval of the 12 hosts in `free` to 1 minute as soon as 2b step 4 shows the same detection (the folder rules `1e8aad76-…` and `46616260-…`).
+6. Stop `core`: `omd stop core` and `omd config core set AUTOSTART off` (the way `dev_k8s` was stopped), keep the data as a restorable archive. Then reduce the memory of CT 7002061 (monitoring1) once its new peak is known, which relieves pve5.
+7. **Verify:** `prod_k8s` services unchanged, host checks per second as expected, CPU of `prod_k8s` and of the `monitoring2` container, memory of `monitoring1` after the stop, the pve5 memory headroom.
+8. **Rollback:** `omd start core` and `omd config core set AUTOSTART on`; remove the new hosts from `prod_k8s`.
 
 ### Phase 3 — Merge `free` into `prod`
 
 1. Pre-checks: which hosts and agents belong to `free` (tag `site: free`), and which agents are registered at `free`'s agent receiver. After the move the agents must register at `prod`; the Salt-managed re-registration used during the 2.5 upgrade is the model (not verified for the hosts of `free`).
-2. Decide what happens to history: new start in `prod` with the stopped `free` site as the archive, or a manual copy of the RRD files of each host from `free` to `prod` (`~/var/pnp4nagios/perfdata/<host>/`) after the move and before the first checks. Availability and event history stay in the archive.
+2. History (decided): copy the RRD directories of the six Proxmox hosts from `free` to `prod` before the first checks of the moved hosts, `~/var/pnp4nagios/perfdata/pve{1,2,3,4,5,6}.home.iseja.net/` (together 214 MB: 51, 13, 32, 46, 45 and 27 MB), including the `.xml` files, with the owner of `prod`, while both sites are stopped for these hosts. The RRD layout of `free` and `prod` has the same resolutions (1 minute for 2 days, 5 minutes for 10 days, 30 minutes for 90 days, 6 hours for 1,460 days), only the order of the archives in the file differs. The history of the other 12 hosts is left in the stopped `free` site (the whole `perfdata` directory is 389 MB, so copying it all is also cheap if the owner prefers). Availability and event history stay in the archive.
+
+   What exists: the RRDs of `pve2` end at 2026-01-08 and of `pve3` at 2026-06-23 (their last updates), those of `pve1`, `pve4`, `pve5` and `pve6` are current. Proxmox's own RRD is not a substitute: for the year it keeps weekly steps (1,257 points of 604,800 seconds, since 2025-06-19), the Checkmk RRDs keep 6-hour steps for four years.
 3. Change the monitoring site of the hosts from `free` to `prod` (host attribute "Monitored on site"), run a service discovery on each, activate changes, then remove the `free` connection from `prod`.
 4. Stop `free` (`omd stop free`, AUTOSTART off), keep it as the archive for a defined time, then delete.
 5. **Verify:** hosts and services in `prod` are OK and not PEND, notifications arrive (first test: a test notification), the 5-minute and 1-minute intervals from phases 1 and 2 hold, RAM of the container falls by about 1.2 to 1.5 GiB, the CPU drop is about 0.03 cores plus the phase 1 effect.
@@ -78,7 +95,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ## Risks
 
-- **`prod_k8s` has 71 services of headroom.** Hosts added in phase 2 must not bring services; every new Kubernetes workload adds some. If the limit is reached, Activate changes is blocked until services are removed.
+- **`prod_k8s` has 71 services of headroom** (about 185 after step 2a). Hosts added in phase 2b must not bring services; every new Kubernetes workload adds some. If the limit is reached, Activate changes is blocked until services are removed.
 - **Four sites in licence state Free.** The code counts per site; Checkmk's pages describe the free mode as one site. Retiring `core` reduces the exposure. Whether the remaining setup is within the terms was not checked.
 - **A second Ultimate site is not needed after the merge,** but `qa_k8s` (and the stopped `dev_k8s`) stay on `monitoring1`.
 - **Moving hosts loses history** unless the RRD files are copied by hand; the old site stays as the archive.
@@ -87,7 +104,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ## Open questions for the owner
 
-- Which of the 12 one-second hosts really need 1 second, and which are fine at 6 seconds (the CMC default)?
-- Keep `pve2` and `pve3` in `free`?
-- History: archive-only, or copy the RRD files of the hosts of `free`?
-- Is `core` needed for anything besides Smart Ping?
+- Which of the 12 one-second hosts really need 1 second, and which are fine at 6 seconds (the CMC default)? The 12 are the network gear and WAN targets listed in phase 2b.
+- `pve2` and `pve3`: ping only (services vanish, history stays), or leave as they are?
+- The two plugs (`plug-trockner`, `plug-waschmaschine`) and `ns-quad9`, `pi4.dir`: keep in monitoring?
+- Are the services of deployments and namespaces in `prod_k8s` that also exist in `prod` (80 of them) to be removed from one of the two sites later?
