@@ -203,7 +203,7 @@ Home Assistant has a Tasmota plug `Server-3er-Plug` in the cellar with these val
 | Energy yesterday | 1.946 kWh (about 81 W average) |
 | Energy total since 2022-07-30 | 1732.7 kWh |
 
-It is not recorded which devices are on the plug, so these numbers are not a per-node figure. At a constant 81 W the plug's devices use about 710 kWh a year; the annual cost is that times the electricity price. Per-node power is still to be measured (one smart plug per node, or the same plug moved around). A fourth node's annual cost is its average draw times 8.76 times the price in €/kWh; at an assumed 10 W and 0.30 €/kWh this would be about 26 €, which is an illustration, not a measurement.
+It is not recorded which devices are on the plug, so these numbers are not a per-node figure. At a constant 81 W the plug's devices use about 710 kWh a year; the annual cost is that times the electricity price. Per-node power is still to be measured (one smart plug per node, or the same plug moved around). A fourth node's annual cost is its average draw times 8.76 times the price in €/kWh. The owner's working assumption is 30 W per Proxmox host (not measured), which is about 263 kWh per year and host: a permanent pve6 stays within 50 € per year only if the price is below about 0.19 €/kWh. The price per kWh is not recorded here; further power readings are handled outside this audit.
 
 ## Open
 
