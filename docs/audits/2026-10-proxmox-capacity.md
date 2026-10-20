@@ -128,13 +128,51 @@ The two numbers answer different questions and do not have to agree.
 - **Which number to watch:** use load average (and its 15-minute value) for responsiveness, host CPU % for capacity. For this homelab the load matters most when interactive work runs during the same minutes as the backups, and it does not during the night.
 - **Spikes of 50 to 90 on every node** are in the monthly maxima. They are rare and short; the cause was not established.
 
+## Checkmk sites in monitoring1 and monitoring2
+
+Measured on 2026-10-20 inside the two containers (read-only). CPU is cumulative since the container started (monitoring2 32.3 h, monitoring1 33.2 h), summed over the processes of each site user including the children they waited for. Memory is PSS. Check intervals and licence state per site are in [`reference/monitoring-sites.md`](../reference/monitoring-sites.md#check-intervals-and-licence-state).
+
+| Container | Site | Core | CPU (cores) | Memory (PSS) | Hosts / services |
+| --- | --- | --- | --- | --- | --- |
+| monitoring2 | `prod` | Nagios | 0.44 | 1.2 GiB | 84 / 1,411 |
+| monitoring2 | `free` | Nagios | 0.31 | 1.5 GiB | 18 / 609 |
+| monitoring2 | `prod_k8s` | CMC | 0.10 | 2.8 GiB | 73 / 679 |
+| monitoring2 | processes of `root` | | 0.13 | 0.1 GiB | |
+| monitoring1 | `qa_k8s` | CMC | 0.10 | 2.7 GiB | 68 / 616 |
+| monitoring1 | `core` | CMC | 0.04 | 2.3 GiB | 22 / 636 |
+| monitoring1 | processes of `root` | | 0.11 | 0.1 GiB | |
+
+- **The `root` rows are unattributed.** Orphaned child processes are reaped by `systemd` and their CPU ends up there, so the site rows are probably somewhat too low.
+- **The Nagios sites cost CPU, the Ultimate (CMC) sites cost memory.** `prod` and `free` together use 0.75 cores of the 1.0 cores of monitoring2. Each Ultimate site uses 2.3 to 2.8 GiB however few hosts it has (`core`: 22 hosts, 2.3 GiB).
+- **`prod_k8s` special agents are not the problem.** `agent_kube` for `prod-homelab` ran every 70 seconds and used about 3 CPU-seconds per run (5-minute sample); the Proxmox special agent of `free` used about 2 CPU-seconds in a run of about 30 s. Together with the other agents this is well below 0.1 cores. Longer intervals on the `*_k8s` sites would save little.
+- **`free` spawns five times as many processes as `prod`:** 1,659 new processes in 180 seconds (about 9 per second) against 502 for `prod` and 67 for `prod_k8s`. About 47% of those are `check_icmp` host checks (`sh -c` wrapper and plugin) of 12 hosts that `free` pings every second, 4 of them internet targets with `-n 6 -t 20`. The remaining host checks of `free`, `snmpbulkwalk` and `pnp4nagios` make up the rest.
+- **The same pings cost almost nothing in CMC.** `core` runs Smart Ping on 22 hosts at 1 second or 6 seconds (13.6 host checks per second measured) with 0.04 cores in total, because CMC does it inside the core without a process per check. That is the design argument for keeping 1-second pings on a CMC site.
+- **`pve2` and `pve3` are DOWN in `free`** (host state 1) and are checked every minute with a 3.8 second timeout. Their services are in a failed state. Not touched.
+- **Intervals:** `free` has 12 hosts at 1 second and 153 services at 1 minute (140 passive, 13 active); `prod` has all hosts at 1 minute and 29 services at 1 minute; the `*_k8s` sites have almost all services at 1 minute; `core` has 125 passive services at 1 minute.
+
+### Estimated effect of the proposed changes
+
+All figures are estimates from the measurements above; none has been tried.
+
+| Change | CPU | Memory | Where |
+| --- | --- | --- | --- |
+| `free`: services from 1 min to 5 min (153 services) | scheduled service executions of `free` drop from about 242 to about 120 per minute (-50%) | none | monitoring2 (pve4) |
+| `free`: the 12 one-second hosts moved to 1 min or to Smart Ping on a CMC site | scheduled host checks drop from about 726 to about 18 per minute; together with the line above, roughly 0.1 to 0.2 of the 0.28 cores that the `free` Nagios uses (assumes CPU scales with the share of spawned processes) | none | monitoring2 (pve4) |
+| Merge `free` into `prod` (after the two lines above) | about 0.03 cores (the non-Nagios daemons of `free`) | about 1.2 to 1.5 GiB (1.5 GiB of `free` minus some growth of `prod`) | monitoring2 (pve4) |
+| Merge `core` into `prod_k8s` (22 hosts as host-only, with their Smart Ping) | about 0.04 cores move from monitoring1 to monitoring2, no net saving | about 2.3 GiB freed on monitoring1 (pve5), a small increase on monitoring2 | pve5 relieved, pve4 slightly loaded |
+| Services of `core` dropped | none | none | the owner states that the 636 services of `core` are covered by `free` and `prod` (not compared one by one); dropping them removes them from that site's licence count |
+
+- **Licence headroom:** `prod_k8s` is at 679 of 750 services (91%). Host-only hosts add no services, but every new Kubernetes workload (Immich and others) adds some. A merge of `core` into `prod_k8s` must keep to hosts without services, or the limit is reached after about 70 more services.
+- **Smart Ping in `core` is reported as not working** ([`monitoring-sites.md`](../reference/monitoring-sites.md#sites)). The measurement above shows its checks running; what exactly fails was not investigated and should be clarified before relying on it for the one-second pings.
+- **No merge was done.** A merge of `free` into `prod` needs a data migration (see [why `free` exists](../reference/monitoring-sites.md#why-free-exists)).
+
 ## Options considered
 
 1. **Move `dev-ctrl-03` from pve5 to pve1** (recommended): frees about 4 GiB on pve5, leaves about 5 GiB over peaks on pve1, adds 0.33 cores to a node with 2.6 cores of guest load. Dev has a single control plane, so it follows the interim-control-plane procedure in [`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host), not an in-place `host_node` change. `dev-ctrl-02` on pve1 would be the interim node and also the final one.
 2. **Move `dev-ctrl-03` to pve4:** frees the same on pve5 but adds to the node with the highest load. Not recommended.
 3. **Resize workers** (more memory for the `-02` workers, less for the `-03` workers): only `qa-work-03` has real slack (about 1.5 GiB), the other `-03` workers peak at their allocation, so it frees at most 1.5 GiB on pve5. Uneven sizes inside one cluster also complicate scheduling and Longhorn replica placement. Whether a memory change reboots or recreates the VM was not checked. Growing the pve4 workers uses pve4's free memory, which is what it has plenty of.
 4. **Move `monitoring1` to pve1:** does not fit (9.4 GiB peak against about 9 GiB headroom), and a monitor on the host with the gateway, directory, Home Assistant and PBS would be lost together with the monitoring of exactly those services if pve1 failed.
-5. **Reduce what the monitoring VMs do:** `monitoring2` is the largest CPU consumer on pve4 (1.1 cores, a third of pve4's guest CPU). Raising the check intervals of the `*_k8s` sites lowers CPU and load. It should not be expected to lower the memory footprint much: the resident memory is dominated by the monitoring core, the web UI and RRD caches, which depend on the number of hosts and services, not on how often they are checked. This is a reasoning, not a measurement; measure before and after. [#71](https://github.com/isejalabs/homelab/issues/71) records a constraint to keep five-minute service polling, so any interval change needs that constraint revisited first.
+5. **Reduce what the monitoring VMs do:** see [Checkmk sites in monitoring1 and monitoring2](#checkmk-sites-in-monitoring1-and-monitoring2). The `*_k8s` special agents are cheap (about 3 CPU-seconds per run, see below); the load is in the two Nagios sites, mostly `free`, and the memory is in the Ultimate sites.
 6. **Permanently run a fourth node (pve6):** adds about 4 cores and 31 GiB, but costs power around the clock and one more machine. See below.
 
 ## Power and the fourth-node question
@@ -154,4 +192,7 @@ It is not recorded which devices are on the plug, so these numbers are not a per
 - **Whether pve4's constant load matters for the workers' responsiveness:** its CPU pressure (PSI `some`) was 12% over 5 minutes on 2026-10-20 06:46, that is some task waited for a CPU in 12% of the time. Not compared with pve1 and pve5.
 - **The exact slot of the `vzdump` spike:** the 30-minute steps cannot separate the three `vzdump` jobs and the `natascha-data` borgmatic run; a finer view (day timeframe, 1-minute steps) is needed within one week of the event.
 - **Power per node** and the electricity price, to compute the yearly cost of the current three nodes and of a permanent pve6.
+- **The time series of per-site CPU** (a 5-minute snapshot loop inside both containers, started 2026-10-20 07:25) to see hourly and daily jobs; only the cumulative figures above are used so far.
+- **What fails in Smart Ping of `core`,** and whether `core` is needed as a separate site at all.
+- **Whether four free-state Ultimate sites are within the licence terms** (the code counts per site; Checkmk's pages describe the free mode as one site).
 - **Whether worker peaks at 100% of allocation are page cache or real demand,** before sizing workers up or down.
