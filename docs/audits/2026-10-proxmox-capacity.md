@@ -126,7 +126,7 @@ The two numbers answer different questions and do not have to agree.
 - **A high load with moderate CPU** means many guest threads want the CPU at the same moment and wait. Here that is the case on pve4: 22 vCPUs are allocated on 8 logical CPUs, and its Checkmk and several Kubernetes VMs run at the same time. It can also mean threads blocked on disk, but iowait is the same on all nodes, so disk waiting is not the difference.
 - **A low load with high CPU** means a few threads that run continuously, which is harmless.
 - **Which number to watch:** use load average (and its 15-minute value) for responsiveness, host CPU % for capacity. For this homelab the load matters most when interactive work runs during the same minutes as the backups, and it does not during the night.
-- **Spikes of 50 to 90 on every node** are in the monthly maxima. They are rare and short; the cause was not established.
+- **Load spikes of 30 to 92** are in the monthly maxima. They are rare and each is a single 30-minute step. By date: 2026-09-20 08:30 (pve1 33, pve4 43) follows the merge of the migration of the `dev` and `rebuild` VMs from pve5 to pve6 at 06:26 and 06:33; 2026-09-28 11:30 (pve4 46, pve6 49) and 2026-09-30 04:30 to 06:30 (pve6 59 and 92) match no commit, and pve6 hosts the on-demand clusters, so cluster rebuild runs are plausible (the owner's assumption, not confirmed); 2026-10-13 (pve4 up to 86, pve5 47) is the interim control-plane rollouts; 2026-10-18 11:00 (pve1 50) is the day of the production Kubernetes upgrade (merged 00:28), not confirmed.
 
 ## Checkmk sites in monitoring1 and monitoring2
 
