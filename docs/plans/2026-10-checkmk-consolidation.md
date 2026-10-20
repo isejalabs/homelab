@@ -14,6 +14,8 @@ Free about 1.2 to 1.5 GiB on `monitoring2` (pve4) and about 2.3 GiB on `monitori
 - For `core` merged into `prod_k8s`, only the ping host checks are needed, not the services (these are covered by `prod` and `free`). `core` was only used for Smart Ping, so it is not needed any more once Smart Ping runs somewhere else.
 - `pve2` and `pve3` (test Proxmox hosts, offline for months) stay in monitoring and in the inventory in case they are powered on. If keeping them costs load, remove their services and find another solution (to be decided).
 - History: keep and migrate the history of the Proxmox hosts of `free` (long-term CPU and memory figures). The history of the other hosts of `free` (ping statistics and events of local and remote network gear) may be lost.
+- One-second Smart Ping is needed for `core-switch`, `google-dns`, `gw`, `gw-kdg`, `gw2`, `gw3`, `gw4` and `sw01`; 6 seconds (the default) is enough for `ap-kueche` and `ap-wozi`. `mailbox.rollernet.us` and `www.heise.de` do not need Smart Ping and move to `prod` (1-minute ping). `plug-trockner`, `plug-waschmaschine`, `ns-quad9` and `pi4.dir` stay in monitoring, in `prod` only (not in `core` or `prod_k8s`).
+- The 80 deployment and namespace services in `prod_k8s` that also exist in `prod` stay, as long as the 750-service limit is not at risk. Removing the node services is the first countermeasure and should be enough.
 - `prod_k8s` is for dynamic monitoring of the production Kubernetes cluster only. Services that `prod` already covers may be removed there, in particular the services of the Kubernetes nodes (`prod-ctrl-0x`, `prod-work-0x`, 19 services each).
 
 ## Starting point
@@ -69,10 +71,14 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 **2b. One-second pings on `prod_k8s`.**
 
 1. Test with one host first: create a host in `prod_k8s` with no agent and no SNMP (ping only), host check via Smart Ping, and confirm it has **no services** (the service count stays as measured after 2a). Whether CMC allows a host without services and which Smart Ping settings apply is documented only in general terms ([CMC differences](https://docs.checkmk.com/latest/en/cmc_differences.html)): check on the test host. Smart Ping sends one packet every n seconds (default 6) and marks a host DOWN when no packet arrives within a timeout (default 15 seconds, 2.5 intervals at the default), which the rule set "Settings for host checks via Smart PING" changes per host; set the timeout together with the 1-second interval and check how quickly a DOWN is reported.
-2. Add as host-only hosts: the 12 one-second hosts (`ap-kueche`, `ap-wozi`, `core-switch`, `google-dns`, `gw`, `gw-kdg`, `gw2`, `gw3`, `gw4`, `mailbox.rollernet.us`, `sw01`, `www.heise.de`) with the interval of the rule set "Normal check interval for host checks" at 1 second, and the hosts that exist only in `core` and are still relevant (`monitoring1`, `ns-quad9`, `pi4.dir`; the two plugs are DOWN, decide whether to keep them) at the 6-second default. The Proxmox hosts stay in `prod` after phase 3 with a 1-minute ping and need no Smart Ping unless the owner wants it.
-3. Keep the same host names as in `prod` and `free` only if Checkmk allows duplicates across unconnected sites without confusing notifications; otherwise use a suffix.
+2. Add as host-only hosts, ten in total: `core-switch`, `google-dns`, `gw`, `gw-kdg`, `gw2`, `gw3`, `gw4` and `sw01` with the interval of the rule set "Normal check interval for host checks" at 1 second, and `ap-kueche` and `ap-wozi` at the 6-second default. The other four hosts of `core` and `free` are handled in `prod`, not here:
+   - `monitoring1`, `ns-quad9` and `pi4.dir` already exist in `prod` (1-minute ping, 100, 1 and 46 services); `core`'s duplicate entries are dropped with `core`.
+   - `plug-trockner` and `plug-waschmaschine` (DOWN, only in `core`) are new hosts in `prod` with a 1-minute ping.
+   - `mailbox.rollernet.us` and `www.heise.de` (WAN targets, 1 service each, only in `free`) move to `prod` with the merge in phase 3 at a 1-minute ping (keep the WAN ping levels: 6 packets, 20 second timeout).
+   - The Proxmox hosts stay in `prod` after phase 3 with a 1-minute ping and need no Smart Ping.
+3. After phase 3 the hosts `gw2`, `gw3`, `gw4`, `sw01`, `core-switch`, `ap-kueche`, `ap-wozi`, `gw` and `gw-kdg` exist in `prod` (with their agent services and a 1-minute ping) and as ping-only hosts in `prod_k8s`. Use the same names only if Checkmk allows duplicates across the unconnected sites without confusing notifications; otherwise use a suffix (to be checked on the test host).
 4. Run both for a few days. Compare outage detection between the old and the new ping.
-5. Set the host check interval of the 12 hosts in `free` to 1 minute as soon as 2b step 4 shows the same detection (the folder rules `1e8aad76-…` and `46616260-…`).
+5. Set the host check interval of the hosts in `free` to 1 minute as soon as 2b step 4 shows the same detection (the folder rules `1e8aad76-…` and `46616260-…`).
 6. Stop `core`: `omd stop core` and `omd config core set AUTOSTART off` (the way `dev_k8s` was stopped), keep the data as a restorable archive. Then reduce the memory of CT 7002061 (monitoring1) once its new peak is known, which relieves pve5.
 7. **Verify:** `prod_k8s` services unchanged, host checks per second as expected, CPU of `prod_k8s` and of the `monitoring2` container, memory of `monitoring1` after the stop, the pve5 memory headroom.
 8. **Rollback:** `omd start core` and `omd config core set AUTOSTART on`; remove the new hosts from `prod_k8s`.
@@ -104,7 +110,6 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ## Open questions for the owner
 
-- Which of the 12 one-second hosts really need 1 second, and which are fine at 6 seconds (the CMC default)? The 12 are the network gear and WAN targets listed in phase 2b.
-- `pve2` and `pve3`: ping only (services vanish, history stays), or leave as they are?
-- The two plugs (`plug-trockner`, `plug-waschmaschine`) and `ns-quad9`, `pi4.dir`: keep in monitoring?
-- Are the services of deployments and namespaces in `prod_k8s` that also exist in `prod` (80 of them) to be removed from one of the two sites later?
+- `pve2` and `pve3`: ping only (the 108 services vanish, history stays), or leave as they are?
+- Names of the ping-only hosts in `prod_k8s`: the same as in `prod`, or with a suffix?
+- At what number of services in `prod_k8s` should the deployment and namespace overlap (80 services) be reconsidered? The limit is 750; after step 2a it is about 565.
