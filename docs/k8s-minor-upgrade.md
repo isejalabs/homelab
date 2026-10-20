@@ -96,6 +96,26 @@ The upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kubernetes-v
   - A saved plan (`-out=...`) applied afterwards guarantees what you reviewed is what runs.
 - **After the apply, `terragrunt plan` must come back clean** (apart from any excluded drift). A non-empty plan means the cluster and state disagree.
 
+### Pre-flight triage: do not start on an unexplained "not clean" cluster
+
+"No *new* issues after the upgrade" is not enough of a bar: an issue that exists before the upgrade can hide the effect of the upgrade, or be made worse by it. Before the first command, list **every** non-OK item and give it a tier. Put the table in the tracking issue; the sign-off on that table is the explicit "yes, proceed despite these" for the environment.
+
+Where to collect the items:
+- the environment's Checkmk site (`prod_k8s` etc.): all services with state above OK, also the stale-looking hosts;
+- `kubectl get nodes`, `kubectl get pods -A --field-selector='status.phase!=Running,status.phase!=Succeeded'`, `kubectl get ks,hr -A` (anything not `True`);
+- Longhorn volumes (`robustness` other than `healthy` on attached ones) and the kopiur snapshots (`kubectl get snapshots.kopiur.home-operations.com -A`, look at the newest per app);
+- the disk fill of the control-plane nodes (see below).
+
+| Tier | Meaning | Examples | Rule |
+| --- | --- | --- | --- |
+| **Blocker** | Would be a risk or hide a risk of the upgrade | not Ready node or missing etcd member; Flux/Longhorn degraded; stateful app without a successful backup in the last day; removed API still in use; a control-plane disk that cannot hold the new images | Fix it first, do not proceed |
+| **Understand first** | Touches storage, backups, control plane, networking or the monitoring of the cluster itself | a failed kopiur snapshot; a Checkmk service on a Kubernetes component; a WARN on a control-plane filesystem | Find the cause, write it down; proceed only with a stated reason |
+| **Ignore** | Cosmetic or unrelated to the cluster | a stale Checkmk host for a removed DaemonSet; a threshold WARN far from critical on a non-critical disk | Note it in the table, no further action |
+
+Two things learned from the first runs that belong in this triage:
+- **A failed snapshot can be a harmless file permission problem, but you must know that.** On `prod` a daily `unifi-mongodb` snapshot failed with `PermissionDenied` on five `.mongodb/mongosh/*_log` files inside the data volume (left behind by someone running `mongosh` in the pod); the previous days and a manual backup afterwards succeeded. Read `status.failure` of the snapshot (`kubectl get snapshots.kopiur.home-operations.com <name> -n <ns> -o jsonpath='{.status.failure}'`), and take a fresh successful backup right before the upgrade regardless.
+- **Control-plane disks are small (about 6 GiB) and old and new images coexist after an upgrade.** `talosctl image list --namespace cri` on a control plane shows both the old and the new `kube-apiserver`, `kube-controller-manager` and `kube-scheduler`; the old ones are only removed by kubelet image garbage collection (it starts at 85% disk usage). A control plane already at about 80% (the Checkmk default warn) will probably cross that line during the upgrade; that is survivable but should be a conscious decision, not a surprise CRIT.
+
 ## 4. Verify
 
 Everything below must pass on an environment before moving on. Cluster-level:
