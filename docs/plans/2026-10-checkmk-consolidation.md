@@ -101,7 +101,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ### Phase 4 — Right-size and document
 
-1. Lower the memory limits of CT 7002056 and CT 7002061 only after a week of measurements; the 10 GiB of `monitoring2` was raised on 2026-10-19 after the [OOMs](../audits/2026-10-monitoring-container-oom.md), do not lower it blindly.
+1. Lower the memory limits of CT 7002056 and CT 7002061 only with the web-interface swing in mind (the apache workers of `prod` and `prod_k8s` grew by about 0.8 GiB within minutes, see the [time series](../audits/2026-10-proxmox-capacity.md#time-series-inside-monitoring2-2026-10-20-0722-to-0952)). Measure for a week first; the 10 GiB of `monitoring2` was raised on 2026-10-19 after the [OOMs](../audits/2026-10-monitoring-container-oom.md), do not lower it blindly.
 2. Update [`monitoring-sites.md`](../reference/monitoring-sites.md) (containers, sites, intervals), the [capacity audit](../audits/2026-10-proxmox-capacity.md) with a new dated audit of the result (do not edit the old one), and the agreed constraints in [#71](https://github.com/isejalabs/homelab/issues/71).
 
 ## Risks

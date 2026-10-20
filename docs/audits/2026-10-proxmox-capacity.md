@@ -150,6 +150,21 @@ Measured on 2026-10-20 inside the two containers (read-only). CPU is cumulative 
 - **`pve2` and `pve3` are DOWN in `free`** (host state 1) and are checked every minute with a 3.8 second timeout. Their services are in a failed state. Not touched.
 - **Intervals:** `free` has 12 hosts at 1 second and 153 services at 1 minute (140 passive, 13 active); `prod` has all hosts at 1 minute and 29 services at 1 minute; the `*_k8s` sites have almost all services at 1 minute; `core` has 125 passive services at 1 minute.
 
+### Time series inside monitoring2 (2026-10-20 07:22 to 09:52)
+
+A snapshot loop inside the container (26 snapshots, about 5 minutes apart, 24 usable intervals) summed the CPU of each site's processes per interval and their PSS memory.
+
+| Site | CPU mean (cores) | Range | Memory (PSS) |
+| --- | --- | --- | --- |
+| `prod` | 0.46 | 0.41 to 0.49 (p90), one 0.66 | 1.2 GiB, then 1.7 to 1.8 GiB from 08:41 |
+| `free` | 0.31 | 0.28 to 0.36 | 1.4 GiB, steady |
+| `prod_k8s` | 0.10 | 0.08 to 0.14 | 2.75 GiB, then 3.1 GiB from 08:51 |
+| processes of `root` | 0.09 | 0.06 to 0.12 | |
+| Total | 0.96 | up to 1.17 | 5.5 GiB, then 6.4 GiB |
+
+- **CPU is flat.** No hourly spike shows at this resolution, and the means match the 32-hour totals above (0.44, 0.31, 0.10). The window cannot show daily jobs; those are covered only by the cumulative totals and the weekly Proxmox RRD of the container (about 1.0 core at all hours, 1.4 at 23:30 when the container itself is backed up).
+- **Memory is not flat.** Between 08:41 and 08:51 the `apache` processes grew by about 490 MiB in `prod` and by about 310 MiB in `prod_k8s` and stayed there. The cause was not established; the web interface was probably opened (these are the workers that serve it). Whatever the cause, the memory of the three sites can swing by about 0.8 GiB within minutes, which is as large as the saving expected from merging `free` into `prod` (1.2 to 1.5 GiB). The memory limit of the container should not be lowered by the estimates alone, and any before and after comparison has to be made under the same web-interface use.
+
 ### Estimated effect of the proposed changes
 
 All figures are estimates from the measurements above; none has been tried.
@@ -195,7 +210,7 @@ It is not recorded which devices are on the plug, so these numbers are not a per
 - **Whether pve4's constant load matters for the workers' responsiveness:** its CPU pressure (PSI `some`) was 12% over 5 minutes on 2026-10-20 06:46, that is some task waited for a CPU in 12% of the time. Not compared with pve1 and pve5.
 - **The exact slot of the `vzdump` spike:** the 30-minute steps cannot separate the three `vzdump` jobs and the `natascha-data` borgmatic run; a finer view (day timeframe, 1-minute steps) is needed within one week of the event.
 - **Power per node** and the electricity price, to compute the yearly cost of the current three nodes and of a permanent pve6.
-- **The time series of per-site CPU** (a 5-minute snapshot loop inside both containers, started 2026-10-20 07:25) to see hourly and daily jobs; only the cumulative figures above are used so far.
+- **Daily jobs inside the Checkmk sites:** the snapshot loop covered 2.5 hours; a daily pattern is only visible in the cumulative totals.
 - **What fails in Smart Ping of `core`,** and whether `core` is needed as a separate site at all.
 - **Whether four free-state Ultimate sites are within the licence terms** (the code counts per site; Checkmk's pages describe the free mode as one site).
 - **Whether worker peaks at 100% of allocation are page cache or real demand,** before sizing workers up or down.
