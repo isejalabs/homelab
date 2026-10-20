@@ -16,6 +16,9 @@ Free about 1.2 to 1.5 GiB on `monitoring2` (pve4) and about 2.3 GiB on `monitori
 - History: keep and migrate the history of the Proxmox hosts of `free` (long-term CPU and memory figures). The history of the other hosts of `free` (ping statistics and events of local and remote network gear) may be lost.
 - One-second Smart Ping is needed for `core-switch`, `google-dns`, `gw`, `gw-kdg`, `gw2`, `gw3`, `gw4` and `sw01`; 6 seconds (the default) is enough for `ap-kueche` and `ap-wozi`. `mailbox.rollernet.us` and `www.heise.de` do not need Smart Ping and move to `prod` (1-minute ping). `plug-trockner`, `plug-waschmaschine`, `ns-quad9` and `pi4.dir` stay in monitoring, in `prod` only (not in `core` or `prod_k8s`).
 - The 80 deployment and namespace services in `prod_k8s` that also exist in `prod` stay, as long as the 750-service limit is not at risk. Removing the node services is the first countermeasure and should be enough.
+- `pve2` and `pve3` stay as they are (see phase 0 for what they cost).
+- Ping-only hosts and all other hosts keep the same names in every site (no suffix).
+- Licence limit alerting: consider moving services out of a free-state site at 90% of 750 (675); a check on the service count of each Ultimate site should WARN at 90% (675) and go CRIT at 95% (713), preferably as active monitoring in `prod` and/or `prod_k8s`.
 - `prod_k8s` is for dynamic monitoring of the production Kubernetes cluster only. Services that `prod` already covers may be removed there, in particular the services of the Kubernetes nodes (`prod-ctrl-0x`, `prod-work-0x`, 19 services each).
 
 ## Starting point
@@ -48,7 +51,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 1. Take a Proxmox snapshot or `vzdump` of CT 7002056 (monitoring2) and CT 7002061 (monitoring1), see [`proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md).
 2. Record the baseline: cumulative CPU per site (the method of the audit), `host_checks_rate` and `service_checks_rate` from `lq "GET status"`, and the process spawn rate. The audit has the values of 2026-10-20.
 3. Find out why Smart Ping in `core` is reported as not working ([`monitoring-sites.md`](../reference/monitoring-sites.md#sites)), because phase 2 relies on it. The measurement shows its host checks run (13.6 per second).
-4. Quantify what `pve2` and `pve3` cost: each has 54 services in `free` (108 of 609, 18%), checked every 5 minutes with about 14 to 16 seconds of execution time per round (mostly waiting for timeouts), plus a host check every minute that waits 3.8 seconds. The CPU is small; the cost is mainly the scheduled checks and the noise in the problem views. Keep the hosts and their inventory; options to reduce the cost, to be decided: set both hosts to "no agent, ping only" (the 108 services vanish after a rediscovery; the RRD history stays), or a downtime/disabled-checks rule if one exists that stops the active checks.
+4. What `pve2` and `pve3` cost (decided: leave them as they are). The services do not matter for the load, because the Checkmk agent data of a host is fetched by a single `check_mk` run (the caching agent on the target answers repeated queries); an offline host costs a process that waits and times out. Per hour that is 120 host checks (1 per minute and host, each waiting about 3.8 seconds), 24 `Check_MK` service checks (every 5 minutes, about 6 seconds until the timeout) and about 1 discovery run (every 125 minutes, about 8 seconds): about 145 runs per hour, 0.04 per second, against about 9 spawned processes per second for `free` in total (under 0.5%). The nodes are offline, so no load reaches them. What remains is noise in the problem views: acknowledge or put the hosts in a long downtime if it bothers.
 
 ### Phase 1 — `free`: intervals (configuration only)
 
@@ -67,6 +70,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 2. Do not touch deployments, namespaces and daemonsets in this step. Their overlap is partial (a deployment host exists in `prod` for only 5 of 38) and they are the dynamic part that `prod_k8s` is for.
 3. **Verify:** the service count of `prod_k8s` falls from 679 to about 565 (headroom from 71 to about 185), the scheduled executions of `prod_k8s` fall by about 21% (114 of 535 per minute), and `prod` keeps all 21 services on each node.
 4. **Rollback:** remove the rule and rediscover.
+5. **Alert on the service count** (WARN 675 = 90%, CRIT 713 = 95% of 750), for `prod_k8s` and `qa_k8s` (and `dev_k8s` when it runs). The existing service `Site <site> statistics` in `prod` shows the total (for example "Total services: 679") and emits the metrics `cmk_services_*`, but its plugin has no rule set for levels (checked in `cmk_site_statistics.py`), so it cannot alert by itself. Candidate: an active check in `prod` (a classical active check or a local check on `monitoring2` and `monitoring1`) that reads `num_services` from each site's livestatus socket, which is the number Checkmk's own licence check uses, and applies the two levels. The mechanism is to be decided.
 
 **2b. One-second pings on `prod_k8s`.**
 
@@ -89,10 +93,11 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 2. History (decided): copy the RRD directories of the six Proxmox hosts from `free` to `prod` before the first checks of the moved hosts, `~/var/pnp4nagios/perfdata/pve{1,2,3,4,5,6}.home.iseja.net/` (together 214 MB: 51, 13, 32, 46, 45 and 27 MB), including the `.xml` files, with the owner of `prod`, while both sites are stopped for these hosts. The RRD layout of `free` and `prod` has the same resolutions (1 minute for 2 days, 5 minutes for 10 days, 30 minutes for 90 days, 6 hours for 1,460 days), only the order of the archives in the file differs. The history of the other 12 hosts is left in the stopped `free` site (the whole `perfdata` directory is 389 MB, so copying it all is also cheap if the owner prefers). Availability and event history stay in the archive.
 
    What exists: the RRDs of `pve2` end at 2026-01-08 and of `pve3` at 2026-06-23 (their last updates), those of `pve1`, `pve4`, `pve5` and `pve6` are current. Proxmox's own RRD is not a substitute: for the year it keeps weekly steps (1,257 points of 604,800 seconds, since 2025-06-19), the Checkmk RRDs keep 6-hour steps for four years.
-3. Change the monitoring site of the hosts from `free` to `prod` (host attribute "Monitored on site"), run a service discovery on each, activate changes, then remove the `free` connection from `prod`.
-4. Stop `free` (`omd stop free`, AUTOSTART off), keep it as the archive for a defined time, then delete.
-5. **Verify:** hosts and services in `prod` are OK and not PEND, notifications arrive (first test: a test notification), the 5-minute and 1-minute intervals from phases 1 and 2 hold, RAM of the container falls by about 1.2 to 1.5 GiB, the CPU drop is about 0.03 cores plus the phase 1 effect.
-6. **Rollback:** `omd start free`, move the hosts back.
+3. Before the move, set the host check interval of the folder rules `1e8aad76-…` (folder `external_sites`) and `46616260-…` (folder `network-2`) to 1 minute (phase 1 or 2b step 5 does this), otherwise the moved hosts keep pinging every second on the Nagios site `prod`. `mailbox.rollernet.us` and `www.heise.de` then use the standard Nagios WAN ping of `prod`: the rule "Allow longer round trip times when pinging WAN hosts" (id `a697ce00-…`, tag `networking:wan`: 6 packets, 20 second timeout, round trip 1,500/3,000 ms) is already identical in `prod` and `free`, because `free` carries the central configuration of `prod`. No Smart Ping or CMC-specific setting resides in `free` (checked: no such rule or global setting; the only fast settings are the two Nagios folder rules above), so nothing of that kind is taken over.
+4. Change the monitoring site of the hosts from `free` to `prod` (host attribute "Monitored on site"), run a service discovery on each, activate changes, then remove the `free` connection from `prod`.
+5. Stop `free` (`omd stop free`, AUTOSTART off), keep it as the archive for a defined time, then delete.
+6. **Verify:** hosts and services in `prod` are OK and not PEND, notifications arrive (first test: a test notification), the 5-minute and 1-minute intervals from phases 1 and 2 hold, RAM of the container falls by about 1.2 to 1.5 GiB, the CPU drop is about 0.03 cores plus the phase 1 effect.
+7. **Rollback:** `omd start free`, move the hosts back.
 
 ### Phase 4 — Right-size and document
 
@@ -110,6 +115,4 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ## Open questions for the owner
 
-- `pve2` and `pve3`: ping only (the 108 services vanish, history stays), or leave as they are?
-- Names of the ping-only hosts in `prod_k8s`: the same as in `prod`, or with a suffix?
-- At what number of services in `prod_k8s` should the deployment and namespace overlap (80 services) be reconsidered? The limit is 750; after step 2a it is about 565.
+- Mechanism for the alert on the service count (classical active check in `prod`, or a local check on the monitoring hosts)?
