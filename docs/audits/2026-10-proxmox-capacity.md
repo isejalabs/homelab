@@ -1,6 +1,6 @@
 # Proxmox memory and CPU capacity — 2026-10-19
 
-**Date:** 2026-10-19 (measurements), 2026-10-20 (write-up). **Status:** Measurements complete; nothing moved or resized yet; the nightly job list and a power measurement per node are still outstanding. **Scope:** memory, CPU and load of the Proxmox nodes pve1, pve4, pve5 and pve6 and of every running guest on them, and the options for rebalancing. It does not cover disk, network or storage capacity. **Origin:** Claude (Claude Code), read-only access to the Proxmox API and nodes (`pvesh get`, `lscpu`, `uptime`) and to Home Assistant sensors. Nothing was changed on any host. **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), related [#71](https://github.com/isejalabs/homelab/issues/71) and [#1780](https://github.com/isejalabs/homelab/issues/1780).
+**Date:** 2026-10-19 (measurements), 2026-10-20 (write-up). **Status:** Measurements complete, including the nightly profile; nothing moved or resized yet; a power measurement per node is still outstanding. **Scope:** memory, CPU and load of the Proxmox nodes pve1, pve4, pve5 and pve6 and of every running guest on them, and the options for rebalancing. It does not cover disk, network or storage capacity. **Origin:** Claude (Claude Code), read-only access to the Proxmox API and nodes (`pvesh get`, `lscpu`, `uptime`) and to Home Assistant sensors. Nothing was changed on any host. **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), related [#71](https://github.com/isejalabs/homelab/issues/71) and [#1780](https://github.com/isejalabs/homelab/issues/1780).
 
 ## Result
 
@@ -64,6 +64,41 @@ A dash means the CPU value was not kept (only the twelve largest were). Several 
 
 By hour of day (30-day average, hourly samples) pve1 and pve5 are flat. pve4 sits at about 7 to 9.5 load all day with the highest value at 00:00. The nightly backup jobs are therefore not visible as a separate peak at this resolution: a short job inside an hourly average disappears. The finer week data would show them.
 
+### Nightly profile (22:00 to 05:00 CEST)
+
+Source: the same week of RRD data in its native 30-minute steps, averaged per time slot over seven nights. Slot labels are the RRD timestamps of each step, so a spike may belong to the half hour just before the label. Jobs in the table are the owner's schedule (all times CEST).
+
+| Start | Duration | What |
+| --- | --- | --- |
+| 22:00 | | OneDrive sync to `fiona` |
+| 22:10 | about 1 min | borgmatic and similar from the Proxmox hosts |
+| 22:30 | | `polina` prune |
+| 23:00 | 30 min | borgmatic `natascha-data` from `fiona` |
+| 23:10, 23:20, 23:30 | 2, 3, 5 min | `vzdump` to `polina`: Crit, Prod, Test |
+| 00:00 | 2 h | `polina` verify |
+| 00:07 | 3 min | ZFS pull sync from `fiona` into `polina` |
+| every 20 min from 02:00 | | ZFS replication `polina` to `book4tb` |
+| 02:30 | | `polina` prune |
+| 03:00 | | kopiur backups to `fiona` |
+| 04:00 | | Longhorn backups to `fiona` |
+
+| Slot | pve1 load / CPU | pve4 load / CPU | pve5 load / CPU | Likely cause |
+| --- | --- | --- | --- | --- |
+| 22:00 to 23:00 | 3.8 / 35% | 5.1 to 6.4 / 40 to 45% | 3.5 to 6.2 / 29% | OneDrive sync, borgmatic |
+| **23:30** | **7.7 / 51%** | **11.9 / 72%** | **5.8 / 32%** | `vzdump` of all nodes to `polina` plus borgmatic of `fiona` |
+| 00:00 and 00:30 | 4.4 / 35% | 8.5 and 7.4 / 49% | 3.7 / 28% | `polina` verify starts, backup tail |
+| 01:00 to 03:00 | 3.6 to 5.2 / 37% | 5.6 to 6.7 / 40% | 3.5 to 4.3 / 28% | quiet, `polina` verify and replication |
+| 03:30 | 4.6 / 37% | 7.9 / 48% | 4.6 / 30% | kopiur backups from the workers |
+| 04:30 | 5.6 / 37% | 8.6 / 46% | 4.5 / 30% | Longhorn backups from the workers |
+| 12:00 and 15:00 (for comparison) | 4.1 to 4.3 / 36% | **7.8 to 8.3 / 47%** | 4.6 to 6.3 / 29% | daytime baseline |
+
+- **The night is not what makes pve4 busy.** Apart from the one spike around 23:30, pve4's load at night (5.1 to 6.7) is below its daytime level (7.8 to 8.3). The monthly figure of 7.6 is mostly the daytime baseline plus that spike.
+- **The 23:30 spike is host work.** Weekly means: `polina` 0.72 cores and `fiona` 1.16 cores, but the host CPU rises to 72% on pve4 and 51% on pve1, which is more than the guests account for. `vzdump` compression and I/O run on the Proxmox host, outside any guest. It affects all three nodes because every node backs up its own guests.
+- **`fiona` is not CPU-heavy at night.** It stays at 0.2 to 0.4 cores. Its disk reads are 28 to 46 MB/s from 00:30 until at least 05:00, so the nightly cost on pve4 is mostly storage reads, not CPU.
+- **`monitoring2` is flat around the clock** at about 1.0 core (0.95 to 1.1, 1.44 at 23:30), so it adds to the baseline both day and night.
+- **The k8s backups (03:00 and 04:00) raise the load on all three nodes,** by about 2 to 3 on pve4 and about 1 on pve1 and pve5.
+- **Daytime spikes on pve4 are higher than anything at night:** the largest value in a 30-minute step is 25 around noon and 23 at 15:00. They were not attributed.
+
 ### Reading load average against host CPU
 
 The two numbers answer different questions and do not have to agree.
@@ -98,7 +133,7 @@ It is not recorded which devices are on the plug, so these numbers are not a per
 
 ## Open
 
-- **Nightly job list:** the owner will supply it; it will show which jobs run when and decides whether the night load matters.
-- **Finer load data** around 01:00 to 05:00 to see the backup peaks (week timeframe, 30-minute steps).
+- **What drives pve4's daytime load** (7.8 to 8.3 average, spikes of 23 to 25) and whether it matters for the workers' responsiveness.
+- **The exact slot of the `vzdump` spike:** the 30-minute steps cannot separate the three `vzdump` jobs and the `natascha-data` borgmatic run; a finer view (day timeframe, 1-minute steps) is needed within one week of the event.
 - **Power per node** and the electricity price, to compute the yearly cost of the current three nodes and of a permanent pve6.
 - **Whether worker peaks at 100% of allocation are page cache or real demand,** before sizing workers up or down.
