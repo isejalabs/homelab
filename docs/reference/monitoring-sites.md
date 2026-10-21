@@ -42,7 +42,7 @@ Read from the live sites with `lq` (livestatus) on 2026-10-20: `check_interval` 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `prod` | Nagios | 84 | 47 ping at 1 min, 37 `host-ok` at 1 min | 1,411 | 1,349 at 5 min (1,220 passive, 129 active), 29 at 1 min, 33 at 125 min | 84, 299 | 0.3 to 1.0, 5.3 to 6.5 |
 | `free` | Nagios | 18 | **12 ping at 1 second**, 6 ping at 1 min | 609 | 436 passive and 10 active at 5 min, **140 passive and 13 active at 1 min**, 10 at 125 min | 726, 242 | 5.8, 3.3 to 5.4 |
-| `prod_k8s` | CMC | 73 | 73 `host-ok` at 1 min | 679 | 533 at 1 min (460 passive, 73 active), 73 at 33 min, 73 at 1,440 min | 73, 535 | 1.7 to 3.0, 9.8 to 11.6 |
+| `prod_k8s` | CMC | 73 | 73 `host-ok` at 1 min | 589 (679 until 2026-10-21, see below) | 443 at 1 min (370 passive, 73 active), 73 at 33 min, 73 at 1,440 min | 73, 445 | 1.7 to 3.0, 9.8 to 11.6 (measured before the change) |
 | `core` | CMC | 22 | **Smart Ping**: 11 at 1 second, 10 at 6 seconds, 1 ping at 1 second | 636 | 478 passive and 7 active at 5 min, 125 passive and 15 active at 1 min, 11 at 125 min | 820, 237 | 13.6, 2.2 |
 | `qa_k8s` | CMC | 68 | 68 `host-ok` at 1 min | 616 | 480 at 1 min (412 passive, 68 active), 68 at 5 min, 68 at 1,440 min | 68, 494 | 3.5, 10.8 |
 | `dev_k8s` | CMC | not read (stopped) | | | | | |
@@ -60,12 +60,14 @@ All four Ultimate sites (`prod_k8s`, `core`, `qa_k8s`, `dev_k8s`) report **`Lice
 
 | Site | Services | Headroom to 750 |
 | --- | --- | --- |
-| `prod_k8s` | 679 | 71 (91% used) |
+| `prod_k8s` | 589 (679 before 2026-10-21) | 161 (79% used) |
 | `core` | 636 | 114 |
 | `qa_k8s` | 616 | 134 |
 | `dev_k8s` | not read | |
 
 The Community sites `prod` and `free` have no limit.
+
+On 2026-10-21 (22:26 to 22:39 CEST) the rule "Disabled services" (rule set `ignored_services`, folder Main, rule id `e1473dd0-5026-47e0-ab74-d906e9187ad7`) was created in `prod_k8s` for the six Kubernetes node hosts (`prod-ctrl-01` to `-03`, `prod-work-01` to `-03`, all `.home.iseja.net`) and the 15 services `CPU load`, `CPU resources`, `CPU utilization`, `Condition`, `Containers`, `Disk IO SUMMARY`, `Filesystem /`, `Info`, `Kernel Performance`, `Kubelet`, `Memory`, `Memory resources`, `Number of threads`, `Pod resources` and `Uptime` (each anchored with `$`). The same services are monitored on the same hosts in `prod` from the same piggyback source. The services of `prod_k8s` went from 679 to 589; each node keeps `Check_MK`, `Check_MK Agent`, `Check_MK Discovery` and `Check_MK HW/SW Inventory`. The services show under "Disabled services" in the host's service list; to undo, delete the rule and activate.
 
 ## Reading container memory
 
