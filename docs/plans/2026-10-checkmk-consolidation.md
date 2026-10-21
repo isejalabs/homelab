@@ -55,12 +55,13 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ### Phase 1 — `free`: intervals (configuration only)
 
-1. Change the service check interval for `free` to 5 minutes: extend the rule "Longer check interval" (id `ddadd8db-…`, condition `Check_MK$`) or add a catch-all rule for the `free` hosts. Affects 153 services (140 passive, 13 active) and lowers the scheduled executions of `free` from about 242 to about 120 per minute. Keep the existing 15-minute and 5-minute exceptions (RustFS and Longhorn rules).
-2. The rule "Normal check interval for Network Devices" (id `b308a945-…`, 1 minute for `Check_MK$` in folder `network-2`) stays at 1 minute for the network devices if the owner wants fast service feedback there; this is the owner's call.
-3. Host check interval: do not change anything for the 12 one-second hosts yet if phase 2 follows soon; otherwise set both folder rules (`1e8aad76-…` and `46616260-…`) to 1 minute as the interim state.
-4. Activate changes on `free` (through `prod`, the central site).
-5. **Verify:** `lq "GET status"` on `free` shows lower `service_checks_rate` (target below 2 per second, from 3.3 to 5.4) and, after step 3, `host_checks_rate` below 1 per second (from 5.8); the spawn rate drops; no new UNKNOWN or PEND services; the cumulative CPU of `free` falls over the next hours.
-6. **Rollback:** revert the rule changes and activate.
+Where the intervals come from (checked 2026-10-21 in the central configuration, which `free` receives from `prod`): the 153 services of `free` at 1 minute are exactly the services of the eight hosts of the folder `network-2` (`gw2` 42, `gw3` 41, `gw4` 20, `ap-kueche` 15, `ap-wozi` 15, `sw01` 8, `core-switch` 6, `gw` 2) plus the single `PING` service of each of the four hosts of `external_sites`. For the eight, the cause is the folder rule "Normal check interval for Network Devices" (id `b308a945-…`, 1 minute for `Check_MK$`): the passive services of a host follow the interval of its `Check_MK` service. The global rule "Longer check interval" (id `ddadd8db-…`, 5 minutes for `Check_MK$`) is not the one to change. The real work behind the 153 services is eight `Check_MK` runs per minute (several with SNMP walks: `sw01`, `core-switch`, the two access points), so the saving of step 1 is smaller than the service count suggests; step 2 is the large one.
+
+1. **Services to 5 minutes (owner agreed):** edit the folder rule `b308a945-…` in the folder `network-2` (rule set "Normal check interval for service checks") and set 5 minutes, or delete it so that the global 5-minute rule applies. The four `PING` services of `external_sites` stay at 1 minute (they follow the default, not the `Check_MK$` rules).
+2. **Host checks from 1 second to 1 minute:** edit the two folder rules of the rule set "Normal check interval for host checks": `1e8aad76-…` (folder `external_sites`) and `46616260-…` (folder `network-2`), both currently 1 second, and set 1 minute. `core` keeps checking the same twelve hosts with Smart Ping every second until it is retired (phase 2b), so detection speed does not drop in the meantime.
+3. Activate changes in `prod` on both sites (`prod` and `free`).
+4. **Verify:** `lq "GET status"` on `free`: `host_checks_rate` below 1 per second (from 5.8), `service_checks_rate` lower than before (from 3.3 to 5.4), the 1-minute services down from 153 to 4, no new UNKNOWN or PEND services, fewer spawned processes in a 180-second sample (1,659 before), and the cumulative CPU of `free` falling over the following hours (0.31 cores before).
+5. **Rollback:** set the three rules back to their old values (1 second, 1 second, 1 minute) and activate.
 
 ### Phase 2 — Make room in `prod_k8s`, then move the pings and retire `core`
 
