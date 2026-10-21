@@ -97,12 +97,19 @@ No `GatewayClass` resource exists in the repo — `gatewayAPI.enabled: true` mak
 
 Apps attach an `HTTPRoute` to `internal` by `parentRefs`, e.g. [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml) (already covered in [`kustomize.md`](kustomize.md) as the domain-templating example) — the same pattern repeats for `whoami`, `checkmk-agent`, `longhorn-core`'s UI, `flux-operator`'s UI, and `actualbudget`. No app in the repo currently attaches an `HTTPRoute` to `external`.
 
-**TLS** is one wildcard `Certificate` per Gateway, not per app — [`k8s/infra/gateway-api/gateway/base/cert.yaml`](../../k8s/infra/gateway-api/gateway/base/cert.yaml) issues `*.example.com` (templated to the real per-env domain), referenced by both `internal` and `external`'s `tls.certificateRefs`. The issuer ([`k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml`](../../k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml)) solves ACME DNS-01 via Cloudflare (currently pointed at **Let's Encrypt staging**, not production — worth noticing before relying on the resulting cert being trusted by real clients):
+**TLS** is one wildcard `Certificate` per Gateway, not per app — [`k8s/infra/gateway-api/gateway/base/cert.yaml`](../../k8s/infra/gateway-api/gateway/base/cert.yaml) issues `*.example.com` (templated to the real per-env domain), referenced by both `internal` and `external`'s `tls.certificateRefs`. The `cloudflare-cluster-issuer` ([base configuration](../../k8s/infra/cert-manager/cert-manager/base/cluster-issuer.yaml)) solves ACME DNS-01 via Cloudflare. Its ACME server varies by environment:
+
+| Environments | Let's Encrypt CA | ACME directory |
+| --- | --- | --- |
+| `dbg`, `head`, `poc`, `rebuild`, `src` | Staging | `acme-staging-v02.api.letsencrypt.org` |
+| `dev`, `prod`, `qa` | Production | `acme-v02.api.letsencrypt.org` |
+
+The base issuer selects staging; `dev`, `prod`, and `qa` override it in their environment overlays. Certificates from staging are not trusted by real browsers/clients. The environment-specific overrides are in [`k8s/infra/cert-manager/cert-manager/envs/`](../../k8s/infra/cert-manager/cert-manager/envs/).
 
 ```yaml
 spec:
   acme:
-    server: https://acme-staging-v02.api.letsencrypt.org./directory
+    server: https://acme-staging-v02.api.letsencrypt.org./directory  # base; some envs override
     solvers:
       - dns01:
           cloudflare:
@@ -175,5 +182,5 @@ Everything in this section is physical infrastructure with no representation in 
 ## What's not here
 
 - **No WAN-facing ingress path.** The `external` Gateway exists (and gets its own LB IP and cert), but no `HTTPRoute` in the repo attaches to it, and there's no Cloudflare Tunnel or other public-ingress mechanism anywhere in `k8s/`. Cloudflare's only confirmed role is DNS-01 certificate issuance. Whether `external`'s LB IP is NAT'd/port-forwarded to the internet at OPNsense is a router-config question outside this repo either way.
-- **ACME staging, not production** — the `ClusterIssuer` currently points at Let's Encrypt's staging endpoint, so certificates it issues won't be trusted by real browsers/clients until that's switched over.
+- **ACME staging in five environments** — `dbg`, `head`, `poc`, `rebuild`, and `src` issue untrusted staging certificates. The `dev`, `prod`, and `qa` overlays use Let's Encrypt production.
 - **The physical network itself (OPNsense, UCS, the root nameservers) isn't in Git** — everything in the section above is documented from IP references found in-cluster, not from any config this repo actually owns, and most of it is itself a future Kubernetes-migration candidate.
