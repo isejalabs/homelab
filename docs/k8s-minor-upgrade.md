@@ -16,7 +16,7 @@ Rules that apply throughout:
 
 - **One minor at a time.** Never skip a minor (`1.34` → `1.36`); kubelet may lag the API server by the [version skew policy](https://kubernetes.io/releases/version-skew-policy/) but the upgrade path is still minor by minor.
 - **Order: non-prod first, `qa` immediately before `prod`.** Rolling out `prod` without a clean `qa` is not an option.
-- **`prod` and `qa` apply from `main`** — except the staged-upgrade exception in [`AGENTS.md`](../AGENTS.md), which this procedure uses (see [step 3](#3-upgrade-one-environment)).
+- **Apply from `main`, and merge close to the upgrade.** A Kubernetes minor is one imperative `talosctl upgrade-k8s` followed by one declarative reconcile, so the staged-upgrade exception in [`AGENTS.md`](../AGENTS.md) (it exists to avoid one PR per node in a node-by-node Talos rollout) is not needed. Merge the PR right after a clean dry run, run `upgrade-k8s`, then `terragrunt apply` **from `main`** (a reconcile that only records what `upgrade-k8s` already did). Never apply before `upgrade-k8s` has finished, because the machine-config change would update all nodes at once, which the imperative rolling upgrade exists to avoid. Order: dry run clean, merge, `upgrade-k8s`, apply from `main`, verify.
 - Do not start a Kubernetes minor upgrade in the middle of a Talos upgrade (the two are decoupled on purpose, see [`node-lifecycle.md`](node-lifecycle.md#1-talos-os-upgrade)).
 
 ## 1. Compatibility check
@@ -54,8 +54,8 @@ Then check what the new version removes or changes — this is independent of th
 
 ## 2. Plan the pin and the rollout
 
-1. **Open a tracking issue** (`chore: upgrade Kubernetes to <minor>`) with the compatibility table from step 1 filled in. Branch and PR names follow [`AGENTS.md`](../AGENTS.md) (`issue/<n>_<slug>`, `Closes #<n>`).
-2. **Lift the Renovate pin** in [`pin-versions.json5`](../.github/renovate/pin-versions.json5), in its own PR, once the compatibility check is clean:
+1. **Open an umbrella issue** (`chore(k8s): roll out Kubernetes <minor> to all environments`) with the compatibility table from step 1 filled in, and one **sub-issue per environment** linked as real GitHub sub-issues (example: [isejalabs/homelab#1798](https://github.com/isejalabs/homelab/issues/1798)). The umbrella is the memory of which environments are still open; Renovate PRs are not a substitute, because they carry neither the procedure nor the order. Branch and PR names follow [`AGENTS.md`](../AGENTS.md) (`issue/<n>_<slug>`, `Closes #<n>`).
+2. **Raise the Renovate pin** in [`pin-versions.json5`](../.github/renovate/pin-versions.json5), in its own PR. **When:** after the compatibility check, including Checkmk, has been verified on the first non-prod environment, and at the latest before `prod` starts; the pin exists because of Checkmk, so that verification is its expiry condition. Raise it by one minor (never remove it): that bounds any mishap (a broken merge setup) to a version already verified, and nothing is applied automatically anyway:
    - `keep kubernetes at an older version due to checkmk` — raise `allowedVersions` (`<=1.34` → `<=1.35`).
    - `allow latest versions of kubernetes for HEAD and PoC` — raise the floor to match (`>=1.34` → `>=1.35`).
    - Update the matching row in [`update-handling.md`](update-handling.md#non-standard-update-strategies) and, if the pin reason changed (e.g. Checkmk now supports it), the rule `description`.
@@ -77,8 +77,10 @@ Then check what the new version removes or changes — this is independent of th
 
 The upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kubernetes-version-upgrade): `talosctl upgrade-k8s`, then reconcile `cluster.kubernetes_version` with `terragrunt apply`. The notes below are what that section does not cover, taken from the `prod` `1.34.6` → `1.34.11` rollout (see [#1747](https://github.com/isejalabs/homelab/issues/1747)).
 
-- **Use one upgrade branch per environment for `qa` and `prod`**, applied from the branch and squash-merged into `main` once converged, exactly as in [`node-lifecycle.md`](node-lifecycle.md#staging-a-multi-step-upgrade-on-one-branch). Everything else follows [`AGENTS.md`](../AGENTS.md).
+- **One PR per environment** (`issue/<n>_<slug>`, `Closes #<n>`), merged and applied from `main` as described under [Scope](#scope). The PR only records the target version and what was verified; do not gate its merge on post-upgrade results (backups, Checkmk), those gate the *next* environment.
+- **`scripts/upgrade-k8s.sh` is not used here.** It has no environment argument and upgrades whichever cluster `find` picks; its `K8S_VERSION` is also the schema version CI validates manifests against. Its future is tracked in the umbrella issue.
 - **Talos access**: use the named contexts in `~/.talos/config` (`prod-homelab`, `qa-homelab`, ...) with an explicit `--context`, rather than changing the current context. Check `talosctl config contexts` first; if the environment is missing, merge its talosconfig as described in [`terragrunt/README.md`](../terragrunt/README.md#talosconfig).
+- **Fresh restore point before the first node**: `just backup::longhorn-snapshot::create --all -A -e <env>` (manual snapshot of every Longhorn volume; delete them after the soak, see [`longhorn-snapshots.md`](longhorn-snapshots.md)) and `just backup::kopiur::create <app> -e <env> -n <ns>` for each stateful app, waiting for `Succeeded`. A kopiur snapshot can hang in `Running` when its mover pod lands on another node than the strict-local staged volume ([isejalabs/homelab#1797](https://github.com/isejalabs/homelab/issues/1797)): delete that `Snapshot` and trigger a new one. If `unifi-mongodb` fails with `PermissionDenied`, see [isejalabs/homelab#1794](https://github.com/isejalabs/homelab/pull/1794) (`mongosh` must not run as root).
 - **Pre-flight, every environment**:
   ```sh
   talosctl --context <env>-homelab -n <ctrl-ip> health \
@@ -137,7 +139,7 @@ Then per area, in this order (platform first, apps last):
 | Flux | `flux get ks -A` and `flux get hr -A` all `Ready`; nothing stuck `Reconciling` | [`troubleshooting-flux.md`](troubleshooting-flux.md) |
 | Storage | all Longhorn volumes `Healthy`; a PVC binds and mounts; a snapshot works | [`troubleshooting-storage.md`](troubleshooting-storage.md), [`longhorn-snapshots.md`](longhorn-snapshots.md) |
 | Secrets & certs | `ExternalSecret`s `SecretSynced`; `Certificate`s `Ready` | — |
-| Backups | a kopiur `SnapshotSchedule` ran after the upgrade; a restore dry-run for one app | [`kopiur-backup-restore.md`](kopiur-backup-restore.md) |
+| Backups | the first scheduled kopiur backup after the upgrade succeeded for every stateful app, plus a restore dry-run for one app. A failure is a gate for the next environment, not for merging this PR | [`kopiur-backup-restore.md`](kopiur-backup-restore.md) |
 | Monitoring | before/after comparison of services and agent sections ([see below](#checkmk-what-supported-means-and-how-to-test-it)); `checkmk-agent` pods Ready | Checkmk UI |
 | Apps | each user-facing app responds; stateful apps (databases) have no restart loops | [`architecture/workloads.md`](architecture/workloads.md) |
 
@@ -168,7 +170,7 @@ Repeat steps 3 and 4 for the next row of the table in [step 2](#2-plan-the-pin-a
 
 ## 6. Close out
 
-- Merge each environment's upgrade branch (squash) and make sure the Renovate PRs for those environments are closed or superseded.
+- Make sure the PR of each environment was squash-merged (right after its dry run, before the upgrade), and that the Renovate PRs for those environments are closed or superseded.
 - Update docs that state the Kubernetes version or pin: [`update-handling.md`](update-handling.md#non-standard-update-strategies), [`reference/environments.md`](reference/environments.md), and anything else that `git grep` finds for the old minor.
 - Note in the tracking issue the final versions per environment and any component you had to upgrade first.
 - If you hit something not covered here, add it to this runbook in the same PR.
