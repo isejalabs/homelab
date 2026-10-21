@@ -119,7 +119,12 @@ The 2-step upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kuber
   talosctl --context <env>-homelab -n <all-node-ips> get kubeletspec -o yaml | grep -E '^node:|image:'
   ```
 - **Plan before apply, and read it.** In a fresh checkout the plan also shows `local_file` outputs as new (the local cache is empty) — that is noise. What must appear is one in-place `talos_machine_configuration_apply` per node and nothing else you did not expect.
-  - If it shows unrelated drift (for example Flux labels/annotations being stripped from a namespace by the bootstrap module), do **not** apply that: use `-exclude=module.<name>` for the unrelated module and note the drift in the PR.
+  - If it shows unrelated drift, do **not** apply that: use `-exclude=module.<name>` for the unrelated module and note the drift in the PR. The usual case in every `vehagn-k8s` environment is the bootstrap modules stripping the Flux labels/annotations (`kustomize.toolkit.fluxcd.io/*`) from the `csi-proxmox` and `sealed-secrets` namespaces, so plan and apply with both excluded:
+    ```sh
+    terragrunt plan -exclude=module.proxmox_csi_plugin -exclude=module.sealed_secrets -out=<scratch>/plan.tfplan
+    terragrunt apply <scratch>/plan.tfplan
+    ```
+    This also makes the gitignored sealed-secrets cert/key unnecessary in a fresh `main` checkout (see [Known issues](#known-issues)). Do not copy them in or generate a new keypair just for this, a different keypair than the live one breaks every `SealedSecret`.
   - A saved plan (`-out=...`) applied afterwards guarantees what you reviewed is what runs.
 - **After the apply, `terragrunt plan` must come back clean** (apart from any excluded drift). A non-empty plan means the cluster and state disagree.
 
@@ -216,4 +221,4 @@ For an agent-driven rollout (for example with Claude Code):
 - **Flux Kustomization stuck on "Reconciliation in progress" after the control plane restarted.** On a single-control-plane environment (`qa`, `dev`, ...) the kube-apiserver is briefly gone during the upgrade. A Kustomization that was mid-reconcile can fail with `failed to update status: timed out waiting for the condition` and then sit in `Reconciling`/`Unknown` with its next retry an hour away, and its dependants stay `dependency not ready`. Nothing is wrong with the cluster: request a normal reconcile (`kubectl annotate ks <name> -n flux-system reconcile.fluxcd.io/requestedAt="$(date +%s)" --overwrite`) and re-check `kubectl get ks,hr -A`.
 - **`zsh` does not word-split `$VAR`**, so `T="--context x -n y"; talosctl $T ...` fails with a usage error; spell the flags out when scripting from zsh.
 - **`talosctl health` reports "unexpected nodes"** when only `--control-plane-nodes` is passed and the cluster has workers. Pass `--worker-nodes` too.
-- **Terragrunt plan fails on missing `sealed-secrets.cert`/`.key`** in a fresh worktree: those gitignored files live only in the main checkout (`.../vehagn-k8s/assets/sealed-secrets/certificate/`). Plan from a checkout that has them, or exclude the sealed-secrets module for the plan.
+- **Terragrunt plan fails on missing `sealed-secrets.cert`/`.key`** in a fresh worktree: those gitignored files live only in the main checkout (`.../vehagn-k8s/assets/sealed-secrets/certificate/`). Exclude `module.sealed_secrets` (and `module.proxmox_csi_plugin`, for the same namespace drift) as described under [Plan before apply](#3-upgrade-one-environment), or scope the command with `-target=module.talos`; both were verified to plan without the files. Do not generate a new keypair.
