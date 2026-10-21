@@ -76,7 +76,7 @@ inputs = {
     ]
     gateway                      = "10.7.8.1"
     gateway_api_version          = local.gateway_api_version
-    kubernetes_version           = "v1.34.11" # renovate: github-releases=kubernetes/kubernetes
+    kubernetes_version           = "v1.35.9" # renovate: github-releases=kubernetes/kubernetes
     kubelet                      = <<-EOT
       extraArgs:
         # https://www.talos.dev/v1.11/kubernetes-guides/configuration/deploy-metrics-server/
@@ -187,6 +187,10 @@ inputs = {
     {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
+    },
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/zigbee-coordinator-udev.yaml"
+      machine_type = "worker"
     },
   ]
 

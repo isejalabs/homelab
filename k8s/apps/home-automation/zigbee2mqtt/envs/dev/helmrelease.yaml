@@ -1,0 +1,13 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: zigbee2mqtt
+spec:
+  values:
+    defaultPodOptions:
+      nodeSelector:
+        kubernetes.io/hostname: dev-work-01.test.iseja.net
+    route:
+      main:
+        hostnames:
+          - dev-zigbee2mqtt.dev.iseja.net

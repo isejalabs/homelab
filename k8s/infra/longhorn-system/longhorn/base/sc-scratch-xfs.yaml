@@ -1,5 +1,5 @@
 # xfs counterpart to longhorn-scratch-ext4, for staging snapshots of source
-# data that lives on an xfs-backed class (longhorn-xfs, longhorn-fast, longhorn-ha).
+# data that lives on an xfs-backed class (longhorn-xfs).
 # See longhorn-scratch-ext4 for the full rationale; identical parameters otherwise.
 apiVersion: storage.k8s.io/v1
 kind: StorageClass
@@ -18,8 +18,8 @@ parameters:
   # VolumeSnapshot restore is a raw block-level copy, not a reformat, so
   # mounting it with a different fsType than the source fails outright
   # ("wrong fs type, bad superblock"). Use this class only for staging
-  # snapshots of xfs-backed sources (longhorn-xfs/longhorn-fast/longhorn-ha);
-  # use longhorn-scratch-ext4 for ext4-backed sources (longhorn-standard/longhorn-ext4).
+  # snapshots of xfs-backed sources (longhorn-xfs);
+  # use longhorn-scratch-ext4 for ext4-backed sources (all other classes).
   fsType: xfs
 
   # No redundancy: skips replica sync entirely, halving write overhead.

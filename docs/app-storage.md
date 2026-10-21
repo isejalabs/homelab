@@ -22,7 +22,7 @@ All variables below are `${VAR:=default}`-style placeholders, resolved via Flux'
 
 ## Storage classes
 
-The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/ `longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance tradeoffs -- are documented once, as the canonical reference, in [`docs/architecture/storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles); not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine which one to pick -- `longhorn-xfs`/`longhorn-fast`/`longhorn-ha` are all xfs-backed but trade off durability/performance differently, so picking one is still a deliberate choice, not something derived automatically from "I want xfs."
+The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/ `longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance tradeoffs -- are documented once, as the canonical reference, in [`docs/architecture/storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles); not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine which one to pick -- `longhorn-xfs` is the only xfs-backed class (every other class is ext4); `longhorn-fast`/`longhorn-ha` trade off durability/performance differently, so picking one is still a deliberate choice.
 
 Two more classes exist purely for the backup mover's disposable staging PVC (`STORAGE_STAGING_CLASS`) -- not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. Both are fast, single-replica, `strict-local`, differing only in filesystem:
 
@@ -35,7 +35,7 @@ Two more classes exist purely for the backup mover's disposable staging PVC (`ST
 
 `STORAGE_STAGING_CLASS` must match `STORAGE_CLASS`'s filesystem, or the mover fails at mount time ("wrong fs type, bad superblock") -- a `VolumeSnapshot` restore is a raw block-level copy, not a reformat. Unlike the primary class, staging only comes in two flavors (both single-replica, strict-local, disposable, differing purely in `fsType`), so the rule is simple:
 
-- `STORAGE_CLASS` is `longhorn-standard`/`longhorn-ext4` (ext4, the default) -> leave `STORAGE_STAGING_CLASS` at its default (`longhorn-scratch-ext4`).
-- `STORAGE_CLASS` is `longhorn-xfs`/`longhorn-fast`/`longhorn-ha` (xfs) -> override `STORAGE_STAGING_CLASS` to `longhorn-scratch-xfs`.
+- `STORAGE_CLASS` is `longhorn-standard`/`longhorn-ext4`/`longhorn-fast`/`longhorn-ha` (ext4, the default) -> leave `STORAGE_STAGING_CLASS` at its default (`longhorn-scratch-ext4`).
+- `STORAGE_CLASS` is `longhorn-xfs` (the only xfs-backed class) -> override `STORAGE_STAGING_CLASS` to `longhorn-scratch-xfs`.
 
 This only matters for apps using `apps/storage/pvc` (active backup) -- an app on `pvc-no-backup` never runs the mover, so an unmatched pairing there is inert.

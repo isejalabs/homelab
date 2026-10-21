@@ -5,7 +5,8 @@ metadata:
 allowVolumeExpansion: true
 parameters:
   dataLocality: strict-local
-  fsType: xfs
+  # ext4 by policy — longhorn-xfs is the only class that should use xfs
+  fsType: ext4
   numberOfReplicas: "1"
   # When true, improves write performance but reduces consistency guarantees during failures
   revisionCounterDisabled: "true"

@@ -49,14 +49,14 @@
     },
     {
       description: 'keep kubernetes at an older version due to checkmk',
-      allowedVersions: '<=1.34',
+      allowedVersions: '<=1.35',
       matchPackageNames: [
         'kubernetes/kubernetes',
       ],
     },
     {
       description: 'allow latest versions of kubernetes for HEAD and PoC environment, i.e. like "latest" updates',
-      allowedVersions: '>=1.34',
+      allowedVersions: '>=1.35',
       matchPackageNames: [
         'kubernetes/kubernetes',
       ],

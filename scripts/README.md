@@ -94,9 +94,3 @@ Run manually (needs 1Password and network access to the RustFS, so not for CI) â
 | [`rustfs-verify-monitoring.sh`](rustfs-verify-monitoring.sh) | verifies one environment's `<env>-checkmk-monitoring` identity reads quota of its own buckets and is denied everything else (non-mutating) |
 
 Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and unrecognized-flag handling.
-
-## Cluster maintenance
-
-| Script | Purpose |
-| --- | --- |
-| [`upgrade-k8s.sh`](upgrade-k8s.sh) | upgrades the Kubernetes version on an already-provisioned Talos cluster in place |

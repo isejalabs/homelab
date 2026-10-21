@@ -6,9 +6,9 @@ status: current
 
 ## Overview
 
-[#1746](https://github.com/isejalabs/homelab/issues/1746): a `just backup::longhorn-snapshot::*` recipe set (`list`/`create`/`restore`, in `scripts/longhorn-snapshot.just`) for Longhorn's own local volume snapshots -- the ones the `hourly-snapshot` and `daily-backup` `RecurringJob`s create for every volume (`k8s/infra/longhorn-system/longhorn/base/job-*.yaml`), plus manual ones. This is the only protection in environments without a kopiur backup schedule (e.g. `dev` for apps not on `apps/storage/pvc`); for kopiur-backed apps see [`kopiur-backup-restore.md`](kopiur-backup-restore.md). Snapshots live on the same Longhorn volume as the data, so they protect against bad writes and mistakes, not against losing the volume or the cluster.
+[#1746](https://github.com/isejalabs/homelab/issues/1746): a `just backup::longhorn-snapshot::*` recipe set (`list`/`create`/`restore`, in `scripts/longhorn-snapshot.just`) for Longhorn's own local volume snapshots -- the ones the `hourly-snapshot` `RecurringJob` creates for every volume (`k8s/infra/longhorn-system/longhorn/base/job-snapshot.yaml`), plus manual ones. This is the only protection in environments without an active kopiur backup schedule; for kopiur-backed apps see [`kopiur-backup-restore.md`](kopiur-backup-restore.md). Snapshots live on the same Longhorn volume as the data, so they protect against bad writes and mistakes, not against losing the volume or the cluster.
 
-**Retention matters for choosing a snapshot**: `hourly-snapshot` keeps 24 snapshots, i.e. about the last 24 hours at hourly granularity (plus the `daily-backup` one). Unlike kopiur backups there is no day-based history, so snapshots are picked by exact timestamp, not by day.
+**Retention matters for choosing a snapshot**: `hourly-snapshot` keeps 24 snapshots, i.e. about the last 24 hours at hourly granularity. Unlike kopiur backups there is no day-based history, so snapshots are picked by exact timestamp, not by day.
 
 `<app>` is the PVC name, as for the kopiur recipes. `-e/--environment` is optional for `list`/`create` (defaults to the current kubecontext) and required for `restore`.
 
