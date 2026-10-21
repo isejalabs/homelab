@@ -2,7 +2,7 @@
 
 ## Status
 
-planning
+superseded by [0017](0017-keycloak-identity-provider.md)
 
 ## Context
 
