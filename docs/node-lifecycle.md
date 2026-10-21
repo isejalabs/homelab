@@ -71,6 +71,8 @@ This is sanctioned as the one standing exception to [AGENTS.md's apply-from-`mai
 
 ## 2. Kubernetes version upgrade
 
+> Moving to the next **minor** (e.g. `1.34` → `1.35`)? Follow [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) — it covers the compatibility checks, the Renovate pin and the staged rollout around the steps below.
+
 Separate from the Talos OS version, and recommended after every Talos OS upgrade to keep the two aligned (check the [Talos/Kubernetes support matrix](https://docs.siderolabs.com/talos/v1.12/getting-started/support-matrix) first — not every Talos version supports every Kubernetes version). There's no per-node `update` flag for this one; a hybrid imperative-then-declarative approach is used instead, so the rollout is a real rolling upgrade rather than every node upgrading its Kubernetes components in parallel (which would make the control plane briefly unresponsive):
 
 1. Get talosconfig access if you don't already have it (see [`terragrunt/README.md#talosconfig`](../terragrunt/README.md#talosconfig)), then run the rolling upgrade itself from any control-plane node:
