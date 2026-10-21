@@ -16,9 +16,9 @@ SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # a real problem with our manifests, so its schema validation is skipped rather than worked around.
 SKIP_KINDS='SealedSecret'
 
-# Read from upgrade-k8s.sh (the single source of truth for the cluster's target k8s version) rather than
-# duplicating the version number here, so the two never drift out of sync.
-K8S_VERSION=$(sed -n 's/^K8S_VERSION="\([^"]*\)".*/\1/p' scripts/upgrade-k8s.sh)
+# Kubernetes version the manifests are validated against (kubeconform schemas). Keep it at the version the
+# clusters run (bumped by Renovate, see the pin in .github/renovate/pin-versions.json5).
+K8S_VERSION="1.35.9" # renovate: github-releases=kubernetes/kubernetes
 
 # Listed into a file rather than piped into the while loop below, so the loop runs in the
 # current shell (not a subshell) and `status` set inside it is still visible at `exit $status`.

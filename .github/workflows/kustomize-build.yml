@@ -28,7 +28,6 @@ jobs:
           - ".mise.toml"
           - "mise.lock"
           - "scripts/kustomize-build-all.sh"
-          - "scripts/upgrade-k8s.sh" # K8S_VERSION single source of truth, read by kustomize-build-all.sh
           - "scripts/lib/common.sh"
           - ".github/workflows/kustomize-build.yml"
 
