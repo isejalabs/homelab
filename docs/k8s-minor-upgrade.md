@@ -4,7 +4,7 @@ status: current
 
 # Runbook: Kubernetes minor version upgrade
 
-**On this page:** [Scope](#scope) · [1. Compatibility check](#1-compatibility-check) · [2. Plan the pin and the rollout](#2-plan-the-pin-and-the-rollout) · [3. Upgrade one environment](#3-upgrade-one-environment) · [4. Verify](#4-verify) · [5. Roll on to the next environment](#5-roll-on-to-the-next-environment) · [6. Close out](#6-close-out) · [Known issues](#known-issues)
+**On this page:** [Scope](#scope) · [Which method per environment](#which-method-per-environment) · [1. Compatibility check](#1-compatibility-check) · [2. Plan the pin and the rollout](#2-plan-the-pin-and-the-rollout) · [3. Upgrade one environment](#3-upgrade-one-environment) · [4. Verify](#4-verify) · [5. Roll on to the next environment](#5-roll-on-to-the-next-environment) · [6. Close out](#6-close-out) · [Working with an agent](#working-with-an-agent) · [Known issues](#known-issues)
 
 How to move the fleet from one Kubernetes **minor** (e.g. `1.34` → `1.35`) — the part around the actual upgrade command: what to check first, how to change the Renovate pin, in which order to roll environments, and what to verify afterwards. The mechanics of upgrading one cluster (`talosctl upgrade-k8s`, then `terragrunt apply`) are in [`node-lifecycle.md`](node-lifecycle.md#2-kubernetes-version-upgrade) and are not repeated here. A *patch* bump (`1.34.6` → `1.34.11`) needs only that section, not this runbook.
 
@@ -16,8 +16,33 @@ Rules that apply throughout:
 
 - **One minor at a time.** Never skip a minor (`1.34` → `1.36`); kubelet may lag the API server by the [version skew policy](https://kubernetes.io/releases/version-skew-policy/) but the upgrade path is still minor by minor.
 - **Order: non-prod first, `qa` immediately before `prod`.** Rolling out `prod` without a clean `qa` is not an option.
-- **Apply from `main`, and merge close to the upgrade.** A Kubernetes minor is one imperative `talosctl upgrade-k8s` followed by one declarative reconcile, so the staged-upgrade exception in [`AGENTS.md`](../AGENTS.md) (it exists to avoid one PR per node in a node-by-node Talos rollout) is not needed. Merge the PR right after a clean dry run, run `upgrade-k8s`, then `terragrunt apply` **from `main`** (a reconcile that only records what `upgrade-k8s` already did). Never apply before `upgrade-k8s` has finished, because the machine-config change would update all nodes at once, which the imperative rolling upgrade exists to avoid. Order: dry run clean, merge, `upgrade-k8s`, apply from `main`, verify.
+- **Apply from `main`, and merge close to the upgrade.** A Kubernetes minor is one imperative `talosctl upgrade-k8s` followed by one declarative reconcile, so the staged-upgrade exception in [`AGENTS.md`](../AGENTS.md) (it exists to avoid one PR per node in a node-by-node Talos rollout) is not needed. Merge the PR right after a clean dry run, run `upgrade-k8s`, then `terragrunt apply` **from `main`** (a reconcile that only records what `upgrade-k8s` already did). In the 2-step method never apply before `upgrade-k8s` has finished, because the machine-config change would update all nodes at once, which the imperative rolling upgrade exists to avoid. Order: dry run clean, merge, `upgrade-k8s`, apply from `main`, verify. Which environments use which method: [next section](#which-method-per-environment).
 - Do not start a Kubernetes minor upgrade in the middle of a Talos upgrade (the two are decoupled on purpose, see [`node-lifecycle.md`](node-lifecycle.md#1-talos-os-upgrade)).
+
+## Which method per environment
+
+Two methods exist. **2-step**: `talosctl upgrade-k8s` (rolling, one node at a time), then `terragrunt apply` from `main` to record it. **1-step**: merge the PR, then `terragrunt apply` from `main` only; Talos updates the nodes from the new machine config, with no separate rolling step.
+
+| Environment | Method | Why |
+| --- | --- | --- |
+| `prod` | 2-step | HA (3 control planes). The rolling step is what keeps the API available; applying alone could restart all three API servers at about the same time (not verified, and not something to test on `prod`) |
+| `qa` | 2-step | The rehearsal for `prod`: if it uses another procedure, a clean `qa` says little about `prod`. Its topology (1 control plane + 3 workers) is the same as `dev`'s, so the reason is purpose, not danger |
+| `dev`, `rebuild`, `src`, `dbg` (and `poc`, `head`) | 1-step | One control plane, so the API server restarts either way, and the cost of breaking it is a rebuild |
+
+Evidence for the 1-step method so far: one run, `dev` on 2026-10-21 ([isejalabs/homelab#1812](https://github.com/isejalabs/homelab/pull/1812)). All 4 nodes were on v1.35.9 within about 3 minutes, one worker lagged by about a minute, and the plan afterwards was clean. That is one clean run, not proof; API availability during the apply was not measured. Revisit this table if a 1-step run ever goes wrong.
+
+How to choose when an environment is not listed: **Is it HA? Is it a rehearsal for `prod`? What does a rebuild cost?** If in doubt, or if the environment holds data you cannot recreate, use 2-step.
+
+The 1-step method still needs: a health check before (nodes Ready, Flux, no failing pods), `terragrunt plan` from `main` limited to the machine-config updates, and afterwards nodes on the new version, a clean second plan, Flux Ready and no new failing pods. A restore point and the Checkmk before/after comparison are for environments with data or monitoring you care about.
+
+### Environments that may not be running (on-demand)
+
+After merging a version bump, check read-only whether the cluster is running, then:
+
+- **Running:** apply from `main` (1-step) so the live cluster does not drift from git.
+- **Not running (shut down):** never start it on your own. Ask the owner, with these options: start it and apply; leave it (git is already correct, so the next start applies from `main`; only a cluster that is not running differs); delete it as housekeeping; skip.
+- **Does not exist (destroyed):** nothing to do, a bump in git is enough because the next create uses the new version.
+- **`rebuild`:** always ask, because a rebuild may be in progress and cannot be told from outside.
 
 ## 1. Compatibility check
 
@@ -75,7 +100,7 @@ Then check what the new version removes or changes — this is independent of th
 
 ## 3. Upgrade one environment
 
-The upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kubernetes-version-upgrade): `talosctl upgrade-k8s`, then reconcile `cluster.kubernetes_version` with `terragrunt apply`. The notes below are what that section does not cover, taken from the `prod` `1.34.6` → `1.34.11` rollout (see [#1747](https://github.com/isejalabs/homelab/issues/1747)).
+The 2-step upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kubernetes-version-upgrade): `talosctl upgrade-k8s`, then reconcile `cluster.kubernetes_version` with `terragrunt apply` (for the 1-step environments see [Which method per environment](#which-method-per-environment)). The notes below are what that section does not cover, taken from the `prod` `1.34.6` → `1.34.11` rollout (see [#1747](https://github.com/isejalabs/homelab/issues/1747)).
 
 - **One PR per environment** (`issue/<n>_<slug>`, `Closes #<n>`), merged and applied from `main` as described under [Scope](#scope). The PR only records the target version and what was verified; do not gate its merge on post-upgrade results (backups, Checkmk), those gate the *next* environment.
 - **`scripts/upgrade-k8s.sh` is not used here.** It has no environment argument and upgrades whichever cluster `find` picks; its `K8S_VERSION` is also the schema version CI validates manifests against. Its future is tracked in the umbrella issue.
@@ -174,6 +199,16 @@ Repeat steps 3 and 4 for the next row of the table in [step 2](#2-plan-the-pin-a
 - Update docs that state the Kubernetes version or pin: [`update-handling.md`](update-handling.md#non-standard-update-strategies), [`reference/environments.md`](reference/environments.md), and anything else that `git grep` finds for the old minor.
 - Note in the tracking issue the final versions per environment and any component you had to upgrade first.
 - If you hit something not covered here, add it to this runbook in the same PR.
+
+## Working with an agent
+
+For an agent-driven rollout (for example with Claude Code):
+
+- **The state lives in the umbrella and sub-issues, not in the chat.** The agent reads them and the live cluster and re-verifies; it does not trust a brief or a remembered number.
+- **One fresh session per environment**, briefed with the umbrella, the environment's sub-issue and this runbook. Every turn re-processes the whole conversation, so a long session gets expensive: with about 500k tokens of context, a small dev bump of roughly 20 tool calls used about 4 points of the 5-hour limit. Keep one session only for tightly coupled steps of a single environment.
+- **Pick the follow-up method by need:** a fork for a noisy side investigation (it inherits the history, so it costs as much per turn as the parent); a handover document (issue or PR) for multi-day or multi-environment work; compact only after exact values (IDs, snapshot names, Checkmk baselines) are saved in an issue or file.
+- **Persist baselines and decisions outside the chat**: the Checkmk before-snapshot, the restore point names and the pre-flight triage belong in the sub-issue or PR.
+- **The agent never starts a shut-down cluster, and asks about `rebuild`** (see above).
 
 ## Known issues
 
