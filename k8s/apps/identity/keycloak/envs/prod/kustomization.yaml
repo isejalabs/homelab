@@ -32,7 +32,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/dataFrom/0/extract/key
-        value: keycloak-db-backup#prod
+        value: keycloak-db#prod
     target:
       kind: ExternalSecret
       name: keycloak-db-backup
