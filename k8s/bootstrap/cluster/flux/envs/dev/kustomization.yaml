@@ -6,4 +6,4 @@ components:
 
 resources:
   - ../../sets/minimal
-  - ../../sets/identity
+  - ../../sets/qa-soaking

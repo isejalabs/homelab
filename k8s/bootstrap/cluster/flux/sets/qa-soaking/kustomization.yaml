@@ -4,7 +4,9 @@ kind: Kustomization
 
 namespace: flux-system
 
-# Keycloak and its database, only registered by the environments that run an instance (see envs/<env>/)
+# Units that soak in qa before they go to prod. Deliberately not part of ../kustomization.yaml (which prod
+# includes via ../../sets): only the envs that name this set get these units. To promote a unit to prod,
+# move its line to the matching infra/apps set. Currently: Keycloak and its database (#1826).
 resources:
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
   - ../../../../../infra/cnpg-system/plugin-barman-cloud/flux
