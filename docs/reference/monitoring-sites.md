@@ -62,3 +62,14 @@ Tracking: [#1843](https://github.com/isejalabs/homelab/issues/1843). Read-only i
 - **RRDs are not the cause.** Their files have a fixed size once created.
 
 Handling of the trend alarm while this is open: if the `Filesystem /` trend drops to WARN it is acknowledged to take it off the dashboard; if it stays CRIT it stays visible for active monitoring. This is specific to #1843, not a general rule; acknowledgement handling is decided in [#71](https://github.com/isejalabs/homelab/issues/71).
+
+### Cleanup applied on 2026-10-22
+
+Applied on both containers: `apt-get clean` and removal of the `apt` package caches; journald vacuumed to 30 MB; Nagios archive files dated before 2025-10-22 deleted (752 in `core`, 752 in `free`, 4022 in `prod`); `licensing.log` truncated in every Ultimate site.
+
+| Container | Used before | Used after |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | 3.6 GiB (33 %) |
+| `monitoring2` | 6.2 GiB (56 %) | 5.7 GiB (52 %) |
+
+The gain is smaller than the file sizes suggest because ZFS compresses the logs. RRDs, core history, WATO audit logs and WATO snapshots were left alone. The `licensing.log` files regrow, so this is a one-off, not a retention setting. The trend state after the cleanup is not recorded yet.
