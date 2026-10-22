@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-10-22. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on 2026-10-19. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -45,3 +45,20 @@ Proxmox reports a container's memory as the cgroup's `memory.current` minus its 
 | `anon` + `shmem` at the first OOM kill (20:13:48) | about 7.9 GiB (98 %) |
 
 Neither figure is a good alarm threshold on its own: the OOMs came from a short spike on top of the idle level, shorter than the 1-minute RRD resolution.
+
+## Root filesystem growth
+
+Tracking: [#1843](https://github.com/isejalabs/homelab/issues/1843). Read-only investigation on 2026-10-22 after Checkmk reported `Filesystem /` on both containers as CRIT ("full in about 30 days"). Root is an 11 GiB ZFS subvolume on each container.
+
+| Container | Used (2026-10-22) | Steady growth since the upgrade settled |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | about 3 MB/day |
+| `monitoring2` | 6.2 GiB (56 %) | about 35–45 MB/day, so roughly 4 months of headroom |
+
+- **The trend alarm mostly measures one-off steps, not steady growth.** The daily `fs_used` history shows jumps on 2026-10-02 and 2026-10-11 and drops on 2026-10-12 and 2026-10-19 (the `omd update` to 2.5.0p15). The "+3.3 / +4.4 GiB per 21 days" figures come from that window and cannot be reproduced as sustained growth. The alarm should clear once the window has moved past the upgrade.
+- **Where the space is.** Checkmk 2.5 itself takes 2.3 GiB on `monitoring2` and 1.3 GiB on `monitoring1`. The old 2.4 versions are already gone, so `omd cleanup` has nothing to remove. Site data takes 2.2 GiB on `monitoring2` and 1.1 GiB on `monitoring1`.
+- **Historical data that does not need to stay.** The Nagios log archive (`var/nagios/archive`, daily files back to 2015) is about 388 MB in `prod` and about 355 MB of files older than a year in each of `free` and `core`. The `licensing.log` of the Ultimate sites is 33–38 MB each. `apt` caches take 62 MB and journald 111 MB on `monitoring2`. These are the cleanup candidates.
+- **Not identified yet.** The remaining roughly 40 MB/day on `monitoring2`. Candidates are the large `prod_k8s` logs (`wato_audit.log` 45 MB, core history 35 MB), journald and the `rrdcached` journals.
+- **RRDs are not the cause.** Their files have a fixed size once created.
+
+Handling of the trend alarm while this is open: if the `Filesystem /` trend drops to WARN it is acknowledged to take it off the dashboard; if it stays CRIT it stays visible for active monitoring. This is specific to #1843, not a general rule; acknowledgement handling is decided in [#71](https://github.com/isejalabs/homelab/issues/71).
