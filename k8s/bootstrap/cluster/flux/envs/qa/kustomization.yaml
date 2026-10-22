@@ -7,4 +7,6 @@ components:
 resources:
   - ../../sets
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
+  - ../../../../../infra/cnpg-system/plugin-barman-cloud/flux
   - ../../../../../infra/keycloak/keycloak-operator/flux
+  - ../../../../../apps/identity/keycloak/flux
