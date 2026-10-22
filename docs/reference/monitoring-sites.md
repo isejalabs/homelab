@@ -27,7 +27,7 @@ All sites run Checkmk 2.5.0p15 since the upgrade on 2026-10-18 (`omd update` fro
 | `free` | monitoring2 | Community (formerly RAW) | Monitors physical hosts, including remote sites, and critical network infrastructure implemented as virtual OPNsense HA gateways. Live configuration confirms Proxmox nodes (for example `pve4`) and a gateway VM (`gw3`) are assigned here. It does not monitor Kubernetes hosts. Its data is included in `prod` through distributed monitoring. See [why `free` exists](#why-free-exists). |
 | `prod_k8s` | monitoring2 | Ultimate | Production Kubernetes cluster. |
 | `qa_k8s` | monitoring1 | Ultimate | QA Kubernetes cluster. |
-| `dev_k8s` | monitoring1 | Ultimate | *(owner)* Stopped, autostart off (`omd config dev_k8s set AUTOSTART off`) since 2026-10-19: no Checkmk agent is deployed in dev. Data is kept; whether dev needs observability is part of [#71](https://github.com/isejalabs/homelab/issues/71). |
+| `dev_k8s` | monitoring1 | Ultimate | *(owner)* Stopped, autostart off (`omd config dev_k8s set AUTOSTART off`) since 2026-10-19, and it stays that way: the `dev` cluster is monitored from `prod` instead (decision in [#1844](https://github.com/isejalabs/homelab/issues/1844)). `checkmk-kube-agent` is deployed in every environment (it only loads the cluster while a site queries it), so `dev` can be queried from any site. Data is kept. |
 | `core` | monitoring1 | Ultimate | Meant for Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping stopped working. Kept for now; a decommissioning candidate, not decided. |
 
 ### Why `free` exists

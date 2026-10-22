@@ -18,8 +18,8 @@ For resource sizing, reconciliation intervals, domain/naming, and the ID/ASN/LB-
 
 | Set | Environments | Apps deployed |
 | --- | --- | --- |
-| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
-| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
+| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
+| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
 
 [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) is not part of either set: it needs the one physical ConBee II coordinator, so it is registered in `prod` only (dev was the test stage and no longer registers it), see its [README](../../k8s/apps/home-automation/zigbee2mqtt/README.md).
 
