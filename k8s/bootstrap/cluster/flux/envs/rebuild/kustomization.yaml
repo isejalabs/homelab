@@ -6,3 +6,5 @@ components:
 
 resources:
   - ../../sets
+  - ../../../../../infra/cnpg-system/cloudnative-pg/flux
+  - ../../../../../infra/keycloak/keycloak-operator/flux
