@@ -17,6 +17,13 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: keycloak-db
+  # provisional, from an idle dev measurement (~75Mi, 14m); revisit after the qa soak
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 256Mi
   storage:
     size: 1Gi
     storageClass: longhorn-ha
