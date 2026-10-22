@@ -11,7 +11,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/hostname/hostname
-        value: auth.prod.iseja.net
+        value: auth.iseja.net
     target:
       kind: Keycloak
       name: keycloak
@@ -36,3 +36,10 @@ patches:
     target:
       kind: ExternalSecret
       name: keycloak-db-backup
+  - patch: |-
+      - op: replace
+        path: /spec/hostnames/0
+        value: auth.iseja.net
+    target:
+      kind: HTTPRoute
+      name: keycloak

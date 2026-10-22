@@ -18,5 +18,5 @@ spec:
       parameters:
         barmanObjectName: keycloak-db
   storage:
-    size: 5Gi
+    size: 1Gi
     storageClass: longhorn-ha
