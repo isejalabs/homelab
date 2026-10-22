@@ -1,0 +1,12 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flux-system
+
+# Keycloak and its database, only registered by the environments that run an instance (see envs/<env>/)
+resources:
+  - ../../../../../infra/cnpg-system/cloudnative-pg/flux
+  - ../../../../../infra/cnpg-system/plugin-barman-cloud/flux
+  - ../../../../../infra/keycloak/keycloak-operator/flux
+  - ../../../../../apps/identity/keycloak/flux
