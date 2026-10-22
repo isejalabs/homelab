@@ -1,0 +1,38 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/k8s.keycloak.org/keycloak_v2alpha1.json
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+spec:
+  bootstrapAdmin:
+    user:
+      secret: keycloak-bootstrap-admin
+  db:
+    database: keycloak
+    host: keycloak-db-rw
+    passwordSecret:
+      name: keycloak-db-app
+      key: password
+    usernameSecret:
+      name: keycloak-db-app
+      key: username
+    vendor: postgres
+  hostname:
+    # set per environment, see envs/<env>/
+    hostname: auth.example.com
+  http:
+    # TLS ends at the Gateway
+    httpEnabled: true
+  ingress:
+    enabled: false
+  instances: 1
+  proxy:
+    headers: xforwarded
+  # provisional, from an idle dev measurement (~500Mi, 5-13m per replica); revisit after the qa soak
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 768Mi

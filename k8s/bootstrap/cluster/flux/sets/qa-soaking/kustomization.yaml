@@ -1,0 +1,14 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flux-system
+
+# Units that soak in qa before they go to prod. Deliberately not part of ../kustomization.yaml (which prod
+# includes via ../../sets): only the envs that name this set get these units. To promote a unit to prod,
+# move its line to the matching infra/apps set. Currently: Keycloak and its database (#1826).
+resources:
+  - ../../../../../infra/cnpg-system/cloudnative-pg/flux
+  - ../../../../../infra/cnpg-system/plugin-barman-cloud/flux
+  - ../../../../../infra/keycloak/keycloak-operator/flux
+  - ../../../../../apps/identity/keycloak/flux

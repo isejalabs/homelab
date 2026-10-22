@@ -1,0 +1,24 @@
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: keycloak
+spec:
+  hostnames:
+    - "auth.example.com"
+  parentRefs:
+    - kind: Gateway
+      name: internal
+      namespace: gateway-api
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - kind: Service
+          name: keycloak-service
+          group: ""
+          port: 8080
+          weight: 1

@@ -1,0 +1,29 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-db
+spec:
+  bootstrap:
+    initdb:
+      database: keycloak
+      owner: keycloak
+  # a single PostgreSQL instance; scale to 2 once drains during upgrades become a nuisance
+  enablePDB: false
+  instances: 1
+  plugins:
+    - name: barman-cloud.cloudnative-pg.io
+      isWALArchiver: true
+      parameters:
+        barmanObjectName: keycloak-db
+  # provisional, from an idle dev measurement (~75Mi, 14m); revisit after the qa soak
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      cpu: 50m
+      memory: 256Mi
+  storage:
+    size: 1Gi
+    storageClass: longhorn-ha
