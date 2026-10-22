@@ -90,7 +90,7 @@ helmCharts:
     repo: https://checkmk.github.io/checkmk_kube_agent
     version: 1.6.0
     releaseName: myrelease
-    namespace: checkmk-agent
+    namespace: checkmk-kube-agent
     valuesFile: values.yaml
 ```
 
@@ -103,7 +103,7 @@ cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#
 **Path:** `Setup > General > Passwords` Name: `k8s_dev-homelab_cmk-agent`
 
 ```sh
-k get secrets -n checkmk-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
+k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
 ```
 
 ### Certificate
@@ -111,13 +111,13 @@ k get secrets -n checkmk-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data
 **Path:** `Setup > General > Global settings > Site management > Trusted certificate authorities for SSL`
 
 ```sh
-k get secrets -n checkmk-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data."ca.crt" | @base64d'
+k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data."ca.crt" | @base64d'
 ```
 
 ### Test connection
 
 ```sh
-❯ export MYTOKEN=$(kubectl get secret checkmk-kube-agent-checkmk -n checkmk-agent -o=jsonpath='{.data.token}' | base64 --decode)
+❯ export MYTOKEN=$(kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent -o=jsonpath='{.data.token}' | base64 --decode)
 
 ❯ curl -k -H "Authorization: Bearer $MYTOKEN" https://dev-cmk-k8s-cluster-collector.dev.iseja.net/metadata | jq
   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
