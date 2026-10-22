@@ -73,6 +73,7 @@ No single existing doc covers this, since it's specific to "is the whole homelab
 
 - `flux get ks -A` and `flux get hr -A` — everything `READY=True`, nothing `SUSPENDED`.
 - `kubectl get pods -A --field-selector=status.phase!=Running` — nothing unexpected (completed Jobs are fine, see [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#preliminary-checks)).
+- Checkmk: a recreated cluster has a new service-account token, so the token stored in Checkmk's password store is stale and the cluster's Kubernetes special agent fails with `401 Unauthorized` on `/version`. Refresh it as described in [`checkmk-agent`'s README](../k8s/apps/monitoring/checkmk-agent/README.md#refresh-the-token-after-a-cluster-is-recreated). This hits `rebuild` every time it is reconstructed.
 - Spot-check at least one real, user-facing app end to end (e.g. a DNS query against AdGuard, or opening Actual Budget) — a clean `flux`/`kubectl` status doesn't guarantee the app is actually usable.
 
 ## What this doesn't cover yet

@@ -106,6 +106,10 @@ cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#
 k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
 ```
 
+#### Refresh the token after a cluster is recreated
+
+A recreated cluster (for example `rebuild`) gets a new service-account token. The password-store entry then holds the old one and the Kubernetes special agent fails on `/version` (Checkmk 2.5 reports `Data from endpoint /version did not have mandatory field 'gitVersion'` with an `Unauthorized` status body, i.e. HTTP 401). Read the new token from the cluster as above and replace it in `Setup > General > Passwords`; the entries are named `k8s-<env>-homelab` (and `prod-checkmk` for `prod`). Then activate the changes. The same applies to a newly deployed agent (the first deployment in an environment).
+
 ### Certificate
 
 **Path:** `Setup > General > Global settings > Site management > Trusted certificate authorities for SSL`
@@ -191,6 +195,7 @@ different per Edition
 | ------------------ | ------------------------------------------------------------------------------------------- |
 | Hostname           | `dev-cmk-k8s-cluster-collector.dev.iseja.net`<br>`cmk-k8s-cluster-collector.prod.iseja.net` |
 | IP address familie | `No IP` (inherited)                                                                         |
+| Piggyback          | `Use piggyback data from other hosts if present`, **not** `Always use and expect piggyback data`: the collector host only sends piggyback data, it never receives any, so "expect" leaves its `Check_MK` services at WARN |
 
 ## Dynamic Host Management (Enterprise Ed.)
 

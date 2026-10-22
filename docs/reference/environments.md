@@ -35,6 +35,15 @@ Each cluster is monitored by its own Checkmk site, fed by the in-cluster `checkm
 
 Besides the cluster host, a site holds hosts piggybacked from it: one per node (the node FQDN, e.g. `qa-ctrl-02.test.iseja.net`) and one each for namespaces, deployments and daemonsets, named `namespace_<cluster>_<ns>`, `deployment_<cluster>_<ns>_<name>` and `daemonset_<cluster>_<ns>_<name>` with `<cluster>` being `<env>-homelab`. Before and after a Kubernetes upgrade, compare these (see [`k8s-minor-upgrade.md`](../k8s-minor-upgrade.md#checkmk-what-supported-means-and-how-to-test-it)). `lq` and `cmk` are available as the site user (`su - <site>` on the monitoring host).
 
+### The `prod` site also queries the clusters
+
+The `prod` site (Community edition, `monitoring2`) has the same four collector hosts as the `*_k8s` sites, for all of `dev`, `qa`, `prod` and `rebuild` (`<env>-cmk-k8s-cluster-collector.<env>.iseja.net`, `cmk-k8s-cluster-collector.prod.iseja.net` for `prod`), each with its own Kubernetes special-agent rule and password-store entry for the token (`k8s-dev-homelab`, `k8s-qa-homelab`, `k8s-rebuild-homelab`, `prod-checkmk`). Verified read-only on 2026-10-22:
+
+- Their agent tag was changed from `no-agent` to `special-agents` by the `terraform` user on 2026-10-16 (07:55, activated 08:10); from then on the special agent runs in `prod`. Which Terraform run did it is not identified.
+- Piggybacked hosts in `prod` are created by hand, so a host is only fed if its name matches a live namespace, deployment or daemonset; hosts for removed workloads stay behind with `Missing data`.
+- A collector host is a piggyback source and receives no piggyback data itself, so it must not be set to *expect* piggyback data (Checkmk host attribute `tag_piggyback`); otherwise its `Check_MK` and `Check_MK Discovery` services stay at WARN with `[piggyback] Missing data`.
+- The token in the password store is the cluster's `checkmk-kube-agent-checkmk` secret and goes stale when a cluster is recreated (see [`disaster-recovery.md`](../disaster-recovery.md)).
+
 ## Per-environment resource sizing (Terragrunt)
 
 Each environment's `terragrunt/<non-prod|prod>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl` overrides the shared [`_envcommon/vehagn-k8s.hcl`](../../terragrunt/_envcommon/vehagn-k8s.hcl) include, which wraps the [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) module (the actual Proxmox VM + Talos provisioning logic — not vendored into this repo). `env.hcl` itself is trivial (`locals { env = "<name>" }`) — the real differentiation is node topology, sizing tier, and which Talos/Kubernetes version and module ref each environment tracks:
