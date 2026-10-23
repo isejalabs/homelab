@@ -17,6 +17,18 @@ spec:
       isWALArchiver: true
       parameters:
         barmanObjectName: keycloak-db
+  # WAL is the volume's main consumer, not data (13 MB). CloudNativePG defaults would keep 512MB of WAL
+  # (wal_keep_size) and switch a 16MB segment every 5 min (archive_timeout), which filled the 1Gi volume in
+  # about 5 h in qa while archiving was failing. Single instance, no replicas, a 30 min archive lag is well
+  # within the 24 h RPO.
+  postgresql:
+    parameters:
+      archive_timeout: 30min
+      max_wal_size: 256MB
+      min_wal_size: 64MB
+      wal_compression: "on"
+      wal_keep_size: 64MB
+      wal_level: replica
   # provisional, from an idle dev measurement (~75Mi, 14m); revisit after the qa soak
   resources:
     limits:
