@@ -9,6 +9,5 @@ namespace: flux-system
 # move its line to the matching infra/apps set. Currently: Keycloak and its database (#1826).
 resources:
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
-  - ../../../../../infra/cnpg-system/plugin-barman-cloud/flux
   - ../../../../../infra/keycloak/keycloak-operator/flux
   - ../../../../../apps/identity/keycloak/flux

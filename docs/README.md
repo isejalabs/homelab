@@ -12,7 +12,7 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | Diagnose Flux, DNS, storage, or stale Terraform state | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), or [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
 | Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](node-lifecycle.md) |
 | Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) |
-| Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
+| Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots; for the Keycloak database [`keycloak-backup-restore.md`](keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](proxmox-backup-restore.md#restore-procedures) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](disaster-recovery.md#full-cluster-rebuild) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
@@ -32,6 +32,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`disaster-recovery.md`](disaster-recovery.md) — the full cluster-rebuild sequence, composed from the procedures below plus `AGENTS.md`'s Terragrunt section, with a validation checkpoint per step.
   - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
+  - [`keycloak-backup-restore.md`](keycloak-backup-restore.md) — the daily `pg_dump` backup of the Keycloak database to RustFS, why there is no WAL archiving, and how to restore it.
   - [`longhorn-snapshots.md`](longhorn-snapshots.md) — the `just backup::longhorn-snapshot::*` recipes (list/create/restore) for Longhorn's local hourly/daily volume snapshots.
   - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
   - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes (list/start/stop/shutdown/reset).

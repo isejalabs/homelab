@@ -16,12 +16,23 @@ patches:
       kind: Keycloak
       name: keycloak
   - patch: |-
-      - op: replace
-        path: /spec/configuration/destinationPath
-        value: s3://rebuild-keycloak-db/
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: keycloak-db-dump
+      spec:
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: upload
+                    env:
+                      - name: BUCKET
+                        value: rebuild-keycloak-db
     target:
-      kind: ObjectStore
-      name: keycloak-db
+      kind: CronJob
+      name: keycloak-db-dump
   - patch: |-
       - op: replace
         path: /spec/dataFrom/0/extract/key
