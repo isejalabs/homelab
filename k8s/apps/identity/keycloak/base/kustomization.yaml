@@ -7,8 +7,7 @@ namespace: keycloak
 
 resources:
   - cluster.yaml
+  - cronjob-dump.yaml
   - externalsecret.yaml
   - http-route.yaml
   - keycloak.yaml
-  - objectstore.yaml
-  - scheduledbackup.yaml

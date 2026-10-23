@@ -4,6 +4,10 @@ apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
   name: keycloak-db
+  annotations:
+    # No WAL archiving: the database is backed up by a daily pg_dump (cronjob-dump.yaml), so a failing backup
+    # target can never make WAL pile up on the volume (docs/keycloak-backup-restore.md). Sets archive_mode=off.
+    cnpg.io/skipWalArchiving: enabled
 spec:
   bootstrap:
     initdb:
@@ -12,11 +16,15 @@ spec:
   # a single PostgreSQL instance; scale to 2 once drains during upgrades become a nuisance
   enablePDB: false
   instances: 1
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: keycloak-db
+  # Single instance without replicas and without archiving: keep only what crash recovery and checkpoints need.
+  # CloudNativePG defaults would retain 512MB of WAL (wal_keep_size) on this 1Gi volume.
+  postgresql:
+    parameters:
+      max_wal_size: 256MB
+      min_wal_size: 64MB
+      wal_compression: "on"
+      wal_keep_size: 64MB
+      wal_level: replica
   # provisional, from an idle dev measurement (~75Mi, 14m); revisit after the qa soak
   resources:
     limits:

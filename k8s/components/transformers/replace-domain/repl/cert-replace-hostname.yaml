@@ -5,10 +5,6 @@
   targets:
     - select:
         kind: Certificate
-      # cnpg-system's barman-cloud plugin certificates are cluster-internal (self-signed, no public domain)
-      reject:
-        - name: barman-cloud-client
-        - name: barman-cloud-server
       fieldPaths:
         - spec.dnsNames.*
       options:
@@ -21,10 +17,6 @@
   targets:
     - select:
         kind: Certificate
-      # cnpg-system's barman-cloud plugin certificates are cluster-internal (self-signed, no public domain)
-      reject:
-        - name: barman-cloud-client
-        - name: barman-cloud-server
       fieldPaths:
         - spec.dnsNames.*
       options:
