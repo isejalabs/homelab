@@ -4,7 +4,7 @@
 
 @.commons/agents/AGENTS.common.md
 
-The shared conventions in [.commons/agents/AGENTS.common.md](.commons/agents/AGENTS.common.md) apply here. Agents that do not expand the `@` import must initialize the submodule and read that file directly.
+The shared conventions in `.commons/agents/AGENTS.common.md` apply here. Agents that do not expand the `@` import must initialize the submodule and read that file directly.
 
 ## What this repo is
 
