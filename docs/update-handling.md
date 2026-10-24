@@ -72,6 +72,20 @@ Any app's `envs/<env>/kustomization.yaml` can `patches:` its own chart's `OCIRep
 
 This is the mechanism issue-tracked as "an app can track a version in prod separately, on an optional basis": **most often prod's own patch is identical to `base` (and therefore to `qa`, which also inherits `base`)** — the override exists in the file tree but isn't being used to diverge from anything. Its value shows up the moment someone *wants* to diverge: because `envs/prod/ocirepository.yaml` is its own file, renovate treats a version bump there as its own package instance with its own PR, separate from the PR that bumps `base/`'s (and therefore `qa`'s) version. That PR picks up `env:prod` from labeler (it touches `k8s/**/envs/prod/**`), and the mergify rule above explicitly excludes `env:prod` from automerge — so it always needs a human to merge it. Concretely: `base`/`qa` can pick up a new version automatically (if it's a `minor` update) or via manual review, get it validated running in `qa` for however long is wanted, and only then merge the equivalent prod-specific PR to promote it — without prod ever being forced onto a new version the moment `base` moves, and without needing a repo-wide freeze to hold prod back.
 
+#### Staged rollout: unbound
+
+`docker.io/madnuttah/unbound` uses this mechanism *plus* an age gate, so prod trails `qa` by a fixed soak time ([#1882](https://github.com/isejalabs/homelab/issues/1882)):
+
+- `k8s/apps/dns/unbound/base/deployment.yaml` pins the image for every environment except prod, and takes new releases immediately.
+- `k8s/apps/dns/unbound/envs/prod/deployment.yaml` pins its own copy of the image (tag + digest). It is identical to `base/` except while an upgrade is in flight.
+- [`staged-rollout.json5`](../.github/renovate/staged-rollout.json5) sets `minimumReleaseAge: "3 days"` for the `envs/prod/` file only. With `internalChecksFilter` at its default `strict`, Renovate opens no prod PR until a release is at least 3 days old.
+
+Limitations:
+
+- The 3 days count from the **upstream release date**, not from when `qa` deployed the version. If the `base/` PR is left unmerged, prod still gets its PR.
+- A broken release is not stopped automatically. If `qa` shows a release is bad, close the prod PR (Renovate won't recreate it for that version) or exclude the version with `allowedVersions`.
+- Whether digest-only updates (same tag, rebuilt image) are delayed too depends on the datasource providing a release timestamp. Not verified yet; check the first prod digest PR after merge.
+
 ## Handling special apps and environments
 
 Some packages have a non-standard update strategy — see the table below. Two environments also get special treatment baked into the mergify/renovate rules themselves, beyond the generic `env:prod` carve-out above (a full description of each environment's purpose lives in [`environments.md`](architecture/environments.md#what-each-environment-is-for); this section covers only the update-handling-specific behavior):
@@ -88,6 +102,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 | `kubernetes-sigs/gateway-api` | Pin minor | Pinned to `<=1.4` for `cilium` compatibility; `head`/`poc` track `>=1.4`. |
 | `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.35` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.35`. | To move to the next minor, follow [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md).
 | `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
+| `docker.io/madnuttah/unbound` | Staged, 3-day age gate for prod | `qa` and other environments take new releases from `base/` immediately; prod pins its own image and only gets a PR once the release is 3 days old — see [Staged rollout: unbound](#staged-rollout-unbound). |
 | `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
 
 ### Excluded packages and paths from auto-merging

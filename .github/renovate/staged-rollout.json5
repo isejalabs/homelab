@@ -1,0 +1,12 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      description: "stage the unbound rollout: prod pins its own image (envs/prod/deployment.yaml) and only gets a release once it is at least 3 days old, while base/ (qa and the other environments) takes it immediately -- internalChecksFilter stays at its default 'strict', so no prod PR exists before then (#1882)",
+      matchDatasources: ["docker"],
+      matchFileNames: ["k8s/apps/dns/unbound/envs/prod/**"],
+      matchPackageNames: ["docker.io/madnuttah/unbound"],
+      minimumReleaseAge: "3 days",
+    },
+  ],
+}
