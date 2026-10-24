@@ -26,8 +26,8 @@ terraform {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # Only the Keycloak URL is specific to this environment (the hostname is prefixed per environment, see
-# k8s/apps/identity/keycloak/envs/qa).
+# k8s/apps/identity/keycloak/envs/dev).
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
-  keycloak_url = "https://qa-auth.qa.iseja.net"
+  keycloak_url = "https://dev-auth.dev.iseja.net"
 }

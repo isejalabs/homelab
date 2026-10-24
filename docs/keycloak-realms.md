@@ -8,18 +8,48 @@ The directory facts (base DN, domain controllers, bind account, group names) and
 
 ## Prerequisites
 
-Apply the unit **from `main`** (`qa`, `prod`), after the Keycloak instance of the environment is up and answers on its URL.
+The unit is developed and proven in `dev`, then promoted to `qa` (the gate) and `prod`: copy the unit directory to the next environment, and apply `qa`/`prod` from `main` only. Every environment needs its Keycloak instance up and answering on its URL first.
 
 1. **Admin login:** the 1Password item `keycloak-bootstrap-admin#<env>` (the same item the Keycloak Operator uses) with `username` and `password`. The provider logs in with it through the `admin-cli` client.
-2. **UCS bind account:** a read-only account on UCS that may search users and groups, and its 1Password item `keycloak-ldap-bind#<env>` with the password in the `password` field. Create it by hand on UCS; nothing in this repo manages UCS.
-3. **Network:** the Keycloak pods must reach both domain controllers on LDAPS (636) and trust the certificate of the UCS CA. Keycloak creates the federation without connecting, so a gap only shows at the first sync.
+2. **UCS groups and bind account:** see [UCS setup](#ucs-setup). The bind password goes into the 1Password item `keycloak-ldap-bind#<env>` (field `password`).
+3. **Network and trust:** the Keycloak pods must reach both domain controllers on LDAPS **7636** (UCS OpenLDAP; 636 is Samba AD's own LDAP and is not used) and trust the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, CN `iseja.net Directory Services`), which signs the DCs' certificates. Keycloak creates the federation without connecting, so a gap only shows at the first sync.
 4. **Reachability from your machine:** the Keycloak URL of the environment must be reachable from where you run Terragrunt (the internal Gateway).
+
+## UCS setup
+
+Done once for the domain (all environments share the directory), as `root` on a domain controller, with the UCS Directory Manager (`udm`). The groups do not exist yet; the realm filters (`memberOf=cn=idm-users,...` and `cn=idm-admins`) admit nobody until they do.
+
+```sh
+BASE="dc=dir,dc=iseja,dc=net"
+
+# groups that admit accounts into a realm; members are added after the group exists, so the memberOf overlay fills in
+udm groups/group create --position "cn=groups,$BASE" --set name=idm-users  --set description="Accounts allowed into the Keycloak realm iseja"
+udm groups/group create --position "cn=groups,$BASE" --set name=idm-admins --set description="Accounts allowed into the Keycloak realm admin"
+udm groups/group modify --dn "cn=idm-users,cn=groups,$BASE"  --append users="uid=sebi,cn=users,$BASE"      # plus the other everyday accounts
+udm groups/group modify --dn "cn=idm-admins,cn=groups,$BASE" --append users="uid=sebi-adm,cn=users,$BASE"
+
+# read-only bind account: an ordinary user in no realm group; keep the password out of the shell history
+read -rs -p "bind password: " PW; echo
+udm users/user create --position "cn=users,$BASE" --set username=keycloak-ro --set lastname=keycloak-ro \
+  --set description="Read-only LDAP bind for Keycloak" --set password="$PW" --set overridePWHistory=1 --set overridePWLength=1
+```
+
+Store the password in the 1Password item `keycloak-ldap-bind#<env>` (field `password`) for every environment that federates. Check the account from a machine that can reach the DC, using the password prompt:
+
+```sh
+ldapsearch -x -H ldaps://baerbel.dir.iseja.net:7636 -D "uid=keycloak-ro,cn=users,dc=dir,dc=iseja,dc=net" -W \
+  -b "cn=users,dc=dir,dc=iseja,dc=net" "(uid=sebi)" uid entryUUID memberOf
+```
+
+It must return the entry with `entryUUID` and, after the group setup, `memberOf: cn=idm-users,...`. Anonymous reads are off in this domain (`ldap/acl/read/anonymous: no`), so a failing bind shows up here first.
+
+The per-application groups `app-<name>-<role>` are not created here: each integration issue creates its own when the application is rolled out, and the `app-*` filter of the group mapper picks them up at the next sync.
 
 ## Apply and verify
 
 ```sh
-source terragrunt/non-prod/eu-central-1/qa/.envrc
-cd terragrunt/non-prod/eu-central-1/qa/keycloak-realm
+source terragrunt/non-prod/eu-central-1/dev/.envrc
+cd terragrunt/non-prod/eu-central-1/dev/keycloak-realm
 terragrunt plan
 terragrunt apply
 ```

@@ -55,14 +55,14 @@ locals {
 
   # The directory is the same UCS domain for every environment, so it is stated once here. Realm names are local to
   # one Keycloak instance, hence every environment reuses `iseja` and `admin` (ADR 0016 point 4).
-  # PLACEHOLDERS: replace with the real UCS values (base DN, domain controllers, groups) before the first apply.
-  ldap_base_dn = "dc=PLACEHOLDER,dc=PLACEHOLDER"
+  ldap_base_dn = "dc=dir,dc=iseja,dc=net"
 
   ldap = {
+    # UCS OpenLDAP listens on 7636 (LDAPS) on the domain controllers; 636 is Samba AD's own LDAP (AD schema), not used.
     # baerbel first while adelheid is unstable (#1813); Keycloak tries the URLs in this order.
     connection_urls = [
-      "ldaps://baerbel.PLACEHOLDER:636",
-      "ldaps://adelheid.PLACEHOLDER:636",
+      "ldaps://baerbel.dir.iseja.net:7636",
+      "ldaps://adelheid.dir.iseja.net:7636",
     ]
     bind_dn         = "uid=keycloak-ro,cn=users,${local.ldap_base_dn}"
     bind_item_title = "keycloak-ldap-bind#${local.env}"
