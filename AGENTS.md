@@ -4,6 +4,8 @@
 
 @.commons/agents/AGENTS.common.md
 
+The shared conventions in `.commons/agents/AGENTS.common.md` apply here. Agents that do not expand the `@` import must initialize the submodule and read that file directly.
+
 ## What this repo is
 
 A personal, IaC-driven homelab: Proxmox VMs → Talos Linux → Kubernetes, provisioned with OpenTofu/Terragrunt and reconciled with Flux CD. Everything is DRY across 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) via a shared kustomize "components" layer.
