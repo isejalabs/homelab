@@ -14,6 +14,7 @@
     "github>isejalabs/homelab//.github/renovate/pin-versions.json5",
     "github>isejalabs/homelab//.github/renovate/renames.json5",
     "github>isejalabs/homelab//.github/renovate/schedule.json5",
+    "github>isejalabs/homelab//.github/renovate/staged-rollout.json5",
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
   rebaseWhen: 'conflicted',
