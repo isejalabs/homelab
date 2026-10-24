@@ -46,19 +46,19 @@ url = "https://github.com/home-operations/flate/releases/download/v0.6.5/flate_0
 url_api = "https://api.github.com/repos/home-operations/flate/releases/assets/541337298"
 
 [[tools."github:mitsuhiko/minijinja"]]
-version = "2.24.0"
+version = "3.0.3"
 backend = "github:mitsuhiko/minijinja"
-specifiers = ["2.24.0"]
+specifiers = ["3.0.3"]
 
 [tools."github:mitsuhiko/minijinja"."platforms.linux-x64"]
-checksum = "sha256:04651ea786eee8e6d5311caf96e01874d984ff72f3d3d91c2195851f0b414580"
-url = "https://github.com/mitsuhiko/minijinja/releases/download/2.24.0/minijinja-cli-x86_64-unknown-linux-gnu.tar.xz"
-url_api = "https://api.github.com/repos/mitsuhiko/minijinja/releases/assets/511868860"
+checksum = "sha256:8db0a7cdc55975e2abace49b18c0076f338f806645ab6b08097a9417189e4888"
+url = "https://github.com/mitsuhiko/minijinja/releases/download/3.0.3/minijinja-cli-x86_64-unknown-linux-gnu.tar.xz"
+url_api = "https://api.github.com/repos/mitsuhiko/minijinja/releases/assets/668257054"
 
 [tools."github:mitsuhiko/minijinja"."platforms.macos-arm64"]
-checksum = "sha256:a0f1525bcac485a80313cec7e835ed03335bd55bc14dc5cf070c7eb9789d9905"
-url = "https://github.com/mitsuhiko/minijinja/releases/download/2.24.0/minijinja-cli-aarch64-apple-darwin.tar.xz"
-url_api = "https://api.github.com/repos/mitsuhiko/minijinja/releases/assets/511868818"
+checksum = "sha256:815f3bf68d18b4cd49e3e3473a083910f1b1a8a7eb1bc6cf0aa1c8d404871c96"
+url = "https://github.com/mitsuhiko/minijinja/releases/download/3.0.3/minijinja-cli-aarch64-apple-darwin.tar.xz"
+url_api = "https://api.github.com/repos/mitsuhiko/minijinja/releases/assets/668256939"
 
 [[tools.gum]]
 version = "2.0.2"
