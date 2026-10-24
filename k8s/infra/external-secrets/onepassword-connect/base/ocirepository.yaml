@@ -10,6 +10,6 @@ spec:
     mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
     operation: copy
   ref:
-    digest: sha256:c0e87d231e5b082ad39bda4f3f0890a9923fe5d70694cadc4f7b4cc0f9df6c0c
-    tag: 2.4.2
+    digest: sha256:19948755a183eafe938046cfc170de6dac524a9f595775c6cca04d303a27e7a6
+    tag: 2.4.3
   url: oci://ghcr.io/1password/connect
