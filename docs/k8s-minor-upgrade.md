@@ -188,6 +188,11 @@ Checkmk states support per minor (it supports four Kubernetes minors at a time) 
 
 Do this in the earlier environments first. Each environment has its own Checkmk site (`dev_k8s` and `qa_k8s` on `monitoring1`, `prod_k8s` on `monitoring2`; see the [observability audit](audits/2026-09-observability-phase0-checkmk-proxmox-claude.md)), so a `qa` run only predicts `prod` if `qa_k8s` runs the same Checkmk minor/patch as `prod_k8s`. Upgrade the earlier sites first. The hosts to compare are each environment's cluster host plus the hosts piggybacked from it (nodes, deployments, namespaces, daemonsets); names are listed in [`reference/environments.md`](reference/environments.md#checkmk-monitoring-of-the-clusters).
 
+**Baseline the `prod` site as well, not only the `*_k8s` site.** The `prod` site queries the same clusters with its own Kubernetes special agent (see [`reference/environments.md`](reference/environments.md#the-prod-site-also-queries-the-clusters)), so the cluster host and its piggybacked hosts exist twice and can differ. Run the before/after steps above on both sites. Two things are expected there and are not upgrade findings:
+
+- A short `CRIT` on the cluster host (`Failed to establish a connection at URL https://<env>-homelab-k8s-api...`) while the API server restarts during the node upgrades. It must be back to `Success` once the upgrade finished; a state that stays CRIT or UNKNOWN afterwards is a finding.
+- `Missing data` on hosts for namespaces, deployments or PVCs that no longer exist. The hosts in `prod` are added by hand and are not removed when the workload goes away, so list them in the baseline (tier *Ignore*) and clean them up separately.
+
 If something fails: stop, do **not** roll on, and roll forward by fixing the cause. Kubernetes minor downgrades are not supported; the realistic fallbacks are fixing the failing component or rebuilding the environment from state ([`disaster-recovery.md`](disaster-recovery.md)).
 
 ## 5. Roll on to the next environment

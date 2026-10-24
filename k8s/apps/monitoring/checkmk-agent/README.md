@@ -106,6 +106,15 @@ cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#
 k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
 ```
 
+#### Refresh the token after a cluster is recreated
+
+A recreated cluster (for example `rebuild`) gets a new service-account token. The password-store entry then holds the old one and the Kubernetes special agent fails on `/version` (Checkmk 2.5 reports `Data from endpoint /version did not have mandatory field 'gitVersion'` with an `Unauthorized` status body, i.e. HTTP 401). Read the new token from the cluster as above and replace it in `Setup > General > Passwords`; the entries are named `k8s-<env>-homelab` (and `prod-checkmk` for `prod`). Then activate the changes. The same applies to a newly deployed agent (the first deployment in an environment).
+
+Two pitfalls, both seen on 2026-10-22/23:
+
+- **Copy the token without the shell's end-of-output marker.** `zsh` prints a `%` after output that has no trailing newline; copied along, it becomes the last character of the token (1331 instead of 1330 characters) and the API answers `401`. Pipe it instead: `kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent -o jsonpath='{.data.token}' | base64 --decode | pbcopy`. The same goes for the CA (`ca.crt`): it must be the CA of the *current* cluster, a recreated cluster has a new one.
+- **Editing the password store alone does not reach the running checks on a Community site.** The scheduled `Check_MK` checks read a snapshot of the password store and the CA bundle (`var/check_mk/core/helper_config/latest/`) that is only rewritten when the core configuration is regenerated, while `cmk -d <host>` reads the live files and already works. After saving the password (and the CA), activate a change that regenerates the core configuration, or run `cmk -O` as the site user, then wait for the next check. Verify with `cmk -d <collector host>` first.
+
 ### Certificate
 
 **Path:** `Setup > General > Global settings > Site management > Trusted certificate authorities for SSL`
@@ -191,6 +200,7 @@ different per Edition
 | ------------------ | ------------------------------------------------------------------------------------------- |
 | Hostname           | `dev-cmk-k8s-cluster-collector.dev.iseja.net`<br>`cmk-k8s-cluster-collector.prod.iseja.net` |
 | IP address familie | `No IP` (inherited)                                                                         |
+| Piggyback          | `Use piggyback data from other hosts if present`, **not** `Always use and expect piggyback data`: the collector host only sends piggyback data, it never receives any, so "expect" leaves its `Check_MK` services at WARN |
 
 ## Dynamic Host Management (Enterprise Ed.)
 
