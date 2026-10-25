@@ -44,7 +44,7 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.1.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.2.0"
 
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
