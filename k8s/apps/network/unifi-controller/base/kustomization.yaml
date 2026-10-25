@@ -6,7 +6,7 @@ namespace: unifi
 components:
   - ../../../../components/apps/storage/pvc
 
+# the unifi namespace is owned by unifi-mongodb (two owners flip Flux's ownership label)
 resources:
-  - ns.yaml
   - deployment-frontend.yaml
   - svc-frontend.yaml
