@@ -28,6 +28,17 @@ find k8s -name kustomization.yaml > "$list"
 
 status=0
 
+# A Flux Kustomization's `spec.targetNamespace` would be a second source of truth next to the `namespace:` in
+# the unit's base/kustomization.yaml (and Flux's one silently wins), so it's banned in every flux/ks.yaml (see
+# AGENTS.md "Adding/changing a k8s app or infra component", #1896). Checked up front, not per overlay below,
+# since ks.yaml lives in flux/ rather than in a built overlay.
+for ks in $(find k8s -path '*/flux/ks.yaml'); do
+    if grep -q '^  targetNamespace:' "$ks"; then
+        log error "spec.targetNamespace is not allowed, set namespace: in base/kustomization.yaml instead" "file" "$ks"
+        status=1
+    fi
+done
+
 # Builds and validates every overlay, tracking the worst exit status across all of them rather than bailing
 # on the first failure, so one bad overlay doesn't hide problems in the rest.
 while IFS= read -r kustomization; do
