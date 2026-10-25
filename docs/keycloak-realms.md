@@ -8,10 +8,10 @@ The directory facts (base DN, domain controllers, bind account, group names) and
 
 ## Prerequisites
 
-The unit is developed and proven in `dev`, then promoted to `qa` (the gate) and `prod`: copy the unit directory to the next environment, and apply `qa`/`prod` from `main` only. Every environment needs its Keycloak instance up and answering on its URL first.
+The unit is developed and proven in `dev`, then promoted to `qa` (the gate) and `prod`: copy the unit directory to the next environment (with its provider lock file, see [`terragrunt/README.md`](../terragrunt/README.md#provider-lock-files)) in a pull request, merge it, and apply `qa`/`prod` from `main` only, never from the branch. `dev` and `qa` have the unit; `prod` and `rebuild` do not yet. Every environment needs its Keycloak instance up and answering on its URL first.
 
 1. **Admin login:** the 1Password item `keycloak-bootstrap-admin#<env>` (the same item the Keycloak Operator uses) with `username` and `password`. The provider logs in with it through the `admin-cli` client.
-2. **UCS groups and bind account:** see [UCS setup](#ucs-setup). The bind password goes into the 1Password item `keycloak-ldap-bind#<env>` (field `password`).
+2. **UCS groups and bind account:** see [UCS setup](#ucs-setup). The bind password goes into the 1Password item `keycloak-ldap-bind#<env>` (field `password`); every environment that applies the unit needs its own item, so copy the `dev` one to `keycloak-ldap-bind#qa` before the first `qa` apply.
 3. **Network and trust:** the Keycloak pods must reach both domain controllers on LDAPS **7636** (UCS OpenLDAP; 636 is Samba AD's own LDAP and is not used) and trust the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, CN `iseja.net Directory Services`), which signs the DCs' certificates. The Keycloak resource mounts it as a truststore from the Secret `keycloak-ucs-ca`, which External Secrets fills from the 1Password item `ucs-ca` (field `ca.pem`, shared by all environments; the certificate is public):
 
 ```sh
