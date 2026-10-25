@@ -36,12 +36,7 @@ Counted as episodes (a hard non-OK state until the next OK) per service type, wi
 | `Check_MK Discovery`, everything else | 119 | 41 | Noise: roll-outs, see [below](#discovery-heals-itself-but-notifies-anyway) |
 | `Check_MK` (piggyback) | 178 | 9 | Filtered by the delay (median 1 min) |
 | `Check_MK HW/SW Inventory` | 5 | 5 | **Noise**: runs once a day, so a WARN sticks for 24 h and always notifies |
-| `Replicas` | 43 | 10 | Mostly roll-outs under 15 min (filtered); the long ones are real (for example `unbound` 1/2 ready for 11 h) |
-| `Memory` | 24 | 17 | **Signal**: `Committed` above 100 % on `qa-ctrl-02` and `qa-work-02` for hours; a sizing issue |
-| `CPU`, `Filesystem` | 9, 8 | 6, 4 | Signal, on `qa-work-02` and `/` near the 80 % threshold |
-| `Kubelet`, `Kubernetes API`, `Cluster collector` | 25, 8, 11 | 0, 0, 2 | Short blips filtered; a 94 min collector outage on 2026-10-23 was real |
-
-No notification in the window was tied to the backup run or to other load: the `Memory`/`CPU`/`Filesystem` episodes are spread over the day and the same nodes, not clustered at a job time. Whether load spikes deserve a notification at all is undecided (see [open questions](#open-questions)).
+| Everything else (`Replicas`, `Memory`, `CPU`, `Filesystem`, `Kubelet`, `Kubernetes API`, `Cluster collector`, …) | 142 | 39 | Out of scope here: short blips are filtered by the delay; threshold and capacity tuning is [#1847](https://github.com/isejalabs/homelab/issues/1847) |
 
 ### Unifi namespace owned by two Flux Kustomizations
 
@@ -58,11 +53,10 @@ Nothing below has been changed in Checkmk yet.
 1. Fix the `unifi` namespace ownership in the repo ([#1892](https://github.com/isejalabs/homelab/issues/1892); the broader namespace layout question is [#1891](https://github.com/isejalabs/homelab/issues/1891)) (removes about two thirds of the `qa_k8s` Discovery noise and most of `prod_k8s`'s).
 2. Give `Check_MK Discovery` a longer delay than the catch-all rule (for example 60 min, placed above it, since the first matching rule wins), so only a rediscovery that does not heal notifies.
 3. Exclude `Check_MK HW/SW Inventory` from notifications (a once-a-day check cannot produce a timely signal).
-4. Keep the 15 min catch-all delay and the unfiltered `Memory`/`CPU`/`Filesystem` notifications; consider flap detection or hysteresis for the threshold flappers instead of hiding them.
+4. Keep the 15 min catch-all delay for everything else and do not hide threshold flappers; tuning the thresholds themselves is [#1847](https://github.com/isejalabs/homelab/issues/1847).
 5. Before turning notifications on for `prod_k8s`: repeat 1–3 there, add the same catch-all delay, and align its periodic discovery interval. For `prod`, the existing `p5-22` period already pauses the night.
 
 ## Open questions
 
 - Should `prod_k8s` get a night period like `prod`'s `p5-22`, or is the delay enough?
-- How to keep performance problems visible without paging, for example a dashboard or a daily summary instead of a notification for `Memory`/`CPU` near thresholds.
-- Does a repeated near-threshold flap (21 `Filesystem` episodes on `prod_k8s` in a week, 17 of them `/` on `prod-ctrl-01` hovering at 80 %) warrant its own rule?
+- How to keep performance problems visible without paging, for example a dashboard or a daily summary instead of a notification; no notification in the `qa_k8s` window was tied to the backup run, so load-related alerts have not been a problem so far.
