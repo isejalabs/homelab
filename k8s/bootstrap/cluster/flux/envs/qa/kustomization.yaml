@@ -6,4 +6,4 @@ components:
 
 resources:
   - ../../sets
-  - ../../sets/qa-soaking
+  - ../../sets/soaking

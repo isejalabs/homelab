@@ -36,3 +36,8 @@ spec:
     requests:
       cpu: 50m
       memory: 768Mi
+  # trust anchor for the LDAPS connection to UCS (the DCs' certificates are signed by the UCS CA)
+  truststores:
+    ucs-ca:
+      secret:
+        name: keycloak-ucs-ca
