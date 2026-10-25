@@ -8,6 +8,8 @@ status: current
 
 **Tracking:** [#1893](https://github.com/isejalabs/homelab/issues/1893) (this page), [#1892](https://github.com/isejalabs/homelab/issues/1892) (`unifi` namespace fix), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
+Scope: notification settings and the noise of the Kubernetes sites. Other alert clean-up before notifications can go live on `prod` (thresholds [#1847](https://github.com/isejalabs/homelab/issues/1847), monitoring disks [#1843](https://github.com/isejalabs/homelab/issues/1843), Longhorn API hosts [#1846](https://github.com/isejalabs/homelab/issues/1846), `sssd`/`nullmailer` [#1848](https://github.com/isejalabs/homelab/issues/1848)) is tracked there, not here.
+
 What fires a notification, when, and why that is (not yet) a good signal-to-noise ratio (SNR). Site inventory is in [`monitoring-sites.md`](monitoring-sites.md).
 
 ## Notification settings per site
