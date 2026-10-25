@@ -17,7 +17,6 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
-  targetNamespace: keycloak
   wait: false
   dependsOn:
     - name: infra-ns
