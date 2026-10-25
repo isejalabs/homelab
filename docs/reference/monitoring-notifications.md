@@ -50,7 +50,7 @@ Both k8s sites use `update_everything` auto-rediscovery with a 900 s grouping ti
 
 ## Proposed changes (not applied)
 
-Nothing below has been changed in Checkmk yet.
+Nothing below has been changed in Checkmk yet. Applying them on `qa_k8s` is [#1900](https://github.com/isejalabs/homelab/issues/1900), enabling notifications for `prod_k8s` is [#1901](https://github.com/isejalabs/homelab/issues/1901).
 
 1. Fix the `unifi` namespace ownership in the repo ([#1892](https://github.com/isejalabs/homelab/issues/1892); the broader namespace layout question is [#1891](https://github.com/isejalabs/homelab/issues/1891)) (removes about two thirds of the `qa_k8s` Discovery noise and most of `prod_k8s`'s).
 2. Give `Check_MK Discovery` a longer delay than the catch-all rule (for example 60 min, placed above it, since the first matching rule wins), so only a rediscovery that does not heal notifies.
