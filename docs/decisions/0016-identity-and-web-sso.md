@@ -4,6 +4,8 @@
 
 planning — accepted by the owner on 2026-10-21; becomes `current` once the platform ([#1826](https://github.com/isejalabs/homelab/issues/1826)) runs in `prod`.
 
+Amended on 2026-10-25 at the owner's request ([#1826](https://github.com/isejalabs/homelab/issues/1826)): decision point 2 gained a `dev` instance. Development happens in `dev` and `qa` stays a pure quality gate, as for every other workload; the first realm work had landed in `qa` by mistake. Nothing else in the decision changed.
+
 This ADR was first merged as an unfinished planning draft ([#1724](https://github.com/isejalabs/homelab/pull/1724)) and rewritten in place with the accepted design ([#1833](https://github.com/isejalabs/homelab/pull/1833)). That is a one-off exception to the rule that a merged ADR body is not rewritten: the first version was never meant to be settled. The diff of #1833 shows what changed.
 
 ## Context
@@ -20,7 +22,7 @@ The first planning version of this ADR set the boundaries for human web SSO (UCS
 ## Decision
 
 1. **Keycloak in Kubernetes** is the identity provider. Keycloak on UCS is not used as the IdP; the unused proof of concept there is removed ([#1828](https://github.com/isejalabs/homelab/issues/1828)).
-2. **Placement:** `prod` hosts the authoritative instance, which also serves out-of-cluster services (Proxmox, RustFS, Checkmk). `qa` runs its own instance as the upgrade and configuration gate; `rebuild` runs one to rehearse restore. The other non-prod environments register their UIs in the `prod` instance.
+2. **Placement:** `prod` hosts the authoritative instance, which also serves out-of-cluster services (Proxmox, RustFS, Checkmk). `dev` runs its own instance, where the platform and the realm content are developed and proven first; `qa` runs its own as the quality gate that every change passes before `prod`; `rebuild` runs one to rehearse restore. The other non-prod environments (`dbg`, `head`, `poc`, `src`) register their UIs in the `prod` instance. (Amended 2026-10-25, see the Status section.)
 3. **UCS stays authoritative** for users, passwords and groups. Keycloak federates it read-only over LDAPS, both DCs listed for failover, users imported and synced. Authorization is granted through UCS groups mapped into a `groups` claim.
 4. **Two realms:** `iseja` for everyday accounts, Kerberos SPNEGO allowed (named after the AD domain `ISEJA`; a realm name is part of every issuer URL and cannot change once clients are registered; Keycloak realm names are local to one instance, so every environment reuses both names) and `admin` for `*-adm` accounts only (UCS password plus WebAuthn — passkey or YubiKey — with TOTP as fallback, never Kerberos). Admin UIs trust only `admin`, everyday apps only `iseja`; both sessions can coexist in one browser.
 5. **MFA:** in `iseja`, a Kerberos ticket is accepted as sufficient and every password login needs a second factor; sensitive apps request a step-up level. Because a Kerberos ticket can be obtained with the password alone from anywhere that reaches a KDC, KDC ports are restricted to trusted VLANs and password-based remote access (SSH, RDP) is inventoried and reduced ([#1827](https://github.com/isejalabs/homelab/issues/1827)).
