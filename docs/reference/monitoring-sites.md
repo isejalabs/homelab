@@ -15,6 +15,8 @@ Authoritative inventory of the Checkmk containers and sites. Container and versi
 | `monitoring1.home.iseja.net` | 7002061 | pve5 (pve6 in the September audits) | 3 cores / 10 GiB / none | `core`, `qa_k8s`, `dev_k8s` |
 | `monitoring2.home.iseja.net` | 7002056 | pve4 | 3 cores / 10 GiB (`memory: 10240`, raised from 8 GiB on 2026-10-19 after the [OOMs](../audits/2026-10-monitoring-container-oom.md)) / none | `free`, `prod`, `prod_k8s` |
 
+Which sites send notifications, with what delay and period, is in [`monitoring-notifications.md`](monitoring-notifications.md).
+
 Memory is a hard cgroup limit with no swap, so exceeding it kills processes inside the container. See [how to read the memory numbers](#reading-container-memory) below.
 
 ## Sites
