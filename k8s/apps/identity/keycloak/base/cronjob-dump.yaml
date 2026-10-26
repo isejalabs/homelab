@@ -70,6 +70,8 @@ spec:
                   mountPath: /dump
           initContainers:
             - name: dump
+              # overwritten with the Cluster's spec.imageName by the replacement in kustomization.yaml; this copy only
+              # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
               image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:f7e00138159bb45d70b624ba25e446924cb3ed1bf366d13e936c3f81b914064e
               command:
                 - pg_dump
