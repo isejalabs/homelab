@@ -45,7 +45,7 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-longhorn-monitoring?ref=checkmk-longhorn-monitoring-v0.2.1"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/checkmk-longhorn-monitoring?ref=checkmk-longhorn-monitoring-v0.3.0"
 
   # Environments monitored so far. Staged rollout, same precedent as checkmk-rustfs-monitoring's identity_envs: the
   # always-on environments first, not the on-demand ones (dbg/head/poc/rebuild/src) whose Longhorn would otherwise be
