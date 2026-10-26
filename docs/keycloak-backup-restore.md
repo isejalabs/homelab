@@ -19,7 +19,7 @@ What is in the database, and what a restore from the latest dump loses:
 | Realm configuration | Comes back with the dump; once realms are managed as code it also comes back from Git |
 | Users imported from UCS | Come back with the dump; re-synced from UCS anyway |
 | Sessions | Lost for anything created since the dump; users sign in again |
-| MFA enrollments (WebAuthn keys, TOTP secrets) | Lost for anything enrolled since the dump; those users must **enroll again**, which for the `admin` realm needs break-glass access |
+| MFA enrollments (WebAuthn keys, TOTP secrets) | Lost for anything enrolled since the dump; those users must **enroll again**, which for the `admin` realm needs [break-glass access](keycloak-break-glass.md) |
 
 The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2026-10-identity-claude.md`](plans/2026-10-identity-claude.md)): a database loss is a break-glass situation anyway, so the last day of sessions and new enrollments may be lost.
 
