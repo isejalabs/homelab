@@ -3,11 +3,11 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: flux-operator
+  name: &name flux-operator
 spec:
   chartRef:
     kind: OCIRepository
-    name: flux-operator
+    name: *name
   interval: 30m
   values:
     resources:

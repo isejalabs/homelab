@@ -3,12 +3,12 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: kopiur
+  name: &name kopiur
 spec:
   healthChecks:
     - apiVersion: helm.toolkit.fluxcd.io/v2
       kind: HelmRelease
-      name: kopiur
+      name: *name
       namespace: kopiur-system
   interval: 1h
   path: ./k8s/infra/kopiur-system/kopiur/base

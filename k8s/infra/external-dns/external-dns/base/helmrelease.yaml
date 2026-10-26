@@ -3,14 +3,14 @@
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
 metadata:
-  name: external-dns
+  name: &name external-dns
 spec:
   chart:
     spec:
-      chart: external-dns
+      chart: *name
       sourceRef:
         kind: HelmRepository
-        name: external-dns
+        name: *name
         namespace: external-dns
       version: 1.23.0
   interval: 1h
