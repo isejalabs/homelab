@@ -117,7 +117,7 @@ Observations:
 - **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#1827](https://github.com/isejalabs/homelab/issues/1827)). The only credential row in the dump is the master admin password.
 - **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until #1827; repeat the login step of this drill then.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
-- **Hostname and certificate** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`, Let's Encrypt staging certificate, so browsers warn), not from the dump.
+- **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
 
 ## Why a dump and no WAL archiving
 
