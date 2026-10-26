@@ -29,7 +29,7 @@ The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2
 - **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. The main container uploads the file as `keycloak-<UTC timestamp>.dump` with the AWS CLI and then deletes everything but the newest 14 dumps. A failed dump leaves nothing to upload, so a broken dump never replaces a good one.
 - **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
 - **Client version**: `pg_dump` must be at least as new as the server. The CronJob uses the same `ghcr.io/cloudnative-pg/postgresql` image as the cluster. When the cluster moves to a new PostgreSQL major version, bump the CronJob image with it.
-- **Where it runs**: only in the environments that register the units (currently `dev` and `qa`; see [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
+- **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
 
 ## Daily tasks
 
@@ -50,12 +50,14 @@ List the dumps in the bucket with the credentials of the `keycloak-db#<env>` 1Pa
 
 ## Restore
 
-Restoring takes the newest (or a chosen) dump and loads it into an empty `keycloak` database. It was verified by restoring a dump into a scratch database in `qa` (101 tables, the same realm and user counts as the source). A full drill, including logging in with an existing WebAuthn credential, is part of the restore work of [#1826](https://github.com/isejalabs/homelab/issues/1826) and not covered here yet.
+Restoring takes the newest (or a chosen) dump and loads it into an empty `keycloak` database. It was verified twice: by restoring a dump into a scratch database in `qa`, and by a full drill in `rebuild` with a `qa` dump (see [Restore drill](#restore-drill)).
 
 1. **Get an empty database.** For a lost cluster let Flux recreate it (CloudNativePG runs `initdb` with the `keycloak` database and owner). For a damaged but running database, delete the `Cluster` and its PVC, plus the Retain `PersistentVolume` and the Longhorn volume, and let Flux recreate it.
-2. **Make sure Keycloak is not writing.** Scale the Keycloak `StatefulSet` to 0, or restore before Keycloak ever starts against the new database.
+2. **Make sure Keycloak is not writing.** Scale the Keycloak Operator (`kubectl scale deploy keycloak-operator -n keycloak --replicas=0`) and then the Keycloak `StatefulSet` to 0, or restore before Keycloak ever starts against the new database. The operator is scaled first so it cannot bring the `StatefulSet` back; scale it up again afterwards and it recreates Keycloak by itself.
 3. **Run the restore job** below, set `BUCKET` and `DUMP_KEY` (the object name from the listing). `--clean --if-exists` also covers a database in which Keycloak already created its schema.
-4. **Restart Keycloak** (delete its pods) so it picks up the restored data, then sign in.
+4. **Start Keycloak again** (scale the operator back to 1; it recreates the `StatefulSet`, or delete the pod if Keycloak was left running) so it picks up the restored data, then sign in.
+
+A dump taken in another environment can be restored too: copy it into the target's `<env>-keycloak-db` bucket first (each environment's user only reaches its own bucket), then restore as above. The realm content and the Keycloak master-realm users come from the dump, **including the master admin password of the source environment**, not the `keycloak-bootstrap-admin#<env>` one of the target.
 
 ```yaml
 apiVersion: batch/v1
@@ -97,6 +99,26 @@ spec:
         - {name: dump, emptyDir: {}}
 ```
 
+## Restore drill
+
+Done on 2026-10-26 in `rebuild` ([#1920](https://github.com/isejalabs/homelab/issues/1920)), restoring the newest `qa` dump (282 KB) into a new `rebuild` database over a schema that Keycloak had already initialized, so `--clean --if-exists` was exercised for real:
+
+| Step | Result |
+| --- | --- |
+| Register in `rebuild`, apply `rustfs-keycloak-db`, create `keycloak-bootstrap-admin#rebuild` | Units reconciled; Keycloak ready about 3 min after the database (first start creates the schema) |
+| Before the restore | 101 tables, realm `master` only |
+| Restore job (`download` 9 s, `pg_restore` 21 s) | Complete in 56 s including pod start; no errors with `--exit-on-error` |
+| After the restore | 101 tables; realms `master`, `iseja`, `admin`; one imported user in each of `iseja` and `admin` |
+| Start Keycloak again | Ready within about 1 min; OIDC discovery answers 200 for all three realms |
+| Login | Pending the owner's browser check, see below |
+
+Observations:
+
+- **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#1827](https://github.com/isejalabs/homelab/issues/1827)). The only credential row in the dump is the master admin password.
+- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until #1827; repeat the login step of this drill then.
+- **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
+- **Hostname and certificate** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`, Let's Encrypt staging certificate, so browsers warn), not from the dump.
+
 ## Why a dump and no WAL archiving
 
 The first design archived WAL and took base backups with the Barman Cloud plugin. In `qa` that failed within hours: the backup credentials did not exist yet, archiving failed, and PostgreSQL does not recycle WAL it has not archived, so unarchived WAL filled the 1Gi volume and stopped the database. A separate WAL volume would only move the failure. A backup target that is down must never be able to take the live database down, so:
@@ -111,5 +133,4 @@ This differs from point 6 of [ADR 0016](decisions/0016-identity-and-web-sso.md) 
 
 - **No alert on failed dumps yet.** Check the CronJob after changes and during the soak in `qa`. Alerting is tracked with the observability work.
 - **Dumps are not encrypted.** They contain password hashes and MFA secrets and sit unencrypted in a bucket that only the scoped `<env>-keycloak-db` user can access. Encrypting them (for example with `age`) is a possible follow-up.
-- **Not tested with a live `--clean` restore** over a database that Keycloak has already initialized; the scratch-database restore is. Treat the first real restore as the drill.
 - **RustFS must be reachable at 02:00.** A failed run keeps the previous dumps; the next day's run tries again.
