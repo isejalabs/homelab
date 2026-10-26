@@ -8,6 +8,10 @@ namespace: flux-system
 # database restore. Deliberately not part of ../kustomization.yaml (which prod includes via ../../sets): only the envs
 # that name this set get these units. To promote a unit to prod, move its line to the matching infra/apps set.
 # Currently: Keycloak and its database (#1826).
+# Promotion and the envs that take this set (checked for #1946): qa and rebuild also include the full ../../sets, so they
+# keep getting a promoted unit from there and their line for this set must go with it (the same unit listed twice fails
+# the build); dev includes only ../../sets/minimal, so a promoted app belongs in apps/minimal (infra units arrive with
+# the full infra set), or dev loses its Keycloak (ADR 0016 point 2).
 resources:
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
   - ../../../../../infra/keycloak/keycloak-operator/flux
