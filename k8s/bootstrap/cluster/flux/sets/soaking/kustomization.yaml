@@ -4,9 +4,10 @@ kind: Kustomization
 
 namespace: flux-system
 
-# Units that are developed in dev and soak in qa before they go to prod. Deliberately not part of ../kustomization.yaml
-# (which prod includes via ../../sets): only the envs that name this set get these units. To promote a unit to prod,
-# move its line to the matching infra/apps set. Currently: Keycloak and its database (#1826).
+# Units that are developed in dev and soak in qa before they go to prod. rebuild takes them too, to rehearse the
+# database restore. Deliberately not part of ../kustomization.yaml (which prod includes via ../../sets): only the envs
+# that name this set get these units. To promote a unit to prod, move its line to the matching infra/apps set.
+# Currently: Keycloak and its database (#1826).
 resources:
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
   - ../../../../../infra/keycloak/keycloak-operator/flux
