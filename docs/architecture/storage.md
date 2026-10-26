@@ -114,7 +114,7 @@ Longhorn is the default going forward — proxmox-csi is being phased out for ne
 
 ## `reclaimPolicy: Retain` and the two-step cleanup gotcha
 
-Both backends use `reclaimPolicy: Retain` everywhere, deliberately: deleting a `PersistentVolumeClaim` (or its namespace) never deletes the underlying volume automatically, trading a bit of manual cleanup for protection against accidental data loss. This matters most when spinning up throwaway test resources — e.g. via the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill on a non-`prod` environment — and is called out explicitly in [`../../CLAUDE.md`](../../CLAUDE.md):
+Both backends use `reclaimPolicy: Retain` for their data classes, deliberately (the exceptions are the disposable `longhorn-scratch-*` staging classes, the kopiur cache class `longhorn-cache` and the chart's default `longhorn` class, all `Delete`, see [`app-storage.md`](../app-storage.md#storage-classes); [issue #1183](https://github.com/isejalabs/homelab/issues/1183) tracks reviewing the rest): deleting a `PersistentVolumeClaim` (or its namespace) never deletes the underlying volume automatically, trading a bit of manual cleanup for protection against accidental data loss. This matters most when spinning up throwaway test resources — e.g. via the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill on a non-`prod` environment — and is called out explicitly in [`../../CLAUDE.md`](../../CLAUDE.md):
 
 > Clean up any test-created resources afterward, including Retain-policy PVs/Longhorn volumes, which outlive
 > the PVC/namespace that claimed them and need deleting both as the k8s `PersistentVolume` object and the

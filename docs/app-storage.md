@@ -18,7 +18,7 @@ All variables below are `${VAR:=default}`-style placeholders, resolved via Flux'
 | `STORAGE_STAGING_CLASS` | `longhorn-scratch-ext4` | Only relevant for apps using `apps/storage/pvc` (active backup): the mover's disposable staging PVC's class. Must match `STORAGE_CLASS`'s filesystem -- see [Filesystem pairing](#filesystem-pairing) |
 | `STORAGE_SNAPSHOTCLASS` | `longhorn-snapshot` | The `VolumeSnapshotClass` used to capture the source PVC |
 | `PUID` / `PGID` | `1000` / `1000` | UID/GID the mover runs as -- match your app's own container UID/GID so file ownership survives a restore |
-| `BACKUP_CACHE_STORAGECLASS` | `longhorn-standard` | Storage class for the kopia mover's local dedup cache volume -- a backup-mechanism detail, not a data-volume concern |
+| `BACKUP_CACHE_STORAGECLASS` | `longhorn-cache` | Storage class for the kopia mover's local dedup cache volume -- a backup-mechanism detail, not a data-volume concern. Must be a `reclaimPolicy: Delete` class, so a recreated cache PVC does not leave an orphaned volume behind |
 
 ## Storage classes
 
@@ -30,6 +30,8 @@ Two more classes exist purely for the backup mover's disposable staging PVC (`ST
 |---|---|---|
 | `longhorn-scratch-ext4` | ext4 | Staging only -- never use for an app's actual data |
 | `longhorn-scratch-xfs` | xfs | Staging only -- never use for an app's actual data |
+
+One more class, `longhorn-cache`, backs the mover's persistent dedup cache (`BACKUP_CACHE_STORAGECLASS`): ext4, two replicas, `reclaimPolicy: Delete`. Unlike the staging classes it is not `strict-local` and not single-replica, since the same volume is reused by every backup run and a node outage should not stall the backup. Its filesystem is independent of `STORAGE_CLASS`.
 
 ## Filesystem pairing
 
