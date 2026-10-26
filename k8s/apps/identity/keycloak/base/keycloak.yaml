@@ -12,10 +12,10 @@ spec:
     database: keycloak
     host: keycloak-db-rw
     passwordSecret:
-      name: keycloak-db-app
+      name: &dbSecret keycloak-db-app
       key: password
     usernameSecret:
-      name: keycloak-db-app
+      name: *dbSecret
       key: username
     vendor: postgres
   hostname:
