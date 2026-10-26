@@ -1,0 +1,24 @@
+# StorageClass for the kopia mover's persistent dedup-cache PVC (`kopiur-cache-<app>`),
+# see SnapshotPolicy `spec.mover.cache` in k8s/components/apps/storage/pvc-no-backup.
+# The cache is rebuilt from the backup repository on demand, so nothing here is worth
+# retaining: Delete avoids an orphaned PV plus Longhorn volume every time a cache PVC is
+# recreated (UID change, restore, app removal). Everything else mirrors longhorn-standard
+# (two replicas) so a single node outage does not stall the backup that mounts it.
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-cache
+provisioner: driver.longhorn.io
+allowVolumeExpansion: true
+reclaimPolicy: Delete # disposable cache; avoids orphaned volumes
+volumeBindingMode: WaitForFirstConsumer # bind PVC after the mover pod is scheduled
+parameters:
+  # Filesystem type: unrelated to the source volume's filesystem, the cache is
+  # a plain directory tree, not a raw block copy of a snapshot.
+  fsType: ext4
+
+  # Number of replicas for each volume
+  numberOfReplicas: "2"
+
+  # Stale replica timeout before rebuild (default: 30 minutes)
+  staleReplicaTimeout: "30"
