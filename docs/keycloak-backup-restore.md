@@ -6,7 +6,7 @@ status: current
 
 **Choose a task:** check or trigger a backup under [Daily tasks](#daily-tasks); recover the database under [Restore](#restore).
 
-**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
+**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [WebAuthn after a restore](#webauthn-after-a-restore) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
 
 ## Overview
 
@@ -115,9 +115,63 @@ Done on 2026-10-26 in `rebuild` ([#1920](https://github.com/isejalabs/homelab/is
 Observations:
 
 - **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#1827](https://github.com/isejalabs/homelab/issues/1827)). The only credential row in the dump is the master admin password.
-- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until #1827; repeat the login step of this drill then.
+- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until #1827; see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal to repeat.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and certificate** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`, Let's Encrypt staging certificate, so browsers warn), not from the dump.
+
+## WebAuthn after a restore
+
+A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill) and cannot be shown before MFA is rolled out ([#1827](https://github.com/isejalabs/homelab/issues/1827)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by #1827 for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
+
+### What is known
+
+- **The relying-party ID is not set by the realm module.** The module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/keycloak-realm-v0.2.0/modules/keycloak-realm) (version used by [`terragrunt/_envcommon/keycloak-realm.hcl`](../terragrunt/_envcommon/keycloak-realm.hcl)) creates the `web_authn_policy` of every realm with `relying_party_entity_name`, the signature algorithms and the user-verification requirement only, and no `relying_party_id`. The Keycloak documentation for the policy says: if the Relying Party ID is blank, Keycloak uses the host part of its base URL. The RP ID is therefore the Keycloak hostname of the environment:
+
+| Environment | Keycloak hostname (= effective RP ID) |
+| --- | --- |
+| `dev` | `dev-auth.dev.iseja.net` |
+| `qa` | `qa-auth.qa.iseja.net` |
+| `rebuild` | `rebuild-auth.rebuild.iseja.net` |
+| `prod` | `auth.iseja.net` (not deployed yet) |
+
+- **A credential is bound to its RP ID.** A WebAuthn credential registered for one RP ID is not valid for another (W3C WebAuthn). Both realms, `iseja` and `admin`, are served from the same hostname, so they share the RP ID of their environment.
+- **Not yet confirmed on a live instance:** that the RP ID field of the WebAuthn policy is blank in the admin console of each realm after `keycloak-realm` was applied (step 1 of the [rehearsal](#rehearsal)), and that the dump carries the WebAuthn credential rows of LDAP-federated users (the table under [Overview](#overview) assumes it).
+
+### What a restore under a different hostname cannot prove
+
+- A dump restored into another environment (the `qa` dump into `rebuild`, as in the drill) carries credentials registered for `qa-auth.qa.iseja.net`. A browser will not offer them on `rebuild-auth.rebuild.iseja.net`, so a failed login there says nothing about the restore, and a successful one is impossible. Such a restore proves tables, realms, users and discovery, and nothing about credential portability.
+- The same holds for the issuer: it contains the hostname, so tokens and client registrations of the source do not carry over to a target with another hostname.
+- A credential enrolled in `rebuild` after the restore proves only that enrolment works there.
+
+### Drill setup
+
+To keep the RP ID (and the issuer) the drill has to answer on the hostname the credential was registered for. Options:
+
+| Option | What it is | Assessment |
+| --- | --- | --- |
+| A. Restore in place, same environment | Enroll the test credential in an environment, take a dump, empty the database as in [Restore](#restore) step 1, restore, start Keycloak, log in on the unchanged hostname | Needs nothing new and keeps RP ID and issuer. Destructive for that environment, which is acceptable in `dev` (or `qa`) while no real users depend on it. **Proposed** |
+| B. Isolated recovery instance on the real hostname | A second Keycloak and database restored from the dump, answering on the production hostname for one test client only (split DNS or a hosts-file entry on that client, plus a certificate for the name) | Needed for a prod rehearsal that must not touch the running instance. Not tried; the certificate and secure-context behaviour with a staging or private certificate are open questions. Revisit when `prod` exists |
+| C. Explicit, environment-independent RP ID | Set `relying_party_id` in the module to a shared parent domain so a credential works in every environment | Not adopted: it is a design change that makes credentials portable between `dev` and `prod`, and it has not been checked that Keycloak accepts a parent domain of the host. Belongs with the hostname work in [#1946](https://github.com/isejalabs/homelab/issues/1946) if wanted at all |
+
+### Rehearsal
+
+Run it once #1827 has rolled out the WebAuthn flows. The setup (A) and the environment are the owner's decision; the owner also holds the authenticator.
+
+1. **Before enrolling:** open *Authentication* → *Policies* → *WebAuthn Policy* in each realm and note whether *Relying Party ID* is blank. Enroll a test credential for a federated test user. Keycloak builds the WebAuthn user handle from the internal user ID, which for users of an external federation is a storage ID that can exceed the 64-byte limit of the specification (see the WebAuthn chapter of the Keycloak server administration guide); if enrolment fails for a federated user, that is a finding for #1827 and not for the restore.
+2. **Enroll** one credential in each realm: `admin` (the `sebi-adm` account, or a test account in `idm-admins`) and `iseja` (a test account in `idm-users`). Log in once with each to prove they work before the restore.
+3. **Dump:** trigger a manual dump ([Daily tasks](#daily-tasks)) after the enrolments and note the object name.
+4. **Restore** the dump on the same hostname, following [Restore](#restore): empty database, operator and Keycloak stopped, restore job, start Keycloak.
+5. **Log in** in each realm with password and the enrolled credential. Expected: success.
+6. **Also check:** the user and group claims (client scope evaluation for a test client, or the first real client), that federation to UCS still answers, and that the emergency administrator of `master` can sign in with the password of the dump ([break-glass](keycloak-break-glass.md)).
+7. **Optional negative control:** restore the same dump into another environment and note that the credential is not offered there. This documents the limit above instead of discovering it during an incident.
+8. **Record** the result in the table below and in the issue, including the Keycloak version and the environment.
+
+| Realm | Result | Date | Environment |
+| --- | --- | --- | --- |
+| `iseja` | Pending, blocked by #1827 | | |
+| `admin` | Pending, blocked by #1827 | | |
+
+If the rehearsal fails, or the owner decides not to run it, the consequence stays as stated under [Overview](#overview): users enrolled since the last dump, or all of them when the credential does not survive, enroll again, and for the `admin` realm that needs [break-glass access](keycloak-break-glass.md). That consequence has to be accepted explicitly for each realm; it is not accepted yet.
 
 ## Why a dump and no WAL archiving
 
