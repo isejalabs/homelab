@@ -3,8 +3,27 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: keycloak
+  name: &name keycloak
 spec:
+  # Neither CRD reports through kstatus (no observedGeneration, no Reconciling/Stalled condition), so without these
+  # expressions a health check would be satisfied the moment the object exists. Both operators set a Ready condition.
+  healthCheckExprs:
+    - apiVersion: k8s.keycloak.org/v2beta1
+      kind: Keycloak
+      current: status.conditions.exists(e, e.type == 'Ready' && e.status == 'True')
+      failed: status.conditions.exists(e, e.type == 'HasErrors' && e.status == 'True')
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      current: status.conditions.exists(e, e.type == 'Ready' && e.status == 'True')
+  healthChecks:
+    - apiVersion: k8s.keycloak.org/v2beta1
+      kind: Keycloak
+      name: *name
+      namespace: &namespace keycloak
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: keycloak-db
+      namespace: *namespace
   interval: 1h
   path: ./k8s/apps/identity/keycloak/base
   prune: true
@@ -12,6 +31,10 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
+  # healthChecks is ignored when wait is true
   wait: false
   dependsOn:
+    - name: cloudnative-pg
+    - name: gateway-api
     - name: keycloak-operator
+    - name: longhorn
