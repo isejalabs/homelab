@@ -24,14 +24,15 @@ All variables below are `${VAR:=default}`-style placeholders, resolved via Flux'
 
 The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/ `longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance tradeoffs -- are documented once, as the canonical reference, in [`docs/architecture/storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles); not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine which one to pick -- `longhorn-xfs` is the only xfs-backed class (every other class is ext4); `longhorn-fast`/`longhorn-ha` trade off durability/performance differently, so picking one is still a deliberate choice.
 
-Two more classes exist purely for the backup mover's disposable staging PVC (`STORAGE_STAGING_CLASS`) -- not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. Both are fast, single-replica, `strict-local`, differing only in filesystem:
+Three more classes exist purely for the backup mover (kopiur) -- not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. The mover uses two different temporary volumes per app, with different jobs; see [How it works](kopiur-backup-restore.md#ongoing-protection-appsstoragepvc-only) in the kopiur doc for the full backup sequence. All three are `reclaimPolicy: Delete`: nothing on them is worth keeping, so deleting the PVC also removes the volume.
 
-| Class | Filesystem | Notes |
-|---|---|---|
-| `longhorn-scratch-ext4` | ext4 | Staging only -- never use for an app's actual data |
-| `longhorn-scratch-xfs` | xfs | Staging only -- never use for an app's actual data |
+| Class | Used for (variable) | Filesystem | Replicas | Lifetime |
+|---|---|---|---|---|
+| `longhorn-scratch-ext4` / `longhorn-scratch-xfs` | **Staging** PVC (`STORAGE_STAGING_CLASS`) | must match the source (`STORAGE_CLASS`) | 1, `strict-local` | one backup run: created from the `VolumeSnapshot`, read by the mover, deleted afterwards |
+| `longhorn-cache` | **Cache** PVC (`BACKUP_CACHE_STORAGECLASS`) | ext4, independent of `STORAGE_CLASS` | 2, not `strict-local` | persistent: kept between runs, only rebuilt if deleted |
 
-One more class, `longhorn-cache`, backs the mover's persistent dedup cache (`BACKUP_CACHE_STORAGECLASS`): ext4, two replicas, `reclaimPolicy: Delete`. Unlike the staging classes it is not `strict-local` and not single-replica, since the same volume is reused by every backup run and a node outage should not stall the backup. Its filesystem is independent of `STORAGE_CLASS`.
+- **Staging (`longhorn-scratch-*`)** holds a full, temporary *copy of the app's data*: kopiur restores the `VolumeSnapshot` of the source PVC into it (a raw block copy, hence the matching-filesystem rule below) and the mover reads from there, so the app's live volume is never read directly. It only exists while a backup runs, so speed matters more than durability: one replica, on the node running the mover.
+- **Cache (`longhorn-cache`)** holds kopia's local *metadata and content cache*, not app data. It is what lets the next run quickly recognise what the repository already contains, instead of listing it again from `fiona`. It is reused by every run, so it is persistent and keeps two replicas so a single node outage does not stall the backup; if lost, it is only rebuilt from the repository (slower next run, no data loss). Because it contains no copy of the source's blocks, its filesystem has nothing to match: an app on an xfs `STORAGE_CLASS` such as `longhorn-xfs` (e.g. unifi-mongodb) uses the same ext4 cache class, so there is no xfs variant.
 
 ## Filesystem pairing
 
