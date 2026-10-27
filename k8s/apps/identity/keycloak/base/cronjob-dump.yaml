@@ -15,7 +15,7 @@ spec:
         spec:
           containers:
             - name: upload
-              image: public.ecr.aws/aws-cli/aws-cli:2.38.5@sha256:c8156a0e74e13929a42d7e60f0d4e14e7d28d980cd21822505d4bff80e5460c1
+              image: public.ecr.aws/aws-cli/aws-cli:2.39.0@sha256:6014c77975a4ae237395924cc821333f20bf87c91964a45dd4ed5f3b13b424f5
               command:
                 - /bin/sh
                 - -ec
