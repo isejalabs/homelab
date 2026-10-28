@@ -77,15 +77,15 @@ for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); d
 
 ### StorageClasses — one driver, several tradeoff profiles
 
-There are six, not five — one easy to miss because it isn't declared alongside the others. Five are custom, in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/), sharing `provisioner: driver.longhorn.io`, `reclaimPolicy: Retain`, `volumeBindingMode: WaitForFirstConsumer`, `allowVolumeExpansion: true` — only the `parameters:` differ:
+There are six data-volume classes, not five -- one easy to miss because it isn't declared alongside the others. Five are custom, in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/), sharing `provisioner: driver.longhorn.io`, `volumeBindingMode: WaitForFirstConsumer`, `allowVolumeExpansion: true` -- only the `parameters:` and the `reclaimPolicy` differ (the same folder also holds the disposable backup-mover classes `longhorn-scratch-*` and `longhorn-cache`, see [`app-storage.md`](../app-storage.md#storage-classes)):
 
-| StorageClass | fsType | replicas | notes |
-| --- | --- | --- | --- |
-| `longhorn-standard` | ext4 | 2 | general-purpose |
-| `longhorn-ext4` | ext4 | 2 | same profile, explicit ext4 |
-| `longhorn-xfs` | xfs | 2 | same profile, xfs |
-| `longhorn-fast` | ext4 | 1 | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
-| `longhorn-ha` | ext4 | 3 | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
+| StorageClass | fsType | replicas | reclaimPolicy | notes |
+| --- | --- | --- | --- | --- |
+| `longhorn-standard` | ext4 | 2 | `Delete` | general-purpose |
+| `longhorn-ext4` | ext4 | 2 | `Delete` | same profile, explicit ext4 |
+| `longhorn-xfs` | xfs | 2 | `Delete` | same profile, xfs |
+| `longhorn-fast` | ext4 | 1 | `Delete` | `dataLocality: strict-local`, revision counter disabled — trades HA/consistency for speed |
+| `longhorn-ha` | ext4 | 3 | `Retain` | zone/node soft anti-affinity, `replicaAutoBalance: best-effort` — max resilience |
 
 The sixth, **`longhorn`**, is not defined in that `base/` folder at all — it's created automatically by the Longhorn Helm chart itself (`longhorn-core`'s [`base/helmrelease.yaml`](../../k8s/infra/longhorn-system/longhorn-core/base/helmrelease.yaml)):
 
@@ -114,10 +114,17 @@ Longhorn is the default going forward — proxmox-csi is being phased out for ne
 
 ## `reclaimPolicy: Retain` and the two-step cleanup gotcha
 
-Both backends use `reclaimPolicy: Retain` for their data classes, deliberately (the exceptions are the disposable `longhorn-scratch-*` staging classes, the kopiur cache class `longhorn-cache` and the chart's default `longhorn` class, all `Delete`, see [`app-storage.md`](../app-storage.md#storage-classes); [issue #1183](https://github.com/isejalabs/homelab/issues/1183) tracks reviewing the rest): deleting a `PersistentVolumeClaim` (or its namespace) never deletes the underlying volume automatically, trading a bit of manual cleanup for protection against accidental data loss. This matters most when spinning up throwaway test resources — e.g. via the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill on a non-`prod` environment — and is called out explicitly in [`../../CLAUDE.md`](../../CLAUDE.md):
+The reclaim policy decides what happens to the volume when its `PersistentVolumeClaim` (or its namespace) is deleted:
 
-> Clean up any test-created resources afterward, including Retain-policy PVs/Longhorn volumes, which outlive
-> the PVC/namespace that claimed them and need deleting both as the k8s `PersistentVolume` object and the
-> underlying `volumes.longhorn.io` object.
+| Class | `reclaimPolicy` | Why |
+| --- | --- | --- |
+| `longhorn-standard` / `-ext4` / `-xfs` / `-fast` | `Delete` | Apps on these classes use `apps/storage/pvc` (daily kopiur backup, offsite), so a leftover volume is not the safety net; it only leaks. Longhorn snapshots live inside the volume and are deleted with it, so they never were one either. An app on `apps/storage/pvc-no-backup` has no schedule, so its data is only as safe as its last manual backup |
+| `longhorn-scratch-*`, `longhorn-cache`, chart default `longhorn` | `Delete` | Disposable by design, see [`app-storage.md`](../app-storage.md#storage-classes) |
+| `longhorn-ha` | `Retain` | Holds the keycloak database, whose backup is a dump `CronJob` (dev/qa only, none on prod) rather than a kopiur schedule; switch it once that is as strong |
+| `proxmox-csi` | `Retain` | Volumes are Terragrunt-declared and must survive a PVC deletion, see above |
+
+[Issue #1183](https://github.com/isejalabs/homelab/issues/1183) has the history and the decision. A `Delete` class cannot be flipped in place: `reclaimPolicy` is immutable on a `StorageClass`, and existing `PersistentVolume`s keep the policy they were provisioned with. Changing a class therefore means recreating it (the manifests carry `kustomize.toolkit.fluxcd.io/force: enabled` for that) **and** patching each existing PV with `kubectl patch pv <name> -p '{"spec":{"persistentVolumeReclaimPolicy":"Delete"}}'`.
+
+For the remaining `Retain` classes (`longhorn-ha`, `proxmox-csi`) deleting a PVC or its namespace never deletes the underlying volume automatically, trading a bit of manual cleanup for protection against accidental data loss. This matters most when spinning up throwaway test resources on those classes, e.g. via the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill on a non-`prod` environment, and is called out in [`../../AGENTS.md`](../../AGENTS.md): clean up Retain-policy PVs/Longhorn volumes afterwards, they outlive the PVC/namespace that claimed them.
 
 For Longhorn specifically that's a **two-object** cleanup — the k8s `PersistentVolume` and the `volumes.longhorn.io` custom resource underneath it both need deleting, or the disk space and the Longhorn volume record both leak. proxmox-csi volumes leak the same way at the k8s `PersistentVolume` level, but because real proxmox-csi volumes in this repo are Terragrunt-declared rather than ad hoc, the equivalent cleanup for them is the `terragrunt state rm`/destroy flow described above, not a manual `kubectl delete`.
