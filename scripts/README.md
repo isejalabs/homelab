@@ -49,7 +49,7 @@ All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, enviro
 
 ## Keycloak database restore
 
-Run directly (not wrapped by `just`), from the repo root, against one environment — see [`docs/keycloak-backup-restore.md`](../docs/keycloak-backup-restore.md#restore) for the procedure, the safety reasoning and the drill record.
+Wrapped by `just backup::keycloak::<list|restore>` (see [`keycloak.just`](keycloak.just); the recipes pass their flags straight to the script, which can also be run directly) and always against one environment — see [`docs/keycloak-backup-restore.md`](../docs/keycloak-backup-restore.md#restore) for the procedure, the safety reasoning and the drill record.
 
 | Script | Purpose |
 | --- | --- |

@@ -52,13 +52,15 @@ List the dumps in the bucket with the credentials of the `keycloak-db#<env>` 1Pa
 
 Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/keycloak-db-restore.sh`](../scripts/keycloak-db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
 
-You need `kubectl`, `flux`, `gum` and `jq` locally and the kube context `admin@<env>-homelab`. A restore always names its environment:
+You need `just`, `kubectl`, `flux`, `gum` and `jq` locally and the kube context `admin@<env>-homelab`. A restore always names its environment:
 
 ```sh
-scripts/keycloak-db-restore.sh -e <env> --list             # dumps in the bucket: key, last modified, size
-scripts/keycloak-db-restore.sh -e <env>                    # newest dump
-scripts/keycloak-db-restore.sh -e <env> --dump <key>       # a chosen dump
+just backup::keycloak::list -e <env>                       # dumps in the bucket: key, last modified, size
+just backup::keycloak::restore -e <env>                    # newest dump
+just backup::keycloak::restore -e <env> --dump <key>       # a chosen dump
 ```
+
+The recipes pass their flags to the script, so `scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>] [-y]` does the same without `just`.
 
 What the script does, in this order (the first change to the live database is the rename in phase 3):
 
