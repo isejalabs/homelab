@@ -4,8 +4,6 @@ kind: StorageClass
 metadata:
   name: longhorn-standard
   annotations:
-    # reclaimPolicy is immutable: let Flux recreate the existing class once. Drop after every env has rolled out
-    kustomize.toolkit.fluxcd.io/force: enabled
     # Set as default StorageClass if desired
     storageclass.kubernetes.io/is-default-class: "false"
 allowVolumeExpansion: true
