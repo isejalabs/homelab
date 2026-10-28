@@ -1,6 +1,6 @@
 # Checkmk site consolidation plan
 
-**Date:** 2026-10-20. **Status:** Planning; nothing implemented, nothing changed on any host. **Scope:** lowering CPU and memory of the Checkmk containers `monitoring1` (pve5) and `monitoring2` (pve4) by changing check intervals in `free` and by retiring the `free` and `core` sites. It does not cover the Kubernetes monitoring content of the `*_k8s` sites or the log-collection work in [#71](https://github.com/isejalabs/homelab/issues/71). **Assessment:** [Proxmox capacity audit](../audits/2026-10-proxmox-capacity.md#checkmk-sites-in-monitoring1-and-monitoring2) and [check intervals and licence state](../reference/monitoring-sites.md#check-intervals-and-licence-state). **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Date:** 2026-10-20. **Status (2026-10-28):** phase 2a done (2026-10-21), phase 1 done (2026-10-28, PR [#1979](https://github.com/isejalabs/homelab/pull/1979)), phase 2b steps 1 and 2 done (2026-10-28: the ten ping-only hosts run in `prod_k8s` next to `core`); parallel run in progress, `core` still running; phase 3 not started. **Scope:** lowering CPU and memory of the Checkmk containers `monitoring1` (pve5) and `monitoring2` (pve4) by changing check intervals in `free` and by retiring the `free` and `core` sites. It does not cover the Kubernetes monitoring content of the `*_k8s` sites or the log-collection work in [#71](https://github.com/isejalabs/homelab/issues/71). **Assessment:** [Proxmox capacity audit](../audits/2026-10-proxmox-capacity.md#checkmk-sites-in-monitoring1-and-monitoring2) and [check intervals and licence state](../reference/monitoring-sites.md#check-intervals-and-licence-state). **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 ## Goal
 
@@ -84,10 +84,20 @@ Where the intervals come from (checked 2026-10-21 in the central configuration, 
    - The Proxmox hosts stay in `prod` after phase 3 with a 1-minute ping and need no Smart Ping.
 3. After phase 3 the hosts `gw2`, `gw3`, `gw4`, `sw01`, `core-switch`, `ap-kueche`, `ap-wozi`, `gw` and `gw-kdg` exist in `prod` (with their agent services and a 1-minute ping) and as ping-only hosts in `prod_k8s`. Use the same names only if Checkmk allows duplicates across the unconnected sites without confusing notifications; otherwise use a suffix (to be checked on the test host).
 4. Run both for a few days. Compare outage detection between the old and the new ping.
+   - **State 2026-10-28:** steps 1 to 3 are done and live, `core` keeps running until the owner says the comparison is good. Compare with `lq "GET log"` on `core` and `prod_k8s` for host state changes of the ten hosts (`Filter: class = 1`, alert history), or the "Event history" of the hosts in `prod_k8s`: the DOWN and UP times of the same outage must match within a few seconds.
 5. Set the host check interval of the hosts in `free` to 1 minute as soon as 2b step 4 shows the same detection (the folder rules `1e8aad76-…` and `46616260-…`).
 6. Stop `core`: `omd stop core` and `omd config core set AUTOSTART off` (the way `dev_k8s` was stopped), keep the data as a restorable archive. Then reduce the memory of CT 7002061 (monitoring1) once its new peak is known, which relieves pve5.
 7. **Verify:** `prod_k8s` services unchanged, host checks per second as expected, CPU of `prod_k8s` and of the `monitoring2` container, memory of `monitoring1` after the stop, the pve5 memory headroom.
 8. **Rollback:** `omd start core` and `omd config core set AUTOSTART on`; remove the new hosts from `prod_k8s`.
+
+**Result of 2b steps 1 to 3 (2026-10-28), details in [`monitoring-sites.md`](../reference/monitoring-sites.md#ping-only-hosts-in-prod_k8s):**
+
+- **A ping-only host is not service-free in CMC 2.5.0p15.** Test host `gw4.home.iseja.net` (folder `/ping-only`, no agent, no SNMP) was UP via Smart Ping at once, but `prod_k8s` went from 589 to 590 services: when a host has no services, the configuration generation adds a `PING` service (`cmk/base/nonfree/cmc/_services.py`, "Nagios requires at least one service"), and "Disabled services" cannot remove it. The owner accepted one service per host: all ten hosts bring `prod_k8s` to **599 of 750** (headroom 151), the `PING` services run every 5 minutes (folder rule), not every minute. The WARN level of the service-count rule (675) is not at risk. Step 1's "no services" assumption and the risk "hosts added in phase 2b must not bring services" are replaced by this.
+- **Smart Ping settings.** The interval comes from "Normal check interval for host checks" (default 6 s, one rule for the eight 1-second hosts). The rule set "Settings for host checks via Smart Ping" has one parameter, the timeout ("Expected packet rate"), by default 2.5 times the host check interval: DOWN after about 2.5 s without a packet for the 1-second hosts, 15 s for the 6-second ones. No timeout rule was needed. The time until DOWN is reported was not measured (needs a controlled outage and the owner's go).
+- **Smart Ping in `core` is not broken** (the open question of phase 0 step 3): all ten hosts are UP with "Packet received via smart PING", the `icmpsender` and `icmpreceiver` processes run, no settings deviate from the defaults, no errors in `cmc.log`. `gw` is the exception there: it is a cluster (`gw2`, `gw3`) and uses plain `check_icmp`, not Smart Ping. What was reported as not working could not be reproduced.
+- **Same names in every site work.** Notifications are per site, no site that has the duplicates sends any today; it only matters when notifications are turned on in more than one site. No suffix was used.
+- **`core` also pings `ap-kueche` and `ap-wozi` every second** (the plan assumed 6 s there); `prod_k8s` uses 6 s for them as decided.
+- **Cost:** `prod_k8s` host checks 1.7 to 9.4 per second, CPU 0.10 to 0.12 cores (120 s sample), `core` 0.04 cores. `prod_k8s` has its own automation user `terraform` (Administrator) since 2026-10-28; none existed before.
 
 ### Phase 3 — Merge `free` into `prod`
 
@@ -108,11 +118,11 @@ Where the intervals come from (checked 2026-10-21 in the central configuration, 
 
 ## Risks
 
-- **`prod_k8s` has 71 services of headroom** (about 185 after step 2a). Hosts added in phase 2b must not bring services; every new Kubernetes workload adds some. If the limit is reached, Activate changes is blocked until services are removed.
+- **`prod_k8s` has 151 services of headroom** after the ten ping-only hosts of 2b (each brings one `PING` service, see above); every new Kubernetes workload adds some. If the limit is reached, Activate changes is blocked until services are removed.
 - **Four sites in licence state Free.** The code counts per site; Checkmk's pages describe the free mode as one site. Retiring `core` reduces the exposure. Whether the remaining setup is within the terms was not checked.
 - **A second Ultimate site is not needed after the merge,** but `qa_k8s` (and the stopped `dev_k8s`) stay on `monitoring1`.
 - **Moving hosts loses history** unless the RRD files are copied by hand; the old site stays as the archive.
-- **Smart Ping reported as broken** in `core`: until phase 0 clarifies it, do not rely on it as the only ping source.
+- **Smart Ping reported as broken** in `core`: not reproduced (2026-10-28, see the 2b result). Run both pings in parallel anyway before stopping `core`.
 - **Load shifts from pve5 to pve4:** `core`'s 0.04 cores and the new hosts' memory move onto `monitoring2`, on the node with the highest load. The estimated size is small (the Smart Ping cost is measured at 0.04 cores for 22 hosts), but it adds to pve4.
 
 ## Open questions for the owner
