@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-28 for `prod_k8s` and `core` (ping-only hosts, see [below](#ping-only-hosts-in-prod_k8s)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated); earlier sections as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated); earlier sections as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -12,7 +12,7 @@ Authoritative inventory of the Checkmk containers and sites. Container and versi
 
 | Container | CT | Proxmox node | CPU / memory limit / swap | Sites |
 | --- | --- | --- | --- | --- |
-| `monitoring1.home.iseja.net` | 7002061 | pve5 (pve6 in the September audits) | 3 cores / 10 GiB / none | `core`, `qa_k8s`, `dev_k8s` |
+| `monitoring1.home.iseja.net` | 7002061 | pve5 (pve6 in the September audits) | 3 cores / 10 GiB / none | `qa_k8s`, `dev_k8s`; `core` (stopped since 2026-10-29, archive) |
 | `monitoring2.home.iseja.net` | 7002056 | pve4 | 3 cores / 10 GiB (`memory: 10240`, raised from 8 GiB on 2026-10-19 after the [OOMs](../audits/2026-10-monitoring-container-oom.md)) / none | `free`, `prod`, `prod_k8s` |
 
 Which sites send notifications, with what delay and period, is in [`monitoring-notifications.md`](monitoring-notifications.md).
@@ -30,7 +30,7 @@ All sites run Checkmk 2.5.0p15 since the upgrade on 2026-10-18 (`omd update` fro
 | `prod_k8s` | monitoring2 | Ultimate | Production Kubernetes cluster. Since 2026-10-28 also the ten ping-only hosts that need a one-second or six-second Smart Ping, see [ping-only hosts](#ping-only-hosts-in-prod_k8s). |
 | `qa_k8s` | monitoring1 | Ultimate | QA Kubernetes cluster. |
 | `dev_k8s` | monitoring1 | Ultimate | Dev Kubernetes cluster. Re-enabled on 2026-10-22 (autostart on, `omd config dev_k8s set AUTOSTART on`) after being stopped on 2026-10-19, to compare the dev cluster with `qa_k8s`/`prod_k8s` while investigating the collector warnings ([#1845](https://github.com/isejalabs/homelab/issues/1845)). `checkmk-kube-agent` runs in every environment, so dev is queryable again. Meant to stay running (owner, 2026-10-28): its purpose is to anticipate the load of new apps for prod, to size requests and limits, until [#71](https://github.com/isejalabs/homelab/issues/71) settles or another way is found (`kubectl top pods`, or sizing in `qa`). It costs about 2.8 GiB on `monitoring1`, see [moving `monitoring1`](../audits/2026-10-monitoring1-placement.md). |
-| `core` | monitoring1 | Ultimate | Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping works (checked 2026-10-28: all ten hosts UP with "Packet received via smart PING", the ICMP sender and receiver are running); the earlier "stopped working" report could not be reproduced. Being retired: its ten one-second and six-second hosts run in parallel in `prod_k8s` since 2026-10-28, then `core` is stopped (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md)). |
+| `core` | monitoring1 | Ultimate | Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping works (checked 2026-10-28: all ten hosts UP with "Packet received via smart PING", the ICMP sender and receiver are running); the earlier "stopped working" report could not be reproduced. **Stopped on 2026-10-29** at 00:05 CET on the owner's go (`omd stop core`, `omd config core set AUTOSTART off`, phase 2b of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md)); its ten one-second and six-second hosts run in `prod_k8s` since 2026-10-28. The site and its data stay as a restorable archive; to bring it back: `omd start core`, `omd config core set AUTOSTART on`. `prod` still has its `OMD core ...`/`Process core ...` services on `monitoring1` and the entry of `core` in the service-count rule (below), which show stale or vanished values until they are cleaned up. |
 
 ### Why `free` exists
 
@@ -45,7 +45,7 @@ Read from the live sites with `lq` (livestatus) on 2026-10-20: `check_interval` 
 | `prod` | Nagios | 84 | 47 ping at 1 min, 37 `host-ok` at 1 min | 1,411 | 1,349 at 5 min (1,220 passive, 129 active), 29 at 1 min, 33 at 125 min | 84, 299 | 0.3 to 1.0, 5.3 to 6.5 |
 | `free` | Nagios | 18 | **12 ping at 1 second**, 6 ping at 1 min | 609 | 436 passive and 10 active at 5 min, **140 passive and 13 active at 1 min**, 10 at 125 min | 726, 242 | 5.8, 3.3 to 5.4 |
 | `prod_k8s` | CMC | 83 (73 until 2026-10-28) | 73 `host-ok` at 1 min, 8 Smart Ping at 1 second, 2 Smart Ping at 6 seconds | 599 (679 until 2026-10-21, 589 until 2026-10-28, see below) | 443 at 1 min (370 passive, 73 active), 10 `PING` at 5 min, 73 at 33 min, 73 at 1,440 min | 73 plus 8 x 60 + 2 x 10, 445 | 9.4 to 11.8, 6.5 to 9.2 (2026-10-28 after the change; hosts were 1.7 to 3.0 and services 9.8 to 11.6 before it) |
-| `core` | CMC | 22 | **Smart Ping**: 11 at 1 second, 10 at 6 seconds, 1 ping at 1 second | 636 | 478 passive and 7 active at 5 min, 125 passive and 15 active at 1 min, 11 at 125 min | 820, 237 | 13.6, 2.2 |
+| `core` (stopped 2026-10-29, values of 2026-10-20) | CMC | 22 | **Smart Ping**: 11 at 1 second, 10 at 6 seconds, 1 ping at 1 second | 636 | 478 passive and 7 active at 5 min, 125 passive and 15 active at 1 min, 11 at 125 min | 820, 237 | 13.6, 2.2 |
 | `qa_k8s` | CMC | 68 | 68 `host-ok` at 1 min | 616 | 480 at 1 min (412 passive, 68 active), 68 at 5 min, 68 at 1,440 min | 68, 494 | 3.5, 10.8 |
 | `dev_k8s` | CMC | not read (stopped) | | | | | |
 
@@ -63,7 +63,7 @@ All four Ultimate sites (`prod_k8s`, `core`, `qa_k8s`, `dev_k8s`) report **`Lice
 | Site | Services | Headroom to 750 |
 | --- | --- | --- |
 | `prod_k8s` | 599 (679 before 2026-10-21, 589 before 2026-10-28) | 151 (80% used) |
-| `core` | 636 | 114 |
+| `core` (stopped 2026-10-29) | 636 | 114 |
 | `qa_k8s` | 616 | 134 |
 | `dev_k8s` | not read | |
 
@@ -100,6 +100,8 @@ How it is configured, all in `prod_k8s` (Setup, click-ops or the REST API; nothi
 - **Duplicate names:** the hosts also exist, or will after the merge of `free` (phase 3), in the unconnected sites `prod`/`free`. This is no problem for the cores. Notifications are per site and never merged; `core`, `prod` and `free` have no notification rules and the rule of `prod_k8s` has no mail address (see [`monitoring-notifications.md`](monitoring-notifications.md)). It only matters when notifications are switched on in several sites ([#1901](https://github.com/isejalabs/homelab/issues/1901)): then the same outage notifies once per site.
 
 Measured on 2026-10-28 after the change (`lq "GET status"` and the CPU seconds of all processes of the site over 120 seconds, record in the audit linked below): `prod_k8s` 83 hosts, 599 services, 9.4 host checks per second (1.7 before), 0.12 cores (0.10 before); `core` 0.04 cores. The ten `PING` services are OK at 5 minutes and the ten hosts are UP.
+
+`core` was stopped on 2026-10-29 at 00:05 CET (see the [site table](#sites)); [`2026-10-checkmk-core-stopped-result.md`](../audits/2026-10-checkmk-core-stopped-result.md) has the memory and CPU figures.
 
 Time to DOWN, measured on 2026-10-28 with a controlled outage of `8.8.8.8` on `monitoring1` and `monitoring2` at the same second: `core` and `prod_k8s` logged DOWN in the same second, 6 seconds after the block, and UP within 1 second after it ended, so the new ping detects an outage as fast as the old one. Method, log lines and caveats: [`2026-10-checkmk-prod-k8s-ping-only-result.md`](../audits/2026-10-checkmk-prod-k8s-ping-only-result.md).
 
