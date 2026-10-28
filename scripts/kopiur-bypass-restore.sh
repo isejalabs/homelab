@@ -164,9 +164,9 @@ kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
 # it first so the recreated PVC matches what git/Flux already declared (size, storageClass, etc.). The dump
 # must have its binding-related fields stripped before being reapplied: a Bound PVC's own `get -o yaml`
 # includes spec.volumeName pinned to its *current* PV, and reapplying that verbatim recreates a PVC statically
-# pinned to that same (by then Released, not Available -- storage-class reclaimPolicy is Retain) PV instead of
-# going through fresh dynamic provisioning, which never reaches the CSI populator/Restore at all and leaves
-# the PVC stuck in phase Lost. Confirmed live (rebuild, unifi-mongodb, 2026-09-18).
+# pinned to that same PV (by then Released under Retain, or gone under Delete -- never Available again) instead
+# of going through fresh dynamic provisioning, which never reaches the CSI populator/Restore at all and leaves
+# the PVC stuck in phase Lost. Confirmed live on a Retain class (rebuild, unifi-mongodb, 2026-09-18).
 TMP_PVC=$(mktemp)
 trap 'rm -f "${TMP_PVC}"' EXIT
 log info "Deleting and recreating the PVC against the bypass policy" "step" "5/9" "app" "${APP}" "namespace" "${NS}"
