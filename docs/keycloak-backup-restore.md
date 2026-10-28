@@ -112,8 +112,8 @@ The earlier procedure scaled the operator and the `StatefulSet` down by hand and
 
 | Part | Can it undo the scale-down? | Basis |
 | --- | --- | --- |
-| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../scripts/kopiur-restore.sh). Not re-observed for this `Deployment`; the drill below checks it. |
-| Keycloak `StatefulSet` (owned by the operator, not in Git) | Flux does not touch it, but a revived operator reconciles it back to `spec.instances: 1` | Follows from the first row; operator behavior as documented, not observed |
+| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../scripts/kopiur-restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-keycloak-db-restoresh): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
+| Keycloak `StatefulSet` (owned by the operator, not in Git) | Flux does not touch it, but a revived operator reconciles it back to `spec.instances: 1` | Observed in the same drill: the `StatefulSet`, scaled to 0 by the script, was recreated at 1 replica about 10 s after the operator came back |
 | `keycloak-db-dump` `CronJob` (02:00) | Nothing scales it; it simply runs if the restore is in progress at 02:00 and dumps a half-restored database | The earlier guide did not suspend it |
 
 So the script suspends all three and restores their state itself afterwards: a suspend flag set with `kubectl patch` is not in the manifest, so Flux would not clear it, and the `Deployment`'s replicas would only come back at the next reconcile.
@@ -135,17 +135,23 @@ This drill predates the script: it used the earlier manual procedure (delete the
 
 ### With `keycloak-db-restore.sh`
 
-**Not run yet** ([#1938](https://github.com/isejalabs/homelab/issues/1938)). To record, in a non-`prod` environment (a cold rebuild drill against the one-hour target, restoring a `qa` dump as in the first drill):
+Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)), a few minutes after the cluster had been booted from cold (image caches empty, Flux on `main`), restoring the same `qa` dump as the first drill (`keycloak-2026-10-26T011251Z.dump`, 282 KB) over a database that Keycloak had initialized (`scripts/keycloak-db-restore.sh -e rebuild --dump latest -y`):
 
 | Step | Result |
 | --- | --- |
-| Phase 1: list, restore into the scratch database, compare | |
-| Phase 2: writers stopped (seconds) | |
-| Phase 3: swap | |
-| Phase 4: Keycloak `Ready` again (seconds) | |
-| Whole run (seconds) | |
-| Does Flux revert a manual scale-down of `keycloak-operator` when not suspended (check once with `kubectl scale` and `flux reconcile kustomization keycloak-operator`)? | |
-| Login in `master`, realms and users as expected | |
+| `--list` | 49 s the first time (cold images), 6 s warm |
+| Phase 1: restore into the scratch database, compare | 96 s: the restore Job took 67 s including pod start and image pulls, no errors with `--exit-on-error`. Live: 101 tables, realm `master`, 1 user. Restored: 101 tables, realms `admin`, `iseja`, `master`, 3 users |
+| Phase 2: writers stopped | 15 s (Flux suspended, operator and `StatefulSet` scaled to 0, no client connected) |
+| Phase 3: swap | 1 s; the previous database stayed as `keycloak_before_20261028_215608` |
+| Phase 4: `Keycloak` `Ready` again | 266 s: 89 s of it a cold pull of the Keycloak image on the freshly booted node, 41 s Keycloak's own start; expect about a minute with warm images, as in the first drill |
+| Whole run | 378 s, of which Keycloak was down for about 4½ min (cold images) |
+| State afterwards | Both `Kustomization`s resumed and `True`, operator back at 1 replica, `StatefulSet` 1/1, CronJob not suspended again, live database 101 tables with realms `admin`, `iseja`, `master` and 3 users |
+| OIDC discovery | 200 for `master`, `iseja` and `admin` |
+| Does Flux revert a manual scale-down of `keycloak-operator` when not suspended? | **Yes.** `kubectl scale deploy keycloak-operator --replicas=0`, then `flux reconcile kustomization keycloak-operator`: `spec.replicas` was back at 1 right after the reconcile. The suspend in phase 2 is needed |
+| Login in `master` | Pending the owner's browser check: the `master` admin password comes from the `qa` dump, so it is the one in the `qa` item (see [A dump from another environment](#a-dump-from-another-environment)) |
+| Not drilled | The [roll back](#roll-back) and a dump with a failing `pg_restore`; both are only covered by the offline checks of the script |
+
+What the drill confirmed about the unverified parts of the script: `psql` as `postgres` over the local socket in the `postgres` container of the primary works, both renames succeed in one transaction once the `StatefulSet` is gone, the operator and `StatefulSet` names are right, and `kubectl wait keycloak/keycloak --for=condition=Ready` works.
 
 ### Observations of the manual drill
 
