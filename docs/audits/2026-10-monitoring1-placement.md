@@ -25,7 +25,7 @@ The growth since the September audits comes from the number of Ultimate sites: e
 
 ## Headroom on pve1
 
-pve1 has 46.8 GiB; the 7-day peaks of its guests sum to 37.5 GiB (capacity audit), which leaves about 9 GiB. The last two rows are estimates (the current peak minus the stopped sites), not measurements.
+pve1 has 46.8 GiB; the 7-day peaks of its guests sum to 37.5 GiB (capacity audit), which leaves about 9 GiB. That sum includes `rebuild-work-01` (4.9 GiB peak), as it must: `rebuild` is expected to be up from time to time, and pve1 needs room for it regardless of how often or when (owner, 2026-10-28). The last two rows are estimates (the current peak minus the stopped sites), not measurements.
 
 | What moves to pve1 | pve1 headroom afterwards | Freed on pve5 |
 | --- | --- | --- |
@@ -40,7 +40,7 @@ The only purpose of `dev_k8s` is to anticipate the load of new apps for prod, to
 
 ## Other findings
 
-- **The pve5 pressure is partly hidden right now.** The `rebuild-*` workers are not running, so pve5 shows 37.6 of 46.8 GiB used (9 running guests, 39.0 GiB allocated) and pve1 37.7 of 46.8 GiB (15 guests, 37.5 GiB allocated). The headroom figures above still count `rebuild-work-01` on pve1 and `rebuild-work-02` on pve5; a plan that leaves pve1 with about 2 GiB would be tested the moment `rebuild` is brought up.
+- **The live usage understates the pressure while `rebuild` is down.** The `rebuild-*` workers are not running, so pve5 shows 37.6 of 46.8 GiB used (9 running guests, 39.0 GiB allocated) and pve1 37.7 of 46.8 GiB (15 guests, 37.5 GiB allocated). The headroom figures above count `rebuild-work-01` on pve1 and `rebuild-work-02` on pve5, which is the right basis because `rebuild` comes up from time to time: a plan that leaves pve1 with about 2 GiB is thin in exactly those periods. Without `rebuild-work-01` the third row would leave about 7 GiB on pve1, but that room is not available to a permanent guest.
 - **The failure-domain objection weakens once `core` is retired.** The capacity audit rejected the move partly because a pve1 failure would take out the monitor of the gateway, directory, Home Assistant and PBS. With `core` (Smart Ping of the gateways) gone, `monitoring1` only watches `qa_k8s` and `dev_k8s`, and the sites that watch pve1's services (`prod`, `free`, `prod_k8s`) are on `monitoring2` (pve4). `monitoring1` already shares pve5 with the gateway `gw3` today.
 - **The move is cheap in operations.** As an LXC on local ZFS it cannot be live-migrated, but `pct migrate 7002061 pve1 --restart` should cost a few minutes of downtime for the QA and dev Checkmk sites, against the interim-control-plane procedure in [`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host) for `dev-ctrl-03`. The command was not run and the migration time was not measured.
 - **CPU is not a factor:** pve1 averages 25 to 29% host CPU and `monitoring1` adds 0.14 cores, less than `dev-ctrl-03` (0.22 to 0.33).
@@ -56,4 +56,3 @@ The only purpose of `dev_k8s` is to anticipate the load of new apps for prod, to
 
 - **Whether VLAN 102 and the firewall settings of `vmbr0` are the same on pve1.** Not checked.
 - **`monitoring1`'s peak after `core` is retired.** The 7 GiB and 4 GiB above are subtractions, not measurements.
-- **How `rebuild` usage changes the picture:** how often and for how long it is up decides how much of pve1's headroom is really free.
