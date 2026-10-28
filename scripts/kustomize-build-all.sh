@@ -18,7 +18,7 @@ SKIP_KINDS='SealedSecret'
 
 # Kubernetes version the manifests are validated against (kubeconform schemas). Keep it at the version the
 # clusters run (bumped by Renovate, see the pin in .github/renovate/pin-versions.json5).
-K8S_VERSION="1.35.9" # renovate: github-releases=kubernetes/kubernetes
+K8S_VERSION="1.35.10" # renovate: github-releases=kubernetes/kubernetes
 
 # Listed into a file rather than piped into the while loop below, so the loop runs in the
 # current shell (not a subshell) and `status` set inside it is still visible at `exit $status`.
