@@ -4,7 +4,7 @@ status: current
 
 # Node lifecycle: Talos/Kubernetes upgrades and node replacement
 
-**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-plane-worker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Verify](#verify-the-change-actually-took)
+**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-planeworker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Verify](#verify-the-change-actually-took)
 
 How to move one environment from one pinned Talos/Kubernetes version to another, replace a single node, scale a node count up or down, or relocate a node to a different Proxmox host — all in an otherwise-healthy cluster. Not a full cluster rebuild — see [`disaster-recovery.md`](disaster-recovery.md) for that, and [`architecture/environments.md`](architecture/environments.md) for what each environment is and why `prod` gets stricter rules (`main`-checkout-only applies, no `track-branch` override) than the others.
 

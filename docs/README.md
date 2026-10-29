@@ -7,7 +7,7 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | I need to… | Start here |
 | --- | --- |
 | Understand the system | The root [`README.md`](../README.md) for a summary; [`architecture/overview.md`](architecture/overview.md) for the stack diagram |
-| Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#directory-handling) |
+| Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
 | Diagnose Flux, DNS, storage, or stale Terraform state | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), or [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
 | Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](node-lifecycle.md) |
@@ -34,6 +34,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
   - [`keycloak-backup-restore.md`](keycloak-backup-restore.md) — the daily `pg_dump` backup of the Keycloak database to RustFS, why there is no WAL archiving, and how to restore it.
   - [`keycloak-break-glass.md`](keycloak-break-glass.md) — the local `master`-realm login (bootstrap admin) that keeps Keycloak administrable when UCS or the realms are down: where the credential lives, how to sign in, rotate it and recover it.
+  - [`keycloak-realms.md`](keycloak-realms.md) — the `keycloak-realm` Terragrunt unit that fills Keycloak with its realms and LDAP federation, and its prerequisites (UCS groups and bind account, 1Password items, CA trust).
   - [`keycloak-exposure.md`](keycloak-exposure.md) — what can reach Keycloak and which forwarded headers it trusts: the admin-console exposure decision, the forged-header test and its route fix, and why there is no network policy yet.
   - [`longhorn-snapshots.md`](longhorn-snapshots.md) — the `just backup::longhorn-snapshot::*` recipes (list/create/restore) for Longhorn's local hourly/daily volume snapshots.
   - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
@@ -45,6 +46,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`node-lifecycle.md`](node-lifecycle.md) — moving a Talos/Kubernetes version forward and replacing a single node, in an otherwise-healthy cluster.
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
+- **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.
 - **[`logs/`](logs)** — raw output logs kept as a historical/reference record of past bootstrap runs, not narrative documentation.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece of tooling or code, updated in the same PR as the code they describe:
   - runbooks for a whole process, e.g. [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md), [`terragrunt/README.md`](../terragrunt/README.md),
@@ -97,35 +99,11 @@ Where it's signalled depends on the doc type, since each already has its own nat
   ---
   ```
 
-  — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column below, since those tables are the entry point for those docs.
+  — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column of their folder's `README.md` index, since those tables are the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
 - `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#folder-structure)).
 
-## Architecture docs
+## Architecture and reference docs
 
-| Doc | Status | Covers |
-| --- | --- | --- |
-| [`architecture/overview.md`](architecture/overview.md) | current | top-level stack diagram (Proxmox → Talos → Kubernetes → Flux) and cross-cutting components, with links out to the rest of this table — start here |
-| [`architecture/kustomize.md`](architecture/kustomize.md) | current | the `base`/`envs/<env>`/`flux` overlay triad, overlay patches, the shared `components` layer, and its `replacements`-based transformers |
-| [`architecture/secrets.md`](architecture/secrets.md) | current | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
-| `architecture/terraform-bootstrap.md` | planning ([#195](https://github.com/isejalabs/homelab/issues/195); implementation in progress at [PR #1168](https://github.com/isejalabs/homelab/pull/1168)) | the AWS/terraform remote-state chicken-and-egg bootstrapping problem |
-| [`architecture/environments.md`](architecture/environments.md) | current | what each of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) is *for*, and the two axes that vary between them — factual values live in [`reference/environments.md`](reference/environments.md) |
-| [`architecture/network.md`](architecture/network.md) | current | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
-| [`architecture/storage.md`](architecture/storage.md) | current | Longhorn vs proxmox-csi, and when each is used |
-| [`architecture/workloads.md`](architecture/workloads.md) | current | catalog of every app/infra component deployed, what it is, and how it's installed |
-| [`architecture/repositories.md`](architecture/repositories.md) | current | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
-| [`architecture/ci.md`](architecture/ci.md) | current | every CI workflow, what it checks, tool provisioning via mise, and PR labeling/Mergify |
-
-Planned/tracked docs are children of [#262](https://github.com/isejalabs/homelab/issues/262) ("Document cluster settings and procedures").
-
-## Reference docs
-
-| Doc | Status | Covers |
-| --- | --- | --- |
-| [`reference/environments.md`](reference/environments.md) | current | per-environment sizing, Flux interval, domain/naming schemes, and the ID/ASN/LB-pool/API-VIP tables — split out of `architecture/environments.md` per [#1350](https://github.com/isejalabs/homelab/issues/1350) |
-| [`reference/monitoring-sites.md`](reference/monitoring-sites.md) | current | Checkmk containers and sites, their monitoring roles, and representative live host assignments |
-| [`reference/monitoring-notifications.md`](reference/monitoring-notifications.md) | current | per-site Checkmk notification settings (delay, period), what is noise vs signal in the k8s sites, and the proposed SNR changes |
-| [`reference/monitoring-thresholds.md`](reference/monitoring-thresholds.md) | current | Checkmk rules tuned against false positives (Proxmox VM memory, filesystem levels, K8s node root filesystem) with the evidence behind them |
-
-See [`reference/README.md`](reference/README.md) for what belongs in this folder.
+Each folder keeps its own index, with a status per doc: [`architecture/README.md`](architecture/README.md) (with a suggested reading order) and [`reference/README.md`](reference/README.md). [`decisions/README.md`](decisions/README.md) and [`audits/README.md`](audits/README.md) do the same for ADRs and audits.
