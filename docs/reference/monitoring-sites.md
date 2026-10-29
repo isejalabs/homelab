@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated); earlier sections as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -43,13 +43,25 @@ Read from the live sites with `lq` (livestatus) on 2026-10-20: `check_interval` 
 | Site | Core | Hosts | Host check (interval, command) | Services | Service intervals | Scheduled / min (hosts, services) | Measured / s (hosts, services) |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `prod` | Nagios | 84 | 47 ping at 1 min, 37 `host-ok` at 1 min | 1,411 | 1,349 at 5 min (1,220 passive, 129 active), 29 at 1 min, 33 at 125 min | 84, 299 | 0.3 to 1.0, 5.3 to 6.5 |
-| `free` | Nagios | 18 | **12 ping at 1 second**, 6 ping at 1 min | 609 | 436 passive and 10 active at 5 min, **140 passive and 13 active at 1 min**, 10 at 125 min | 726, 242 | 5.8, 3.3 to 5.4 |
+| `free` | Nagios | 18 | 18 ping at 1 min (12 of them at 1 second until 2026-10-28, see below) | 609 | 576 passive and 18 active at 5 min, 5 active at 1 min (the four `PING` services of `external_sites` and `DNS www.iseja.net` of `google-dns`), 10 at 125 min | 18, 124 | 0.36 to 0.38, 0.7 to 1.0 (before 2026-10-28: 5.4 to 5.8, 3.3 to 9.6) |
 | `prod_k8s` | CMC | 83 (73 until 2026-10-28) | 73 `host-ok` at 1 min, 8 Smart Ping at 1 second, 2 Smart Ping at 6 seconds | 599 (679 until 2026-10-21, 589 until 2026-10-28, see below) | 443 at 1 min (370 passive, 73 active), 10 `PING` at 5 min, 73 at 33 min, 73 at 1,440 min | 73 plus 8 x 60 + 2 x 10, 445 | 9.4 to 11.8, 6.5 to 9.2 (2026-10-28 after the change; hosts were 1.7 to 3.0 and services 9.8 to 11.6 before it) |
 | `core` (stopped 2026-10-29, values of 2026-10-20) | CMC | 22 | **Smart Ping**: 11 at 1 second, 10 at 6 seconds, 1 ping at 1 second | 636 | 478 passive and 7 active at 5 min, 125 passive and 15 active at 1 min, 11 at 125 min | 820, 237 | 13.6, 2.2 |
 | `qa_k8s` | CMC | 68 | 68 `host-ok` at 1 min | 616 | 480 at 1 min (412 passive, 68 active), 68 at 5 min, 68 at 1,440 min | 68, 494 | 3.5, 10.8 |
 | `dev_k8s` | CMC | not read (stopped) | | | | | |
 
 Scheduled and measured rates agree for `prod`, `prod_k8s` and the `core` host checks (13.6 measured against 13.7 scheduled), and are within a factor of about 2 elsewhere, so the intervals above are roughly what the cores run. The host check commands in use are `check-mk-host-ping` (the `check_icmp` plugin, one process per check on Nagios), `check-mk-host-ok` and `check-mk-host-smart` (Smart Ping, `core` only).
+
+### Change of 2026-10-28: `free` intervals
+
+Phase 1 of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md) was applied in `prod` (the central site, `free` receives its configuration from there) and activated on `prod` and `free`, with REST API calls of the `terraform` user. Three rules changed, the rule properties carry a comment with the old value:
+
+| Rule id | Rule set | Folder | Before | After |
+| --- | --- | --- | --- | --- |
+| `b308a945-20b6-4a98-bb01-7196024b6a38` | Normal check interval for service checks (`extra_service_conf:check_interval`, `Check_MK$`) | `/network-2` | 1 min | 5 min |
+| `1e8aad76-e7b3-44d5-9329-30d1aca17202` | Normal check interval for host checks (`extra_host_conf:check_interval`) | `/external_sites` | 1 s | 1 min |
+| `46616260-59d3-4b93-9bfd-e889d021dcbc` | Normal check interval for host checks (`extra_host_conf:check_interval`) | `/network-2` | 1 s | 1 min |
+
+`core` keeps pinging the same 12 hosts every second (Smart Ping) until it is retired. Measured result: [`2026-10-checkmk-free-phase1-result.md`](../audits/2026-10-checkmk-free-phase1-result.md). To roll back, set the three rules to 1 minute, 1 second and 1 second and activate.
 
 ### Licence state
 
