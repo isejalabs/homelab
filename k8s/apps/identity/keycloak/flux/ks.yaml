@@ -31,6 +31,9 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
+  # The health check times out after spec.timeout, which defaults to the interval (10m in dev and rebuild). A cold
+  # start takes longer: image pulls, initdb and Keycloak's first start on an empty database (~15 min in rebuild).
+  timeout: 20m
   # healthChecks is ignored when wait is true
   wait: false
   dependsOn:
