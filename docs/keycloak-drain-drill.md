@@ -96,8 +96,19 @@ Changing a replica count is a follow-up change of its own. Record the outcome he
 
 ## Results
 
-No measurement has been recorded yet. Add one row per run (environment, date, disturbance, node, preflight decisions, login outage total and longest, target, verdict) and link the issue comment that holds the `report.txt`.
+One row per run (environment, date, disturbance, node, login outage total and longest, target, verdict); link the issue comment that holds the `report.txt`.
 
 | Date | Environment | Disturbance | Login outage (total / longest) | Target | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | first drill, reported in [#1937](https://github.com/isejalabs/homelab/issues/1937) | not recorded | Drain | about 10.5 min | none | disturbed by disk pressure and cold image pulls |
+| 2026-10-29 | `qa` | Drain of `qa-work-01` (database primary) | between 15.7 and 19.6 min (still failing at 21:53:16, healthy at 21:57:06; the drain started 21:37:28) | 300 s | not valid: the `qa` API server became unavailable during the drain, so the script aborted and the recovery was not measured |
+
+### Findings of the 2026-10-29 `qa` run
+
+The run is not a valid measurement of the design, but it showed what a repeat has to expect:
+
+- **The drain blocks on Longhorn.** `kubectl drain` evicted `keycloak-db-1` and then retried for minutes on the Longhorn `instance-manager` pod of the node, which a `PodDisruptionBudget` protects while a volume is attached to it. A drain of a node with an attached Longhorn volume is therefore slow by itself, independent of Keycloak.
+- **Volume attach failed for about 7.5 minutes** after the database pod was scheduled on `qa-work-02` (`AttachVolume.Attach failed ... Bad response statusCode [500]`), then succeeded. This overlapped the control-plane trouble below.
+- **Cold pulls happened** as the preflight predicted: the PostgreSQL image was listed on none of the other nodes; the bootstrap image alone took 1 min 10 s.
+- **The `qa` control plane was unstable.** `kube-apiserver` on `qa-ctrl-02` refused connections on port 6443 for about 4.5 minutes from three minutes into the drain, failed its liveness probe with HTTP 500, and `kube-controller-manager` and `kube-scheduler` were restarted; the CloudNativePG operator was at 35 restarts. Whether the drain caused it is not known.
+- **Before the next attempt:** check the health of the control plane, and expect the drain itself to wait for Longhorn. Handling a drain that does not finish, and a control-plane health check before the drain, are not in the script yet.
