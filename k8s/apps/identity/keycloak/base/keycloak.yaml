@@ -37,6 +37,11 @@ spec:
     requests:
       cpu: 50m
       memory: 768Mi
+  # The stock image is not pre-built, so every start runs the Quarkus build first. Under CPU contention and with a
+  # cold image that outlasts the operator's default budget (600 x 1 s); the kill then discards the build and the
+  # next attempt starts from zero. 1800 x 1 s lets one attempt finish.
+  startupProbe:
+    failureThreshold: 1800
   # trust anchor for the LDAPS connection to UCS (the DCs' certificates are signed by the UCS CA)
   truststores:
     ucs-ca:
