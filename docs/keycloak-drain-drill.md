@@ -37,7 +37,7 @@ The first measurement was dominated by factors that are not part of the design. 
 
 ## Run the drill
 
-Use a non-`prod` environment where Keycloak is registered (`dev`, `qa`, `rebuild`); the script refuses `prod`. `qa` is the environment the comparison asks for. The script needs `kubectl` with the `admin@<env>-homelab` context, `curl`, `jq` and `gum`, and network access to the environment's Keycloak hostname (so run it from a machine on the home network). It stops with an error if the probes are not healthy before the drill starts.
+Use a non-`prod` environment where Keycloak is registered (`dev`, `qa`, `rebuild`); the script refuses `prod`. `qa` is the environment the comparison asks for. The script needs `kubectl` with the `admin@<env>-homelab` context, `curl`, `jq` and `gum`, and network access to the environment's Keycloak hostname (so run it from a machine on the home network). It stops with an error, before changing anything, if the control plane is not healthy (API server not ready, a node not `Ready`, a `kube-apiserver`, `kube-controller-manager` or `kube-scheduler` pod or a CloudNativePG operator pod not ready) or if the probes are not healthy before the drill starts.
 
 Drain the node of the database primary, with the proposed planned-drain target:
 
@@ -45,7 +45,7 @@ Drain the node of the database primary, with the proposed planned-drain target:
 scripts/keycloak-drain-drill.sh -e qa --target 300
 ```
 
-It prints where the pods and images are, asks for confirmation, records a short healthy baseline, cordons and drains the node (`--node <node>` picks another one, for example the node of `keycloak-0` when the two run apart), waits until both probes have been healthy again for five consecutive samples, uncordons the node and prints the report. Press Ctrl-C to abort: the node is uncordoned again on exit.
+It checks the control plane, prints where the pods and images are, asks for confirmation, records a short healthy baseline and drains the node (`--node <node>` picks another one, for example the node of `keycloak-0` when the two run apart). The drain runs in the background with its own `--drain-timeout` (default 900 seconds) while the probes keep measuring, so a drain that stalls or fails does not end the measurement: the script waits until the drain has ended and both probes have been healthy again for five consecutive samples, uncordons the node (retrying for up to five minutes if the API server is unreachable) and prints the report. Press Ctrl-C to abort: a running drain is stopped and the node is uncordoned again on exit.
 
 For an unplanned failure or another kind of disturbance, only measure and cause the disturbance yourself (for example a hard stop of the worker VM with [`proxmox-vm-power.md`](proxmox-vm-power.md), after [`node-lifecycle.md`](node-lifecycle.md) made sure that is acceptable in that environment):
 
@@ -53,7 +53,7 @@ For an unplanned failure or another kind of disturbance, only measure and cause 
 scripts/keycloak-drain-drill.sh -e qa --observe --target 900
 ```
 
-It changes nothing, starts measuring and ends once it has seen an outage and the probes are healthy again (or after `--timeout`, default 1800 seconds). The data goes to a directory under `$TMPDIR` (`--out <dir>` to choose one): probe logs, `events.json`, `pods.json`, `drain.txt`, `preflight.txt` and `report.txt`. Attach `report.txt` and `preflight.txt` to the issue.
+It changes nothing, still checks the control plane first, starts measuring and ends once it has seen an outage and the probes are healthy again (or after `--timeout`, default 1800 seconds). The data goes to a directory under `$TMPDIR` (`--out <dir>` to choose one): probe logs, `events.json`, `pods.json`, `drain.txt`, `preflight.txt` and `report.txt`. Attach `report.txt` and `preflight.txt` to the issue.
 
 Repeat the drain at least three times before relying on the number: a single run is what produced the 10.5 minutes.
 
@@ -70,7 +70,7 @@ The `login` probe sends a made-up user, so nothing is created and no real accoun
 
 ## Read the result
 
-The report has three parts: the outage windows per probe, a timeline, and the verdict (exit code `2` when the `login` outage exceeds `--target`). In the timeline, offsets are seconds after the start of the drill, and these are the phases to separate:
+The report has three parts: the outage windows per probe, a timeline, and the verdict. The exit code is `2` when the `login` outage exceeds `--target`, and `1` when the drain failed or did not finish (the report is still written, but it is not a valid drain measurement; the drain duration and exit status are the first line of the report). In the timeline, offsets are seconds after the start of the drill, and these are the phases to separate:
 
 | Phase | Where to look | Notes |
 | --- | --- | --- |
@@ -111,4 +111,4 @@ The run is not a valid measurement of the design, but it showed what a repeat ha
 - **Volume attach failed for about 7.5 minutes** after the database pod was scheduled on `qa-work-02` (`AttachVolume.Attach failed ... Bad response statusCode [500]`), then succeeded. This overlapped the control-plane trouble below.
 - **Cold pulls happened** as the preflight predicted: the PostgreSQL image was listed on none of the other nodes; the bootstrap image alone took 1 min 10 s.
 - **The `qa` control plane was unstable.** `kube-apiserver` on `qa-ctrl-02` refused connections on port 6443 for about 4.5 minutes from three minutes into the drain, failed its liveness probe with HTTP 500, and `kube-controller-manager` and `kube-scheduler` were restarted; the CloudNativePG operator was at 35 restarts. Whether the drain caused it is not known.
-- **Before the next attempt:** check the health of the control plane, and expect the drain itself to wait for Longhorn. Handling a drain that does not finish, and a control-plane health check before the drain, are not in the script yet.
+- **Before the next attempt:** check the health of the control plane (the script now refuses to start otherwise) and expect the drain itself to wait for Longhorn. The script was changed after this run: the drain runs in the background so a stalled or failed drain no longer ends the measurement, and the uncordon and the collection of events and pods retry while the API server is unreachable.

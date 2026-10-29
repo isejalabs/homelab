@@ -13,18 +13,24 @@
 # pod events and pod condition changes since the start (eviction, image pull, database ready, Keycloak ready).
 # The raw data (probe logs, events, pods, drain output, report) is kept in the output directory as evidence.
 #
-# Default mode cordons and drains the node of the CloudNativePG primary (or --node), waits until both probes
-# have been healthy again for a few samples, and uncordons the node. With --observe nothing is changed: the
-# script starts measuring and waits until an outage has been seen and is over. `prod` is refused: the drill
-# disturbs a live cluster. Before a drain, the script reports the factors that distorted the first
+# Default mode cordons and drains the node of the CloudNativePG primary (or --node). The drain runs in the
+# background while the probes keep measuring, so a drain that stalls (for example on the PodDisruptionBudget of
+# Longhorn's instance-manager) or fails does not stop the measurement; the script waits until the drain has
+# ended and both probes have been healthy again for a few samples, then uncordons the node (retrying while the
+# API server is unreachable). With --observe nothing is changed: the script starts measuring and waits until an
+# outage has been seen and is over. `prod` is refused: the drill
+# disturbs a live cluster, and nothing starts unless the control plane is healthy (API server ready, nodes
+# Ready, control-plane and CloudNativePG operator pods ready). Before a drain, the script reports the factors that distorted the first
 # measurement (DiskPressure on the nodes, whether the images are listed on the other nodes) so they can be
 # fixed or accepted first.
 #
 # Exits 0 when the login probe stayed within --target (or no target was given), 2 when it exceeded it, 1 on
-# any other failure. Manual only (disrupts the cluster, needs a kubecontext and network access to Keycloak).
+# any other failure, including a drain that failed or did not finish (the result is then not a valid drain
+# measurement, although the report is still written). Manual only (disrupts the cluster, needs a kubecontext and network access to Keycloak).
 #
 # Usage: scripts/keycloak-drain-drill.sh -e <env> [--node <node>] [--observe] [--target <seconds>]
-#                                        [--interval <seconds>] [--timeout <seconds>] [--out <dir>] [--yes]
+#                                        [--interval <seconds>] [--timeout <seconds>]
+#                                        [--drain-timeout <seconds>] [--out <dir>] [--yes]
 set -eu
 
 SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
@@ -33,15 +39,20 @@ SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 NAMESPACE="keycloak"
 KEYCLOAK_POD="keycloak-0"
 DB_CLUSTER="keycloak-db"
+CNPG_NAMESPACE="cnpg-system"
 # Consecutive healthy samples that count as recovered, and the time after the end of a drain within which a
 # drill without any outage is accepted as "the drain did not touch Keycloak".
 STABLE_SAMPLES=5
 GRACE_SECONDS=60
 BASELINE_SECONDS=10
+# How long to keep retrying kubectl while the API server is unreachable: for the final uncordon, and for
+# collecting events and pods after the measurement.
+UNCORDON_WAIT=300
+DATA_WAIT=300
 
 # Prints the synopsis and exits non-zero.
 usage() {
-    echo "Usage: $(basename "$0") -e <env> [--node <node>] [--observe] [--target <seconds>] [--interval <seconds>] [--timeout <seconds>] [--out <dir>] [--yes]" >&2
+    echo "Usage: $(basename "$0") -e <env> [--node <node>] [--observe] [--target <seconds>] [--interval <seconds>] [--timeout <seconds>] [--drain-timeout <seconds>] [--out <dir>] [--yes]" >&2
     exit 1
 }
 
@@ -65,16 +76,92 @@ now() {
     date +%s
 }
 
-# Stops the probes and, if this run cordoned a node, uncordons it again. Runs on every exit, so a Ctrl-C in the
-# middle of a drain does not leave the node unschedulable.
+# Runs kc with the arguments after $1, retrying every 10 s for up to $1 seconds: the API server of the
+# environment can be unreachable for minutes during a drill. Returns non-zero if it never succeeded.
+kc_retry() {
+    wait_seconds="$1"
+    shift
+    deadline=$(($(now) + wait_seconds))
+    until kc "$@"; do
+        if [ "$(now)" -ge "${deadline}" ]; then
+            return 1
+        fi
+        sleep 10
+    done
+}
+
+# Exits 0 while the background drain is still running.
+drain_running() {
+    [ -n "${DRAIN_PID}" ] && kill -0 "${DRAIN_PID}" 2>/dev/null
+}
+
+# Once the background drain has ended, records its exit status, end time and duration and logs the outcome. A
+# failed drain does not stop the measurement: the pods it already evicted still have to come back.
+reap_drain() {
+    [ -n "${DRAIN_PID}" ] || return 0
+    if drain_running; then
+        return 0
+    fi
+    DRAIN_STATUS=0
+    wait "${DRAIN_PID}" || DRAIN_STATUS=$?
+    DRAIN_PID=""
+    DRAIN_END=$(now)
+    DRAIN_SECONDS=$((DRAIN_END - T0))
+    if [ "${DRAIN_STATUS}" -eq 0 ]; then
+        log info "drain returned" "seconds" "${DRAIN_SECONDS}"
+    else
+        log error "kubectl drain failed, the measurement continues (see ${OUT}/drain.txt)" "seconds" "${DRAIN_SECONDS}" "exit" "${DRAIN_STATUS}"
+    fi
+}
+
+# Stops a drain that is still running (timeout or Ctrl-C), so it does not keep evicting pods unobserved.
+stop_drain() {
+    if drain_running; then
+        kill "${DRAIN_PID}" 2>/dev/null || true
+        wait "${DRAIN_PID}" 2>/dev/null || true
+    fi
+}
+
+# Uncordons the node if this run cordoned it, retrying while the API server is unreachable.
+uncordon_node() {
+    if [ "${CORDONED}" -eq 1 ]; then
+        if kc_retry "${UNCORDON_WAIT}" uncordon "${NODE}" >/dev/null 2>&1; then
+            log info "node uncordoned" "node" "${NODE}"
+            CORDONED=0
+        else
+            log error "could not uncordon, do it by hand" "node" "${NODE}"
+        fi
+    fi
+}
+
+# Stops the drain and the probes and, if this run cordoned a node, uncordons it again. Runs on every exit, so a
+# Ctrl-C in the middle of a drain does not leave the node unschedulable.
 cleanup() {
+    stop_drain
     for pid in ${PROBE_PIDS}; do
         kill "${pid}" 2>/dev/null || true
     done
-    if [ "${CORDONED}" -eq 1 ]; then
-        log warn "uncordoning node" "node" "${NODE}"
-        kc uncordon "${NODE}" >/dev/null 2>&1 || log error "could not uncordon, do it by hand" "node" "${NODE}"
-        CORDONED=0
+    PROBE_PIDS=""
+    uncordon_node
+}
+
+# Exits fatal unless the control plane is healthy enough to take a drill: the API server answers /readyz, every
+# node is Ready, the kube-apiserver/-controller-manager/-scheduler pods are ready and so are the pods of the
+# CloudNativePG operator, which has to recreate the database pod after the eviction. A drill on a wobbling
+# control plane measures the control plane, not Keycloak (see docs/keycloak-drain-drill.md).
+control_plane_check() {
+    if ! kc get --raw /readyz --request-timeout=10s >/dev/null 2>&1; then
+        log fatal "the API server is not ready, not starting the drill"
+        exit 1
+    fi
+    unhealthy=$(
+        kc get nodes -o json | jq -r '.items[] | select(first(.status.conditions[] | select(.type == "Ready") | .status) != "True") | "node/\(.metadata.name)"'
+        kc -n kube-system get pods -o json | jq -r '.items[] | select(.metadata.name | test("^kube-(apiserver|controller-manager|scheduler)-")) | select((.status.containerStatuses // []) | (length == 0 or any(.[]; .ready | not))) | "pod/kube-system/\(.metadata.name)"'
+        kc -n "${CNPG_NAMESPACE}" get pods -o json | jq -r '.items[] | select(.status.phase == "Running") | select((.status.containerStatuses // []) | any(.[]; .ready | not)) | "pod/'"${CNPG_NAMESPACE}"'/\(.metadata.name)"'
+    )
+    if [ -n "${unhealthy}" ]; then
+        log fatal "the control plane is not healthy, not starting the drill" "not ready" "$(printf '%s' "${unhealthy}" | paste -sd ' ' -)"
+        exit 1
     fi
 }
 
@@ -162,7 +249,15 @@ timeline() {
 report() {
     echo "Keycloak drain drill, environment ${ENV}, ${MODE} of node ${NODE}"
     echo "Started $(date -r "${T0}" '+%Y-%m-%d %H:%M:%S %Z' 2>/dev/null || date -d "@${T0}" '+%Y-%m-%d %H:%M:%S %Z'), measured for $((T_END - T0))s, probe interval ${INTERVAL}s"
-    [ -n "${DRAIN_SECONDS:-}" ] && echo "kubectl drain returned after ${DRAIN_SECONDS}s"
+    if [ "${OBSERVE}" -eq 0 ]; then
+        if [ "${DRAIN_STATUS:-}" = "0" ]; then
+            echo "kubectl drain finished after ${DRAIN_SECONDS}s"
+        elif [ -n "${DRAIN_STATUS:-}" ]; then
+            echo "kubectl drain FAILED after ${DRAIN_SECONDS}s (exit ${DRAIN_STATUS}, see drain.txt): the node was only partly drained"
+        else
+            echo "kubectl drain did not finish within the measurement and was stopped"
+        fi
+    fi
     for probe in discovery login; do
         echo
         jq -r --arg p "${probe}" '"Probe \($p): \(.samples) samples, \(.failed) failed, outage total \(.total)s, longest \(.longest)s" + (if .windows == [] then ", no outage" else "" end), (.windows[] | "  down +\(.offset)s for \(.duration)s" + (if .open then " (still down at the end of the data)" else "" end))' "${OUT}/${probe}.summary.json"
@@ -187,6 +282,7 @@ OBSERVE=0
 TARGET=""
 INTERVAL=2
 TIMEOUT=1800
+DRAIN_TIMEOUT=900
 OUT=""
 ASSUME_YES=0
 while [ $# -gt 0 ]; do
@@ -215,6 +311,10 @@ while [ $# -gt 0 ]; do
             TIMEOUT="$2"
             shift 2
             ;;
+        --drain-timeout)
+            DRAIN_TIMEOUT="$2"
+            shift 2
+            ;;
         --out)
             OUT="$2"
             shift 2
@@ -241,6 +341,10 @@ CTX=$(kubecontext_for_environment "${ENV}")
 LOG_CTX="${CTX}"
 PROBE_PIDS=""
 CORDONED=0
+DRAIN_PID=""
+DRAIN_END=""
+DRAIN_STATUS=""
+DRAIN_SECONDS=""
 trap cleanup EXIT
 trap 'exit 130' INT TERM
 
@@ -264,6 +368,7 @@ mkdir -p "${OUT}"
 MODE="drain"
 [ "${OBSERVE}" -eq 1 ] && MODE="observation"
 
+control_plane_check
 preflight_report | tee "${OUT}/preflight.txt"
 echo
 if [ "$(kc -n "${NAMESPACE}" get pod "${KEYCLOAK_POD}" -o jsonpath='{.spec.nodeName}' 2>/dev/null)" = "${NODE}" ]; then
@@ -288,28 +393,24 @@ if ! probe_healthy discovery 200 || ! probe_healthy login 400; then
 fi
 
 T0=$(now)
-DRAIN_END=""
 if [ "${OBSERVE}" -eq 0 ]; then
-    log info "draining node" "node" "${NODE}"
+    log info "draining node" "node" "${NODE}" "drain timeout" "${DRAIN_TIMEOUT}s"
     CORDONED=1
-    kc drain "${NODE}" --ignore-daemonsets --delete-emptydir-data --timeout="${TIMEOUT}s" >"${OUT}/drain.txt" 2>&1 || {
-        log error "kubectl drain failed (see ${OUT}/drain.txt)"
-        exit 1
-    }
-    DRAIN_END=$(now)
-    DRAIN_SECONDS=$((DRAIN_END - T0))
-    log info "drain returned" "seconds" "${DRAIN_SECONDS}"
+    # kubectl directly, not via kc(): a backgrounded function would leave kubectl running when it is killed
+    kubectl --context "${CTX}" drain "${NODE}" --ignore-daemonsets --delete-emptydir-data --timeout="${DRAIN_TIMEOUT}s" >"${OUT}/drain.txt" 2>&1 &
+    DRAIN_PID=$!
 else
     log info "measuring now: disturb the node (drain, reboot, stop the VM), the script ends once the outage is over" "node" "${NODE}"
 fi
 
 while true; do
+    reap_drain
     elapsed=$(($(now) - T0))
     if [ "${elapsed}" -gt "${TIMEOUT}" ]; then
-        log error "timed out before the probes recovered" "seconds" "${elapsed}"
+        log error "timed out before the drain ended and the probes recovered" "seconds" "${elapsed}"
         break
     fi
-    if probe_healthy discovery 200 && probe_healthy login 400; then
+    if [ -z "${DRAIN_PID}" ] && probe_healthy discovery 200 && probe_healthy login 400; then
         if probe_failed_once discovery 200 || probe_failed_once login 400; then
             break
         fi
@@ -322,22 +423,27 @@ while true; do
 done
 T_END=$(now)
 
+stop_drain
 for pid in ${PROBE_PIDS}; do kill "${pid}" 2>/dev/null || true; done
 PROBE_PIDS=""
-if [ "${CORDONED}" -eq 1 ]; then
-    kc uncordon "${NODE}" >/dev/null
-    CORDONED=0
-    log info "node uncordoned" "node" "${NODE}"
-fi
+uncordon_node
 
-kc -n "${NAMESPACE}" get events -o json >"${OUT}/events.json"
-kc -n "${NAMESPACE}" get pods -o json >"${OUT}/pods.json"
+for kind in events pods; do
+    kc_retry "${DATA_WAIT}" -n "${NAMESPACE}" get "${kind}" -o json >"${OUT}/${kind}.json" 2>/dev/null || {
+        log error "could not collect ${kind}, the timeline will lack them" "namespace" "${NAMESPACE}"
+        echo '{"items":[]}' >"${OUT}/${kind}.json"
+    }
+done
 analyze_probe discovery 200 >"${OUT}/discovery.summary.json"
 analyze_probe login 400 >"${OUT}/login.summary.json"
 
 report | tee "${OUT}/report.txt"
 log info "data kept" "dir" "${OUT}"
 
+if [ "${OBSERVE}" -eq 0 ] && [ "${DRAIN_STATUS}" != "0" ]; then
+    log error "the drain failed or did not finish: not a valid drain measurement" "dir" "${OUT}"
+    exit 1
+fi
 if [ -n "${TARGET}" ] && [ "${LOGIN_TOTAL}" -gt "${TARGET}" ]; then
     exit 2
 fi
