@@ -19,7 +19,8 @@ spec:
       key: username
     vendor: postgres
   hostname:
-    # set per environment, see envs/<env>/
+    # derived per environment like the HTTPRoute's hostname (replace-domain/prefix-domain, which also cover this
+    # field); prod overrides both in envs/prod/ because it does not prefix
     hostname: auth.example.com
   http:
     # TLS ends at the Gateway

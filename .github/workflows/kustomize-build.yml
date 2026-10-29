@@ -25,6 +25,7 @@ jobs:
           relevant:
           - "k8s/**"
           - "!k8s/**/*.md" # a README under k8s/ (there are ~17) isn't a manifest kustomize-build validates
+          - "terragrunt/**/keycloak-realm/terragrunt.hcl" # its keycloak_url is checked against the Keycloak overlay
           - ".mise.toml"
           - "mise.lock"
           - "scripts/kustomize-build-all.sh"
