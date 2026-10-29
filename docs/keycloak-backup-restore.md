@@ -6,7 +6,7 @@ status: current
 
 **Choose a task:** check or trigger a backup under [Daily tasks](#daily-tasks); recover the database under [Restore](#restore); restore a dump taken in another environment under [A dump from another environment](#a-dump-from-another-environment).
 
-**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [Restore drill](#restore-drill) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
+**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [Restore drill](#restore-drill) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
 
 ## Overview
 
@@ -28,7 +28,7 @@ The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2
 - **Schedule**: the `keycloak-db-dump` `CronJob` runs every day at 02:00 (`Europe/Berlin`), see [`cronjob-dump.yaml`](../k8s/apps/identity/keycloak/base/cronjob-dump.yaml).
 - **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. The main container uploads the file as `keycloak-<UTC timestamp>.dump` with the AWS CLI and then deletes everything but the newest 14 dumps. A failed dump leaves nothing to upload, so a broken dump never replaces a good one.
 - **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
-- **Client version**: `pg_dump` must be at least as new as the server. The CronJob uses the same `ghcr.io/cloudnative-pg/postgresql` image as the cluster. When the cluster moves to a new PostgreSQL major version, bump the CronJob image with it.
+- **Client version**: `pg_dump` must be at least as new as the server. The server image is pinned explicitly (`spec.imageName` in [`cluster.yaml`](../k8s/apps/identity/keycloak/base/cluster.yaml), tag and digest) and a kustomize replacement in [`kustomization.yaml`](../k8s/apps/identity/keycloak/base/kustomization.yaml) copies that value into the dump job, so the two cannot drift apart. The restore script builds its Job from the dump CronJob, so it restores with the same image. How the image is bumped: [Upgrading PostgreSQL](#upgrading-postgresql).
 - **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
 
 ## Daily tasks
@@ -161,6 +161,28 @@ What the drill confirmed about the unverified parts of the script: `psql` as `po
 - **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until #1827; repeat the login step of this drill then.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
+
+## Upgrading PostgreSQL
+
+The server image is stated once, as `spec.imageName` (tag and digest) in [`cluster.yaml`](../k8s/apps/identity/keycloak/base/cluster.yaml). Renovate tracks that line through a regex entry in [`renovate.json5`](../.github/renovate.json5) and opens a PR for every new tag or digest; the package is excluded from automerge ([`automerge-disable.json5`](../.github/renovate/automerge-disable.json5), label `updateStrategy:manual`), so an image change always waits for a human. The dump job follows by itself (see [How it works](#how-it-works)); the restore script derives its Job from the dump CronJob, so it uses that image too.
+
+**Why it is pinned.** A cluster without `imageName` runs the default image of the installed CloudNativePG operator. Checked in the source of operator 1.30.1 (the version of the deployed chart 0.29.1): the defaulting (`setDefaults` in `api/v1/cluster_defaults.go`) fills an empty `imageName` with the operator's built-in default, `ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie` in that release, and the controller rolls the instance pods whenever the image in the cluster status differs from the running pod's image. So the PostgreSQL version of an unpinned cluster is whatever the operator's default says whenever the cluster object is (re)defaulted, not a decision made in this repository, and a higher PostgreSQL major version in that default would start an offline in-place `pg_upgrade` (see below). Whether an operator upgrade alone moves an existing cluster depends on whether the stored value survives the next Flux apply, which is not settled by the source. The explicit pin makes the question moot: the PostgreSQL version changes only by a commit here. The explicit pin is the only thing that decides the version.
+
+Observed in `dev` (2026-10-29, `dev` pointed at the branch that introduced the pin): the never-pinned cluster stored the operator default in `spec.imageName` (tag only); applying the pin changed the string to tag plus digest, and the operator replaced the instance pod once (about seven minutes on that run, Cluster back to `Cluster in healthy state`, Keycloak never restarted). Removing the line again made Flux drop the field and the operator re-default it, which replaced the pod a second time: a pin that is deleted from git un-pins the cluster. What an operator upgrade alone does to a cluster that was never pinned has not been observed.
+
+**Minor and digest updates** (`18.6` to `18.7`, or a rebuilt `18.6` image): CloudNativePG replaces the instance pod, which on this single instance means a restart of the primary and a short Keycloak outage.
+
+1. Trigger a backup right before ([Daily tasks](#daily-tasks)) and check that the dump landed in the bucket.
+2. Test the update in a non-`prod` environment first: [`track-branch`](../.agents/skills/track-branch/SKILL.md) the PR branch in `qa` (or `dev`), then wait until `kubectl get cluster keycloak-db -n keycloak` is `Cluster in healthy state` and the `Keycloak` resource is ready.
+3. Run the dump job once by hand and restore that dump into a scratch database or into `rebuild` as described in [Restore](#restore). The dump job already uses the new client, so this is the check that new client, new server and restore still fit together.
+4. Merge the PR. The other environments follow through Flux.
+
+**Major updates** (`18` to `19`): CloudNativePG performs an offline in-place `pg_upgrade` as soon as the major version in `imageName` changes ([PostgreSQL upgrades](https://cloudnative-pg.io/docs/current/postgres_upgrades/)). The whole cluster is unavailable meanwhile, and the operator documents it as exceptional and risky.
+
+1. Check that the Keycloak version in use supports the new PostgreSQL major version.
+2. Trigger a backup right before and keep that dump. It was taken with the old client and restores into the old major version if the upgrade has to be rolled back (a dump of a newer major version may not restore into an older server).
+3. Rehearse in `qa` (or `dev`) via `track-branch` as above: the upgrade job must complete, Keycloak must start, and a dump taken afterwards must restore.
+4. Merge and watch the other environments. The dump job moves to the new client in the same commit, so the first dump after the upgrade is the new one.
 
 ## Why a dump and no WAL archiving
 
