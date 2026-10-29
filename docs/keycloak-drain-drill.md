@@ -101,7 +101,8 @@ One row per run (environment, date, disturbance, node, login outage total and lo
 | Date | Environment | Disturbance | Login outage (total / longest) | Target | Verdict |
 | --- | --- | --- | --- | --- | --- |
 | first drill, reported in [#1937](https://github.com/isejalabs/homelab/issues/1937) | not recorded | Drain | about 10.5 min | none | disturbed by disk pressure and cold image pulls |
-| 2026-10-29 | `qa` | Drain of `qa-work-01` (database primary) | between 15.7 and 19.6 min (still failing at 21:53:16, healthy at 21:57:06; the drain started 21:37:28) | 300 s | not valid: the `qa` API server became unavailable during the drain, so the script aborted and the recovery was not measured |
+| 2026-10-29 (run 1) | `qa` | Drain of `qa-work-01` (database primary) | between 15.7 and 19.6 min (still failing at 21:53:16, healthy at 21:57:06; the drain started 21:37:28) | 300 s | not valid: the `qa` API server became unavailable during the drain, so the script aborted and the recovery was not measured |
+| 2026-10-29 (run 2) | `qa` | Drain of `qa-work-02` (database primary and `keycloak-0` on the same node) | not recovered: login down from +9 s until the 30 min timeout (at least 1792 s) | 300 s | FAIL: the database was ready after 192 s, Keycloak never became ready |
 
 ### Findings of the 2026-10-29 `qa` run
 
@@ -112,3 +113,14 @@ The run is not a valid measurement of the design, but it showed what a repeat ha
 - **Cold pulls happened** as the preflight predicted: the PostgreSQL image was listed on none of the other nodes; the bootstrap image alone took 1 min 10 s.
 - **The `qa` control plane was unstable.** `kube-apiserver` on `qa-ctrl-02` refused connections on port 6443 for about 4.5 minutes from three minutes into the drain, failed its liveness probe with HTTP 500, and `kube-controller-manager` and `kube-scheduler` were restarted; the CloudNativePG operator was at 35 restarts. Whether the drain caused it is not known.
 - **Before the next attempt:** check the health of the control plane (the script now refuses to start otherwise) and expect the drain itself to wait for Longhorn. The script was changed after this run: the drain runs in the background so a stalled or failed drain no longer ends the measurement, and the uncordon and the collection of events and pods retry while the API server is unreachable.
+
+### Findings of the second 2026-10-29 `qa` run
+
+The control plane was healthy this time and the drain itself finished after 45 s, so this run measures the recovery, and it shows that Keycloak's own start dominates it:
+
+- **Worst-case placement:** the database primary, `keycloak-0` and the Keycloak Operator all ran on the drained node `qa-work-02` (the preflight warns about this). All three were evicted at once and rescheduled to `qa-work-01`.
+- **Database: back after 192 s.** Volume detach and attach took 72 s, both images were already on the node, and the pod was `Ready` at +192 s.
+- **Keycloak: not back after 30 minutes.** Pulling the Keycloak image on `qa-work-01` took 5 min 46 s (cold). The container then never became ready: its startup probe failed about 1200 times, the kubelet killed and restarted it twice (at about +1000 s and +1635 s), and the log only ever reached `Changes detected in configuration. Updating the server image.` That is the Quarkus build step that runs at start when the image is not pre-built; the stock image is started without `--optimized` unless the `Keycloak` resource sets `startOptimized` or uses a custom image ([upstream CRD](https://github.com/keycloak/keycloak-k8s-resources/blob/26.8.1/kubernetes/keycloaks.k8s.keycloak.org-v1.yml)), which fits what was seen. `qa-work-01` was at about 75 % CPU at the time, which makes the build slower. That this build is the whole cause is not proven.
+- **Keycloak Operator in `CrashLoopBackOff`** (8 restarts, startup probe), the known problem of [#1903](https://github.com/isejalabs/homelab/issues/1903), made worse by the same busy node.
+- **What it means for the replica decision:** with the current manifests a node drain that moves `keycloak-0` is not a 5-minute event but one where Keycloak may not come back by itself. That is a start-time problem of the Keycloak pod (build at start plus a startup probe that kills it), not something a second database instance or replica fixes, and it has to be fixed before the drain duration says anything about the design.
+- **Script bug found:** the exit code and the target comparison were lost because `LOGIN_TOTAL` was set inside the `report | tee` pipeline; fixed.

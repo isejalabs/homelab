@@ -438,6 +438,8 @@ analyze_probe discovery 200 >"${OUT}/discovery.summary.json"
 analyze_probe login 400 >"${OUT}/login.summary.json"
 
 report | tee "${OUT}/report.txt"
+# report runs in a pipeline subshell, so its LOGIN_TOTAL is gone here
+LOGIN_TOTAL=$(jq -r .total "${OUT}/login.summary.json")
 log info "data kept" "dir" "${OUT}"
 
 if [ "${OBSERVE}" -eq 0 ] && [ "${DRAIN_STATUS}" != "0" ]; then
