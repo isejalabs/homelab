@@ -24,7 +24,7 @@ Every environment gets the three **minimal** apps; only `head`, `prod`, `qa`, `r
 | `network` | [`unifi-controller`](../../k8s/apps/network/unifi-controller/) | [UniFi Network Application](https://www.ui.com/) — management UI for the physical WiFi APs/switches (see [`network.md`](network.md#physical-network-opnsense-ucs-and-the-root-nameservers)) | raw Deployment/Service, not a Helm chart | optional |
 | `network` | [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) | MongoDB backing store for `unifi-controller` above, on proxmox-csi (see [`storage.md`](storage.md)) | raw Deployment/Service, not a Helm chart | optional |
 | `home-automation` | [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) | [Zigbee2MQTT](https://www.zigbee2mqtt.io/) — bridge between the Zigbee network (ConBee II passed through to one worker) and the MQTT broker for Home Assistant | HelmRelease (`app-template`) | none — registered in `prod` only, because there is a single physical coordinator |
-| `identity` | [`keycloak`](../../k8s/apps/identity/keycloak/) | [Keycloak](https://www.keycloak.org/) identity provider (single replica) with its [CloudNativePG](https://cloudnative-pg.io/) database (1 instance, no WAL archiving; daily `pg_dump` to RustFS, see [`keycloak-backup-restore.md`](../keycloak-backup-restore.md)) — [#1826](https://github.com/isejalabs/homelab/issues/1826) | Keycloak/CloudNativePG custom resources | `soaking` — registered in `dev`, `qa` and `rebuild` only until the soak is done, see [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml) |
+| `identity` | [`keycloak`](../../k8s/apps/identity/keycloak/) | [Keycloak](https://www.keycloak.org/) identity provider (single replica) with its [CloudNativePG](https://cloudnative-pg.io/) database (1 instance, no WAL archiving; daily `pg_dump` to RustFS, see [`keycloak-backup-restore.md`](../keycloak-backup-restore.md)) — [#1826](https://github.com/isejalabs/homelab/issues/1826) | Keycloak/CloudNativePG custom resources | `standing` — registered in `dev`, `qa`, `prod` and `rebuild` only, see [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml) |
 
 ## Infra (`k8s/infra/`)
 
@@ -50,8 +50,8 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | `longhorn-system` | [`longhorn`](../../k8s/infra/longhorn-system/longhorn/) | Longhorn's `StorageClass`es, `VolumeSnapshotClass`, and backup/trim/snapshot jobs — companion to `longhorn-core` | no — Flux-only | optional |
 | `kopiur-system` | [`kopiur`](../../k8s/infra/kopiur-system/kopiur/) | [kopiur](https://github.com/home-operations/kopiur) backup/restore operator, kopia-based (see [`storage.md`](storage.md) and [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)) | no — Flux-only | optional |
 | `kopiur-system` | [`kopiur-repository`](../../k8s/infra/kopiur-system/kopiur-repository/) | `fiona`, kopiur's `ClusterRepository` pointing at this cluster's S3-compatible NAS, one bucket per environment | no — Flux-only | optional |
-| `cnpg-system` | [`cloudnative-pg`](../../k8s/infra/cnpg-system/cloudnative-pg/) | [CloudNativePG](https://cloudnative-pg.io/) PostgreSQL operator | no — Flux-only | `soaking` |
-| `keycloak` | [`keycloak-operator`](../../k8s/infra/keycloak/keycloak-operator/) | [Keycloak Operator](https://www.keycloak.org/operator/installation), CRDs and manifest from a GitHub release | no — Flux-only | `soaking` |
+| `cnpg-system` | [`cloudnative-pg`](../../k8s/infra/cnpg-system/cloudnative-pg/) | [CloudNativePG](https://cloudnative-pg.io/) PostgreSQL operator | no — Flux-only | `standing` |
+| `keycloak` | [`keycloak-operator`](../../k8s/infra/keycloak/keycloak-operator/) | [Keycloak Operator](https://www.keycloak.org/operator/installation), CRDs and manifest from a GitHub release | no — Flux-only | `standing` |
 
 ### CRDs-only, not actually deployed
 
