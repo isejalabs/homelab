@@ -29,7 +29,7 @@ The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2
 - **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. The main container uploads the file as `keycloak-<UTC timestamp>.dump` with the AWS CLI and then deletes everything but the newest 14 dumps. A failed dump leaves nothing to upload, so a broken dump never replaces a good one.
 - **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
 - **Client version**: `pg_dump` must be at least as new as the server. The CronJob uses the same `ghcr.io/cloudnative-pg/postgresql` image as the cluster. When the cluster moves to a new PostgreSQL major version, bump the CronJob image with it.
-- **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
+- **Where it runs**: only in the environments that register the units (`dev`, `qa`, `prod` and `rebuild`; see [`sets/standing`](../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml)).
 
 ## Daily tasks
 

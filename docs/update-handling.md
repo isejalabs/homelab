@@ -88,17 +88,17 @@ Limitations:
 
 #### Staged rollout: Keycloak and CloudNativePG
 
-The units registered through [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml) (CloudNativePG operator, Keycloak operator, Keycloak and its database) are gated by `qa` the same way, with a stricter prod step because every SSO login depends on the `prod` instance ([ADR 0016](decisions/0016-identity-and-web-sso.md), [#1947](https://github.com/isejalabs/homelab/issues/1947)).
+The units registered through [`sets/standing`](../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml) (CloudNativePG operator, Keycloak operator, Keycloak and its database) are gated by `qa` the same way, with a stricter prod step because every SSO login depends on the `prod` instance ([ADR 0016](decisions/0016-identity-and-web-sso.md), [#1947](https://github.com/isejalabs/homelab/issues/1947)).
 
-What `soaking` does and does not gate: the set only decides **which environments run the units**. It says nothing about **which versions** they run. Without the pins below, a unit that moves into `prod` follows `base/` exactly like `qa`, so a patch or digest update (automerged by Renovate) or a minor update (automerged by mergify) would reach `prod` the moment it lands on `main`, with no `qa` soak in between.
+What `standing` does and does not gate: the set only decides **which environments run the units**. It says nothing about **which versions** they run. Without the pins below, a unit that `prod` runs follows `base/` exactly like `qa`, so a patch or digest update (automerged by Renovate) or a minor update (automerged by mergify) would reach `prod` the moment it lands on `main`, with no `qa` soak in between.
 
-The policy, once a unit is promoted to `prod`:
+The policy for these units in `prod`:
 
 - `base/` keeps taking releases as before, so `dev`, `qa` and `rebuild` run a new version first.
 - `prod` pins every version of the unit itself under `envs/prod/` (see the checklist below). A bump there is its own PR, labeled `env:prod` by the labeler.
 - The [`staged-rollout.json5`](../.github/renovate/staged-rollout.json5) rule for these `envs/prod/` paths sets `minimumReleaseAge: "7 days"`, `automerge: false` and the `updateStrategy:manual` label. The owner merges the PR after checking the version ran in `qa`.
 
-The rule matches nothing yet: `prod` does not run these units, so there are no pin files. It starts to work when the promotion PR adds them. That PR must, besides moving the unit's line out of `sets/soaking`:
+The rule matches nothing yet: there are no pin files. Because `sets/standing` is included by `prod`, the units reach `prod` as soon as the set is added to `prod`'s Flux environment, so the pin files have to exist by then (in the same PR or before it). They must:
 
 - [ ] Pin every version source of the unit in `envs/prod/` with the same value `base/` has at that moment: the chart tag and digest of the CloudNativePG `OCIRepository` (as in [cilium's `envs/prod/ocirepository.yaml`](../k8s/infra/kube-system/cilium/envs/prod/ocirepository.yaml)), the PostgreSQL image of the `Cluster` (once it is pinned, [#1941](https://github.com/isejalabs/homelab/issues/1941)) and of the dump job, and the Keycloak operator release.
 - [ ] Give the Keycloak operator release a prod-owned pin. Its version is part of the remote resource URLs in [`base/kustomization.yaml`](../k8s/infra/keycloak/keycloak-operator/base/kustomization.yaml), which an overlay cannot patch, so the promotion PR has to decide how `prod` carries its own copy.
