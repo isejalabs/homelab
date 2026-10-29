@@ -3,9 +3,6 @@ apiVersion: storage.k8s.io/v1
 kind: StorageClass
 metadata:
   name: longhorn-ext4
-  annotations:
-    # reclaimPolicy is immutable: let Flux recreate the existing class once. Drop after every env has rolled out
-    kustomize.toolkit.fluxcd.io/force: enabled
 allowVolumeExpansion: true
 parameters:
   # Filesystem type: ext4 or xfs
