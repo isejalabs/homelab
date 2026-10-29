@@ -66,6 +66,6 @@ The Keycloak part of that decision, as input: ingress to Keycloak from the Gatew
 | --- | --- |
 | Forged `X-Forwarded-Port` and `-Prefix` change the issuer and redirects; `-Host` and `-Proto` do not | Verified live in `dev`, 2026-10-29 |
 | The admin console answers from a LAN client through the `internal` Gateway | Verified live in `dev`, 2026-10-29 |
-| The route filter removes the forged headers | Not yet verified live; repeat the check above once the route reaches `dev` |
+| The route filter removes the forged headers | Verified live in `dev`, 2026-10-29, with the branch tracked temporarily: all four forged headers returned the baseline `issuer`, the redirect no longer carried the forged port, and the console still answered (HTTP 200) |
 | A forged `X-Forwarded-For` reaches Keycloak as the client address (affects brute-force detection and event logs) | Not tested; Envoy appends to the header and Keycloak has no trusted-address list, so the leftmost, client-chosen value may win |
 | Which VLANs can reach the `internal` Gateway | Not verified; set by the OPNsense firewall, outside this repository |
