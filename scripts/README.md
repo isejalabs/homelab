@@ -1,4 +1,4 @@
-Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
+Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, the Keycloak database restore, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
 
 Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh`, `longhorn-snapshot-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
 
@@ -8,7 +8,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 
 | Script | Checks |
 | --- | --- |
-| [`kustomize-build-all.sh`](kustomize-build-all.sh) | `kubectl kustomize` + kubeconform across every `k8s/` overlay, plus a `targetNamespace` ban in `flux/ks.yaml` |
+| [`kustomize-build-all.sh`](kustomize-build-all.sh) | `kubectl kustomize` + kubeconform across every `k8s/` overlay, plus a `targetNamespace` ban in `flux/ks.yaml` and a check that each `keycloak-realm` Terragrunt unit's `keycloak_url` matches its Keycloak overlay's hostname |
 | [`terragrunt-validate-all.sh`](terragrunt-validate-all.sh) | `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (or only the given ones); `prod`/`qa` units must also have a committed provider lock file and are init'd with `-lockfile=readonly` |
 | [`helmfile-template-all.sh`](helmfile-template-all.sh) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment |
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |
@@ -46,6 +46,16 @@ Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](
 | [`kopiur-restore.sh`](kopiur-restore.sh) | restores an app's PVC from its latest snapshot (deletes and repopulates the PVC) |
 
 All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
+
+## Keycloak database restore
+
+Wrapped by `just backup::keycloak::<list|restore>` (see [`keycloak.just`](keycloak.just); the recipes pass their flags straight to the script, which can also be run directly) and always against one environment — see [`docs/keycloak-backup-restore.md`](../docs/keycloak-backup-restore.md#restore) for the procedure, the safety reasoning and the drill record.
+
+| Script | Purpose |
+| --- | --- |
+| [`keycloak-db-restore.sh`](keycloak-db-restore.sh) | restores the Keycloak database from a `pg_dump` in the `<env>-keycloak-db` bucket: verifies the dump in a scratch database first, then stops Flux/the operator/the dump CronJob, swaps the databases by renaming (the old one is kept) and starts Keycloak again; `--list` shows the available dumps |
+
+Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and kubecontext construction. Needs `kubectl`, `flux`, `gum` and `jq`.
 
 ## Longhorn volume snapshots
 

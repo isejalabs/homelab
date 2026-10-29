@@ -16,6 +16,17 @@ spec:
         - path:
             type: PathPrefix
             value: /
+      filters:
+        # Keycloak runs with proxy.headers: xforwarded and has no proxy-trusted-addresses, so it believes whatever
+        # X-Forwarded-* reaches it. Envoy overwrites X-Forwarded-Proto itself but passes a client's -Host, -Port and
+        # -Prefix through, and Keycloak builds the issuer and every redirect URL from them (a forged -Port or -Prefix
+        # changes the issuer). Drop them here so only headers set by the proxy count (docs/keycloak-exposure.md).
+        - type: RequestHeaderModifier
+          requestHeaderModifier:
+            remove:
+              - X-Forwarded-Host
+              - X-Forwarded-Port
+              - X-Forwarded-Prefix
       backendRefs:
         - kind: Service
           name: keycloak-service

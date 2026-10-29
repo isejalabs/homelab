@@ -13,5 +13,5 @@ parameters:
   # Time in minutes before a disconnected replica is marked stale and rebuilt
   staleReplicaTimeout: "2880" # 48 hours in minutes
 provisioner: driver.longhorn.io
-reclaimPolicy: Retain # Retain volume when PVC is deleted
+reclaimPolicy: Delete # data is recovered from the kopiur backup, not from a leftover volume
 volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation
