@@ -86,6 +86,29 @@ Limitations:
 - A broken release is not stopped automatically. If `qa` shows a release is bad, close the prod PR (Renovate won't recreate it for that version) or exclude the version with `allowedVersions`.
 - Whether digest-only updates (same tag, rebuilt image) are delayed too depends on the datasource providing a release timestamp. Not verified yet; check the first prod digest PR after merge.
 
+#### Staged rollout: Keycloak and CloudNativePG
+
+The units registered through [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml) (CloudNativePG operator, Keycloak operator, Keycloak and its database) are gated by `qa` the same way, with a stricter prod step because every SSO login depends on the `prod` instance ([ADR 0016](decisions/0016-identity-and-web-sso.md), [#1947](https://github.com/isejalabs/homelab/issues/1947)).
+
+What `soaking` does and does not gate: the set only decides **which environments run the units**. It says nothing about **which versions** they run. Without the pins below, a unit that moves into `prod` follows `base/` exactly like `qa`, so a patch or digest update (automerged by Renovate) or a minor update (automerged by mergify) would reach `prod` the moment it lands on `main`, with no `qa` soak in between.
+
+The policy, once a unit is promoted to `prod`:
+
+- `base/` keeps taking releases as before, so `dev`, `qa` and `rebuild` run a new version first.
+- `prod` pins every version of the unit itself under `envs/prod/` (see the checklist below). A bump there is its own PR, labeled `env:prod` by the labeler.
+- The [`staged-rollout.json5`](../.github/renovate/staged-rollout.json5) rule for these `envs/prod/` paths sets `minimumReleaseAge: "7 days"`, `automerge: false` and the `updateStrategy:manual` label. The owner merges the PR after checking the version ran in `qa`.
+
+The rule matches nothing yet: `prod` does not run these units, so there are no pin files. It starts to work when the promotion PR adds them. That PR must, besides moving the unit's line out of `sets/soaking`:
+
+- [ ] Pin every version source of the unit in `envs/prod/` with the same value `base/` has at that moment: the chart tag and digest of the CloudNativePG `OCIRepository` (as in [cilium's `envs/prod/ocirepository.yaml`](../k8s/infra/kube-system/cilium/envs/prod/ocirepository.yaml)), the PostgreSQL image of the `Cluster` (once it is pinned, [#1941](https://github.com/isejalabs/homelab/issues/1941)) and of the dump job, and the Keycloak operator release.
+- [ ] Give the Keycloak operator release a prod-owned pin. Its version is part of the remote resource URLs in [`base/kustomization.yaml`](../k8s/infra/keycloak/keycloak-operator/base/kustomization.yaml), which an overlay cannot patch, so the promotion PR has to decide how `prod` carries its own copy.
+- [ ] Render the `prod` overlay before and after (`kubectl kustomize`) and check the output is unchanged apart from the promotion itself.
+
+Limitations:
+
+- The 7 days count from the **upstream release date**, not from when `qa` ran the version, as for unbound. The manual merge is what ties `prod` to a version that has actually run in `qa`.
+- Renovate's default `minimumReleaseAgeBehaviour` is `timestamp-required`: a version whose datasource provides no release timestamp never counts as old enough, so no prod PR opens for it. That fails closed, but it can stall silently; check the Dependency Dashboard if a prod PR is missing a week after a release. Not verified per datasource yet, check the first prod PRs after promotion.
+
 ## Handling special apps and environments
 
 Some packages have a non-standard update strategy — see the table below. Two environments also get special treatment baked into the mergify/renovate rules themselves, beyond the generic `env:prod` carve-out above (a full description of each environment's purpose lives in [`environments.md`](architecture/environments.md#what-each-environment-is-for); this section covers only the update-handling-specific behavior):
@@ -103,6 +126,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 | `kubernetes/kubernetes` | Pin minor, manual | Pinned to `<=1.35` for checkmk compatibility, and never auto-updated (applied manually via terragrunt, same reasoning as the Talos module above); `head`/`poc` track `>=1.35`. | To move to the next minor, follow [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md).
 | `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
 | `docker.io/madnuttah/unbound` | Staged, 3-day age gate for prod | `qa` and other environments take new releases from `base/` immediately; prod pins its own image and only gets a PR once the release is 3 days old — see [Staged rollout: unbound](#staged-rollout-unbound). |
+| Keycloak operator, CloudNativePG chart, database and Keycloak images | Staged in `prod` once promoted, manual, 7-day age gate | `dev`, `qa` and `rebuild` take new releases from `base/`; `prod` pins its own versions and gets a separate PR that waits 7 days and needs a manual merge — see [Staged rollout: Keycloak and CloudNativePG](#staged-rollout-keycloak-and-cloudnativepg). |
 | `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
 
 ### Excluded packages and paths from auto-merging
