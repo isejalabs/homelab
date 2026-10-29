@@ -64,7 +64,7 @@ Two probes run every `--interval` seconds (default 2) against the hostname from 
 | Probe | Request | Healthy | Meaning |
 | --- | --- | --- | --- |
 | `discovery` | `GET /realms/master/.well-known/openid-configuration` | `200` | The Keycloak pod answers through the Gateway |
-| `login` | `POST /realms/master/protocol/openid-connect/token` (client `admin-cli`, password grant, a user that does not exist) | `401` | The token endpoint handles a login attempt; `5xx` or no answer means logins fail |
+| `login` | `POST /realms/master/protocol/openid-connect/token` (client `admin-cli`, password grant, a user that does not exist) | `400` with error `invalid_grant` ("Invalid user credentials") | The token endpoint looked up the user and rejected the credentials, which is what a failed login looks like; `5xx`, another body or no answer means logins fail |
 
 The `login` probe sends a made-up user, so nothing is created and no real account is touched or locked. It is meant to exercise the login path without credentials in the script; whether a lookup of an unknown user reaches the database on every attempt is an assumption this drill should confirm: if the database is down while Keycloak is up, the `login` window should start and end with the database, and the `discovery` window should be shorter. A different result in the first run means the probe must be changed before the numbers are trusted. The resolution of every window is the probe interval, and it is measured from this machine, so a problem in the network path counts as an outage.
 

@@ -5,9 +5,10 @@
 #
 # While the disturbance runs, two probes hit the environment's Keycloak from this machine every few seconds:
 #   discovery  GET  /realms/master/.well-known/openid-configuration  expected 200 (Keycloak pod serves requests)
-#   login      POST /realms/master/protocol/openid-connect/token     expected 401 (unknown user, so the token
-#              endpoint has to look the user up; 5xx or no answer means the login path is down). Nothing is
-#              created: the request names a user that does not exist, with a made-up password.
+#   login      POST /realms/master/protocol/openid-connect/token     expected 400 with error
+#              `invalid_grant` (unknown user, so the token endpoint has to look the user up and reject the
+#              credentials; 5xx or no answer means the login path is down). Nothing is created: the request
+#              names a user that does not exist, with a made-up password.
 # From the two probe logs it prints the outage windows, their total and longest duration, and a timeline of the
 # pod events and pod condition changes since the start (eviction, image pull, database ready, Keycloak ready).
 # The raw data (probe logs, events, pods, drain output, report) is kept in the output directory as evidence.
@@ -78,15 +79,23 @@ cleanup() {
 }
 
 # Runs one probe in a loop until killed, appending "<epoch>\t<http status>" to $OUT/<name>.tsv per sample:
-# $1 name, $2 HTTP method, $3 URL, optional $4 form body. Status 000 means curl got no answer within 3 s.
+# $1 name, $2 HTTP method, $3 URL, optional $4 form body, optional $5 a string the response body must contain.
+# Status 000 means curl got no answer within 3 s. A status whose body lacks $5 is recorded as "<status>-body",
+# because the status alone is ambiguous (a 400 also covers malformed requests, an error page has no JSON).
 probe_loop() {
+    body="${OUT}/$1.body"
     while true; do
+        rm -f "${body}"
         if [ -n "${4:-}" ]; then
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 -X "$2" --data "$4" "$3" 2>/dev/null) || true
+            code=$(curl -s -o "${body}" -w '%{http_code}' --max-time 3 -X "$2" --data "$4" "$3" 2>/dev/null) || true
         else
-            code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 3 -X "$2" "$3" 2>/dev/null) || true
+            code=$(curl -s -o "${body}" -w '%{http_code}' --max-time 3 -X "$2" "$3" 2>/dev/null) || true
         fi
-        printf '%s\t%s\n' "$(now)" "${code:-000}" >>"${OUT}/$1.tsv"
+        code="${code:-000}"
+        if [ -n "${5:-}" ] && [ "${code}" != "000" ] && ! grep -q -- "$5" "${body}" 2>/dev/null; then
+            code="${code}-body"
+        fi
+        printf '%s\t%s\n' "$(now)" "${code}" >>"${OUT}/$1.tsv"
         sleep "${INTERVAL}"
     done
 }
@@ -268,12 +277,12 @@ fi
 TOKEN_URL="${BASE_URL}/realms/master/protocol/openid-connect/token"
 probe_loop discovery GET "${BASE_URL}/realms/master/.well-known/openid-configuration" &
 PROBE_PIDS="$!"
-probe_loop login POST "${TOKEN_URL}" "client_id=admin-cli&grant_type=password&username=drill-probe-no-such-user&password=drill-probe" &
+probe_loop login POST "${TOKEN_URL}" "client_id=admin-cli&grant_type=password&username=drill-probe-no-such-user&password=drill-probe" invalid_grant &
 PROBE_PIDS="${PROBE_PIDS} $!"
 
 log info "recording a healthy baseline" "seconds" "${BASELINE_SECONDS}" "url" "${BASE_URL}"
 sleep "${BASELINE_SECONDS}"
-if ! probe_healthy discovery 200 || ! probe_healthy login 401; then
+if ! probe_healthy discovery 200 || ! probe_healthy login 400; then
     log fatal "the probes are not healthy before the drill, nothing meaningful to measure (see ${OUT})" "discovery" "$(tail -n 1 "${OUT}/discovery.tsv")" "login" "$(tail -n 1 "${OUT}/login.tsv")"
     exit 1
 fi
@@ -300,8 +309,8 @@ while true; do
         log error "timed out before the probes recovered" "seconds" "${elapsed}"
         break
     fi
-    if probe_healthy discovery 200 && probe_healthy login 401; then
-        if probe_failed_once discovery 200 || probe_failed_once login 401; then
+    if probe_healthy discovery 200 && probe_healthy login 400; then
+        if probe_failed_once discovery 200 || probe_failed_once login 400; then
             break
         fi
         if [ -n "${DRAIN_END}" ] && [ $(($(now) - DRAIN_END)) -gt "${GRACE_SECONDS}" ]; then
@@ -324,7 +333,7 @@ fi
 kc -n "${NAMESPACE}" get events -o json >"${OUT}/events.json"
 kc -n "${NAMESPACE}" get pods -o json >"${OUT}/pods.json"
 analyze_probe discovery 200 >"${OUT}/discovery.summary.json"
-analyze_probe login 401 >"${OUT}/login.summary.json"
+analyze_probe login 400 >"${OUT}/login.summary.json"
 
 report | tee "${OUT}/report.txt"
 log info "data kept" "dir" "${OUT}"
