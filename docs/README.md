@@ -34,6 +34,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
   - [`keycloak-backup-restore.md`](keycloak-backup-restore.md) — the daily `pg_dump` backup of the Keycloak database to RustFS, why there is no WAL archiving, and how to restore it.
   - [`keycloak-break-glass.md`](keycloak-break-glass.md) — the local `master`-realm login (bootstrap admin) that keeps Keycloak administrable when UCS or the realms are down: where the credential lives, how to sign in, rotate it and recover it.
+  - [`keycloak-exposure.md`](keycloak-exposure.md) — what can reach Keycloak and which forwarded headers it trusts: the admin-console exposure decision, the forged-header test and its route fix, and why there is no network policy yet.
   - [`longhorn-snapshots.md`](longhorn-snapshots.md) — the `just backup::longhorn-snapshot::*` recipes (list/create/restore) for Longhorn's local hourly/daily volume snapshots.
   - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
   - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes (list/start/stop/shutdown/reset).

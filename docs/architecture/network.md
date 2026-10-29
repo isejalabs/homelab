@@ -101,10 +101,27 @@ Apps attach an `HTTPRoute` to `internal` by `parentRefs`, e.g. [`k8s/apps/dns/ad
 
 | Environments | Let's Encrypt CA | ACME directory |
 | --- | --- | --- |
-| `dbg`, `head`, `poc`, `rebuild`, `src` | Staging | `acme-staging-v02.api.letsencrypt.org` |
-| `dev`, `prod`, `qa` | Production | `acme-v02.api.letsencrypt.org` |
+| `dbg`, `head`, `poc`, `src` | Staging | `acme-staging-v02.api.letsencrypt.org` |
+| `dev`, `prod`, `qa`, `rebuild` | Production | `acme-v02.api.letsencrypt.org` |
 
-The base issuer selects staging; `dev`, `prod`, and `qa` override it in their environment overlays. Certificates from staging are not trusted by real browsers/clients. The environment-specific overrides are in [`k8s/infra/cert-manager/cert-manager/envs/`](../../k8s/infra/cert-manager/cert-manager/envs/).
+The base issuer selects staging; `dev`, `prod`, `qa`, and `rebuild` override it in their environment overlays. Certificates from staging are not trusted by real browsers/clients. The environment-specific overrides are in [`k8s/infra/cert-manager/cert-manager/envs/`](../../k8s/infra/cert-manager/cert-manager/envs/).
+
+### Let’s Encrypt production limits and rebuild
+
+The `rebuild` environment has one Gateway wildcard `Certificate` (`gateway-api/cert`). Its rendered identifier set is the single wildcard name `*.rebuild.iseja.net`. The production issuer makes this certificate browser-trusted, but each fresh rebuild that loses the certificate Secret can require a new production issuance.
+
+Let’s Encrypt’s [production rate limits](https://letsencrypt.org/docs/rate-limits/) most relevant to this setup are:
+
+| Limit | Production allowance | What it means for `rebuild` |
+| --- | --- | --- |
+| Certificates per exact identifier set | 5 in any rolling 7-day period, globally across accounts | This is the tight constraint: a sixth fresh issuance for `*.rebuild.iseja.net` during the window is refused. Revoking a certificate does not reset the limit. |
+| Certificates per registered domain | 50 in any rolling 7-day period, globally across accounts | `iseja.net` is the registered domain, so new certificates for names under it share this limit across environments. Qualifying renewals are exempt from this limit. |
+| New orders per ACME account | 300 per 3 hours | Far above the expected demand of one Gateway certificate per rebuild. |
+| Failed authorizations per identifier per account | 5 per hour | Repeated DNS-01 validation failures can temporarily block attempts for the wildcard identifier. |
+
+So the normal load is low: with only one certificate, the account and registered-domain limits are not expected to be constraints. The operational trade-off is rebuild frequency: up to five fresh production certificates for this exact wildcard set fit in a rolling week; a sixth may be rate-limited until capacity refills. The switch from staging also requires an initial production issuance. Staging has a much higher duplicate-certificate allowance (30,000 per week) and remains useful when repeated rebuilds or validation troubleshooting could exceed production limits; staging certificates are not publicly trusted.
+
+Let’s Encrypt documents [staging limits](https://letsencrypt.org/docs/staging-environment/) separately and notes that staging and production ACME accounts are separate. The limits above were checked on 2026-10-26; see the linked pages for current values.
 
 ```yaml
 spec:
@@ -182,5 +199,5 @@ Everything in this section is physical infrastructure with no representation in 
 ## What's not here
 
 - **No WAN-facing ingress path.** The `external` Gateway exists (and gets its own LB IP and cert), but no `HTTPRoute` in the repo attaches to it, and there's no Cloudflare Tunnel or other public-ingress mechanism anywhere in `k8s/`. Cloudflare's only confirmed role is DNS-01 certificate issuance. Whether `external`'s LB IP is NAT'd/port-forwarded to the internet at OPNsense is a router-config question outside this repo either way.
-- **ACME staging in five environments** — `dbg`, `head`, `poc`, `rebuild`, and `src` issue untrusted staging certificates. The `dev`, `prod`, and `qa` overlays use Let's Encrypt production.
+- **ACME staging in four environments** — `dbg`, `head`, `poc`, and `src` issue untrusted staging certificates. The `dev`, `prod`, `qa`, and `rebuild` overlays use Let's Encrypt production.
 - **The physical network itself (OPNsense, UCS, the root nameservers) isn't in Git** — everything in the section above is documented from IP references found in-cluster, not from any config this repo actually owns, and most of it is itself a future Kubernetes-migration candidate.

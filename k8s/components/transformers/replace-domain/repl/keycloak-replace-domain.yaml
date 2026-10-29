@@ -1,0 +1,27 @@
+# Same pattern as httproute-replace-domain.yaml (TLD before BASE, same reasoning: DOMAIN_BASE's own value contains a
+# dot), applied to the Keycloak resource's public hostname so it comes from the same definition as the HTTPRoute's
+# (the Terragrunt keycloak-realm units' keycloak_url is checked against both, see scripts/kustomize-build-all.sh).
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_TLD
+  targets:
+    - select:
+        kind: Keycloak
+      fieldPaths:
+        - spec.hostname.hostname
+      options:
+        delimiter: "."
+        index: 2
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.DOMAIN_BASE
+  targets:
+    - select:
+        kind: Keycloak
+      fieldPaths:
+        - spec.hostname.hostname
+      options:
+        delimiter: "."
+        index: 1

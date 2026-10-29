@@ -65,7 +65,7 @@ Common underlying causes, in order of likelihood: a node down or cordoned (`kube
 
 ## 3. `reclaimPolicy: Retain` leaks — the most common self-inflicted cause
 
-Both storage backends in this repo use `reclaimPolicy: Retain` everywhere, deliberately (see [`storage.md`](architecture/storage.md#reclaimpolicy-retain-and-the-two-step-cleanup-gotcha)) — deleting a PVC or its namespace never deletes the underlying volume. If a volume "should" be free but a new PVC can't claim it, check for an orphaned `PersistentVolume` left behind by an earlier deleted PVC/namespace (e.g. leftover from [`track-branch`](../.agents/skills/track-branch/SKILL.md) testing on a non-prod environment):
+Only `longhorn-ha` and `proxmox-csi` still use `reclaimPolicy: Retain`, deliberately (see [`storage.md`](architecture/storage.md#reclaimpolicy-retain-and-the-two-step-cleanup-gotcha)) — deleting a PVC or its namespace on those classes never deletes the underlying volume. (A PV provisioned before its class was switched to `Delete` still carries `Retain` until it is patched.) If a volume "should" be free but a new PVC can't claim it, check for an orphaned `PersistentVolume` left behind by an earlier deleted PVC/namespace (e.g. leftover from [`track-branch`](../.agents/skills/track-branch/SKILL.md) testing on a non-prod environment):
 
 ```sh
 kubectl get pv
