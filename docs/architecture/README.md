@@ -16,6 +16,7 @@ New to the repo? Read [`overview.md`](overview.md) first, then [`environments.md
 | [`secrets.md`](secrets.md) | current | SOPS (terraform provisioning secrets) and sealed-secrets/1Password/ESO (in-cluster secrets), as one coherent story |
 | [`network.md`](network.md) | current | how Cilium (LB IPAM), Gateway API, AdGuard+Unbound (DNS resolvers), PowerDNS (DNS authority, in progress), and unifi-controller fit together |
 | [`storage.md`](storage.md) | current | Longhorn vs proxmox-csi, and when each is used |
+| [`monitoring.md`](monitoring.md) | current | the Checkmk sites and why they are split, how cluster, storage and host data reach them, and which tool manages which part — live values in [`reference/monitoring-*.md`](../reference/README.md) |
 | [`workloads.md`](workloads.md) | current | catalog of every app/infra component deployed, what it is, and how it's installed |
 | [`repositories.md`](repositories.md) | current | which repo holds what, which tool (Terraform, Salt, Flux, manual) manages which kind of thing, and where cross-repo issues live |
 | [`ci.md`](ci.md) | current | every CI workflow, what it checks, tool provisioning via mise, and PR labeling/Mergify |

@@ -7,7 +7,7 @@ Authoritative current-state factual material — specific values, tables, and in
 | Doc | Status | Covers |
 | --- | --- | --- |
 | [`environments.md`](environments.md) | current | per-environment sizing, Flux interval, domain/naming schemes, and the ID/ASN/LB-pool/API-VIP tables — the conceptual side is [`architecture/environments.md`](../architecture/environments.md), split per [#1350](https://github.com/isejalabs/homelab/issues/1350) |
-| [`monitoring-sites.md`](monitoring-sites.md) | current | Checkmk containers and sites, their monitoring roles, and representative live host assignments |
+| [`monitoring-sites.md`](monitoring-sites.md) | current | Checkmk containers and sites, their monitoring roles, and representative live host assignments — the conceptual side of the three monitoring docs is [`architecture/monitoring.md`](../architecture/monitoring.md) |
 | [`monitoring-notifications.md`](monitoring-notifications.md) | current | per-site Checkmk notification settings (delay, period), what is noise vs signal in the k8s sites, and the proposed SNR changes |
 | [`monitoring-thresholds.md`](monitoring-thresholds.md) | current | Checkmk rules tuned against false positives (Proxmox VM memory, filesystem levels, K8s node root filesystem) with the evidence behind them |
 

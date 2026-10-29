@@ -23,5 +23,6 @@ jobs:
     # --offline: local file/anchor targets only, no network calls - deterministic, no third-party-downtime
     # flakiness. External URLs are a separate, much noisier concern (rate limits, real downtime) deliberately
     # left out of this PR-blocking check - see #1349. _attic/ZZ.bak are retired material that isn't kept up
-    # to date by design, so link rot there is expected, not something to flag.
-    - run: lychee --offline --no-progress --exclude-path _attic --exclude-path ZZ.bak '**/*.md'
+    # to date by design, so link rot there is expected, not something to flag. --include-fragments: also
+    # check that a `#anchor` exists in the target file, not only that the file exists.
+    - run: lychee --offline --include-fragments --no-progress --exclude-path _attic --exclude-path ZZ.bak '**/*.md'

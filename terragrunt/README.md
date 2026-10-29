@@ -291,7 +291,7 @@ The Checkmk site is configured as code with the community provider `registry.ter
 
 The per-environment `checkmk-password` unit reads the secret key from the environment's `checkmk-monitoring#<env>` 1Password item (written by the `rustfs-bucket-reader` unit above) and stores it as Password Store entry `<env>_checkmk_monitoring` via [`checkmk-password`](https://github.com/isejalabs/terraform-modules/tree/main/modules/checkmk-password). Checkmk rules reference the entry by that identifier, so no secret is carried inline. Units exist for all 8 environments; a unit can only be applied once the environment's `rustfs-bucket-reader` identity exists. `head` tracks the module's latest commit and `src` uses a local checkout, like the other units.
 
-The provider authenticates as the Checkmk automation user `terraform` through the `checkmk` entry (`url`, `username`, `secret`) in `global-secrets.sops.yaml`; `url` is the site URL including the site name, without a trailing slash (for example `https://monitoring2.home.iseja.net/prod`). A Password Store entry needs no activation, and the provider never activates implicitly. The secret is held in the Terraform state like the other secrets managed here.
+The provider authenticates as the Checkmk automation user `terraform` through the `checkmk` entry (`url`, `username`, `secret`) in `global-secrets.sops.yaml`; `url` is the site URL including the site name, without a trailing slash (for example `https://monitoring2.home.iseja.net/prod`). A Password Store entry needs no activation, and the provider never activates implicitly. The secret is held in the Terraform state like the other secrets managed here. The user needs no administrator rights, only a dedicated role with 14 permissions; how to create it is in [`docs/checkmk-automation-user.md`](../docs/checkmk-automation-user.md).
 
 Rollback: remove or edit any rule that references the entry first, then destroy the environment's `checkmk-password` unit (this removes the Password Store entry only; the RustFS identity and the 1Password item are untouched).
 
@@ -319,30 +319,3 @@ One shared unit, `prod/eu-central-1/prod/checkmk-longhorn-monitoring`, creates t
 - **No host check**: the hosts have no address (`address_family = "no-ip"`), because ICMP to a Cilium gateway VIP is not answered and kept the `dev`/`qa` hosts DOWN ([#1926](https://github.com/isejalabs/homelab/issues/1926)).
 - **Polling interval**: five minutes (`check_interval_minutes = 5`).
 - **`rules_enabled`**: same switch and same ordering rule as for [`checkmk-rustfs-monitoring`](#host-and-rules-checkmk-rustfs-monitoring), here for the `longhorn_capacity` plugin package from `checkmk-modules`; it is `true` because the plugin is installed on the site.
-
-### The automation user's role
-
-`terraform` does not need to be an administrator. Create a role from the built-in `no_permissions` role with exactly the 14 permissions the Checkmk modules need, and give it to the user. This was verified against a Checkmk Raw 2.4 site: with only this role the provider applied, re-planned without changes and destroyed everything the spike created. (A role cloned from `user` also works but carries about 370 inherited permissions, including 16 more Setup ones, so do not use it.) Use an existing Checkmk admin account for these calls and read its secret without echoing it:
-
-```sh
-CMK='https://<checkmk-host>/<site>/check_mk/api/1.0'   # no trailing slash
-read -rs ADMIN_SECRET                                  # paste the admin user's secret, press Enter
-AUTH="Authorization: Bearer <admin-username> $ADMIN_SECRET"
-
-# 1. Create the role from no_permissions
-curl -sS -X POST -H "$AUTH" -H 'Content-Type: application/json' \
-  "$CMK/domain-types/user_role/collections/all" \
-  -d '{"role_id":"no_permissions","new_role_id":"tf_auto","new_alias":"Terraform automation"}'
-
-# 2. Grant exactly these 14 permissions
-curl -sS -X PUT -H "$AUTH" -H 'Content-Type: application/json' \
-  "$CMK/objects/user_role/tf_auto" \
-  -d '{"new_permissions":{"general.use":"yes","wato.use":"yes","wato.edit":"yes","wato.passwords":"yes","wato.edit_all_passwords":"yes","wato.edit_hosts":"yes","wato.manage_hosts":"yes","wato.edit_folders":"yes","wato.manage_folders":"yes","wato.all_folders":"yes","wato.see_all_folders":"yes","wato.rulesets":"yes","wato.activate":"yes","wato.activateforeign":"yes"}}'
-
-# 3. Give the existing `terraform` automation user that role (a PUT needs the object's ETag in If-Match)
-ETAG=$(curl -sS -D - -o /dev/null -H "$AUTH" "$CMK/objects/user_config/terraform" | tr -d '\r' | awk -F': ' 'tolower($1)=="etag"{print $2}')
-curl -sS -X PUT -H "$AUTH" -H 'Content-Type: application/json' -H "If-Match: $ETAG" \
-  "$CMK/objects/user_config/terraform" -d '{"roles":["tf_auto"]}'
-```
-
-Check with `GET $CMK/objects/user_role/tf_auto`: `extensions.permissions` must list exactly those 14. Step 1 fails if the role exists already; step 2 can be repeated. The same can be done in the UI (Setup > Users > Roles: clone **No permissions**, enable the same permissions, then set the user's role).

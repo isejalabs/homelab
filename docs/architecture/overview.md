@@ -48,6 +48,7 @@ These aren't a step in the pipeline above — they're consumed by apps/infra at 
 - **Networking** — Cilium (CNI, LB-IPAM, BGP route advertisement, Gateway API), AdGuard + Unbound (DNS resolution), and where the physical network (OPNsense, UCS, the root nameservers) picks up outside this repo entirely. See [`network.md`](network.md).
 - **Storage** — Longhorn vs. proxmox-csi, and which volumes need which. See [`storage.md`](storage.md).
 - **Secrets** — SOPS below the cluster, sealed-secrets/1Password+ESO above it, bridged once at bootstrap. See [`secrets.md`](secrets.md).
+- **Monitoring** — Checkmk sites outside the clusters, fed by the in-cluster `checkmk-agent`, custom storage special agents and host agents. See [`monitoring.md`](monitoring.md).
 
 ## What's actually deployed, and where the repo's boundary is
 

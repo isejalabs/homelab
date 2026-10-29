@@ -32,6 +32,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - [`disaster-recovery.md`](disaster-recovery.md) — the full cluster-rebuild sequence, composed from the procedures below plus `AGENTS.md`'s Terragrunt section, with a validation checkpoint per step.
   - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
+  - [`checkmk-automation-user.md`](checkmk-automation-user.md) — the least-privilege Checkmk role for the `terraform` automation user that the Checkmk Terragrunt units authenticate as, and how to create it via the REST API or the UI.
   - [`keycloak-backup-restore.md`](keycloak-backup-restore.md) — the daily `pg_dump` backup of the Keycloak database to RustFS, why there is no WAL archiving, and how to restore it.
   - [`keycloak-break-glass.md`](keycloak-break-glass.md) — the local `master`-realm login (bootstrap admin) that keeps Keycloak administrable when UCS or the realms are down: where the credential lives, how to sign in, rotate it and recover it.
   - [`keycloak-realms.md`](keycloak-realms.md) — the `keycloak-realm` Terragrunt unit that fills Keycloak with its realms and LDAP federation, and its prerequisites (UCS groups and bind account, 1Password items, CA trust).
