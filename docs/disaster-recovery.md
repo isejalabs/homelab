@@ -37,7 +37,7 @@ Six steps, each citing the doc that owns it. Run them in order; don't skip a val
 
 ### 1. Provision VMs and install Talos
 
-[`terragrunt/README.md`](../terragrunt/README.md#directory-handling) — `terragrunt plan`/`apply` from the environment's `vehagn-k8s` module directory, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha, and the `prod`/`qa` main-branch-only rule.
+[`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) — `terragrunt plan`/`apply` from the environment's `vehagn-k8s` module directory, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha, and the `prod`/`qa` main-branch-only rule.
 
 **If recovering from a teardown that preserved Proxmox volumes** (rather than a from-scratch provision): import the surviving disk(s) first — see [`terragrunt/README.md`](../terragrunt/README.md#import-proxmox-volume)'s import commands, which need the Proxmox volume's node/storage path from before the teardown.
 
