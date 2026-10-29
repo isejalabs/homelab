@@ -23,7 +23,6 @@ On 2026-10-29 at 00:05:57 CET on `monitoring1`: `omd stop core` and `omd config 
 
 ## Left over
 
-- `prod` still lists the services of `core` on `monitoring1` (`OMD core ...`, `Process core ...`, `Site core statistics`), all OK from before the stop at the time of reading; they will go stale or vanish and are to be cleaned up (rediscovery or disabling) — not done.
-- The service-count rule in `prod` (id `d9e78913-…`) still names `core`; delete that entry.
+- Cleaned up in `prod` on 2026-10-29 (activated by the owner): a "Disabled services" rule (id `99854e7c-b1b6-4e6f-8d3c-9ddaee58959e`, host `monitoring1.home.iseja.net`, services `OMD core `, `Process core `, `Site core statistics$`) removes the stale services of `core` (they had turned CRIT or UNKNOWN once the site stopped), and the `core` entry is removed from the service-count rule (id `d9e78913-…`, now `prod_k8s`, `qa_k8s`, `dev_k8s`). Afterwards `prod` has no pending changes and no `core` service of `monitoring1` (73 hosts, 1320 services). If `core` is ever started again, delete the Disabled-services rule and add `core` back to the service-count rule.
 - Right-size CT 7002061 (10 GiB, now about 5.9 GiB used with web-interface swings in mind), measure a week first.
 - Rollback: `omd start core`, `omd config core set AUTOSTART on`.
