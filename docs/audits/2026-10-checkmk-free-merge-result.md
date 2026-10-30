@@ -93,7 +93,28 @@ The RRD files copied to `prod` have a gap before the cutover, and `prod` filled 
 - `omd stop free` did **not** flush its `rrdcached` into the RRD files. The files of `free` end at 20:28 (`pve1`), 20:08 (`pve4`), 19:53 (`pve5`) and 19:58 (`pve6`) although `free` collected data until 21:11:58; the unflushed updates are only in `free`'s `rrdcached` journal (`/omd/sites/free/var/rrdcached/rrd.journal.*`, 120,000 lines, last update 21:11:58). "0 differences" of the final `rsync` compared the two copies on disk, not what `free` had collected.
 - The first update that `prod` wrote after the cutover (about 21:13 to 21:24) came inside the heartbeat of the file (pnp4nagios uses 8,460 seconds), so RRDtool filled the whole gap with that one value. For `pve1` the graph in `prod` shows a flat line of 90.1 from 20:29 to about 21:24, real load values start after that; the files of the other three online hosts end at 19:53 to 20:08 in the same way (gaps of about 44 to 79 minutes); the flat fill was only looked at for this one file, and the other files of these hosts were not compared one by one.
 - Not affected: everything before the gap (checked on `pve1`: the 1-minute points of 2026-10-29 06:00 to 20:28 are identical in `prod` and `free`), the older history (both files have 1-day points back to 2023-10-30), and everything collected in `prod` after 21:13.
-- It can be repaired: take the file of `free`, replay the journal updates into it, replay the samples that `prod` collected since 21:13, and swap the file in with `npcd` and `rrdcached` of `prod` stopped. This changes live files in `prod` and was not done; the owner decides whether one hour of 5-minute points for four hosts is worth that. The journal is not deleted while `free` stays stopped; deleting `free` removes the only copy of these updates, so the repair has to happen before.
+- **Cause:** `rrdcached` runs with a journal (`-j`) and without `-F`, so it does not flush at shutdown; `omd stop` only keeps the journal. Before stopping a site that runs `rrdcached` with a journal, flush explicitly (`echo FLUSHALL | nc -U ~/tmp/run/rrdcached.sock` as the site user) and check the `last` time of a file on disk.
+- It can be repaired, see the plan below. `free` must stay until then, because deleting it removes the only copy of these updates.
+
+### Repair plan (offline build done and validated, swap not done)
+
+**Built (not live):** `/root/rrd-repair-1783/out/` on `monitoring2` (171 MB, 2,041 files of `pve1`, `pve4`, `pve5`, `pve6`; script `/root/rrd-repair-1783/rrdrepair.py`, copy in the session notes). It ran 30 minutes at `nice 19` and wrote only below that directory; no file of `prod` or `free` was touched. 32 files exist only in `prod` (new `corosync_latency` and similar services) and need nothing. The two offline hosts `pve2` and `pve3` have no gap.
+
+**Method per file (all GAUGE, step 60 s):** copy the file of `free`, replay the journal updates newer than its last update (14,039 updates in total, 335 files had none), then take the file of `prod` and replace every row up to the end of `free`'s data by the repaired `free` row. Between that end and the first real `prod` sample (the flat line, at most until 21:30) the 5-minute and finer rows become unknown, and the coarser rows (30 minutes, 1 day) that touch that span are recomputed from the repaired 1-minute rows (20,805 rows). Constant metrics, where the flat line equals the real value, are left alone. Cost: the span from the end of `free`'s data (21:08 to 21:11) to the first agent sample after the re-registration (about 21:24) stays unknown; the values are rounded to 10 significant digits by the XML round trip.
+
+**Validated:** 120 random files compared with the live files, 1-minute points from 2026-10-29 07:00 to 19:30 and from 21:45 to 2026-10-30 04:30: 0 differences (tolerance 1e-8). The window 19:30 to 21:45 differs in 2,051 of 16,320 points, which are the repaired ones. After 04:30 the live files differ only because `prod`'s `rrdcached` has not written the last hour to disk yet.
+
+**Swap steps (need the owner's go; `npcd` stopped for about 15 minutes, the perfdata waits in the spool as at the cutover):**
+
+1. As root on `monitoring2`: `omd stop npcd` (site `prod`, as in phase 3).
+2. Flush the cache: `echo FLUSHALL | nc -U /omd/sites/prod/tmp/run/rrdcached.sock`; check that `rrdtool last` of a `pve1` file is within a few minutes of now.
+3. `omd stop rrdcached`; back up the four directories: `tar -C /omd/sites/prod/var/pnp4nagios/perfdata -cf /root/rrd-repair-1783/prod-before-swap.tar pve{1,4,5,6}.home.iseja.net` (about 180 MB).
+4. Rebuild from the flushed state, four hosts in parallel (3 vCPUs, about 10 to 12 minutes): `nice -n 19 python3 -I rrdrepair.py /root/rrd-repair-1783/out2 pveN.home.iseja.net`, then run the comparison again (0 differences outside the gap, `last` equal to the live file).
+5. Swap the `.rrd` files from `out2` into the four directories (`chown prod:prod`, mode as the originals, `.xml` files untouched), then `omd start rrdcached` and `omd start npcd`.
+6. Check: `last` of the files advances, `~/var/log/npcd.log` has no errors, `lq` unchanged, the `pve1` load graph for 2026-10-29 20:30 to 21:10 shows the real values (3.9 to 8.5) instead of the flat 90.1.
+7. Rollback: stop `npcd` and `rrdcached`, unpack the tar over the directories, start both.
+
+Side effects: graph ingestion lags by about 15 minutes and catches up from the spool; the rebuild uses about one core at lowest priority in a container that is at 0.7 to 1.1 cores on average, so a quiet time of the day is better. Afterwards keep `free` and `/root/rrd-repair-1783/` until the owner deletes them.
 
 ## Still to check
 
