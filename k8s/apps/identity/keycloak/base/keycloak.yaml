@@ -1,0 +1,44 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/k8s.keycloak.org/keycloak_v2beta1.json
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak
+spec:
+  bootstrapAdmin:
+    user:
+      secret: keycloak-bootstrap-admin
+  db:
+    database: keycloak
+    host: keycloak-db-rw
+    passwordSecret:
+      name: &dbSecret keycloak-db-app
+      key: password
+    usernameSecret:
+      name: *dbSecret
+      key: username
+    vendor: postgres
+  hostname:
+    # derived per environment like the HTTPRoute's hostname (replace-domain/prefix-domain, which also cover this
+    # field); prod overrides both in envs/prod/ because it does not prefix
+    hostname: auth.example.com
+  http:
+    # TLS ends at the Gateway
+    httpEnabled: true
+  ingress:
+    enabled: false
+  instances: 1
+  proxy:
+    headers: xforwarded
+  # provisional, from an idle dev measurement (~500Mi, 5-13m per replica); revisit after the qa soak
+  resources:
+    limits:
+      memory: 1Gi
+    requests:
+      cpu: 50m
+      memory: 768Mi
+  # trust anchor for the LDAPS connection to UCS (the DCs' certificates are signed by the UCS CA)
+  truststores:
+    ucs-ca:
+      secret:
+        name: keycloak-ucs-ca

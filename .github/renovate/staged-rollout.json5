@@ -1,0 +1,24 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  packageRules: [
+    {
+      description: "stage the unbound rollout: prod pins its own image (envs/prod/deployment.yaml) and only gets a release once it is at least 3 days old, while base/ (qa and the other environments) takes it immediately -- internalChecksFilter stays at its default 'strict', so no prod PR exists before then (#1882)",
+      matchDatasources: ["docker"],
+      matchFileNames: ["k8s/apps/dns/unbound/envs/prod/**"],
+      matchPackageNames: ["docker.io/madnuttah/unbound"],
+      minimumReleaseAge: "3 days",
+    },
+    {
+      description: "stage the rollout of the soaking units (Keycloak operator, CloudNativePG chart, database and Keycloak images): once promoted, prod pins its own versions under envs/prod/ while base/ (dev, qa, rebuild) takes releases as usual. A prod PR waits until the release is at least 7 days old and is never automerged, so qa has run the version and the owner merges deliberately. Matches nothing until the promotion PR adds the pin files (#1947)",
+      matchFileNames: [
+        "k8s/apps/identity/keycloak/envs/prod/**",
+        "k8s/infra/cnpg-system/cloudnative-pg/envs/prod/**",
+        "k8s/infra/keycloak/keycloak-operator/envs/prod/**",
+      ],
+      minimumReleaseAge: "7 days",
+      automerge: false,
+      addLabels: ["updateStrategy:manual"],
+      assignees: ["sebiklamar"],
+    },
+  ],
+}

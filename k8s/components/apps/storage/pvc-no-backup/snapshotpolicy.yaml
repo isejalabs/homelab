@@ -11,7 +11,7 @@ spec:
     cache:
       capacity: ${STORAGE_CAPACITY:=5Gi}
       mode: Persistent
-      storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-standard}
+      storageClassName: ${BACKUP_CACHE_STORAGECLASS:=longhorn-cache}
     securityContext:
       runAsGroup: ${PGID:=1000}
       runAsUser: ${PUID:=1000}

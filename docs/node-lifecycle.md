@@ -4,7 +4,7 @@ status: current
 
 # Node lifecycle: Talos/Kubernetes upgrades and node replacement
 
-**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-plane-worker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Verify](#verify-the-change-actually-took)
+**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-planeworker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Verify](#verify-the-change-actually-took)
 
 How to move one environment from one pinned Talos/Kubernetes version to another, replace a single node, scale a node count up or down, or relocate a node to a different Proxmox host — all in an otherwise-healthy cluster. Not a full cluster rebuild — see [`disaster-recovery.md`](disaster-recovery.md) for that, and [`architecture/environments.md`](architecture/environments.md) for what each environment is and why `prod` gets stricter rules (`main`-checkout-only applies, no `track-branch` override) than the others.
 
@@ -135,6 +135,11 @@ This is also distinct from changing only a node's **`datastore`** (storage pool)
   - `talosctl etcd members` before `etcd leave` and after: the retiring node must be the only entry that disappears. Run `etcd leave` on the node that leaves.
   - Re-adding a node with the *same* name, IP and VM ID after retiring it works: the destroy removes the data VM as well, so there is no leftover disk (checked on `dev`: nothing remains on the old storage).
   - Adding a control-plane node makes Talos re-apply the machine config on the workers; the CRI restarts there and Longhorn volumes on a worker can flap `attached`/`unknown` for about 5 minutes (`rebuild`, 2026-10-13). Wait until all attached volumes are `healthy` before the next step.
+  - **Verified a third time on `dev`** (2026-10-29, `ctrl-03` from `pve5` to `pve1`, no interim `-02` node): the new control plane can simply be the permanent one. Add `dev-ctrl-01` (placement pattern `-01` on `pve1`), retire `dev-ctrl-03`, done in one swap, under an hour of wall time including the retries below. Things that showed up:
+    - After the retire apply stopped the VM, Proxmox' `DELETE` through the API proxy `pve4` returned `EOF` (`error deleting VM`), although the VM was stopped and no destroy task had started. Plan and apply again is enough.
+    - With the stale `Node` still present, even `terragrunt plan` (not only the apply) blocks for 10 minutes in `data.talos_cluster_health` and ends with `Cannot apply incomplete plan`. Delete the `Node` as soon as the VM is stopped (`kubectl delete node <name>`), then plan and apply.
+    - The module picks the first control plane (by name) as the Talos endpoint, so `ctrl-01` replaces `10.7.8.133` as endpoint in `talos-config.yaml`. `talosctl config merge` does not replace an existing context but renames the incoming one (`dev-homelab-1`) and keeps the old, now dead one: switch to another context, `talosctl config remove dev-homelab`, merge again.
+    - In Checkmk, node hosts live in the folders `/k8s/nodes` and `/k8s/nodes/offline`; the new control plane's host only has to be moved out of `offline` and the retired one into it (see [`reference/environments.md`](reference/environments.md#the-prod-site-also-queries-the-clusters)). The REST user of the Terraform modules lacks the permission "Move existing hosts".
   - **Changing the storage (`datastore`) of an existing node**: not in place, see [Changing the datastore of a node](#changing-the-datastore-of-a-node).
 
 ### Changing the datastore of a node

@@ -18,8 +18,10 @@ For resource sizing, reconciliation intervals, domain/naming, and the ID/ASN/LB-
 
 | Set | Environments | Apps deployed |
 | --- | --- | --- |
-| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
-| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
+| `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
+| `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
+
+The Keycloak identity provider and its database are in neither set either: they are registered through [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml), which only `dev` (where it is developed), `qa` (the gate before `prod`) and `rebuild` (to rehearse the database restore) include, see [ADR 0016](../decisions/0016-identity-and-web-sso.md). The set only decides which environments run these units, not which versions: once a unit is promoted to `prod`, `prod` pins its own versions and takes an update only after `qa` has run it, see [Staged rollout: Keycloak and CloudNativePG](../update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
 
 [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) is not part of either set: it needs the one physical ConBee II coordinator, so it is registered in `prod` only (dev was the test stage and no longer registers it), see its [README](../../k8s/apps/home-automation/zigbee2mqtt/README.md).
 

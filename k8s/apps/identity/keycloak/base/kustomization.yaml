@@ -1,0 +1,26 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: keycloak
+
+resources:
+  - cluster.yaml
+  - cronjob-dump.yaml
+  - externalsecret.yaml
+  - http-route.yaml
+  - keycloak.yaml
+
+replacements:
+  # the dump job runs pg_dump from the very image the server runs (cluster.yaml is the one place that states it)
+  - source:
+      kind: Cluster
+      name: keycloak-db
+      fieldPath: spec.imageName
+    targets:
+      - select:
+          kind: CronJob
+          name: keycloak-db-dump
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.initContainers.[name=dump].image

@@ -1,0 +1,42 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/dev
+
+resources:
+  - ../../base
+
+patches:
+  - patch: |-
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: keycloak-db-dump
+      spec:
+        jobTemplate:
+          spec:
+            template:
+              spec:
+                containers:
+                  - name: upload
+                    env:
+                      - name: BUCKET
+                        value: dev-keycloak-db
+    target:
+      kind: CronJob
+      name: keycloak-db-dump
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-bootstrap-admin#dev
+    target:
+      kind: ExternalSecret
+      name: keycloak-bootstrap-admin
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-db#dev
+    target:
+      kind: ExternalSecret
+      name: keycloak-db-backup

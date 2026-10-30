@@ -1,0 +1,129 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/batch/cronjob_v1.json
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: keycloak-db-dump
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+            - name: upload
+              image: public.ecr.aws/aws-cli/aws-cli:2.39.0@sha256:6014c77975a4ae237395924cc821333f20bf87c91964a45dd4ed5f3b13b424f5
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  # Keep the newest 14 dumps; the dump just uploaded is always among them.
+                  name="keycloak-$(date -u +%Y-%m-%dT%H%M%SZ).dump"
+                  test -s /dump/keycloak.dump
+                  aws s3 cp /dump/keycloak.dump "s3://${BUCKET}/${name}" --only-show-errors
+                  aws s3 ls "s3://${BUCKET}/${name}"
+                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
+                  for key in $old; do
+                    [ "$key" = "None" ] && break
+                    aws s3 rm "s3://${BUCKET}/${key}" --only-show-errors
+                  done
+              env:
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-backup
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_DEFAULT_REGION
+                  value: default
+                - name: AWS_ENDPOINT_URL
+                  value: https://fiona.home.iseja.net:9000
+                - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                  value: when_required
+                - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                  value: when_required
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-backup
+                      key: AWS_SECRET_ACCESS_KEY
+                - name: BUCKET
+                  # bucket name is rewritten per environment (<env>-keycloak-db)
+                  value: base-keycloak-db
+                - name: HOME
+                  value: /tmp
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: dump
+                  mountPath: /dump
+          initContainers:
+            - name: dump
+              # overwritten with the Cluster's spec.imageName by the replacement in kustomization.yaml; this copy only
+              # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
+              image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce
+              command:
+                - pg_dump
+                - --format=custom
+                - --file=/dump/keycloak.dump
+              env:
+                - name: PGDATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-app
+                      key: dbname
+                - name: PGHOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-app
+                      key: host
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-app
+                      key: password
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-app
+                      key: username
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: dump
+                  mountPath: /dump
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 26
+            runAsGroup: 26
+            runAsNonRoot: true
+            runAsUser: 26
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: dump
+              emptyDir:
+                sizeLimit: 256Mi
+  schedule: 0 2 * * *
+  successfulJobsHistoryLimit: 3
+  timeZone: Europe/Berlin

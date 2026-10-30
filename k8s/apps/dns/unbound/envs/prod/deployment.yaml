@@ -4,3 +4,10 @@ metadata:
   name: unbound
 spec:
   replicas: 2
+  template:
+    spec:
+      containers:
+        - name: unbound
+          # prod tracks its own image so Renovate can promote a version here only after it has
+          # run in qa (base/) for a while -- see .github/renovate/staged-rollout.json5
+          image: docker.io/madnuttah/unbound:1.26.2-0-quic@sha256:c8ec30bda5e4a3200cd716fd96ccc7ec594fb80c726f232847c9c02d78f90097

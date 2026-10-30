@@ -31,9 +31,13 @@ terraform {
 
 inputs = {
   # One dedicated API-only host per environment, with its real Longhorn hostname (module v0.2.0+ derives it from
-  # each environment's endpoint). The folder must already exist; reusing the same /misc folder
-  # checkmk-rustfs-monitoring's API-only hosts live in.
-  folder = "/misc"
+  # each environment's endpoint), in its own per-environment folder (module v0.4.0+): each must already exist.
+  folder_format = "/K8S/envs/%s"
+
+  # No address on the hosts, so Checkmk runs no host check (PING): ICMP to a Cilium gateway VIP is not answered
+  # (cilium/cilium#14118), which kept the dev and qa hosts DOWN. Only prod pings because of an OPNsense DNAT rule;
+  # the special agent only needs the endpoint from its rule, so the host check adds nothing here (isejalabs/homelab#1926).
+  address_family = "no-ip"
 
   # Longhorn disk polling, per the monitoring plan: start at five minutes, matching the standard service interval
   # (15 minutes is also acceptable where sufficient, but five is where this starts).

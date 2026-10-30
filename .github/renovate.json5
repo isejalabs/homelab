@@ -14,6 +14,7 @@
     "github>isejalabs/homelab//.github/renovate/pin-versions.json5",
     "github>isejalabs/homelab//.github/renovate/renames.json5",
     "github>isejalabs/homelab//.github/renovate/schedule.json5",
+    "github>isejalabs/homelab//.github/renovate/staged-rollout.json5",
     "github>isejalabs/homelab//.github/renovate/version-scheme.json5",
   ],
   rebaseWhen: 'conflicted',
@@ -87,6 +88,17 @@
       managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
       matchStrings: [
         "repository:\\s*(?<depName>\\S+)\\s+tag:\\s*[\"']?(?<currentValue>[\\w.\\-]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\"']?",
+      ],
+      datasourceTemplate: "docker",
+    },
+    {
+      // CloudNativePG `Cluster.spec.imageName` (a single "repo:tag@digest" string, which the built-in
+      // kubernetes manager only reads from `image:` keys). Pinned explicitly so a PostgreSQL bump is
+      // a reviewed PR instead of an operator default changing under the cluster.
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
+      matchStrings: [
+        "imageName:\\s*[\"']?(?<depName>[^\\s:\"']+):(?<currentValue>[\\w.\\-]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\"']?",
       ],
       datasourceTemplate: "docker",
     },

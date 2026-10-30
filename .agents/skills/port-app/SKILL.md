@@ -45,6 +45,8 @@ Copy every manifest file from `app/` (or the extra subfolder) as-is **except**:
 
 The source's own `kustomization.yaml` at `kubernetes/apps/<namespace>/` (the one that aggregates `namespace.yaml` + every component's `ks.yaml`, often pulling in shared `components:`) has **no destination equivalent as a single file** — its two jobs are split apart in steps 4 and 6.
 
+In a ported `helmrelease.yaml`, apply the same anchor convention (see `AGENTS.md`): `metadata.name: &name <release>` and `chartRef.name: *name` (or `chart`/`sourceRef.name`) where the chart reference equals the release name; the source repo usually repeats the name by hand.
+
 Keep chart version pins (tag, or tag+digest) exactly as sourced — Renovate updates them afterward. Keep `# yaml-language-server: $schema=...` comment lines verbatim; this repo has converged on the same `https://k8s-schemas.home-operations.com/...` schema catalog onedr0p uses (newer ported files use it; a few older pre-existing files still reference `kubernetes-schemas.pages.dev` — don't "fix" those while porting an unrelated component).
 
 ## 3. Generate the component directory
@@ -96,7 +98,8 @@ resources:
 - `metadata.name` = the destination component's directory name (e.g. `kopiur-repository`, not `kopiur`).
 - `spec.path` = `./k8s/<infra|apps>/<namespace-or-category>/<component>/base` — **always ends in `/base`**, never `/envs/<env>`. The per-environment path rewrite happens automatically later via the `replace-path` kustomize component when `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml` is built — do not hand-write an env-specific path here.
 - keep `interval`, `prune`, `wait`, `sourceRef` (always `GitRepository flux-system/flux-system`), `healthChecks`/`healthCheckExprs` if the source had them.
-- `targetNamespace` is redundant with `base/kustomization.yaml`'s `namespace:` field but harmless; drop it if the source had it, don't add it if not.
+- never set `targetNamespace`: the namespace comes from `base/kustomization.yaml`'s `namespace:` field only (see `AGENTS.md`); drop it if the source had it. `scripts/kustomize-build-all.sh` fails on it.
+- use YAML anchors for values that must stay equal (see `AGENTS.md`): `metadata.name: &name <component>` and `name: *name` for a `healthChecks[]` entry checking the object of the same name.
 - `dependsOn`: carry over any sibling dependency from the source (e.g. `onepassword-connect` → `dependsOn: external-secrets`, `kopiur-repository` → `dependsOn: kopiur`). Additionally, for **`k8s/infra` components only**, default to `dependsOn: - name: infra-ns` (the namespace-creating Flux Kustomization) — **unless** this component is one of the small set installed by `helmfile` during cluster bootstrap before Flux even runs (currently: `cilium`, `sealed-secrets`, `cert-manager`, `flux-operator`, `flux-instance`), where the namespace already exists by the time this Kustomization reconciles. If unsure whether a component belongs to that bootstrap set, ask rather than guessing. `k8s/apps` components don't need `dependsOn: infra-ns` (their namespace is self-contained, see step 5).
 
 ```yaml

@@ -20,5 +20,5 @@ parameters:
   # Stale replica timeout before rebuild (default: 30 minutes)
   staleReplicaTimeout: "30"
 provisioner: driver.longhorn.io
-reclaimPolicy: Retain # Retain volume when PVC is deleted
+reclaimPolicy: Delete # data is recovered from the kopiur backup, not from a leftover volume
 volumeBindingMode: WaitForFirstConsumer # Bind PVC after pod creation

@@ -11,6 +11,12 @@
       versioning: "loose",
     },
     {
+      description: "only allow the multi-arch -quic tags of unbound, never the per-architecture ones (e.g. -s390x, -amd64) which crash on other nodes",
+      allowedVersions: "/^\\d+\\.\\d+\\.\\d+-\\d+-quic$/",
+      matchDatasources: ["docker"],
+      matchPackageNames: ["docker.io/madnuttah/unbound"],
+    },
+    {
       description: "configure version scheme for minio images",
       matchDatasources: ["docker"],
       matchPackageNames: [
