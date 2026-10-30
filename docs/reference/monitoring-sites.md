@@ -95,7 +95,7 @@ Since 2026-10-28 (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-
 | `gw2.home.iseja.net` | 10.7.0.2 | 1 s | |
 | `gw3.home.iseja.net` | 10.7.0.3 | 1 s | |
 | `gw4.home.iseja.net` | 192.168.8.4 | 1 s | test host of 2026-10-28 |
-| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan` |
+| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
 | `google-dns` | 8.8.8.8 | 1 s | tag `networking: wan` |
 | `sw01.home.iseja.net` | 10.7.10.50 | 1 s | alias `switch-kueche.home.iseja.net` |
 | `core-switch.home.iseja.net` | 10.7.20.150 | 1 s | |
@@ -116,6 +116,25 @@ Measured on 2026-10-28 after the change (`lq "GET status"` and the CPU seconds o
 `core` was stopped on 2026-10-29 at 00:05 CET (see the [site table](#sites)); [`2026-10-checkmk-core-stopped-result.md`](../audits/2026-10-checkmk-core-stopped-result.md) has the memory and CPU figures.
 
 Time to DOWN, measured on 2026-10-28 with a controlled outage of `8.8.8.8` on `monitoring1` and `monitoring2` at the same second: `core` and `prod_k8s` logged DOWN in the same second, 6 seconds after the block, and UP within 1 second after it ended, so the new ping detects an outage as fast as the old one. Method, log lines and caveats: [`2026-10-checkmk-prod-k8s-ping-only-result.md`](../audits/2026-10-checkmk-prod-k8s-ping-only-result.md).
+
+## Large-packet `PING` for `gw-kdg`
+
+Since 2026-10-30 ([#2020](https://github.com/isejalabs/homelab/issues/2020)) the `PING` service of `gw-kdg.home.iseja.net` sends 1500-byte packets (1472 data bytes) in `prod` and `prod_k8s`, because a default-size ping shows 0% loss during the home internet slowdown (see [#2012](https://github.com/isejalabs/homelab/issues/2012)) while a full-size ping with the don't-fragment flag loses a third to two thirds of its packets. The other `PING` services (`google-dns` and the rest) keep the default size.
+
+Checkmk 2.5.0p15 has no packet size option in "Ping and host check parameters" (`ping_levels`) or in "Check hosts with PING" (`icmp`), and the Smart Ping host check has none either. The check is therefore one rule in "Integrate Nagios plugins" (`custom_checks`) per site, created through the REST API (nothing of it is in this repository):
+
+| Site | Rule id | Folder | Condition |
+| --- | --- | --- | --- |
+| `prod` | `e09e2dda-9ab8-44cd-ac30-e2e9a1e3c218` | Main | host name `gw-kdg.home.iseja.net` |
+| `prod_k8s` | `599a1c3e-95ff-40a2-a38f-2b316472e59a` | Main | host name `gw-kdg.home.iseja.net` |
+
+Both set the service name `PING` and the command line `$USER1$/check_icmp -n 6 -t 20 -b 1472 -w 1500.00,20% -c 3000.00,50% $HOSTADDRESS$`.
+
+- **Same service name.** The service stays `PING`, so its history and the 5-minute interval rule for `/ping-only` in `prod_k8s` carry over. The implicit `PING` service of ping-only hosts disappears by itself once the host has another service, so the service count does not change.
+- **Thresholds are in the command line.** The `networking: wan` rule of `ping_levels` (80% warning, 100% critical) does not apply to this service. With 6 packets one lost packet is 17%, so 20% is WARN from the second lost packet on and 50% is CRIT from the third. The rule of `ping_levels` still applies to the host check of `gw-kdg` in `prod` (default packet size).
+- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and `188.195.100.252` lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
+- **Result after activation (2026-10-30):** `prod_k8s` was CRITICAL ("lost 83% > 50%") on its first run and `prod` OK ("lost 0%"), which fits a loss that comes and goes.
+- **Roll back:** delete the two rules and activate; the implicit `PING` service with the default packet size comes back.
 
 ## Reading container memory
 
