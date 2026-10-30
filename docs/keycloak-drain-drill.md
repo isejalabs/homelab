@@ -76,11 +76,15 @@ The report has three parts: the outage windows per probe, a timeline, and the ve
 | --- | --- | --- |
 | Eviction and shutdown | `Killing` events and the time until the old pods are gone | CloudNativePG gives PostgreSQL up to `stopDelay` (default 1800 s) to stop and reserves `smartShutdownTimeout` (default 180 s) of it for a smart shutdown, which waits for connected clients such as Keycloak's connection pool; a shutdown that takes minutes shows up here (the Cluster does not set either field today) |
 | Scheduling and volume attach | `Scheduled`, then `condition Initialized` of the new pod | A Longhorn volume has to be attached on the new node |
-| Image pull | `Pulling` / `Pulled` events, the message contains the pull duration | The factor that dominated the first measurement; the first drill reported a 3 min 55 s pull of the Keycloak image |
+| Image pull | `Pulling` / `Pulled` events, the message contains the pull duration; the report lists them under "Image pulls" with their sum | The factor that dominated the first measurement; the first drill reported a 3 min 55 s pull of the Keycloak image. It depends on the internet link, not on Keycloak or the drain: see [Separate the pull time](#separate-the-pull-time) |
 | Database ready | `condition Ready` of `keycloak-db-1` (the pod name changes when CloudNativePG recreates the instance) | After this the database accepts connections |
 | Keycloak ready | `condition Ready` of `keycloak-0`, after Quarkus has started | After this the `login` window should close |
 
 Pod placement is part of the same exercise: the script warns when `keycloak-0` and the database primary run on the same node, because one drain then interrupts both and the phases add up. Whether that is acceptable, or whether a topology spread or anti-affinity rule is worth adding, is decided with the numbers from this drill, not before.
+
+### Separate the pull time
+
+A drain reschedules the pods onto another node, and every image that node does not have yet is pulled again, so a slow internet link lengthens the outage without anything being wrong with Keycloak or the drain. Record it with every run: the "Image pulls" part of the report gives the pull durations and their sum (the event time is the end of a pull, and pulls of different pods can overlap, so the sum is an upper bound of the time lost), and the note in the [Results](#results) table says whether the link was degraded. When it was, compare the outage minus the pull time with the [target](#target), and repeat the run on a normal link before deciding anything from it. The runs from 2026-10-29 have no link measurement; the 346 s pull of the Keycloak image in the second run is recorded as measured, and whether the link was degraded then is not known.
 
 ## Decide the replica counts
 
@@ -96,7 +100,7 @@ Changing a replica count is a follow-up change of its own. Record the outcome he
 
 ## Results
 
-One row per run (environment, date, disturbance, node, login outage total and longest, target, verdict); link the issue comment that holds the `report.txt`.
+One row per run (environment, date, disturbance, node, login outage total and longest, image pull time and whether the internet link was degraded, target, verdict); link the issue comment that holds the `report.txt`.
 
 | Date | Environment | Disturbance | Login outage (total / longest) | Target | Verdict |
 | --- | --- | --- | --- | --- | --- |

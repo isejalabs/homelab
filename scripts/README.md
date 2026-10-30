@@ -101,6 +101,6 @@ Run manually (disrupts the cluster, needs a kubecontext and network access to Ke
 
 | Script | Purpose |
 | --- | --- |
-| [`keycloak-drain-drill.sh`](keycloak-drain-drill.sh) | drains the node of the Keycloak database (or, with `--observe`, only measures while something else disturbs it) and reports the login outage windows and a pod-event timeline; checks the control plane first and refuses `prod` |
+| [`keycloak-drain-drill.sh`](keycloak-drain-drill.sh) | drains the node of the Keycloak database (or, with `--observe`, only measures while something else disturbs it) and reports the login outage windows, a pod-event timeline and the image pull times; checks the control plane first and refuses `prod` |
 
 Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation, kubecontext construction and unrecognized-flag handling.

@@ -245,6 +245,24 @@ timeline() {
         | "  \(if .t < $t0 then "-" else "+" end)\((.t - $t0) | fabs | floor)s\t\(.who)\t\(.what)\t\(.msg)"' | column -t -s "$(printf '\t')"
 }
 
+# Prints the image pulls of the drill (only real pulls, not "already present"): when, which pod, which image and the
+# pull duration from the event message, plus their sum. The slice of the outage that depends on the network link,
+# kept apart from the rest so that a slow link does not read as a defect of Keycloak or of the drain.
+image_pulls() {
+    jq -n -r --argjson t0 "${T0}" --slurpfile ev "${OUT}/events.json" '
+        def ts: sub("\\.[0-9]+"; "") | fromdateiso8601;
+        def secs: capture("^(?:(?<m>[0-9]+)m)?(?:(?<s>[0-9.]+)s)?(?:(?<ms>[0-9.]+)ms)?$")
+            | ((.m // "0" | tonumber) * 60) + ((.s // "0" | tonumber)) + ((.ms // "0" | tonumber) / 1000);
+        [$ev[0].items[] | select(.reason == "Pulled")
+            | (.eventTime // .lastTimestamp // .firstTimestamp) as $t | select($t != null)
+            | (.message | capture("^Successfully pulled image \"(?<image>[^\"]+)\" in (?<d>[^ ]+)")?) as $m | select($m != null)
+            | {t: ($t | ts), pod: .involvedObject.name, image: $m.image, seconds: ($m.d | secs)}
+            | select(.t >= $t0 - 5)] | sort_by(.t) as $p
+        | if $p == [] then "  none (every image was already on the node)"
+          else ($p[] | "  +\((.t - $t0) | floor)s\t\(.pod)\t\(.image)\t\(.seconds | . * 10 | floor / 10)s"),
+               "  total pull time \($p | map(.seconds) | add | floor)s" end' | column -t -s "$(printf '\t')"
+}
+
 # Prints the whole report: setup, outage windows per probe, timeline and the verdict against --target.
 report() {
     echo "Keycloak drain drill, environment ${ENV}, ${MODE} of node ${NODE}"
@@ -265,6 +283,9 @@ report() {
     echo
     echo "Timeline (offsets from the start):"
     timeline
+    echo
+    echo "Image pulls (the part of the outage that depends on the network link):"
+    image_pulls
     echo
     LOGIN_TOTAL=$(jq -r .total "${OUT}/login.summary.json")
     if [ -z "${TARGET}" ]; then
