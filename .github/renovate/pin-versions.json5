@@ -100,5 +100,13 @@
         'getsops/sops',
       ],
     },
+    {
+      description: 'keep the Mermaid CLI at 11.12.0 -- 11.17.1 pulls chromium-bidi@157.0.8090-0, which mise\'s npm backend rejects (trustPolicy=no-downgrade: no trust evidence, while an earlier release had a trusted publisher), so docs-mermaid-check cannot install the CLI at all (#2070). No environment carve-out, this is a CI tool. Remove together with the pin in docs/.mise.toml once upstream publishes with provenance again or an owner-reviewed trust_policy_excludes entry exists',
+      allowedVersions: '<=11.12.0',
+      matchPackageNames: [
+        '@mermaid-js/mermaid-cli',
+        'npm:@mermaid-js/mermaid-cli',
+      ],
+    },
   ],
 }
