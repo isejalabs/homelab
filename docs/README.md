@@ -15,6 +15,8 @@ This folder holds documentation that doesn't belong to a single folder in the re
 | Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots; for the Keycloak database [`keycloak-backup-restore.md`](keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](proxmox-backup-restore.md#restore-procedures) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](disaster-recovery.md#full-cluster-rebuild) |
+| Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
+| Look up a term used in the docs | [`glossary.md`](glossary.md) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Read a point-in-time assessment | [`audits/`](audits) |
@@ -30,6 +32,8 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
   - [`update-handling.md`](update-handling.md) — how renovate/labeler/mergify/Flux interact for automated dependency updates.
   - [`disaster-recovery.md`](disaster-recovery.md) — the full cluster-rebuild sequence, composed from the procedures below plus `AGENTS.md`'s Terragrunt section, with a validation checkpoint per step.
+  - [`zero-to-cluster.md`](zero-to-cluster.md) — the ordered path from nothing to a running cluster, linking each owning doc and stating the expected result of each step (no procedures copied).
+  - [`glossary.md`](glossary.md) — one line per term the docs use without explaining (`kopiur`, `soaking`, `flate`, the environment names, …), each linking to its owner doc.
   - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class reference for `apps/storage/pvc`/`pvc-no-backup`.
   - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
   - [`checkmk-automation-user.md`](checkmk-automation-user.md) — the least-privilege Checkmk role for the `terraform` automation user that the Checkmk Terragrunt units authenticate as, and how to create it via the REST API or the UI.
