@@ -183,7 +183,7 @@ Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (pres
 
 Unbound's probes are deliberately independent of the internet: the liveness/startup probe runs the image's extended healthcheck against `localhost` (a name unbound answers from its built-in local zone), so a line outage never makes kubelet restart the pod, and `serve-expired`/`prefetch` keep external names answering from stale cache meanwhile. Background and troubleshooting: [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#4-unbound-restarts-crashloopbackoff-while-the-internet-is-down) ([#2043](https://github.com/isejalabs/homelab/issues/2043)).
 
-Both apps also run an `image-prepull` DaemonSet that holds their digest-pinned images on every worker node, so a restart or reschedule of the current version never needs Docker Hub — see [`troubleshooting-dns.md`](../troubleshooting-dns.md#5-a-dns-pod-cannot-start-while-the-internet-is-down-imagepullbackoff-stuck-in-pulling) ([#2054](https://github.com/isejalabs/homelab/issues/2054)).
+Both apps also run an `image-prepull` DaemonSet that holds their digest-pinned images on every worker node, so a restart or reschedule of the current version never needs Docker Hub — see [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#5-a-dns-pod-cannot-start-while-the-internet-is-down-imagepullbackoff-stuck-in-pulling) ([#2054](https://github.com/isejalabs/homelab/issues/2054)).
 
 ## DNS: authoritative zones (PowerDNS)
 
