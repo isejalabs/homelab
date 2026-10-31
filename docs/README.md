@@ -110,6 +110,27 @@ A doc is owned by whoever owns the thing it describes, and gets updated in the s
 - **Periodic review**: no separate calendar-based cadence beyond the two rules above — same-PR updates and incident-driven promotion are the mechanism, so docs stay current as a side effect of normal work rather than needing a scheduled pass. A heavier, genuinely periodic audit (re-reading everything for drift, the way the Sep 2026 documentation audit that started this whole effort did) is deliberately a separate, less frequent process — see [#1348](https://github.com/isejalabs/homelab/issues/1348).
 - **Contributing**: follow [Where a new doc belongs](#where-a-new-doc-belongs) and [Status labels](#status-labels) below; a PR's own test plan should say what was actually verified, the same way it does for code — there's no separate documentation-review step beyond the PR review itself.
 
+### Runbook skeleton
+
+A runbook is a doc someone follows under pressure, so it leads with what to decide and keeps the caveats out of the way. Start it with an `At a glance` table that has these six rows, in this order, each pointing at the section that owns the detail:
+
+| Row | What it holds |
+| --- | --- |
+| When to use | The situation the runbook is for, and a pointer to the neighbouring runbook when it is the wrong one |
+| Prerequisites | Access, tools and state that must exist before step 1 |
+| Steps | The ordered procedure, with the expected output of a step where the doc records one |
+| Verify | How to tell that it worked |
+| Rollback | How to undo it, or an explicit statement that no rollback is documented |
+| Last exercised | When and where the procedure was last run, taken from the doc's own record |
+
+Rules for filling it in:
+
+- Use only what the doc already states. Where a row has no recorded content (no expected output, no date, no rollback), write that it is not recorded rather than leaving the row out or inventing a value.
+- Put destructive or order-sensitive steps in a GitHub alert: `> [!WARNING]` for an order or precondition that breaks the procedure when ignored, `> [!CAUTION]` for a step that destroys data or can't be undone, `> [!NOTE]` for a detail that is easy to miss but harmless. The alert text is the rule, not a new rule: it must say what the surrounding procedure already says. Alerts render on github.com and map to admonitions if a docs site is added ([#2027](https://github.com/isejalabs/homelab/issues/2027)).
+- Lead with the rule, then the reason.
+
+Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-lifecycle.md`](operations/node-lifecycle.md), [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md), [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md) and [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md), the highest-impact runbooks. Other runbooks adopt it when they are next edited; it is not a retrofit target.
+
 ### Status labels
 
 Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information), and already in use in `decisions/*`'s `## Status` section:

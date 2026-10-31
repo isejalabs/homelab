@@ -88,7 +88,7 @@ This is the one map of the top-level folders; the `k8s` tree is described once i
 ├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
 ├── 📁 .claude         # Claude Code project skills
 ├── 📁 .devin          # DeepWiki generation config (wiki.json)
-├── 📁 .ci             # CI tooling config (prettier)
+├── 📁 .ci             # CI tooling config (prettier, typos)
 └── 📁 _attic          # retired/old material, not part of the active implementation
 ```
 
