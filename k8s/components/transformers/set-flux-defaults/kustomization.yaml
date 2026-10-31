@@ -10,8 +10,8 @@ patches:
         path: /spec/retryInterval
         value: 1m
     target:
-      group: kustomize.toolkit.fluxcd.io
       kind: Kustomization
+      group: kustomize.toolkit.fluxcd.io
 
 replacements:
   - path: repl/flux-helmrelease-reconcilation-interval.yaml
