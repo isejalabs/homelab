@@ -4,7 +4,7 @@ OpenTofu/Terragrunt configuration for everything this repo provisions outside th
 
 This folder holds only the *live* configuration (which module, which version, which inputs, per environment). The modules themselves live in other repositories: [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos) for the cluster, [`isejalabs/terraform-modules`](https://github.com/isejalabs/terraform-modules) for everything else, and [`cisagov/terraform-state-read-role-tf-module`](https://github.com/cisagov/terraform-state-read-role-tf-module) for the state roles. See [`docs/architecture/repositories.md`](../docs/architecture/repositories.md) for which repo and tool owns what, [ADR 0002](../docs/decisions/0002-opentofu-vs-terraform.md)/[ADR 0003](../docs/decisions/0003-terragrunt.md) for why OpenTofu and Terragrunt, and [`docs/architecture/secrets.md`](../docs/architecture/secrets.md) for how the SOPS secrets below feed in.
 
-**Common tasks:** [plan/apply a unit](#plan-and-apply-a-unit) · [reconnect cluster access after bootstrap](#cluster-bootstrap) · [import a Proxmox volume](#import-proxmox-volume) · [clean up state or destroy a cluster](#cluster-end-of-lifecycle) · [snapshot or power-cycle VMs](#proxmox-vm-snapshots-and-power) · [rebuild a whole cluster](../docs/disaster-recovery.md#full-cluster-rebuild).
+**Common tasks:** [plan/apply a unit](#plan-and-apply-a-unit) · [reconnect cluster access after bootstrap](#cluster-bootstrap) · [import a Proxmox volume](#import-proxmox-volume) · [clean up state or destroy a cluster](#cluster-end-of-lifecycle) · [snapshot or power-cycle VMs](#proxmox-vm-snapshots-and-power) · [rebuild a whole cluster](../docs/backup/disaster-recovery.md#full-cluster-rebuild).
 
 **On this page:** [Prerequisites](#prerequisites) · [Folder structure](#folder-structure) · [Units](#units) · [Plan and apply a unit](#plan-and-apply-a-unit) · [Provider lock files](#provider-lock-files) · [Cluster (`vehagn-k8s`)](#cluster-vehagn-k8s) · [`poc`-only units](#poc-only-units-vms-talos-proxmox) · [State access role](#state-access-role-tf-state-read-role) · [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) · [RustFS monitoring identity](#rustfs-monitoring-identity) · [Keycloak realms](#keycloak-realms-keycloak-realm) · [Checkmk configuration](#checkmk-configuration)
 
@@ -95,9 +95,9 @@ direnv allow
 
 After that one-time approval, every later `cd` into that same directory auto-loads it via the normal direnv shell hook -- no need to repeat it, and no need to touch `.envrc` directly. Only in a context with no direnv hook at all (a script, a non-interactive shell) does that hook never fire, in which case `source .envrc` directly instead, or every command fails with a generic S3 `HeadObject`/`403 Forbidden` on state access (easy to misdiagnose as an unrelated AWS credentials problem).
 
-**Apply from `main`, not a feature branch.** `prod` and `qa` may *only* ever be applied from a `main` checkout. The one exception is a staged, node-by-node Talos/Kubernetes version upgrade, whose steps may be applied from one dedicated upgrade branch (see [`docs/node-lifecycle.md`](../docs/node-lifecycle.md#staging-a-multi-step-upgrade-on-one-branch)). For the other environments, applying from a feature branch to validate a not-yet-merged change is acceptable, but merge it promptly afterward so the next `main` apply is a no-op — there's no one-command revert for a Terragrunt apply the way there is for Flux config, since it creates real state that only matches that unmerged branch.
+**Apply from `main`, not a feature branch.** `prod` and `qa` may *only* ever be applied from a `main` checkout. The one exception is a staged, node-by-node Talos/Kubernetes version upgrade, whose steps may be applied from one dedicated upgrade branch (see [`docs/operations/node-lifecycle.md`](../docs/operations/node-lifecycle.md#staging-a-multi-step-upgrade-on-one-branch)). For the other environments, applying from a feature branch to validate a not-yet-merged change is acceptable, but merge it promptly afterward so the next `main` apply is a no-op — there's no one-command revert for a Terragrunt apply the way there is for Flux config, since it creates real state that only matches that unmerged branch.
 
-A unit that fails on state access or a lock: see [`docs/troubleshooting-terraform-state.md`](../docs/troubleshooting-terraform-state.md). For how the cluster apply fits into a full rebuild, see [`docs/disaster-recovery.md`](../docs/disaster-recovery.md).
+A unit that fails on state access or a lock: see [`docs/troubleshooting/troubleshooting-terraform-state.md`](../docs/troubleshooting/troubleshooting-terraform-state.md). For how the cluster apply fits into a full rebuild, see [`docs/backup/disaster-recovery.md`](../docs/backup/disaster-recovery.md).
 
 ## Provider lock files
 
@@ -120,7 +120,7 @@ If an apply leaves a modified or untracked `.terraform.lock.hcl` behind anyway (
 
 ## Cluster (`vehagn-k8s`)
 
-The `vehagn-k8s` unit of each environment creates the whole cluster from [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos): the Proxmox VMs, the Talos machine configuration and bootstrap, the `sealed-secrets-bootstrap-key` and the proxmox-csi credentials inside the new cluster, and the Proxmox volumes for persistent data. Sizing, node placement and Talos/Kubernetes versions are the unit's inputs; per-environment values are in [`docs/reference/environments.md`](../docs/reference/environments.md), version upgrades and node changes in [`docs/node-lifecycle.md`](../docs/node-lifecycle.md). After the apply, [`k8s/bootstrap`](../k8s/bootstrap/README.md) installs the foundational services and hands off to Flux.
+The `vehagn-k8s` unit of each environment creates the whole cluster from [`isejalabs/terraform-proxmox-talos`](https://github.com/isejalabs/terraform-proxmox-talos): the Proxmox VMs, the Talos machine configuration and bootstrap, the `sealed-secrets-bootstrap-key` and the proxmox-csi credentials inside the new cluster, and the Proxmox volumes for persistent data. Sizing, node placement and Talos/Kubernetes versions are the unit's inputs; per-environment values are in [`docs/reference/environments.md`](../docs/reference/environments.md), version upgrades and node changes in [`docs/operations/node-lifecycle.md`](../docs/operations/node-lifecycle.md). After the apply, [`k8s/bootstrap`](../k8s/bootstrap/README.md) installs the foundational services and hands off to Flux.
 
 ### Sealed-secrets key files in a fresh checkout
 
@@ -226,7 +226,7 @@ terragrunt plan -destroy -refresh=false -out _out && terragrunt apply _out
 
 ### Proxmox VM snapshots and power
 
-Snapshots and power actions for all VMs of an environment are `just` recipes that use the Proxmox REST API, no SSH to the nodes: `just proxmox::snapshot::*` (see [`docs/proxmox-vm-snapshots.md`](../docs/proxmox-vm-snapshots.md)) and `just proxmox::vm::*` (see [`docs/proxmox-vm-power.md`](../docs/proxmox-vm-power.md)), e.g.
+Snapshots and power actions for all VMs of an environment are `just` recipes that use the Proxmox REST API, no SSH to the nodes: `just proxmox::snapshot::*` (see [`docs/operations/proxmox-vm-snapshots.md`](../docs/operations/proxmox-vm-snapshots.md)) and `just proxmox::vm::*` (see [`docs/operations/proxmox-vm-power.md`](../docs/operations/proxmox-vm-power.md)), e.g.
 
 ```sh
 just proxmox::snapshot::create -e dev --name initial
@@ -281,7 +281,7 @@ Pitfalls it already accounts for, in case you query by hand:
 
 ## Keycloak realms (`keycloak-realm`)
 
-`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS and a `groups` claim scope) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev` and `qa`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/keycloak-realms.md`](../docs/keycloak-realms.md).
+`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS and a `groups` claim scope) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev` and `qa`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
 
 ## Checkmk configuration
 
@@ -291,7 +291,7 @@ The Checkmk site is configured as code with the community provider `registry.ter
 
 The per-environment `checkmk-password` unit reads the secret key from the environment's `checkmk-monitoring#<env>` 1Password item (written by the `rustfs-bucket-reader` unit above) and stores it as Password Store entry `<env>_checkmk_monitoring` via [`checkmk-password`](https://github.com/isejalabs/terraform-modules/tree/main/modules/checkmk-password). Checkmk rules reference the entry by that identifier, so no secret is carried inline. Units exist for all 8 environments; a unit can only be applied once the environment's `rustfs-bucket-reader` identity exists. `head` tracks the module's latest commit and `src` uses a local checkout, like the other units.
 
-The provider authenticates as the Checkmk automation user `terraform` through the `checkmk` entry (`url`, `username`, `secret`) in `global-secrets.sops.yaml`; `url` is the site URL including the site name, without a trailing slash (for example `https://monitoring2.home.iseja.net/prod`). A Password Store entry needs no activation, and the provider never activates implicitly. The secret is held in the Terraform state like the other secrets managed here. The user needs no administrator rights, only a dedicated role with 14 permissions; how to create it is in [`docs/checkmk-automation-user.md`](../docs/checkmk-automation-user.md).
+The provider authenticates as the Checkmk automation user `terraform` through the `checkmk` entry (`url`, `username`, `secret`) in `global-secrets.sops.yaml`; `url` is the site URL including the site name, without a trailing slash (for example `https://monitoring2.home.iseja.net/prod`). A Password Store entry needs no activation, and the provider never activates implicitly. The secret is held in the Terraform state like the other secrets managed here. The user needs no administrator rights, only a dedicated role with 14 permissions; how to create it is in [`docs/operations/checkmk-automation-user.md`](../docs/operations/checkmk-automation-user.md).
 
 Rollback: remove or edit any rule that references the entry first, then destroy the environment's `checkmk-password` unit (this removes the Password Store entry only; the RustFS identity and the 1Password item are untouched).
 

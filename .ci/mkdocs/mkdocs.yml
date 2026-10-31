@@ -37,7 +37,6 @@ exclude_docs: |
   /.vscode/**
   /_attic/**
   /ZZ.bak/**
-  /docs/logs/**
   /terragrunt/**/.terraform/**
   # agent instructions and local tooling notes, not documentation
   /AGENTS.md
@@ -129,31 +128,31 @@ nav:
 - Build and operate:
   - Provision VMs and install Talos: terragrunt/README.md
   - Bootstrap a cluster: k8s/bootstrap/README.md
-  - Upgrade Talos or Kubernetes, replace a node: docs/node-lifecycle.md
-  - Upgrade Kubernetes to the next minor: docs/k8s-minor-upgrade.md
-  - Automated dependency updates: docs/update-handling.md
-  - App storage variables: docs/app-storage.md
-  - Project board statuses: docs/project-board.md
+  - Upgrade Talos or Kubernetes, replace a node: docs/operations/node-lifecycle.md
+  - Upgrade Kubernetes to the next minor: docs/operations/k8s-minor-upgrade.md
+  - Automated dependency updates: docs/operations/update-handling.md
+  - App storage variables: docs/operations/app-storage.md
+  - Project board statuses: docs/operations/project-board.md
 - Runbooks:
   - Troubleshooting:
-    - Flux: docs/troubleshooting-flux.md
-    - DNS: docs/troubleshooting-dns.md
-    - Storage: docs/troubleshooting-storage.md
-    - Terraform state: docs/troubleshooting-terraform-state.md
+    - Flux: docs/troubleshooting/troubleshooting-flux.md
+    - DNS: docs/troubleshooting/troubleshooting-dns.md
+    - Storage: docs/troubleshooting/troubleshooting-storage.md
+    - Terraform state: docs/troubleshooting/troubleshooting-terraform-state.md
   - Backup and recovery:
-    - Rebuild a whole cluster: docs/disaster-recovery.md
-    - App data with kopiur: docs/kopiur-backup-restore.md
-    - Longhorn snapshots: docs/longhorn-snapshots.md
-    - Keycloak database: docs/keycloak-backup-restore.md
-    - Manually managed VMs and LXCs: docs/proxmox-backup-restore.md
+    - Rebuild a whole cluster: docs/backup/disaster-recovery.md
+    - App data with kopiur: docs/backup/kopiur-backup-restore.md
+    - Longhorn snapshots: docs/backup/longhorn-snapshots.md
+    - Keycloak database: docs/identity/keycloak-backup-restore.md
+    - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
   - Proxmox:
-    - VM snapshots: docs/proxmox-vm-snapshots.md
-    - VM power: docs/proxmox-vm-power.md
+    - VM snapshots: docs/operations/proxmox-vm-snapshots.md
+    - VM power: docs/operations/proxmox-vm-power.md
   - Identity:
-    - Keycloak realms: docs/keycloak-realms.md
-    - Keycloak break-glass login: docs/keycloak-break-glass.md
-    - Keycloak exposure: docs/keycloak-exposure.md
-  - Checkmk automation user: docs/checkmk-automation-user.md
+    - Keycloak realms: docs/identity/keycloak-realms.md
+    - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
+    - Keycloak exposure: docs/identity/keycloak-exposure.md
+  - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
   - Overview: docs/architecture/overview.md
   - Index: docs/architecture/README.md

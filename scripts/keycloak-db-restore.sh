@@ -1,7 +1,7 @@
 #!/bin/sh
 # Restores the Keycloak database from a `pg_dump` in the environment's `<env>-keycloak-db` bucket, safely
 # against a concurrent Flux reconcile and without deleting the running database. See
-# docs/keycloak-backup-restore.md for the procedure around this script.
+# docs/identity/keycloak-backup-restore.md for the procedure around this script.
 #
 # Why a second database in the same cluster, and not a new CloudNativePG `Cluster`: CloudNativePG can only
 # bootstrap a cluster from a live PostgreSQL source (`initdb.import` runs `pg_dump` over the network) or from
@@ -237,7 +237,7 @@ if ! kc get cronjob "${CRONJOB}" >/dev/null 2>&1; then
 fi
 
 if [ "$(kc get cluster "${CLUSTER}" -o jsonpath='{.status.conditions[?(@.type=="Ready")].status}')" != "True" ]; then
-    log fatal "the CloudNativePG cluster is not Ready; a lost or broken instance has to be recreated first (docs/keycloak-backup-restore.md)" "cluster" "${CLUSTER}"
+    log fatal "the CloudNativePG cluster is not Ready; a lost or broken instance has to be recreated first (docs/identity/keycloak-backup-restore.md)" "cluster" "${CLUSTER}"
     exit 1
 fi
 
@@ -351,5 +351,5 @@ cat <<EOF >&2
 
 The previous database is kept as ${OLD_DB}. After checking the login:
   drop it:     echo "drop database ${OLD_DB};" | kubectl --context ${CTX} -n ${NS} exec -i \$(kubectl --context ${CTX} -n ${NS} get cluster ${CLUSTER} -o jsonpath='{.status.currentPrimary}') -c postgres -- psql -U postgres
-  roll back:   stop Keycloak as above, then rename ${LIVE_DB} to a spare name and ${OLD_DB} back to ${LIVE_DB} (docs/keycloak-backup-restore.md#roll-back)
+  roll back:   stop Keycloak as above, then rename ${LIVE_DB} to a spare name and ${OLD_DB} back to ${LIVE_DB} (docs/identity/keycloak-backup-restore.md#roll-back)
 EOF

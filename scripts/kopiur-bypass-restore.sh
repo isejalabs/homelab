@@ -4,7 +4,7 @@
 # import/export from another environment) instead of restoring from the app's own kopiur history.
 #
 # kopiur's Restore CR resolves which snapshot (if any) populates a *new* PVC once, at that PVC's creation.
-# docs/kopiur-backup-restore.md's "restore a specific older snapshot" procedure confirms live that patching
+# docs/backup/kopiur-backup-restore.md's "restore a specific older snapshot" procedure confirms live that patching
 # a Restore's own spec.source forces it to re-resolve on the next PVC claim, even though the object itself
 # isn't recreated. This script uses the same lever in the opposite direction: it points spec.source.fromPolicy
 # at a throwaway SnapshotPolicy, created here specifically so it can never have a real Snapshot under it, so

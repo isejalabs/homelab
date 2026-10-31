@@ -10,13 +10,13 @@ How to move the fleet from one Kubernetes **minor** (e.g. `1.34` → `1.35`) —
 
 ## Scope
 
-Kubernetes is pinned per environment in `cluster.kubernetes_version` of `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, and is deliberately never auto-updated (see [`update-handling.md`](update-handling.md#non-standard-update-strategies)). Two things hold it at a minor: the `kubernetes/kubernetes` pin in [`.github/renovate/pin-versions.json5`](../.github/renovate/pin-versions.json5), and the compatibility of the components below. `head` and `poc` are exempt from the pin and run ahead of everything else, so they are the early warning, not the proof (see [`environments.md`](reference/environments.md)).
+Kubernetes is pinned per environment in `cluster.kubernetes_version` of `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, and is deliberately never auto-updated (see [`update-handling.md`](update-handling.md#non-standard-update-strategies)). Two things hold it at a minor: the `kubernetes/kubernetes` pin in [`.github/renovate/pin-versions.json5`](../../.github/renovate/pin-versions.json5), and the compatibility of the components below. `head` and `poc` are exempt from the pin and run ahead of everything else, so they are the early warning, not the proof (see [`environments.md`](../reference/environments.md)).
 
 Rules that apply throughout:
 
 - **One minor at a time.** Never skip a minor (`1.34` → `1.36`); kubelet may lag the API server by the [version skew policy](https://kubernetes.io/releases/version-skew-policy/) but the upgrade path is still minor by minor.
 - **Order: non-prod first, `qa` immediately before `prod`.** Rolling out `prod` without a clean `qa` is not an option.
-- **Apply from `main`, and merge close to the upgrade.** A Kubernetes minor is one imperative `talosctl upgrade-k8s` followed by one declarative reconcile, so the staged-upgrade exception in [`AGENTS.md`](../AGENTS.md) (it exists to avoid one PR per node in a node-by-node Talos rollout) is not needed. Merge the PR right after a clean dry run, run `upgrade-k8s`, then `terragrunt apply` **from `main`** (a reconcile that only records what `upgrade-k8s` already did). In the 2-step method never apply before `upgrade-k8s` has finished, because the machine-config change would update all nodes at once, which the imperative rolling upgrade exists to avoid. Order: dry run clean, merge, `upgrade-k8s`, apply from `main`, verify. Which environments use which method: [next section](#which-method-per-environment).
+- **Apply from `main`, and merge close to the upgrade.** A Kubernetes minor is one imperative `talosctl upgrade-k8s` followed by one declarative reconcile, so the staged-upgrade exception in [`AGENTS.md`](../../AGENTS.md) (it exists to avoid one PR per node in a node-by-node Talos rollout) is not needed. Merge the PR right after a clean dry run, run `upgrade-k8s`, then `terragrunt apply` **from `main`** (a reconcile that only records what `upgrade-k8s` already did). In the 2-step method never apply before `upgrade-k8s` has finished, because the machine-config change would update all nodes at once, which the imperative rolling upgrade exists to avoid. Order: dry run clean, merge, `upgrade-k8s`, apply from `main`, verify. Which environments use which method: [next section](#which-method-per-environment).
 - Do not start a Kubernetes minor upgrade in the middle of a Talos upgrade (the two are decoupled on purpose, see [`node-lifecycle.md`](node-lifecycle.md#1-talos-os-upgrade)).
 
 ## Which method per environment
@@ -79,8 +79,8 @@ Then check what the new version removes or changes — this is independent of th
 
 ## 2. Plan the pin and the rollout
 
-1. **Open an umbrella issue** (`chore(k8s): roll out Kubernetes <minor> to all environments`) with the compatibility table from step 1 filled in, and one **sub-issue per environment** linked as real GitHub sub-issues (example: [isejalabs/homelab#1798](https://github.com/isejalabs/homelab/issues/1798)). The umbrella is the memory of which environments are still open; Renovate PRs are not a substitute, because they carry neither the procedure nor the order. Branch and PR names follow [`AGENTS.md`](../AGENTS.md) (`issue/<n>_<slug>`, `Closes #<n>`).
-2. **Raise the Renovate pin** in [`pin-versions.json5`](../.github/renovate/pin-versions.json5), in its own PR. **When:** after the compatibility check, including Checkmk, has been verified on the first non-prod environment, and at the latest before `prod` starts; the pin exists because of Checkmk, so that verification is its expiry condition. Raise it by one minor (never remove it): that bounds any mishap (a broken merge setup) to a version already verified, and nothing is applied automatically anyway:
+1. **Open an umbrella issue** (`chore(k8s): roll out Kubernetes <minor> to all environments`) with the compatibility table from step 1 filled in, and one **sub-issue per environment** linked as real GitHub sub-issues (example: [isejalabs/homelab#1798](https://github.com/isejalabs/homelab/issues/1798)). The umbrella is the memory of which environments are still open; Renovate PRs are not a substitute, because they carry neither the procedure nor the order. Branch and PR names follow [`AGENTS.md`](../../AGENTS.md) (`issue/<n>_<slug>`, `Closes #<n>`).
+2. **Raise the Renovate pin** in [`pin-versions.json5`](../../.github/renovate/pin-versions.json5), in its own PR. **When:** after the compatibility check, including Checkmk, has been verified on the first non-prod environment, and at the latest before `prod` starts; the pin exists because of Checkmk, so that verification is its expiry condition. Raise it by one minor (never remove it): that bounds any mishap (a broken merge setup) to a version already verified, and nothing is applied automatically anyway:
    - `keep kubernetes at an older version due to checkmk` — raise `allowedVersions` (`<=1.34` → `<=1.35`).
    - `allow latest versions of kubernetes for HEAD and PoC` — raise the floor to match (`>=1.34` → `>=1.35`).
    - Update the matching row in [`update-handling.md`](update-handling.md#non-standard-update-strategies) and, if the pin reason changed (e.g. Checkmk now supports it), the rule `description`.
@@ -104,8 +104,8 @@ The 2-step upgrade itself is [`node-lifecycle.md` §2](node-lifecycle.md#2-kuber
 
 - **One PR per environment** (`issue/<n>_<slug>`, `Closes #<n>`), merged and applied from `main` as described under [Scope](#scope). The PR only records the target version and what was verified; do not gate its merge on post-upgrade results (backups, Checkmk), those gate the *next* environment.
 - **No wrapper script.** `scripts/upgrade-k8s.sh` was removed ([#1806](https://github.com/isejalabs/homelab/pull/1806)): run `talosctl upgrade-k8s` per environment with an explicit `--context`. The Kubernetes version CI validates manifests against is `K8S_VERSION` in `scripts/kustomize-build-all.sh`; bump it when the fleet moves to the new minor.
-- **Talos access**: use the named contexts in `~/.talos/config` (`prod-homelab`, `qa-homelab`, ...) with an explicit `--context`, rather than changing the current context. Check `talosctl config contexts` first; if the environment is missing, merge its talosconfig as described in [`terragrunt/README.md`](../terragrunt/README.md#talosconfig).
-- **Fresh restore point before the first node**: `just backup::longhorn-snapshot::create --all -A -e <env>` (manual snapshot of every Longhorn volume; delete them after the soak, see [`longhorn-snapshots.md`](longhorn-snapshots.md)) and `just backup::kopiur::create <app> -e <env> -n <ns>` for each stateful app, waiting for `Succeeded`. A kopiur snapshot can hang in `Running` when its mover pod lands on another node than the strict-local staged volume ([isejalabs/homelab#1797](https://github.com/isejalabs/homelab/issues/1797)): delete that `Snapshot` and trigger a new one. If `unifi-mongodb` fails with `PermissionDenied`, see [isejalabs/homelab#1794](https://github.com/isejalabs/homelab/pull/1794) (`mongosh` must not run as root).
+- **Talos access**: use the named contexts in `~/.talos/config` (`prod-homelab`, `qa-homelab`, ...) with an explicit `--context`, rather than changing the current context. Check `talosctl config contexts` first; if the environment is missing, merge its talosconfig as described in [`terragrunt/README.md`](../../terragrunt/README.md#talosconfig).
+- **Fresh restore point before the first node**: `just backup::longhorn-snapshot::create --all -A -e <env>` (manual snapshot of every Longhorn volume; delete them after the soak, see [`longhorn-snapshots.md`](../backup/longhorn-snapshots.md)) and `just backup::kopiur::create <app> -e <env> -n <ns>` for each stateful app, waiting for `Succeeded`. A kopiur snapshot can hang in `Running` when its mover pod lands on another node than the strict-local staged volume ([isejalabs/homelab#1797](https://github.com/isejalabs/homelab/issues/1797)): delete that `Snapshot` and trigger a new one. If `unifi-mongodb` fails with `PermissionDenied`, see [isejalabs/homelab#1794](https://github.com/isejalabs/homelab/pull/1794) (`mongosh` must not run as root).
 - **Pre-flight, every environment**:
   ```sh
   talosctl --context <env>-homelab -n <ctrl-ip> health \
@@ -165,13 +165,13 @@ Then per area, in this order (platform first, apps last):
 | Area | Check | Where to look |
 | --- | --- | --- |
 | API server / etcd | `kubectl get --raw='/readyz?verbose'`; etcd members all present | — |
-| Cilium / networking | `cilium status`; an existing `HTTPRoute` answers; DNS resolves from a pod | [`architecture/network.md`](architecture/network.md) |
-| Flux | `flux get ks -A` and `flux get hr -A` all `Ready`; nothing stuck `Reconciling` | [`troubleshooting-flux.md`](troubleshooting-flux.md) |
-| Storage | all Longhorn volumes `Healthy`; a PVC binds and mounts; a snapshot works | [`troubleshooting-storage.md`](troubleshooting-storage.md), [`longhorn-snapshots.md`](longhorn-snapshots.md) |
+| Cilium / networking | `cilium status`; an existing `HTTPRoute` answers; DNS resolves from a pod | [`architecture/network.md`](../architecture/network.md) |
+| Flux | `flux get ks -A` and `flux get hr -A` all `Ready`; nothing stuck `Reconciling` | [`troubleshooting-flux.md`](../troubleshooting/troubleshooting-flux.md) |
+| Storage | all Longhorn volumes `Healthy`; a PVC binds and mounts; a snapshot works | [`troubleshooting-storage.md`](../troubleshooting/troubleshooting-storage.md), [`longhorn-snapshots.md`](../backup/longhorn-snapshots.md) |
 | Secrets & certs | `ExternalSecret`s `SecretSynced`; `Certificate`s `Ready` | — |
-| Backups | the first scheduled kopiur backup after the upgrade succeeded for every stateful app, plus a restore dry-run for one app. A failure is a gate for the next environment, not for merging this PR | [`kopiur-backup-restore.md`](kopiur-backup-restore.md) |
+| Backups | the first scheduled kopiur backup after the upgrade succeeded for every stateful app, plus a restore dry-run for one app. A failure is a gate for the next environment, not for merging this PR | [`kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md) |
 | Monitoring | before/after comparison of services and agent sections ([see below](#checkmk-what-supported-means-and-how-to-test-it)); `checkmk-agent` pods Ready | Checkmk UI |
-| Apps | each user-facing app responds; stateful apps (databases) have no restart loops | [`architecture/workloads.md`](architecture/workloads.md) |
+| Apps | each user-facing app responds; stateful apps (databases) have no restart loops | [`architecture/workloads.md`](../architecture/workloads.md) |
 
 ### Checkmk: what "supported" means and how to test it
 
@@ -186,14 +186,14 @@ Checkmk states support per minor (it supports four Kubernetes minors at a time) 
 3. Spot-check content, not just state: the cluster shows the new Kubernetes version, the node count is right, a known workload shows its pod count, and node metrics (CPU/memory via the node collector) have fresh data points.
 4. Check the special agent's own output: `cmk -vv --debug -d <k8s-host>` shows API errors or parse failures that never reach a service.
 
-Do this in the earlier environments first. Each environment has its own Checkmk site (`dev_k8s` and `qa_k8s` on `monitoring1`, `prod_k8s` on `monitoring2`; see the [observability audit](audits/2026-09-observability-phase0-checkmk-proxmox-claude.md)), so a `qa` run only predicts `prod` if `qa_k8s` runs the same Checkmk minor/patch as `prod_k8s`. Upgrade the earlier sites first. The hosts to compare are each environment's cluster host plus the hosts piggybacked from it (nodes, deployments, namespaces, daemonsets); names are listed in [`reference/environments.md`](reference/environments.md#checkmk-monitoring-of-the-clusters).
+Do this in the earlier environments first. Each environment has its own Checkmk site (`dev_k8s` and `qa_k8s` on `monitoring1`, `prod_k8s` on `monitoring2`; see the [observability audit](../audits/2026-09-observability-phase0-checkmk-proxmox-claude.md)), so a `qa` run only predicts `prod` if `qa_k8s` runs the same Checkmk minor/patch as `prod_k8s`. Upgrade the earlier sites first. The hosts to compare are each environment's cluster host plus the hosts piggybacked from it (nodes, deployments, namespaces, daemonsets); names are listed in [`reference/environments.md`](../reference/environments.md#checkmk-monitoring-of-the-clusters).
 
-**Baseline the `prod` site as well, not only the `*_k8s` site.** The `prod` site queries the same clusters with its own Kubernetes special agent (see [`reference/environments.md`](reference/environments.md#the-prod-site-also-queries-the-clusters)), so the cluster host and its piggybacked hosts exist twice and can differ. Run the before/after steps above on both sites. Two things are expected there and are not upgrade findings:
+**Baseline the `prod` site as well, not only the `*_k8s` site.** The `prod` site queries the same clusters with its own Kubernetes special agent (see [`reference/environments.md`](../reference/environments.md#the-prod-site-also-queries-the-clusters)), so the cluster host and its piggybacked hosts exist twice and can differ. Run the before/after steps above on both sites. Two things are expected there and are not upgrade findings:
 
 - A short `CRIT` on the cluster host (`Failed to establish a connection at URL https://<env>-homelab-k8s-api...`) while the API server restarts during the node upgrades. It must be back to `Success` once the upgrade finished; a state that stays CRIT or UNKNOWN afterwards is a finding.
 - `Missing data` on hosts for namespaces, deployments or PVCs that no longer exist. The hosts in `prod` are added by hand and are not removed when the workload goes away, so list them in the baseline (tier *Ignore*) and clean them up separately.
 
-If something fails: stop, do **not** roll on, and roll forward by fixing the cause. Kubernetes minor downgrades are not supported; the realistic fallbacks are fixing the failing component or rebuilding the environment from state ([`disaster-recovery.md`](disaster-recovery.md)).
+If something fails: stop, do **not** roll on, and roll forward by fixing the cause. Kubernetes minor downgrades are not supported; the realistic fallbacks are fixing the failing component or rebuilding the environment from state ([`disaster-recovery.md`](../backup/disaster-recovery.md)).
 
 ## 5. Roll on to the next environment
 
@@ -206,7 +206,7 @@ Repeat steps 3 and 4 for the next row of the table in [step 2](#2-plan-the-pin-a
 ## 6. Close out
 
 - Make sure the PR of each environment was squash-merged (right after its dry run, before the upgrade), and that the Renovate PRs for those environments are closed or superseded.
-- Update docs that state the Kubernetes version or pin: [`update-handling.md`](update-handling.md#non-standard-update-strategies), [`reference/environments.md`](reference/environments.md), and anything else that `git grep` finds for the old minor.
+- Update docs that state the Kubernetes version or pin: [`update-handling.md`](update-handling.md#non-standard-update-strategies), [`reference/environments.md`](../reference/environments.md), and anything else that `git grep` finds for the old minor.
 - Note in the tracking issue the final versions per environment and any component you had to upgrade first.
 - If you hit something not covered here, add it to this runbook in the same PR.
 

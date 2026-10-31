@@ -4,7 +4,7 @@ status: current
 
 # App storage
 
-How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc-no-backup` (see [k8s/components/apps/storage/README.md](../k8s/components/apps/storage/README.md) for which one to pick). Scoped to the app-facing interface only -- not a Longhorn or Proxmox architecture doc.
+How an app configures the PVC it gets via `apps/storage/pvc` / `apps/storage/pvc-no-backup` (see [k8s/components/apps/storage/README.md](../../k8s/components/apps/storage/README.md) for which one to pick). Scoped to the app-facing interface only -- not a Longhorn or Proxmox architecture doc.
 
 All variables below are `${VAR:=default}`-style placeholders, resolved via Flux's `postBuild.substitute` in the app's own `flux/ks.yaml` -- **not** the same mechanism as e.g. `DOMAIN_BASE`, which is a kustomize `replacements` value resolved entirely at `kustomize build` time, no Flux involved. As of this writing, no app actually overrides any of these yet (none currently consume `apps/storage/pvc`/`pvc-no-backup`), so this is the intended, designed-for mechanism rather than an established one -- an app doing so for the first time should add a `spec.postBuild.substitute: {STORAGE_CLASS: "longhorn-xfs", ...}` block to its own `flux/ks.yaml` and confirm it actually resolves as expected. None of these are required -- every one has a sensible default.
 
@@ -22,9 +22,9 @@ All variables below are `${VAR:=default}`-style placeholders, resolved via Flux'
 
 ## Storage classes
 
-The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/ `longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance tradeoffs -- are documented once, as the canonical reference, in [`docs/architecture/storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles); not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine which one to pick -- `longhorn-xfs` is the only xfs-backed class (every other class is ext4); `longhorn-fast`/`longhorn-ha` trade off durability/performance differently, so picking one is still a deliberate choice.
+The primary data-volume classes `STORAGE_CLASS` picks from (`longhorn-standard`/`longhorn-ext4`/ `longhorn-xfs`/`longhorn-fast`/`longhorn-ha`) -- their filesystem, replica count, and durability/performance tradeoffs -- are documented once, as the canonical reference, in [`docs/architecture/storage.md`](../architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles); not repeated here to avoid the two tables drifting out of sync. Filesystem alone doesn't fully determine which one to pick -- `longhorn-xfs` is the only xfs-backed class (every other class is ext4); `longhorn-fast`/`longhorn-ha` trade off durability/performance differently, so picking one is still a deliberate choice.
 
-Three more classes exist purely for the backup mover (kopiur) -- not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. The mover uses two different temporary volumes per app, with different jobs; see [How it works](kopiur-backup-restore.md#ongoing-protection-appsstoragepvc-only) in the kopiur doc for the full backup sequence. All three are `reclaimPolicy: Delete`: nothing on them is worth keeping, so deleting the PVC also removes the volume.
+Three more classes exist purely for the backup mover (kopiur) -- not in the architecture doc since they're a backup-mechanism detail, not an app data-volume concern. The mover uses two different temporary volumes per app, with different jobs; see [How it works](../backup/kopiur-backup-restore.md#ongoing-protection-appsstoragepvc-only) in the kopiur doc for the full backup sequence. All three are `reclaimPolicy: Delete`: nothing on them is worth keeping, so deleting the PVC also removes the volume.
 
 | Class | Used for (variable) | Filesystem | Replicas | Lifetime |
 |---|---|---|---|---|

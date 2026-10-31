@@ -1,6 +1,6 @@
 #!/bin/bash
 # Deletes a named snapshot from every VM belonging to <env>, or just one with --vmid, via the Proxmox
-# REST API -- no SSH. See docs/proxmox-vm-snapshots.md.
+# REST API -- no SSH. See docs/operations/proxmox-vm-snapshots.md.
 #
 # Destructive and irreversible, though lower-stakes than rollback -- this only discards the snapshot
 # itself, never any live VM state. Requires typed confirmation unless -y/--yes or --vmid is given, same
@@ -15,7 +15,7 @@
 # Proxmox does not restrict snapshot deletion to only the most recent snapshot (unlike rollback) --
 # deleting a snapshot merges its data forward as needed regardless of chain position; confirmed both via
 # the Proxmox API docs (the only documented parameter is `force`, for config/disk-state divergence, not
-# chain position) and live during this feature's own testing (see docs/proxmox-vm-snapshots.md).
+# chain position) and live during this feature's own testing (see docs/operations/proxmox-vm-snapshots.md).
 #
 # Usage: scripts/proxmox-snapshot-delete.sh -e <env> [--name <name>] [--vmid <vmid>] [-y|--yes]
 set -euo pipefail

@@ -4,7 +4,7 @@ status: current
 
 # Project board statuses
 
-Work across the `isejalabs` repos is steered on two org projects that share one `Status` vocabulary: [homelab](https://github.com/orgs/isejalabs/projects/1) and [terraform-proxmox-talos](https://github.com/orgs/isejalabs/projects/2). See [`architecture/repositories.md`](architecture/repositories.md#where-issues-live) for which repo an issue belongs in.
+Work across the `isejalabs` repos is steered on two org projects that share one `Status` vocabulary: [homelab](https://github.com/orgs/isejalabs/projects/1) and [terraform-proxmox-talos](https://github.com/orgs/isejalabs/projects/2). See [`architecture/repositories.md`](../architecture/repositories.md#where-issues-live) for which repo an issue belongs in.
 
 ## Statuses
 
