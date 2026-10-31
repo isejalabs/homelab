@@ -3,16 +3,14 @@ on:
   pull_request:
     paths:
     - '**/*.md'
-    - .mise.toml
-    - mise.lock
+    - docs/.mise.toml
     - .github/workflows/docs-mermaid-check.yml
   push:
     branches:
     - main
     paths:
     - '**/*.md'
-    - .mise.toml
-    - mise.lock
+    - docs/.mise.toml
     - .github/workflows/docs-mermaid-check.yml
   workflow_dispatch:
 
@@ -25,6 +23,7 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
+        working_directory: docs
         install_args: npm:@mermaid-js/mermaid-cli
     # GitHub renders an invalid mermaid fence as an error box instead of failing anything, so parse every fence
     # with the same library here (mmdc exits non-zero on a syntax error). _attic/ZZ.bak are retired material, as
