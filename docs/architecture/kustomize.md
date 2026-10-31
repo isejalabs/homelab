@@ -229,6 +229,18 @@ resources:
   - ../../sets/minimal
 ```
 
+## Vendored upstream manifests
+
+A `kustomization.yaml` never lists an `https://` resource: Flux runs `kustomize build` inside the cluster, so a remote resource makes the unit fail whenever the internet (or cluster DNS) is down, and every unit that `dependsOn` it waits too. Upstream manifests without a chart are copied byte-identically into a `vendor/` directory of the unit instead (Gateway API CRDs, kubelet-serving-cert-approver, the Keycloak operator, Longhorn's uninstall job). The URL they came from stays in a comment directly above the `vendor/` entry:
+
+```yaml
+resources:
+  # https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+  - vendor/standard-install.yaml
+```
+
+Renovate bumps the version in that URL comment; [`scripts/vendor-manifests.sh`](../../scripts/vendor-manifests.sh) `update` then fetches the matching file, and `check` (part of the `kustomize-build` workflow) fails while a vendored file differs from its URL. Changes to a vendored manifest go in a `patches:` entry, never into the vendored file. See [Package updates](../update-handling.md#renovate) for the Renovate side.
+
 ## Sorting and other conventions
 
-Field/list ordering inside these files (`kustomization.yaml`, Flux `Kustomization`/`HelmRelease`, and any other manifest) follows [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md).
+Field/list ordering inside these files (`kustomization.yaml`, Flux `Kustomization`/`HelmRelease`, and any other manifest) follows [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md); `vendor/` and `charts/` directories (upstream files kept verbatim) are exempt.

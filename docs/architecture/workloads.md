@@ -41,7 +41,7 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | `flux-system` | [`flux-operator`](../../k8s/infra/flux-system/flux-operator/) | ControlPlane's [Flux Operator](https://github.com/controlplaneio-fluxcd/flux-operator) | yes — needs `cert-manager` | minimal |
 | `flux-system` | [`flux-instance`](../../k8s/infra/flux-system/flux-instance/) | The `FluxInstance` CR — the actual Flux controllers, pointed at this repo/branch. Installing this is the bootstrap → Flux handoff point | yes — needs `flux-operator`; last bootstrap step | minimal |
 | `csi-proxmox` | [`proxmox-csi`](../../k8s/infra/csi-proxmox/proxmox-csi/) | [sergelogvinov/proxmox-csi-plugin](https://github.com/sergelogvinov/proxmox-csi-plugin) (see [`storage.md`](storage.md)) | no — Flux-only | minimal |
-| `gateway-api` | [`gateway-api-crds`](../../k8s/infra/gateway-api/gateway-api-crds/) | Upstream Gateway API CRDs (standard + experimental `TLSRoute`), raw manifests from a GitHub release | no — Flux-only | minimal |
+| `gateway-api` | [`gateway-api-crds`](../../k8s/infra/gateway-api/gateway-api-crds/) | Upstream Gateway API CRDs (standard + experimental `TLSRoute`), manifests from a GitHub release, vendored under `base/vendor/` | no — Flux-only | minimal |
 | `gateway-api` | [`gateway`](../../k8s/infra/gateway-api/gateway/) | The actual `Gateway`/`HTTPRoute`/`Certificate` resources (see [`network.md`](network.md#gateway-api-cilium-as-the-implementation)) | no — Flux-only | minimal |
 | `kube-system` | [`kubelet-serving-cert-approver`](../../k8s/infra/kube-system/kubelet-serving-cert-approver/) | [alex1989hu/kubelet-serving-cert-approver](https://github.com/alex1989hu/kubelet-serving-cert-approver), raw manifest from a GitHub release | no — Flux-only | minimal |
 | `kube-system` | [`snapshot-controller`](../../k8s/infra/kube-system/snapshot-controller/) | [`snapshot-controller`](https://github.com/kubernetes-csi/external-snapshotter) (VolumeSnapshot CRDs/controller) | CRDs only, pre-Flux; the release itself is Flux-only | minimal |
@@ -51,7 +51,7 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | `kopiur-system` | [`kopiur`](../../k8s/infra/kopiur-system/kopiur/) | [kopiur](https://github.com/home-operations/kopiur) backup/restore operator, kopia-based (see [`storage.md`](storage.md) and [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)) | no — Flux-only | optional |
 | `kopiur-system` | [`kopiur-repository`](../../k8s/infra/kopiur-system/kopiur-repository/) | `fiona`, kopiur's `ClusterRepository` pointing at this cluster's S3-compatible NAS, one bucket per environment | no — Flux-only | optional |
 | `cnpg-system` | [`cloudnative-pg`](../../k8s/infra/cnpg-system/cloudnative-pg/) | [CloudNativePG](https://cloudnative-pg.io/) PostgreSQL operator | no — Flux-only | `soaking` |
-| `keycloak` | [`keycloak-operator`](../../k8s/infra/keycloak/keycloak-operator/) | [Keycloak Operator](https://www.keycloak.org/operator/installation), CRDs and manifest from a GitHub release | no — Flux-only | `soaking` |
+| `keycloak` | [`keycloak-operator`](../../k8s/infra/keycloak/keycloak-operator/) | [Keycloak Operator](https://www.keycloak.org/operator/installation), CRDs and manifest from a GitHub release, vendored under `base/vendor/` | no — Flux-only | `soaking` |
 
 ### CRDs-only, not actually deployed
 
