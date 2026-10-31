@@ -83,6 +83,8 @@ Two entries are worth calling out because they're structural, not just sizing ch
 | `dbg`, `dev`, `poc`, `rebuild`, `src` | `10m` |
 | `head`, `prod`, `qa` | `1h` |
 
+Failed `Kustomization`s are retried every `1m` in all environments (`spec.retryInterval`, also set by `set-flux-defaults`), independent of the interval above.
+
 This grouping doesn't line up with the app-deployment split in [the conceptual doc](../architecture/environments.md#1-which-apps-run-there--the-flux-minimalfull-split) — it's its own axis, and no comment in the repo states the rationale explicitly. The most plausible reading (flagged here as inferred, not confirmed): `head`/`prod`/`qa` carry real, steady-state application state that doesn't need fast convergence and benefits from less reconciliation churn, while the other five are more actively iterated on during development/testing and get faster feedback.
 
 ## Domain and naming
