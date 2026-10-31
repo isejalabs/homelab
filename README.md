@@ -2,6 +2,10 @@
 
 A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven homelab: [Proxmox](https://www.proxmox.com/) VMs → [Talos Linux](https://www.talos.dev/) → [Kubernetes](https://kubernetes.io/), provisioned with [OpenTofu](https://opentofu.org/)/ [Terragrunt](https://terragrunt.gruntwork.io/) and reconciled with [Flux CD](https://fluxcd.io/). Still in its foundation phase — the cluster itself has been stable since prod went live, and the set of deployed [workloads](docs/architecture/workloads.md) is growing from there.
 
+![Platform overview: Terragrunt provisions Proxmox VMs and installs Talos Linux, which bootstraps Kubernetes; the bootstrap helmfile hands off to Flux CD, which reconciles this repository. Around it: 1Password Connect with External Secrets, Cilium, Longhorn and proxmox-csi storage, and kopiur backups to an S3-compatible NAS.](docs/assets/platform-overview.svg)
+
+The diagram is hand-drawn; its source of truth is the [architecture overview](docs/architecture/overview.md), and it is updated in the same PR as any change to the architecture it shows.
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) gives an up-to-date, browsable overview of the current implementation.
 
 ## At a glance

@@ -105,6 +105,18 @@ Where it's signalled depends on the doc type, since each already has its own nat
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
 - `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#folder-structure)).
 
+### Diagrams
+
+Use a diagram where it shows something prose and lists show badly: a flow, a sequence or a relationship between components. Do not use one for a directory tree or a short list; those stay as text (a tree in a code block is the right format for a tree).
+
+- **Mermaid is the default.** The source lives in the Markdown as a `mermaid` fence next to the text it illustrates, so it diffs and is reviewed like text, and GitHub renders it natively.
+- **No hardcoded colours** (no `classDef`, `style` or `linkStyle` colours, no `%%{init}%%` theme variables), so GitHub's light and dark themes both work.
+- **Accessibility:** every diagram starts with `accTitle:` and `accDescr:`.
+- **A diagram never replaces its text.** It sits next to a prose explanation that carries the same information, and every node name must match the repository (a component, folder or environment that exists today).
+- **Verify before merge.** A diagram, like any generated or drafted text, is not authoritative until it has been checked against the current repository configuration (see [Keeping this current](#keeping-this-current)). Update it in the same PR that changes what it shows.
+- **Syntax is checked in CI.** GitHub renders invalid Mermaid as an error box instead of failing anything, so [`docs-mermaid-check.yml`](../.github/workflows/docs-mermaid-check.yml) parses every fence (see [`architecture/ci.md`](architecture/ci.md)). To check locally, render a fence with the Mermaid CLI pinned in [`.mise.toml`](.mise.toml).
+- **One hand-authored image, stored in [`assets/`](assets).** The platform overview [`assets/platform-overview.svg`](assets/platform-overview.svg) is shown at the top of the root [`README.md`](../README.md). Its source of truth is [`architecture/overview.md`](architecture/overview.md); change both in the same PR. It follows the same rules as the Mermaid diagrams: colours as CSS variables with a dark-mode override, a transparent background, a system font stack, a `<title>` and `<desc>`, and animation only through SMIL (no scripts), switched off under `prefers-reduced-motion`.
+
 ## Architecture and reference docs
 
 Each folder keeps its own index, with a status per doc: [`architecture/README.md`](architecture/README.md) (with a suggested reading order) and [`reference/README.md`](reference/README.md). [`decisions/README.md`](decisions/README.md) and [`audits/README.md`](audits/README.md) do the same for ADRs and audits.

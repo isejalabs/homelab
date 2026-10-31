@@ -6,6 +6,35 @@ status: current
 
 Every unit under `k8s/infra/` and `k8s/apps/` (an "app") and every entry under `k8s/bootstrap/cluster/flux/sets/` (a Flux "set" — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md)) is built with [kustomize](https://kustomize.io/), composed the same way across all 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`). The goal is to describe each app **once**, environment-agnostically, and only spell out the handful of values that actually differ per environment (a Service's load-balancer IP, a replica count, the reconciliation interval, the domain, ...).
 
+## Composition at a glance
+
+Two kustomize builds are involved, and both pull in the same shared `components/envs/<env>` layer: one renders what an app runs, the other renders the Flux `Kustomization` objects that tell Flux which overlay to reconcile.
+
+```mermaid
+flowchart TB
+    accTitle: Kustomize composition per environment
+    accDescr: Two builds share the same components for an environment. The app build combines an app's base folder, its envs overlay and the shared components into the rendered manifests. The Flux build aggregates every app's flux ks.yaml under the bootstrap flux sets, applies the same shared components to rewrite each spec.path from base to envs for the environment, and the resulting Flux Kustomization points Flux at the app's envs overlay.
+
+    subgraph appbuild["App build: what runs in the cluster"]
+        direction LR
+        base["base/<br/>environment-agnostic manifests,<br/>placeholder domain example.com"] --> overlay["envs/&lt;env&gt;/<br/>patches only what differs"]
+        comp1["components/envs/&lt;env&gt;<br/>cluster-param and shared transformers"] --> overlay
+        overlay --> rendered["rendered manifests<br/>for this environment"]
+    end
+
+    subgraph fluxbuild["Flux build: what Flux is told to reconcile"]
+        direction LR
+        ks["flux/ks.yaml of every unit<br/>spec.path ends in base"] --> sets["bootstrap/cluster/flux/sets<br/>aggregates the ks.yaml files"]
+        sets --> envbuild["bootstrap/cluster/flux/envs/&lt;env&gt;"]
+        comp2["components/envs/&lt;env&gt;<br/>replace-path"] --> envbuild
+        envbuild --> fluxks["Flux Kustomization objects<br/>spec.path ends in envs/&lt;env&gt;"]
+    end
+
+    fluxks -->|"Flux reconciles that path"| overlay
+```
+
+The sections below walk through each box: the `base` / `envs/<env>` / `flux` triad is the left-hand folder shape, the [shared components layer](#the-shared-components-layer) and [transformers](#transformers-and-replacements) are `components/envs/<env>`, and [`replace-path`](#flux-path-rewriting-replace-path) is the rewrite on the second build.
+
 ## The `base` / `envs/<env>` / `flux` triad
 
 Every app follows the same three-folder shape, e.g. [`k8s/apps/dns/adguard`](../../k8s/apps/dns/adguard):

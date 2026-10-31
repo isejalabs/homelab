@@ -43,6 +43,38 @@ Which git ref an environment's Flux instance reconciles from (normally `main` �
 
 One structural fact worth stating here because it isn't about renovate automerge at all: `terragrunt apply` against `prod` or `qa` may only ever run from a `main` checkout — see [`../../AGENTS.md`](../../AGENTS.md)'s Terragrunt rule for the one narrow, standing exception (a staged, node-by-node Talos OS/Kubernetes upgrade applied step-by-step from a single dedicated branch, squash-merged once it converges — see [`node-lifecycle.md`](../node-lifecycle.md#staging-a-multi-step-upgrade-on-one-branch)). Unlike Flux config (which can be reverted by pointing back at `main`), a Terragrunt apply from a branch creates real cloud state that only matches that unmerged branch; the only way back in sync is merging it, not reverting — which is exactly why the exception is scoped this narrowly rather than opened up generally.
 
+## How a change moves through the environments
+
+There is no per-environment branch, so a change does not "move" by being merged somewhere else: Flux config reaches every environment from `main`, and Terragrunt changes are applied per environment. The diagram shows the three paths that do have an order; each is explained in the section named in its label.
+
+```mermaid
+flowchart LR
+    accTitle: How changes move through the environments
+    accDescr: A Terragrunt module source change is proven in src against a local checkout, then released as a tag and applied to dev, qa and prod in that order, with qa and prod applied from main only. A merged Flux config change is reconciled from main by every environment, and a dev or other non-prod environment can temporarily track a feature branch first. For staged units, base takes new releases first and prod gets its own pinned version only after an age gate: 3 days for unbound, and 7 days with a manual merge for the soaking-set units once they are promoted to prod.
+
+    subgraph module["Terragrunt module source change"]
+        direction LR
+        src["src<br/>local module checkout"] --> tag["released tag"]
+        tag --> tdev["dev"] --> tqa["qa"] --> tprod["prod"]
+    end
+
+    subgraph flux["Flux configuration"]
+        direction LR
+        branch["feature branch<br/>temporary track-branch<br/>on a non-prod env"] -.->|"optional live test"| pr["PR merged to main"]
+        pr --> all["every environment<br/>reconciles main"]
+    end
+
+    subgraph soak["Staged units (unbound; soaking set once promoted)"]
+        direction LR
+        base["base/ takes releases<br/>every env except prod runs them first"] --> gate["prod pin PR<br/>opens only after an age gate"]
+        gate --> prodpin["prod runs its own pinned version"]
+    end
+```
+
+- **Module source change** — [`src` is where it is exercised first](#what-each-environment-is-for), then `dev`, `qa` and `prod` move to the released tag in that order; `qa` and `prod` are only ever applied from `main` ([How updates land](#2-how-updates-land)).
+- **Flux configuration** — all 8 environments reconcile `main`; the only exception is the temporary [`track-branch`](../../.agents/skills/track-branch/SKILL.md) override, never on `prod`.
+- **Staged units** — which environments run a unit is decided by the [Flux set](#1-which-apps-run-there--the-flux-minimalfull-split), which versions they run by [`update-handling.md`](../update-handling.md#staged-rollout-unbound): `prod` pins its own copy and trails the other environments. For the Keycloak and CloudNativePG units the [pins only exist once they are promoted](../update-handling.md#staged-rollout-keycloak-and-cloudnativepg), because `prod` does not run them yet.
+
 ## What each environment is for
 
 - **`prod`** — production. Only environment with a full 3-controlplane HA topology, its own separately pinned Talos/Kubernetes version, the real (unprefixed) domain, the full app+infra Flux set, and the `1h` reconciliation interval. It's the one environment excluded from the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill's live-cluster testing entirely (line 16: *"one or more of `dbg`, `dev`, `head`, `poc`, `qa`, `rebuild`, `src` (not `prod`)"*), baked into the manifests themselves, not just convention — [`k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml`](../../k8s/infra/flux-system/flux-instance/envs/prod/helmrelease.yaml) has no commented-out `ref:` override placeholder at all, unlike every other environment's copy of that file. See [`docs/update-handling.md`](../update-handling.md) for how prod's dependency-update policy differs from the others.
