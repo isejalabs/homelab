@@ -1,6 +1,18 @@
 apiVersion: kustomize.config.k8s.io/v1alpha1
 kind: Component
 
+patches:
+  # Without it a failed Kustomization retries only after spec.interval (10m/1h). That makes a cold bring-up
+  # wait a full interval for units whose dry-run needs an object another unit creates (e.g. kopiur's webhook
+  # reading the ClusterRepository), without every unit needing a dependsOn. See docs/architecture/kustomize.md.
+  - patch: |-
+      - op: add
+        path: /spec/retryInterval
+        value: 1m
+    target:
+      group: kustomize.toolkit.fluxcd.io
+      kind: Kustomization
+
 replacements:
   - path: repl/flux-helmrelease-reconcilation-interval.yaml
   - path: repl/flux-ks-reconcilation-interval.yaml
