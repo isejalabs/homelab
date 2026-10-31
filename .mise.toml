@@ -27,6 +27,9 @@ pre-commit = "4.7.0"
 # CI docs link-check (docs-link-check.yml)
 lychee = "0.24.2"
 
+# CI docs mermaid check (docs-mermaid-check.yml) - parses every mermaid fence in the Markdown files
+"npm:@mermaid-js/mermaid-cli" = "11.12.0"
+
 [settings]
 lockfile = true
 lockfile_platforms = ["macos-arm64", "linux-x64"]
