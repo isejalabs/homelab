@@ -2,7 +2,7 @@
 
 A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven homelab: [Proxmox](https://www.proxmox.com/) VMs → [Talos Linux](https://www.talos.dev/) → [Kubernetes](https://kubernetes.io/), provisioned with [OpenTofu](https://opentofu.org/)/ [Terragrunt](https://terragrunt.gruntwork.io/) and reconciled with [Flux CD](https://fluxcd.io/). Still in its foundation phase — the cluster itself has been stable since prod went live, and the set of deployed [workloads](docs/architecture/workloads.md) is growing from there.
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) gives an up-to-date, browsable overview of the current implementation.
+The [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) badge links to an up-to-date, browsable overview of the current implementation.
 
 ## At a glance
 
@@ -60,7 +60,7 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 ├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
 ├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
 ├── 📁 .claude         # Claude Code project skills
-├── 📁 .ci             # CI tooling config (prettier)
+├── 📁 .ci             # CI tooling config (prettier, typos)
 └── 📁 _attic          # retired/old material, not part of the active implementation
 ```
 

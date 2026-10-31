@@ -6,6 +6,17 @@ status: current
 
 This guide describes cluster recovery, not complete homelab recovery. The owner reports that the `rebuild` environment is torn down and reconstructed from Git on an irregular, roughly monthly cadence, with app data configured for kopiur backed up by that system. That exercises cluster recovery as `prod` evolves. The exact date, duration, and result of the latest exercise are not recorded here, and the sequence below is not a timed rehearsal record. The cluster's recovery boundary should not be confused with full homelab recoverability: some out-of-cluster components are incompletely documented or backed up, and secrets maintained in 1Password have no periodic backup. This follows up on [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability), which called for clear verification status.
 
+## At a glance
+
+| | |
+| --- | --- |
+| When to use | The whole cluster is lost (Proxmox VMs, Talos and Kubernetes all gone). For a lost PVC, a single VM/LXC or other cases, pick the matching row under [Recovery scenarios](#recovery-scenarios) instead |
+| Prerequisites | Per step, in the doc each step cites: Terragrunt access for the environment ([step 1](#1-provision-vms-and-install-talos)), and the 1Password-held secrets that bootstrap and External Secrets Operator read. [Recovery boundaries outside the cluster](#recovery-boundaries-outside-the-cluster) lists what this guide does not cover |
+| Steps | [Full cluster rebuild](#full-cluster-rebuild): six steps, each ending in a checkpoint. Expected output is stated in the checkpoints (nodes `Ready`, no failed pods, every `Kustomization` `READY=True`) |
+| Verify | [Step 6, final end-to-end check](#6-final-end-to-end-check) |
+| Rollback | None documented: a rebuild moves forward. A checkpoint that fails is fixed before the next step |
+| Last exercised | The `rebuild` environment is torn down and rebuilt from Git roughly monthly (owner-reported); the date, duration and result of the latest run are not recorded |
+
 ## Recovery scenarios
 
 | Scenario | Mechanism | Recovery status |
@@ -33,7 +44,10 @@ These are known boundaries, not a claim that no external backups exist. Where th
 
 ## Full cluster rebuild
 
-Six steps, each citing the doc that owns it. Run them in order; don't skip a validation checkpoint to save time — a problem caught at step 2 is much cheaper to fix than the same problem discovered at step 6.
+Six steps, each citing the doc that owns it.
+
+> [!WARNING]
+> Run them in order; don't skip a validation checkpoint to save time — a problem caught at step 2 is much cheaper to fix than the same problem discovered at step 6.
 
 ### 1. Provision VMs and install Talos
 
@@ -59,7 +73,10 @@ Six steps, each citing the doc that owns it. Run them in order; don't skip a val
 
 No restore command needed here — this isn't an action step, just a checkpoint. Every app's PVC uses kopiur's CSI `dataSourceRef`/`Restore` populator (see [`kopiur-backup-restore.md`'s "Restore-on-create"](kopiur-backup-restore.md#restore-on-create-the-core-idea)), and step 3's Flux reconciliation creating each app's PVC fresh *is* the "full namespace recreation" case that mechanism already handles on its own: kopiur restores the latest matching snapshot before any pod can mount the volume, with no explicit restore command. This exact automatic-restore-on-create path is what the disposable `kopiur-test` app validated live in `rebuild` (see the scenarios table above) — not the manual recipe below.
 
-**Checkpoint**: confirm each app's data is actually *present*, not just that its PVC is `Bound` — a PVC whose `Restore` found no matching snapshot still binds successfully (`onMissingSnapshot: Continue` populates an empty volume instead of blocking forever), which looks identical to a successful restore at the PVC level. [`kopiur-backup-restore.md`'s manual restore recipe](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) (`just backup::kopiur::restore <app> -e <env> -n <namespace>`) is only needed if this checkpoint fails for a specific app — not part of the normal rebuild sequence.
+> [!WARNING]
+> **Checkpoint**: confirm each app's data is actually *present*, not just that its PVC is `Bound` — a PVC whose `Restore` found no matching snapshot still binds successfully (`onMissingSnapshot: Continue` populates an empty volume instead of blocking forever), which looks identical to a successful restore at the PVC level.
+
+[`kopiur-backup-restore.md`'s manual restore recipe](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) (`just backup::kopiur::restore <app> -e <env> -n <namespace>`) is only needed if this checkpoint fails for a specific app — not part of the normal rebuild sequence.
 
 ### 5. Re-attach any `proxmox-csi`-pinned volumes
 
