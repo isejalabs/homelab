@@ -33,7 +33,7 @@ flowchart TB
     fluxks -->|"Flux reconciles that path"| overlay
 ```
 
-The sections below walk through each box: the [triad](#the-base--envsenv--flux-triad) is the left-hand folder, the [shared components layer](#the-shared-components-layer) and [transformers](#transformers-and-replacements) are `components/envs/<env>`, and [`replace-path`](#flux-path-rewriting-replace-path) is the rewrite on the second build.
+The sections below walk through each box: the `base` / `envs/<env>` / `flux` triad is the left-hand folder shape, the [shared components layer](#the-shared-components-layer) and [transformers](#transformers-and-replacements) are `components/envs/<env>`, and [`replace-path`](#flux-path-rewriting-replace-path) is the rewrite on the second build.
 
 ## The `base` / `envs/<env>` / `flux` triad
 
