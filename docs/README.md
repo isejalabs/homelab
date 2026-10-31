@@ -11,6 +11,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | I need to… | Start here |
 | --- | --- |
 | Get a summary of the system | The root [`README.md`](../README.md) |
+| Look up a term used in the docs | [`glossary.md`](glossary.md) |
 | See the stack diagram and reading order | [`architecture/overview.md`](architecture/overview.md), [`architecture/README.md`](architecture/README.md) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
@@ -20,6 +21,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 
 | I need to… | Start here |
 | --- | --- |
+| Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
 | Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](operations/node-lifecycle.md) |
@@ -74,6 +76,7 @@ Current repository truth lives in the architecture, reference and procedural doc
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
   - **[`identity/`](identity)** — Keycloak: realms, break-glass login, exposure, and database backup/restore.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
+- **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
 - **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.

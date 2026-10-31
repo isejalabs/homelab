@@ -125,7 +125,9 @@ extra:
 nav:
 - Home: README.md
 - Documentation guide: docs/README.md
+- Glossary: docs/glossary.md
 - Build and operate:
+  - From zero to a running cluster: docs/zero-to-cluster.md
   - Provision VMs and install Talos: terragrunt/README.md
   - Bootstrap a cluster: k8s/bootstrap/README.md
   - Upgrade Talos or Kubernetes, replace a node: docs/operations/node-lifecycle.md
