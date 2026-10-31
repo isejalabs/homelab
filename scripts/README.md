@@ -13,6 +13,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | [`helmfile-template-all.sh`](helmfile-template-all.sh) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment |
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |
 | [`bootstrap-apps-ci-test.sh`](bootstrap-apps-ci-test.sh) | the bootstrap `apps` helmfile stage, against an ephemeral kind cluster |
+| [`check-workloads-catalog.sh`](check-workloads-catalog.sh) | the `Apps`/`Infra` tables in `docs/architecture/workloads.md` against `k8s/{apps,infra}/*/*/flux` and the unit lists in `k8s/bootstrap/cluster/flux/sets/` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
 | [`check-sorting.py`](check-sorting.py) | leading-field/`metadata` key ordering (`.agents/instructions/sorting.md`) — needs [`requirements.txt`](requirements.txt) installed first |
 | [`install-actionlint.sh`](install-actionlint.sh) | not a check itself — installs the pinned `actionlint` binary the `actionlint` workflow lints with |
 | [`renovate-config-validator-version.sh`](renovate-config-validator-version.sh) | not a check itself — sourced to pin the `renovate-config-validator` version the `renovate-config-validate` workflow uses |

@@ -72,7 +72,7 @@ Check for failed pods:
 kubectl get pods -A --field-selector=status.phase=Failed
 
 # alternatively, check for non-running pods (e.g. pending, crashloopbackoff, etc.)
-# this will also reveal "completed" pods whigh are not running anymore but have completed successfully
+# this will also reveal "completed" pods which are not running anymore but have completed successfully
 # "completed" pods can be expected for some workloads, e.g. jobs for cilium installation, cert-manager jobs)
 kubectl get pods -A --field-selector=status.phase!=Running
 ```
