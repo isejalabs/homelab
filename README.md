@@ -46,9 +46,11 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
 - [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state cleanup, and kopiur backup/restore scripts.
-- `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo; also a decent map of the layout for humans.
+- `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo. Humans: the [folder structure](#folder-structure) below is the map.
 
 ### Folder structure
+
+This is the one map of the top-level folders; the `k8s` tree is described once in [`k8s/README.md`](k8s/README.md) and the documentation index in [`docs/README.md`](docs/README.md).
 
 ```
 📁 homelab

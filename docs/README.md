@@ -4,22 +4,65 @@ This folder holds documentation that doesn't belong to a single folder in the re
 
 ## Finding what you need
 
+This is the single index of the documentation, grouped by task. Each folder's own `README.md` indexes its contents (see [Architecture and reference docs](#architecture-and-reference-docs)).
+
+### Understand the system
+
 | I need to… | Start here |
 | --- | --- |
-| Understand the system | The root [`README.md`](../README.md) for a summary; [`architecture/overview.md`](architecture/overview.md) for the stack diagram |
+| Get a summary of the system | The root [`README.md`](../README.md) |
+| See the stack diagram and reading order | [`architecture/overview.md`](architecture/overview.md), [`architecture/README.md`](architecture/README.md) |
+| See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
+| Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
+| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
+
+### Build and operate a cluster
+
+| I need to… | Start here |
+| --- | --- |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
-| Diagnose Flux, DNS, storage, or stale Terraform state | [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), or [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
 | Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](node-lifecycle.md) |
 | Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) |
-| Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots; for the Keycloak database [`keycloak-backup-restore.md`](keycloak-backup-restore.md#restore) |
+| Understand how automated dependency updates flow | [`update-handling.md`](update-handling.md) |
+| Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](app-storage.md) |
+| Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](checkmk-automation-user.md) |
+| Run or script Proxmox VM power and snapshot actions | [`proxmox-vm-power.md`](proxmox-vm-power.md), [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) |
+| Know what a project board status means | [`project-board.md`](project-board.md) |
+
+### Back up and restore
+
+| I need to… | Start here |
+| --- | --- |
+| Restore app data | [`kopiur-backup-restore.md`](kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
+| Restore the Keycloak database | [`keycloak-backup-restore.md`](keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](proxmox-backup-restore.md#restore-procedures) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](disaster-recovery.md#full-cluster-rebuild) |
-| Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
-| See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
+
+### Identity (Keycloak)
+
+| I need to… | Start here |
+| --- | --- |
+| Configure realms and LDAP federation | [`keycloak-realms.md`](keycloak-realms.md) |
+| Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](keycloak-break-glass.md) |
+| Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](keycloak-exposure.md) |
+
+### Troubleshoot
+
+| I need to… | Start here |
+| --- | --- |
+| Diagnose a stuck or failing Flux `Kustomization`/`HelmRelease` | [`troubleshooting-flux.md`](troubleshooting-flux.md) |
+| Diagnose a DNS resolution or record problem | [`troubleshooting-dns.md`](troubleshooting-dns.md) |
+| Diagnose a PVC, Longhorn or proxmox-csi storage issue | [`troubleshooting-storage.md`](troubleshooting-storage.md) |
+| Clear a stale Terraform/OpenTofu state lock | [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) |
+
+### History (not current state)
+
+| I need to… | Start here |
+| --- | --- |
 | Read a point-in-time assessment | [`audits/`](audits) |
-| Know what a project board status means | [`project-board.md`](project-board.md) |
-| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
+| Read a dated implementation plan that followed an audit | [`plans/`](plans) |
+| Look at raw output of past bootstrap runs | [`logs/`](logs) |
 
 Current repository truth lives in the architecture, reference and procedural docs above, and in the code itself. `audits/` and `decisions/` capture reasoning and point-in-time assessments, not current configuration — don't read them as authoritative for "what exists today."
 
@@ -27,24 +70,7 @@ Current repository truth lives in the architecture, reference and procedural doc
 
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`). These change rarely and don't belong to any single app/infra folder.
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
-- **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture":
-  - [`update-handling.md`](update-handling.md) — how renovate/labeler/mergify/Flux interact for automated dependency updates.
-  - [`disaster-recovery.md`](disaster-recovery.md) — the full cluster-rebuild sequence, composed from the procedures below plus `AGENTS.md`'s Terragrunt section, with a validation checkpoint per step.
-  - [`app-storage.md`](app-storage.md) — the app-facing `STORAGE_*`/`PUID`/`PGID` variable and storage-class reference for `apps/storage/pvc`/`pvc-no-backup`.
-  - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — the kopiur backup/restore mechanism and day-to-day operational tasks (list/trigger/restore/prune backups).
-  - [`checkmk-automation-user.md`](checkmk-automation-user.md) — the least-privilege Checkmk role for the `terraform` automation user that the Checkmk Terragrunt units authenticate as, and how to create it via the REST API or the UI.
-  - [`keycloak-backup-restore.md`](keycloak-backup-restore.md) — the daily `pg_dump` backup of the Keycloak database to RustFS, why there is no WAL archiving, and how to restore it.
-  - [`keycloak-break-glass.md`](keycloak-break-glass.md) — the local `master`-realm login (bootstrap admin) that keeps Keycloak administrable when UCS or the realms are down: where the credential lives, how to sign in, rotate it and recover it.
-  - [`keycloak-realms.md`](keycloak-realms.md) — the `keycloak-realm` Terragrunt unit that fills Keycloak with its realms and LDAP federation, and its prerequisites (UCS groups and bind account, 1Password items, CA trust).
-  - [`keycloak-exposure.md`](keycloak-exposure.md) — what can reach Keycloak and which forwarded headers it trusts: the admin-console exposure decision, the forged-header test and its route fix, and why there is no network policy yet.
-  - [`longhorn-snapshots.md`](longhorn-snapshots.md) — the `just backup::longhorn-snapshot::*` recipes (list/create/restore) for Longhorn's local hourly/daily volume snapshots.
-  - [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — the `just proxmox::snapshot::*` recipes (create/list/rollback/delete) and how VM discovery/credential reuse work for them.
-  - [`proxmox-vm-power.md`](proxmox-vm-power.md) — the sibling `just proxmox::vm::*` recipes (list/start/stop/shutdown/reset).
-  - [`proxmox-backup-restore.md`](proxmox-backup-restore.md) — the vzdump/PBS backup tier for manually-managed "pet" VMs/LXCs (not the Terraform-managed `vehagn-k8s` environments) and how to restore one.
-  - [`troubleshooting-flux.md`](troubleshooting-flux.md), [`troubleshooting-dns.md`](troubleshooting-dns.md), [`troubleshooting-storage.md`](troubleshooting-storage.md), [`troubleshooting-terraform-state.md`](troubleshooting-terraform-state.md) — incident-response runbooks for a `Kustomization`/`HelmRelease` stuck or failing, a DNS resolution/record problem, a PVC/Longhorn/proxmox-csi storage issue, and a stale Terraform/OpenTofu state lock, respectively.
-  - [`project-board.md`](project-board.md) — what each `Status` value on the org project boards means and which workflow sets it.
-  - [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md) — runbook for a Kubernetes *minor* upgrade: compatibility checks across the infrastructure components, lifting the Renovate pin, staged rollout (non-prod, `qa`, then `prod`) and verification.
-  - [`node-lifecycle.md`](node-lifecycle.md) — moving a Talos/Kubernetes version forward and replacing a single node, in an otherwise-healthy cluster.
+- **This folder, top-level** — procedural docs that span multiple areas but aren't really "architecture": runbooks, operational recipes and incident-response guides (backup and restore, upgrades and node lifecycle, identity, troubleshooting). Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
 - **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.
