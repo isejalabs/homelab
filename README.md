@@ -6,8 +6,6 @@ A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven h
 
 The diagram is hand-drawn; its source of truth is the [architecture overview](docs/architecture/overview.md), and it is updated in the same PR as any change to the architecture it shows.
 
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) gives an up-to-date, browsable overview of the current implementation.
-
 ## At a glance
 
 - **Stack**: Proxmox → Talos Linux → Kubernetes, provisioned by OpenTofu/Terragrunt, reconciled by Flux CD.
@@ -52,6 +50,7 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
 - [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state cleanup, and kopiur backup/restore scripts.
 - `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo; also a decent map of the layout for humans.
+- [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) — an AI-generated, browsable overview of the implementation that you can ask questions. It is refreshed manually, so it can lag behind the repo; the docs above are authoritative. Its generation is steered by [`.devin/wiki.json`](.devin/wiki.json).
 
 ### Folder structure
 
@@ -65,6 +64,7 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 ├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
 ├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
 ├── 📁 .claude         # Claude Code project skills
+├── 📁 .devin          # DeepWiki generation config (wiki.json)
 ├── 📁 .ci             # CI tooling config (prettier)
 └── 📁 _attic          # retired/old material, not part of the active implementation
 ```
