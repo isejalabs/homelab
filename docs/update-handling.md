@@ -38,6 +38,32 @@ Every environment's Flux instance reconciles continuously from Git — there's n
 
 Renovate creates one PR per package/update-type combination (`separateMinorPatch: true`), labeled `pr-type:renovate` plus an `updateType:*` label. Because `env:*` labels come from changed paths, a renovate PR that only touches `k8s/apps/foo/envs/prod/` (see [below](#tracking-a-version-separately-per-environment)) gets `env:prod` on its own, distinct from a PR touching `base/` (which affects every environment that doesn't override it) or another environment's own override.
 
+## How a Renovate pull request gets merged
+
+The decision order below is what the rules in [Automatic merging rules](#automatic-merging-rules) and [Excluded packages and paths](#excluded-packages-and-paths-from-auto-merging) add up to. The text sections are authoritative; the diagram only puts them in order, and must be updated together with `mergify.yml` and the Renovate rules.
+
+```mermaid
+flowchart TD
+    accTitle: How a Renovate pull request gets merged
+    accDescr: Renovate opens a pull request labeled pr-type:renovate and updateType, and the labeler adds area and env labels. If the pull request carries env:head, Mergify squash-merges it whatever its type. Otherwise, a pull request flagged updateStrategy:manual waits for the owner. Digest, pinDigest and patch updates, and devDependencies, are automerged by Renovate. A minor update is merged by Mergify unless it carries updateStrategy:pinWatch or env:prod, in which case it waits for the owner, and a major update always waits for the owner. Every merge, automatic or manual, only happens once the required checks on main have passed, after which Flux reconciles main.
+
+    pr["Renovate opens a PR<br/>pr-type:renovate and updateType:*<br/>labeler adds area:* and env:*"] --> head{"env:head?"}
+    head -->|"yes"| mergify["Mergify squash-merges<br/>any update type"]
+    head -->|"no"| manual{"updateStrategy:manual?<br/>excluded packages, .github, terragrunt, tofu,<br/>staged prod pins"}
+    manual -->|"yes"| owner["owner reviews and merges"]
+    manual -->|"no"| type{"updateType"}
+    type -->|"digest, pinDigest, patch,<br/>devDependencies"| renovate["Renovate automerges"]
+    type -->|"minor"| pin{"updateStrategy:pinWatch<br/>or env:prod?"}
+    pin -->|"no"| mergify
+    pin -->|"yes"| owner
+    type -->|"major"| owner
+
+    mergify --> gate
+    renovate --> gate
+    owner --> gate
+    gate["required checks on main must pass first"] --> main["merged to main<br/>Flux reconciles it"]
+```
+
 ## Merging PRs for package updates
 
 ### Automatic merging rules

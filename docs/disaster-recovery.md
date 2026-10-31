@@ -35,6 +35,30 @@ These are known boundaries, not a claim that no external backups exist. Where th
 
 Six steps, each citing the doc that owns it. Run them in order; don't skip a validation checkpoint to save time — a problem caught at step 2 is much cheaper to fix than the same problem discovered at step 6.
 
+```mermaid
+flowchart TD
+    accTitle: Full cluster rebuild with validation checkpoints
+    accDescr: Six steps in order. Provision VMs and install Talos with Terragrunt, importing preserved Proxmox volumes first if any were kept. Import the cluster access configs, then check that all nodes are Ready and no pods have failed. Bootstrap with just bootstrap::cluster and hand off to Flux, then check that every Kustomization is Ready. Verify that kopiur restored app data on PVC creation. Re-attach proxmox-csi pinned volumes, only if disks were preserved, and check that their PVCs are Bound with data. Finish with a final end-to-end check. A failed checkpoint is fixed before the next step starts.
+
+    s1["1. Terragrunt: provision VMs, install Talos<br/>import preserved Proxmox volumes first, if any"] --> s2["2. Import talosconfig and kubeconfig"]
+    s2 --> c2{"Checkpoint: all nodes Ready,<br/>no Failed pods?"}
+    c2 -->|"yes"| s3["3. just bootstrap::cluster --env ENV<br/>CRDs, foundational infra, Flux hand-off"]
+    c2 -->|"no"| fix["fix, then re-check"]
+    s3 --> c3{"Checkpoint: flux get ks -A<br/>all Ready?"}
+    c3 -->|"yes"| s4["4. kopiur restores app data<br/>automatically when each PVC is created"]
+    c3 -->|"no"| fix
+    s4 --> c4{"Checkpoint: each app's data<br/>present, not just PVC Bound?"}
+    c4 -->|"yes"| q5{"Proxmox disks preserved<br/>for proxmox-csi volumes?"}
+    c4 -->|"no"| fix
+    q5 -->|"yes"| s5["5. Confirm PV and PVC binding<br/>of the pinned volumes"]
+    q5 -->|"no, skip"| s6
+    s5 --> c5{"Checkpoint: PVC Bound<br/>and data present?"}
+    c5 -->|"yes"| s6["6. Final end-to-end check<br/>flux ks and hr, pods, Checkmk token,<br/>one real app"]
+    c5 -->|"no"| fix
+```
+
+The checkpoint after step 2 also covers step 1, because Terragrunt reporting success does not prove the cluster is usable. A failed checkpoint is resolved before the next step starts, which is the point of the order.
+
 ### 1. Provision VMs and install Talos
 
 [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) — `terragrunt plan`/`apply` from the environment's `vehagn-k8s` module directory, the `.envrc`/`TG_IAM_ASSUME_ROLE` direnv gotcha, and the `prod`/`qa` main-branch-only rule.

@@ -6,9 +6,27 @@ status: current
 
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is mechanical, not stylistic: **SOPS** for anything that has to exist *before* a Kubernetes cluster and Flux are running, and **sealed-secrets** / **1Password + External Secrets Operator (ESO)** for anything a running cluster reconciles from Git afterwards. A one-time bridge (`op inject`) connects the two during bootstrap.
 
-```
-provisioning (SOPS)  --->  bootstrap bridge (op inject)  --->  in-cluster (sealed-secrets / ESO+1Password)
-   no cluster yet         cluster exists, Flux doesn't yet        Flux reconciling from Git
+```mermaid
+flowchart LR
+    accTitle: Where each kind of secret comes from
+    accDescr: Three stages in order. Before a cluster exists, Terragrunt decrypts SOPS-encrypted files in Git with an age key. Once Talos and Kubernetes are up but Flux is not, the operator's signed-in op CLI injects two 1Password Connect credential Secrets with op inject. After that, Flux reconciles Git: SealedSecrets are decrypted by the sealed-secrets controller, and ExternalSecrets are resolved by External Secrets Operator through 1Password Connect and its ClusterSecretStore into ordinary Secrets.
+
+    subgraph stage1["1 - Provisioning, no cluster yet"]
+        sops["*-secrets.sops.yaml in Git<br/>age-encrypted"] -->|"sops_decrypt_file in root.hcl"| tg["Terragrunt<br/>Proxmox, state passphrase"]
+    end
+
+    subgraph stage2["2 - Bootstrap bridge, cluster but no Flux"]
+        s3cr3t["s3cr3t.yaml in Git<br/>op:// references only"] -->|"op inject, using the operator's op session"| seed["two Secrets<br/>onepassword-connect-credentials-secret<br/>onepassword-connect-vault-secret"]
+    end
+
+    subgraph stage3["3 - In-cluster, Flux reconciling Git"]
+        sealed["SealedSecret in Git<br/>ciphertext"] -->|"sealed-secrets controller decrypts"| secret1["Secret"]
+        extsec["ExternalSecret in Git"] -->|"External Secrets Operator"| store["ClusterSecretStore<br/>onepassword-connect"]
+        store --> connect["1Password Connect"]
+        connect -->|"reads vault K8S"| secret2["Secret"]
+    end
+
+    seed -->|"lets Connect start"| connect
 ```
 
 ## SOPS: provisioning secrets
