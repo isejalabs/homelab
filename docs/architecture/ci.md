@@ -26,6 +26,31 @@ There is no application source code in this repo, so CI focuses on infrastructur
 
 Phase 2 — checks that need a live/ephemeral cluster beyond what `bootstrap-apps-test.yml` already covers (`flux-local`, policy checks) — is tracked separately in [#1209](https://github.com/isejalabs/homelab/issues/1209). Anything not covered by the table above is still validated manually via `helmfile template` (used implicitly by `just bootstrap::cluster`) and Flux's own reconciliation status.
 
+## How a pull request reaches `main`
+
+The diagram shows which workflows a pull request triggers and where the merge decision sits. Which Renovate pull requests Mergify merges on its own is a separate decision, drawn in [`update-handling.md`](../update-handling.md#how-a-renovate-pull-request-gets-merged).
+
+```mermaid
+flowchart LR
+    accTitle: Pull request path through CI, labeling and Mergify
+    accDescr: A pull request triggers the 11 validation workflows and the docs mermaid check on the pull_request event, and the labeler workflow on pull_request_target. Ten of the validation workflows are required status checks, while docs-build and docs-mermaid-check are not. The labeler adds area and env labels that Mergify reads to decide whether it may merge a Renovate pull request. A human or Mergify can request the merge, and branch protection on main withholds it until every required check has passed.
+
+    pr["Pull request opened or updated"]
+
+    pr -->|"pull_request"| required["10 required checks<br/>pre-commit, kustomize-build, terragrunt-validate,<br/>bootstrap-apps-test, helmfile-template, flate-test,<br/>renovate-config-validate, check-sorting, actionlint,<br/>docs-link-check"]
+    pr -->|"pull_request"| optional["not required<br/>docs-build, docs-mermaid-check"]
+    pr -->|"pull_request_target"| labeler["labeler.yml<br/>adds area and env labels"]
+
+    labeler --> mergify["Mergify<br/>reads pr-type, updateType, updateStrategy<br/>and env labels"]
+    mergify -->|"label conditions match: requests the merge"| gate
+    human["human review"] -->|"requests the merge"| gate
+    required --> gate{"branch protection on main<br/>all required checks green?"}
+    gate -->|"yes"| main["merged to main<br/>Flux reconciles it"]
+    gate -->|"no"| blocked["merge withheld"]
+```
+
+Mergify never looks at CI status itself; the required checks are what stop a merge it requests (see [PR labeling and Mergify](#pr-labeling-and-mergify)).
+
 ## Tool provisioning
 
 Every workflow that needs more than the Ubuntu runner's stock toolset uses [`jdx/mise-action`](https://github.com/jdx/mise-action), which installs whatever the resolved `.mise.toml`'s `[tools]` table declares — that table is shared with local dev (`direnv`/`mise` picks it up on `cd`), so CI and a human running the same script locally get the same tool versions. A workflow's own `install_args:` on the `mise-action` step is only for tools genuinely specific to that one workflow and not worth adding to a shared table (there aren't any of these today — every current `install_args` entry, e.g. `kustomize-build.yml`'s `gum kubeconform kubectl`, actually names tools already declared somewhere, which is harmless redundancy, not a second source of truth).
