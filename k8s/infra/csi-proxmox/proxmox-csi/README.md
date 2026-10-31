@@ -5,7 +5,7 @@ See [`docs/architecture/storage.md`](../../../../docs/architecture/storage.md) f
 
 ### Cheatsheet
 
-#### Avaliable Storage Capacity
+#### Available Storage Capacity
 
 Check for Proxmox CSI being connected with Proxmox server properly:
 

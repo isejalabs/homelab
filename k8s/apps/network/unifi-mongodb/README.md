@@ -23,4 +23,4 @@ k exec -n unifi deploy/mongodb -- sh -c 'find /data/db -user root ! -perm -g=r -
 just backup::kopiur::create unifi-mongodb -e <env> -n unifi
 ```
 
-First seen in `prod` on 2026-10-20 (see `docs/kopiur-backup-restore.md` for the backup commands).
+First seen in `prod` on 2026-10-20 (see `docs/backup/kopiur-backup-restore.md` for the backup commands).
