@@ -19,6 +19,27 @@ A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven h
 | Diagnose a live issue | [`docs/README.md`'s troubleshooting paths](docs/README.md#finding-what-you-need) |
 | Upgrade Talos/Kubernetes or replace a node | [`docs/node-lifecycle.md`](docs/node-lifecycle.md) |
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
+| Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
+| Look up a term (`kopiur`, `soaking`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
+
+## Prerequisites
+
+Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](.mise.toml), [`terragrunt/.mise.toml`](terragrunt/.mise.toml) and [`k8s/.mise.toml`](k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them.
+
+| Tool | What it is for | Pinned in |
+| --- | --- | --- |
+| `opentofu`, `terragrunt` | Provision Proxmox VMs and the Talos install ([`terragrunt/README.md`](terragrunt/README.md)) | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
+| `talosctl` | Talos cluster access and config import | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
+| `sops`, `age` | Encrypt and decrypt the `*.sops.yaml` secrets ([`docs/architecture/secrets.md`](docs/architecture/secrets.md)) | [`.mise.toml`](.mise.toml) |
+| `op` (1Password CLI) | Resolve `op://` references during bootstrap | [`.mise.toml`](.mise.toml) |
+| `just`, `gum` | Command runner and its prompts and logging for `just bootstrap::cluster` | [`.mise.toml`](.mise.toml) |
+| `helm`, `helmfile` | Install foundational CRDs and infra before Flux ([`k8s/bootstrap/README.md`](k8s/bootstrap/README.md)) | [`.mise.toml`](.mise.toml) |
+| `kubectl`, `jq`, `yq`, `minijinja` | Cluster access and the templating and JSON/YAML processing the bootstrap and scripts use | [`.mise.toml`](.mise.toml) |
+| `kustomize`, `kubeconform` | Render and validate the manifests locally, as CI does | [`k8s/.mise.toml`](k8s/.mise.toml) |
+| `flate`, `pre-commit`, `lychee`, `kind` | Run CI checks locally: Flux validation, hooks, docs link check, bootstrap test cluster ([`docs/architecture/ci.md`](docs/architecture/ci.md)) | [`.mise.toml`](.mise.toml) |
+| [`direnv`](https://direnv.net/) | Load each environment's `.envrc` (state role) when entering its folder | not pinned, see [`terragrunt/README.md`](terragrunt/README.md#prerequisites) |
+
+Besides tools you need the SOPS age key, AWS credentials for the state role and a signed-in 1Password CLI; the per-step access is listed in [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start).
 
 ## Principles
 
