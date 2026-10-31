@@ -5,4 +5,5 @@ components:
   - ../../../../../components/envs/dbg
 
 resources:
+  - ../../../../../infra/keycloak/keycloak-operator/flux
   - ../../sets/minimal
