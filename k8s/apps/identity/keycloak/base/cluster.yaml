@@ -6,7 +6,7 @@ metadata:
   name: keycloak-db
   annotations:
     # No WAL archiving: the database is backed up by a daily pg_dump (cronjob-dump.yaml), so a failing backup
-    # target can never make WAL pile up on the volume (docs/keycloak-backup-restore.md). Sets archive_mode=off.
+    # target can never make WAL pile up on the volume (docs/identity/keycloak-backup-restore.md). Sets archive_mode=off.
     cnpg.io/skipWalArchiving: enabled
 spec:
   bootstrap:
@@ -17,7 +17,7 @@ spec:
   enablePDB: false
   # Pinned on purpose, never left to the operator's built-in default (which moves with every operator release).
   # base/kustomization.yaml copies this value into the dump job, so the server and the pg_dump client stay equal;
-  # raise the major version only along docs/keycloak-backup-restore.md#upgrading-postgresql (it triggers an
+  # raise the major version only along docs/identity/keycloak-backup-restore.md#upgrading-postgresql (it triggers an
   # offline pg_upgrade). Renovate tracks the line (customManagers in .github/renovate.json5).
   imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce
   instances: 1

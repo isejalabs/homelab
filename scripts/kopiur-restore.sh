@@ -7,7 +7,7 @@
 # re-evaluates it -- so both the PVC *and* the Restore object must be deleted,
 # or a stale pin (e.g. an app's very first, snapshot-less deploy pinning
 # NoSnapshot) gets silently reused instead of resolving against whatever
-# snapshots actually exist now. See docs/kopiur-backup-restore.md.
+# snapshots actually exist now. See docs/backup/kopiur-backup-restore.md.
 #
 # Flux actively reverts manual changes (a scaled-down Deployment gets scaled
 # back up on the next reconcile) for a plain-manifest app, whose Kustomization

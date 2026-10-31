@@ -4,7 +4,7 @@ status: current
 
 # Keycloak exposure and trust boundaries
 
-How Keycloak can be reached, which request headers it trusts, and why there is no network policy around it yet. The review behind this page is [#1945](https://github.com/isejalabs/homelab/issues/1945), part of [#1937](https://github.com/isejalabs/homelab/issues/1937); the identity design is [ADR 0016](decisions/0016-identity-and-web-sso.md).
+How Keycloak can be reached, which request headers it trusts, and why there is no network policy around it yet. The review behind this page is [#1945](https://github.com/isejalabs/homelab/issues/1945), part of [#1937](https://github.com/isejalabs/homelab/issues/1937); the identity design is [ADR 0016](../decisions/0016-identity-and-web-sso.md).
 
 **On this page:** [Decisions](#decisions) · [Admin console on the issuer hostname](#admin-console-on-the-issuer-hostname) · [Trusted proxy headers](#trusted-proxy-headers) · [Network policies](#network-policies) · [Verified and not verified](#verified-and-not-verified)
 
@@ -18,7 +18,7 @@ How Keycloak can be reached, which request headers it trusts, and why there is n
 
 ## Admin console on the issuer hostname
 
-The `HTTPRoute` [`http-route.yaml`](../k8s/apps/identity/keycloak/base/http-route.yaml) sends every path of the environment hostname to `keycloak-service:8080` on the `internal` Gateway, so the admin console (`/admin/`) and the `master` realm answer next to `iseja` and `admin`. Keycloak's reverse-proxy guide ([keycloak.org/server/reverseproxy](https://www.keycloak.org/server/reverseproxy)) lists `/admin/` and `/realms/master/` as internal-only paths that must not be exposed to the public internet, and `/metrics` and `/health` (management port 9000) as not exposed at all.
+The `HTTPRoute` [`http-route.yaml`](../../k8s/apps/identity/keycloak/base/http-route.yaml) sends every path of the environment hostname to `keycloak-service:8080` on the `internal` Gateway, so the admin console (`/admin/`) and the `master` realm answer next to `iseja` and `admin`. Keycloak's reverse-proxy guide ([keycloak.org/server/reverseproxy](https://www.keycloak.org/server/reverseproxy)) lists `/admin/` and `/realms/master/` as internal-only paths that must not be exposed to the public internet, and `/metrics` and `/health` (management port 9000) as not exposed at all.
 
 What this repository does about each:
 
@@ -30,7 +30,7 @@ Accepted for that reason, with the exposure being exactly the reach of the `inte
 
 ## Trusted proxy headers
 
-[`keycloak.yaml`](../k8s/apps/identity/keycloak/base/keycloak.yaml) sets `proxy.headers: xforwarded` and no `proxy-trusted-addresses`. Keycloak's guide says that is only safe when the proxy overwrites the `X-Forwarded-*` headers and clients cannot reach Keycloak directly. With a bare `hostname` (as set here) the host is fixed, but scheme, port and path prefix are still taken from the headers; with a full URL (`https://…`) nothing is resolved dynamically from them.
+[`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml) sets `proxy.headers: xforwarded` and no `proxy-trusted-addresses`. Keycloak's guide says that is only safe when the proxy overwrites the `X-Forwarded-*` headers and clients cannot reach Keycloak directly. With a bare `hostname` (as set here) the host is fixed, but scheme, port and path prefix are still taken from the headers; with a full URL (`https://…`) nothing is resolved dynamically from them.
 
 Forged headers sent through the `internal` Gateway to the `dev` instance (2026-10-29, discovery document of `master`, `GET /realms/master/.well-known/openid-configuration`):
 

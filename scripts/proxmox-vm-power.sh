@@ -1,6 +1,6 @@
 #!/bin/bash
 # Performs one power action (start/stop/shutdown/reset) on either every VM belonging to <env> or, with
-# --vmid, just that one VM, via the Proxmox REST API -- no SSH. See docs/proxmox-vm-power.md.
+# --vmid, just that one VM, via the Proxmox REST API -- no SSH. See docs/operations/proxmox-vm-power.md.
 #
 # stop/shutdown/reset are destructive-ish (an ungraceful power-off, or a guest-initiated one, or a hard
 # reset) and require typed confirmation (or -y/--yes) when acting environment-wide -- a single --vmid

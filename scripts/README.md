@@ -13,6 +13,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | [`helmfile-template-all.sh`](helmfile-template-all.sh) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment |
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |
 | [`bootstrap-apps-ci-test.sh`](bootstrap-apps-ci-test.sh) | the bootstrap `apps` helmfile stage, against an ephemeral kind cluster |
+| [`check-workloads-catalog.sh`](check-workloads-catalog.sh) | the `Apps`/`Infra` tables in `docs/architecture/workloads.md` against `k8s/{apps,infra}/*/*/flux` and the unit lists in `k8s/bootstrap/cluster/flux/sets/` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
 | [`check-sorting.py`](check-sorting.py) | leading-field/`metadata` key ordering (`.agents/instructions/sorting.md`) — needs [`requirements.txt`](requirements.txt) installed first |
 | [`install-actionlint.sh`](install-actionlint.sh) | not a check itself — installs the pinned `actionlint` binary the `actionlint` workflow lints with |
 | [`renovate-config-validator-version.sh`](renovate-config-validator-version.sh) | not a check itself — sourced to pin the `renovate-config-validator` version the `renovate-config-validate` workflow uses |
@@ -37,7 +38,7 @@ Run from the relevant terragrunt unit directory (not the repo root) — see [`te
 
 ## kopiur backup/restore
 
-Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](kopiur.just) and [`docs/kopiur-backup-restore.md`](../docs/kopiur-backup-restore.md) for the day-to-day operational guide.
+Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](kopiur.just) and [`docs/backup/kopiur-backup-restore.md`](../docs/backup/kopiur-backup-restore.md) for the day-to-day operational guide.
 
 | Script | Purpose |
 | --- | --- |
@@ -49,7 +50,7 @@ All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, enviro
 
 ## Keycloak database restore
 
-Wrapped by `just backup::keycloak::<list|restore>` (see [`keycloak.just`](keycloak.just); the recipes pass their flags straight to the script, which can also be run directly) and always against one environment — see [`docs/keycloak-backup-restore.md`](../docs/keycloak-backup-restore.md#restore) for the procedure, the safety reasoning and the drill record.
+Wrapped by `just backup::keycloak::<list|restore>` (see [`keycloak.just`](keycloak.just); the recipes pass their flags straight to the script, which can also be run directly) and always against one environment — see [`docs/identity/keycloak-backup-restore.md`](../docs/identity/keycloak-backup-restore.md#restore) for the procedure, the safety reasoning and the drill record.
 
 | Script | Purpose |
 | --- | --- |
@@ -59,7 +60,7 @@ Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and
 
 ## Longhorn volume snapshots
 
-Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/longhorn-snapshots.md`](../docs/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
+Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/backup/longhorn-snapshots.md`](../docs/backup/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
 
 | Script | Purpose |
 | --- | --- |
@@ -71,7 +72,7 @@ All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/lo
 
 ## Longhorn volume snapshots
 
-Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/longhorn-snapshots.md`](../docs/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
+Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/backup/longhorn-snapshots.md`](../docs/backup/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
 
 | Script | Purpose |
 | --- | --- |
@@ -82,7 +83,7 @@ All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/lo
 
 ## Proxmox VM snapshot/power management
 
-Wrapped by `just proxmox::snapshot::<create|list|rollback|delete>` and `just proxmox::vm::<list|start|stop|shutdown|reset>` — see [`docs/proxmox-vm-snapshots.md`](../docs/proxmox-vm-snapshots.md) and [`docs/proxmox-vm-power.md`](../docs/proxmox-vm-power.md) for the day-to-day operational guides.
+Wrapped by `just proxmox::snapshot::<create|list|rollback|delete>` and `just proxmox::vm::<list|start|stop|shutdown|reset>` — see [`docs/operations/proxmox-vm-snapshots.md`](../docs/operations/proxmox-vm-snapshots.md) and [`docs/operations/proxmox-vm-power.md`](../docs/operations/proxmox-vm-power.md) for the day-to-day operational guides.
 
 | Script | Purpose |
 | --- | --- |

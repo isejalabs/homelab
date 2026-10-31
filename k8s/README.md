@@ -8,10 +8,12 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 diag                   # e.g. whoami
 │   ├── 📁 dns                    # e.g. adguard, unbound
 │   ├── 📁 finances                # e.g. actualbudget
+│   ├── 📁 home-automation         # e.g. zigbee2mqtt
+│   ├── 📁 identity                # e.g. keycloak
 │   ├── 📁 monitoring              # e.g. checkmk-agent, metrics-server
 │   └── 📁 network                # e.g. unifi-controller
 ├── 📁 bootstrap                # second bootstrap phase: helmfile + Flux hand-off (see bootstrap/README.md)
-│   ├── 📁 cluster/flux           # Flux `sets/` (infra|apps × minimal|optional), composed per env under flux/envs/<env>
+│   ├── 📁 cluster/flux           # Flux `sets/` (infra|apps × minimal|optional, plus minimal and soaking), composed per env under flux/envs/<env>
 │   ├── 📁 helmfile               # helmfile definitions: crds/, apps/, base/, templates/*.gotmpl
 │   └── 📁 kustomize/personal     # personal credentials injected via `op inject` during bootstrap
 ├── 📁 components               # shared DRY kustomize layer (see components/README.md)
@@ -19,11 +21,15 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   └── 📁 transformers           # transformers those components apply (replace-path, replace-domain, prefix-domain, add-labels, set-flux-defaults)
 ├── 📁 infra                    # infrastructure workloads, grouped by namespace
 │   ├── 📁 cert-manager
+│   ├── 📁 cnpg-system
 │   ├── 📁 common/ns              # aggregates every group's `_ns` base into one Flux Kustomization ("infra-ns")
 │   ├── 📁 csi-proxmox
+│   ├── 📁 external-dns
 │   ├── 📁 external-secrets
 │   ├── 📁 flux-system
 │   ├── 📁 gateway-api
+│   ├── 📁 keycloak
+│   ├── 📁 kopiur-system
 │   ├── 📁 kube-system
 │   ├── 📁 longhorn-system
 │   ├── 📁 o11y
