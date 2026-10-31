@@ -32,6 +32,15 @@ spec:
             target:
               kind: Deployment
               name: (source-controller|kustomize-controller|helm-controller|notification-controller)
+          # Retry a failed install/upgrade every 5 min indefinitely instead of stalling after the first failure (the default
+          # RemediateOnFailure strategy has a retry budget of 0); a cold bring-up on a slow link outlasts the 5 min Helm timeout
+          - patch: |
+              - op: add
+                path: /spec/template/spec/containers/0/args/-
+                value: --feature-gates=DefaultToRetryOnFailure=true
+            target:
+              kind: Deployment
+              name: helm-controller
       sync:
         kind: GitRepository
         interval: 10m

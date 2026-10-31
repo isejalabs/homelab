@@ -8,26 +8,28 @@ The homelab is a stack of layers, each provisioned/reconciled by the tool suited
 
 ## The stack, top to bottom
 
+```mermaid
+flowchart TD
+    accTitle: Platform stack and handoff
+    accDescr: Terragrunt provisions Proxmox VMs and installs Talos Linux, which bootstraps Kubernetes. The bootstrap helmfile installs the foundational CRDs and infrastructure once, then Flux CD reconciles this repository: Cilium, storage, secrets, the infra units and the app units.
+
+    pve["Proxmox<br/>hypervisors"]
+    talos["Talos Linux<br/>immutable, API-managed OS"]
+    k8s["Kubernetes<br/>control plane and nodes"]
+    flux["Flux CD<br/>GitOps controller"]
+
+    pve -->|"Terragrunt provisions the VMs"| talos
+    talos -->|"Terragrunt bootstraps the control plane and nodes"| k8s
+    k8s -->|"bootstrap helmfile installs CRDs and foundational infra once, then hands off"| flux
+
+    flux --> cilium["Cilium<br/>CNI, LB-IPAM, BGP, Gateway API"]
+    flux --> storage["Longhorn / proxmox-csi<br/>persistent storage"]
+    flux --> secrets["sealed-secrets / ESO + 1Password<br/>in-cluster secrets"]
+    flux --> infra["k8s/infra/*<br/>cluster infrastructure"]
+    flux --> apps["k8s/apps/*<br/>applications"]
 ```
-Proxmox                                    bare-metal hypervisors
-   │  OpenTofu/Terragrunt provisions VMs           (terragrunt/README.md)
-   ▼
-Talos Linux                                immutable, API-managed OS
-   │  Terragrunt bootstraps the Kubernetes control plane + nodes on it
-   ▼
-Kubernetes
-   │  the bootstrap helmfile installs foundational CRDs/infra once,
-   │  then hands reconciliation off to Flux                     (k8s/bootstrap/README.md)
-   ▼
-Flux CD (GitOps controller)
-   │  reconciles this repo continuously, same base/envs/flux shape throughout  (kustomize.md)
-   │
-   ├──▶ Cilium            CNI, LB-IPAM, BGP, Gateway API              (network.md)
-   ├──▶ Longhorn/proxmox-csi   persistent storage                    (storage.md)
-   ├──▶ sealed-secrets / ESO+1Password   in-cluster secrets           (secrets.md)
-   ├──▶ k8s/infra/*       cluster infrastructure                     (workloads.md)
-   └──▶ k8s/apps/*        applications — DNS, finances, monitoring…  (workloads.md)
-```
+
+Where each step is documented: the Terragrunt layer in [`terragrunt/README.md`](../../terragrunt/README.md), the handoff in [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md), the shared `base/envs/flux` shape Flux reconciles in [`kustomize.md`](kustomize.md), Cilium in [`network.md`](network.md), storage in [`storage.md`](storage.md), secrets in [`secrets.md`](secrets.md), and the infra and app units in [`workloads.md`](workloads.md).
 
 Every one of the 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) goes through this exact same stack — what differs between them is parameterized, not a different pipeline. See [`environments.md`](environments.md) for what actually varies per environment.
 

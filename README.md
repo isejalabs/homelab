@@ -2,12 +2,17 @@
 
 A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven homelab: [Proxmox](https://www.proxmox.com/) VMs → [Talos Linux](https://www.talos.dev/) → [Kubernetes](https://kubernetes.io/), provisioned with [OpenTofu](https://opentofu.org/)/ [Terragrunt](https://terragrunt.gruntwork.io/) and reconciled with [Flux CD](https://fluxcd.io/). Still in its foundation phase — the cluster itself has been stable since prod went live, and the set of deployed [workloads](docs/architecture/workloads.md) is growing from there.
 
+![Platform overview: Terragrunt provisions Proxmox VMs and installs Talos Linux, which bootstraps Kubernetes; the bootstrap helmfile hands off to Flux CD, which reconciles this repository. Around it: 1Password Connect with External Secrets, Cilium, Longhorn and proxmox-csi storage, and kopiur backups to an S3-compatible NAS.](docs/assets/platform-overview.svg)
+
+The diagram is hand-drawn; its source of truth is the [architecture overview](docs/architecture/overview.md), and it is updated in the same PR as any change to the architecture it shows.
+
 ## At a glance
 
 - **Stack**: Proxmox → Talos Linux → Kubernetes, provisioned by OpenTofu/Terragrunt, reconciled by Flux CD.
 - **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see [`environments.md`](docs/architecture/environments.md) for what each one is for.
 - **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#a-bit-of-history) below.
 - **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, or [`docs/README.md`](docs/README.md) for the documentation index.
+- **Documentation site**: the same Markdown is built into a searchable site (see [how it is built](docs/README.md#documentation-site)); it is not published yet, pending the public-disclosure decision.
 
 ## I need to…
 

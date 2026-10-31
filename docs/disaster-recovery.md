@@ -4,7 +4,7 @@ status: current
 
 # Disaster recovery
 
-This guide describes cluster recovery, not complete homelab recovery. The owner reports that the `rebuild` environment is torn down and reconstructed from Git on an irregular, roughly monthly cadence, with app data configured for kopiur backed up by that system. That exercises cluster recovery as `prod` evolves. The exact date, duration, and result of the latest exercise are not recorded here, and the sequence below is not a timed rehearsal record. The cluster's recovery boundary should not be confused with full homelab recoverability: some out-of-cluster components are incompletely documented or backed up, and secrets maintained in 1Password have no periodic backup. This follows up on [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability), which called for clear verification status.
+This guide describes cluster recovery, not complete homelab recovery. The owner reports that the `rebuild` environment is torn down and reconstructed from Git on an irregular, roughly monthly cadence, with app data configured for kopiur backed up by that system. That exercises cluster recovery as `prod` evolves. Only the exercises listed under [Recorded rebuild exercises](#recorded-rebuild-exercises) have a recorded date, duration and result, and the sequence below is not a timed rehearsal record. The cluster's recovery boundary should not be confused with full homelab recoverability: some out-of-cluster components are incompletely documented or backed up, and secrets maintained in 1Password have no periodic backup. This follows up on [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability), which called for clear verification status.
 
 ## Recovery scenarios
 
@@ -76,9 +76,36 @@ No single existing doc covers this, since it's specific to "is the whole homelab
 - Checkmk: a recreated cluster has a new service-account token, so the token stored in Checkmk's password store is stale and the cluster's Kubernetes special agent fails with `401 Unauthorized` on `/version`. Refresh it as described in [`checkmk-agent`'s README](../k8s/apps/monitoring/checkmk-agent/README.md#refresh-the-token-after-a-cluster-is-recreated). This hits `rebuild` every time it is reconstructed.
 - Spot-check at least one real, user-facing app end to end (e.g. a DNS query against AdGuard, or opening Actual Budget) — a clean `flux`/`kubectl` status doesn't guarantee the app is actually usable.
 
+## Recorded rebuild exercises
+
+### 2026-10-30/31, `rebuild`: cold start of the Keycloak unit ([#2012](https://github.com/isejalabs/homelab/issues/2012))
+
+A from-scratch recreate of `rebuild` (destroy, `terragrunt apply`, `initial` snapshot, `just bootstrap::cluster --env rebuild`, Flux), run to check that the `keycloak` unit converges in order after [#1940](https://github.com/isejalabs/homelab/issues/1940) when the CRDs, the StorageClass and the Gateway are created at the same time. **Link state:** the home internet download speed was degraded (a 50 MB test download from the build Mac ran at about 32 KB/s at the start; image pulls on the nodes ran at roughly 0.2 to 1 MB/s and improved during the run), so the durations below are not comparable with the one-hour rebuild target.
+
+| Phase | Start (UTC) | Duration | Notes |
+| --- | --- | --- | --- |
+| Destroy (27 resources) | 2026-10-30 05:29:57 | 1 min | `scripts/tg-state-rm.sh`, then `terragrunt plan -destroy -refresh=false` and apply |
+| `terragrunt apply` (VMs, Talos, Cilium bootstrap) | 2026-10-30 05:32:15 | 31 min 47 s | Talos image download to three Proxmox hosts 8.5 min; three applies (locked SSH agent, then the 10 min `talos_cluster_health` timeout while the control plane images were still pulled) |
+| `initial` snapshot | 2026-10-30 06:04:35 | 1 min | |
+| `just bootstrap::cluster` | 2026-10-30 06:06:15 | about 19 min in five runs | Helm waits for Cilium and external-secrets (5 min) timed out on pulls; waiting for the 1Password CLI between runs is not counted; finished 2026-10-31 15:50:25 |
+| Flux hand-off until every `Kustomization` is `Ready` | 2026-10-31 15:50:20 | 77 min 21 s | about 22 min of it a stall until eight stalled HelmReleases were reconciled by hand, see below |
+| `keycloak`: first apply until `Ready` | 2026-10-31 16:31:08 | 16 min 50 s | `Kustomization` created at 15:50:20, waited in `DependencyNotReady` for `cloudnative-pg` |
+
+Without waits for the 1Password CLI the active time was about 2 h 10 min. **Image pulls:** in the Flux phase 80 pulls took 296 node-minutes in total, and at least one pull was in flight for 35.8 of the 77.3 minutes (46%). On the critical path of `keycloak` the `cloudnative-pg` image (1 min 27 s) and the PostgreSQL image (6 min 24 s) took about 8 of the 16 min 50 s before `initdb` could start.
+
+**Result for the Keycloak unit:** the events of the `keycloak` `Kustomization` contain only `DependencyNotReady`, `Progressing` and `ReconciliationSucceeded`; no event of any `Kustomization` in the whole bring-up reported a missing CRD (`no matches for kind`), StorageClass or Gateway. The Keycloak pod restarted twice by its liveness probe while the database image was still being pulled, and the operator then recreated it.
+
+**What did not converge by itself** (follow-ups, all under [#1937](https://github.com/isejalabs/homelab/issues/1937)):
+
+- HelmReleases stay `Stalled` after one install that ran into the Helm timeout, which blocked `keycloak` through `cloudnative-pg` until `flux reconcile hr --reset --force`: [#2045](https://github.com/isejalabs/homelab/issues/2045). Addressed by enabling helm-controller's `DefaultToRetryOnFailure` feature gate in [`flux-instance`](../k8s/infra/flux-system/flux-instance/base/helmrelease.yaml), see [`troubleshooting-flux.md`](troubleshooting-flux.md#4-helmrelease-specific-gotcha-readytrue-doesnt-always-mean-live-state-matches-git); not yet confirmed by a repeat of the cold start.
+- `powerdns` and `actualbudget` failed their dry-run on a kopiur webhook until the `ClusterRepository` existed: [#2046](https://github.com/isejalabs/homelab/issues/2046).
+- Cilium is installed twice (module 1.18, base 1.19), so every node pulls both generations of images: [#2044](https://github.com/isejalabs/homelab/issues/2044).
+
+A repeat with a normal internet link is still open.
+
 ## What this doesn't cover yet
 
 - Root-zone DNS recovery if both LXC nameservers are lost — physical infrastructure with no representation in this repo at all (see [`network.md`](architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)).
 - A complete inventory and recovery plan for out-of-cluster components. The repository does not yet document which external dependencies are fully backed up and restorable.
 - Recovery of 1Password-held secrets: there is no periodic backup, and this guide does not define how to restore or recreate those vault items.
-- A dated, timed record for each `rebuild` exercise — the cadence and scope above are owner-reported, but individual run results are not recorded here.
+- A dated, timed record for every `rebuild` exercise — the cadence and scope above are owner-reported, and only the exercises under [Recorded rebuild exercises](#recorded-rebuild-exercises) have their results recorded.
