@@ -36,6 +36,8 @@ Every environment's Flux instance reconciles continuously from Git — there's n
 
 ### renovate
 
+Upstream manifests that have no chart (the Gateway API CRDs, kubelet-serving-cert-approver, the Keycloak operator, Longhorn's uninstall job) are vendored under a `vendor/` directory of their unit, so that Flux's `kustomize build` never fetches them from the internet (an outage would otherwise fail the unit; see [#2055](https://github.com/isejalabs/homelab/issues/2055)). The unit's `kustomization.yaml` names the upstream file in a comment directly above the `vendor/` entry, and the `customManagers` in [`renovate.json5`](../.github/renovate.json5) match that URL, so Renovate still opens the version-bump PR. Renovate only changes the URL: run `scripts/vendor-manifests.sh update` on that PR branch to fetch the matching file, because the `kustomize-build` check (`scripts/vendor-manifests.sh check`) fails until the vendored file equals the upstream one. Hand-edits of a vendored file are not possible for the same reason; changes to it belong in a `patches:` entry of the unit.
+
 Renovate creates one PR per package/update-type combination (`separateMinorPatch: true`), labeled `pr-type:renovate` plus an `updateType:*` label. Because `env:*` labels come from changed paths, a renovate PR that only touches `k8s/apps/foo/envs/prod/` (see [below](#tracking-a-version-separately-per-environment)) gets `env:prod` on its own, distinct from a PR touching `base/` (which affects every environment that doesn't override it) or another environment's own override.
 
 ## How a Renovate pull request gets merged
@@ -127,7 +129,7 @@ The policy, once a unit is promoted to `prod`:
 The rule matches nothing yet: `prod` does not run these units, so there are no pin files. It starts to work when the promotion PR adds them. That PR must, besides moving the unit's line out of `sets/soaking`:
 
 - [ ] Pin every version source of the unit in `envs/prod/` with the same value `base/` has at that moment: the chart tag and digest of the CloudNativePG `OCIRepository` (as in [cilium's `envs/prod/ocirepository.yaml`](../k8s/infra/kube-system/cilium/envs/prod/ocirepository.yaml)), the PostgreSQL image of the `Cluster` (once it is pinned, [#1941](https://github.com/isejalabs/homelab/issues/1941)) and of the dump job, and the Keycloak operator release.
-- [ ] Give the Keycloak operator release a prod-owned pin. Its version is part of the remote resource URLs in [`base/kustomization.yaml`](../k8s/infra/keycloak/keycloak-operator/base/kustomization.yaml), which an overlay cannot patch, so the promotion PR has to decide how `prod` carries its own copy.
+- [ ] Give the Keycloak operator release a prod-owned pin. Its version is part of the upstream URLs in the comments of [`base/kustomization.yaml`](../k8s/infra/keycloak/keycloak-operator/base/kustomization.yaml), next to the manifests vendored under `base/vendor/`, which an overlay cannot patch, so the promotion PR has to decide how `prod` carries its own copy (for example a `vendor/` directory under `envs/prod/`, declared the same way and kept in sync by `scripts/vendor-manifests.sh`).
 - [ ] Render the `prod` overlay before and after (`kubectl kustomize`) and check the output is unchanged apart from the promotion itself.
 
 Limitations:

@@ -26,7 +26,12 @@
   // internals, not something to Renovate-track (confirmed live: without
   // this, the customManagers entry below would match 30+ files across
   // those vendored trees).
-  ignorePaths: ["_attic/**", "**/charts/**"],
+  // "**/vendor/**": upstream manifests copied verbatim (scripts/vendor-manifests.sh),
+  // whose image references follow the upstream release, so they must not get their
+  // own Renovate bumps. The version is bumped through the URL comment in the unit's
+  // kustomization.yaml (matched by the customManagers below), then the file is
+  // refreshed with `scripts/vendor-manifests.sh update`.
+  ignorePaths: ["_attic/**", "**/charts/**", "**/vendor/**"],
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
   },

@@ -9,6 +9,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | Script | Checks |
 | --- | --- |
 | [`kustomize-build-all.sh`](kustomize-build-all.sh) | `kubectl kustomize` + kubeconform across every `k8s/` overlay, plus a `targetNamespace` ban in `flux/ks.yaml` and a check that each `keycloak-realm` Terragrunt unit's `keycloak_url` matches its Keycloak overlay's hostname |
+| [`vendor-manifests.sh`](vendor-manifests.sh) | `check` fails when a manifest vendored under a unit's `vendor/` directory differs from the upstream file named in the unit's `kustomization.yaml`; `update` re-downloads them (run it after Renovate bumps the version in that URL) |
 | [`terragrunt-validate-all.sh`](terragrunt-validate-all.sh) | `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (or only the given ones); `prod`/`qa` units must also have a committed provider lock file and are init'd with `-lockfile=readonly` |
 | [`helmfile-template-all.sh`](helmfile-template-all.sh) | renders `k8s/bootstrap/helmfile/{crds,apps}` for every environment |
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |

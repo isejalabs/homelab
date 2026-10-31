@@ -71,7 +71,9 @@ def main():
     # `charts/` directories are vendored third-party Helm chart sources (argocd, sealed-secrets,
     # checkmk-agent, grafana-cloud, ...), not this repo's own manifests - not subject to sorting.md,
     # and not even always valid standalone YAML (Helm templates use non-YAML Go template syntax).
-    files = sorted(p for p in Path("k8s").rglob("*.yaml") if "charts" not in p.parts)
+    # `vendor/` directories hold upstream manifests copied verbatim (scripts/vendor-manifests.sh keeps them
+    # byte-identical to upstream), so they keep upstream's key order.
+    files = sorted(p for p in Path("k8s").rglob("*.yaml") if not {"charts", "vendor"} & set(p.parts))
     errors = []
 
     for path in files:
