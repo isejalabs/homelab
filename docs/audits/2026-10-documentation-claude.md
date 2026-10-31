@@ -1,6 +1,6 @@
 # Documentation Audit — October 2026, second pass (structure, presentation and publishing)
 
-**Date:** 2026-10-31. **Status:** Assessment complete; two follow-up issues created ([#2027](https://github.com/isejalabs/homelab/issues/2027), [#2028](https://github.com/isejalabs/homelab/issues/2028)), further suggestions not yet tracked. **Scope:** Documentation structure, navigation, readability, accuracy of entry points, diagrams, tooling and publishing, compared with the approach of [mitchross/talos-argocd-proxmox](https://github.com/mitchross/talos-argocd-proxmox). Explicitly not covered: the content of individual runbooks (not re-tested), public disclosure (owned by [#1601](https://github.com/isejalabs/homelab/issues/1601)), recovery gaps ([#1600](https://github.com/isejalabs/homelab/issues/1600)). **Origin:** Claude Code, read-only review of the `main` checkout plus the public reference repository. **Tracking:** Related to the [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); complements, and deliberately does not repeat, the [first October pass](2026-10-documentation.md).
+**Date:** 2026-10-31. **Status:** Assessment complete; six follow-up issues created beneath [#1336](https://github.com/isejalabs/homelab/issues/1336), one or more per finding (see [Follow-up issues](#follow-up-issues)). **Scope:** Documentation structure, navigation, readability, accuracy of entry points, diagrams, tooling and publishing, compared with the approach of [mitchross/talos-argocd-proxmox](https://github.com/mitchross/talos-argocd-proxmox). Explicitly not covered: the content of individual runbooks (not re-tested), public disclosure (owned by [#1601](https://github.com/isejalabs/homelab/issues/1601)), recovery gaps ([#1600](https://github.com/isejalabs/homelab/issues/1600)). **Origin:** Claude Code, read-only review of the `main` checkout plus the public reference repository. **Tracking:** Related to the [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); complements, and deliberately does not repeat, the [first October pass](2026-10-documentation.md).
 
 ## Summary
 
@@ -100,14 +100,18 @@ The cause is the same each time: a number or list was written by hand in prose, 
 
 **Recommendation:** Lead with the rule, then the reason. Use GitHub's native alerts (`> [!NOTE]`, `> [!WARNING]`, `> [!CAUTION]`) in runbooks for destructive or order-sensitive steps; they render on github.com today and map to admonitions on a MkDocs site. Give runbooks a consistent skeleton (when to use, prerequisites, steps with expected output, verify, rollback, last exercised); the recovery guide is already close and can be the template. Break out any bullet longer than about three sentences into a short sub-list or a linked section. Fix the root README's opening line under the DeepWiki badge, which currently begins with a badge as the grammatical subject.
 
-## Suggested follow-up issues
+## Follow-up issues
 
-Created at the user's request: [#2027](https://github.com/isejalabs/homelab/issues/2027) (S1) and [#2028](https://github.com/isejalabs/homelab/issues/2028) (S2). Not yet created; each is small and self-contained, so none needs an umbrella:
+All six are native sub-issues of the existing [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336). Each is small and self-contained, so none needs an intermediate umbrella:
 
-1. **S3** — fix the four drifts and add a catalog-versus-Flux-sets consistency check.
-2. **S4 and S5** — one decision issue: single source for the repository map, and how `docs/` is grouped (navigation first, folders later).
-3. **S6** — glossary, prerequisites table and a zero-to-cluster page.
-4. **S7 and S8** — scheduled external link check, spell check, runbook skeleton and alert syntax.
+| Finding | Issue |
+| --- | --- |
+| S1 — GitHub Pages site | [#2027](https://github.com/isejalabs/homelab/issues/2027) |
+| S2 — Mermaid diagrams and hero SVG | [#2028](https://github.com/isejalabs/homelab/issues/2028) |
+| S3 — drifted entry-point facts and a catalog check | [#2029](https://github.com/isejalabs/homelab/issues/2029) |
+| S4, S5 — single repository map, grouping of `docs/` | [#2030](https://github.com/isejalabs/homelab/issues/2030) |
+| S6 — glossary, prerequisites, zero-to-cluster page | [#2031](https://github.com/isejalabs/homelab/issues/2031) |
+| S7, S8 — scheduled link check, spell check, runbook skeleton | [#2032](https://github.com/isejalabs/homelab/issues/2032) |
 
 ## Review method and limits
 
