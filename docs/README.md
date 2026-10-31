@@ -108,3 +108,26 @@ Where it's signalled depends on the doc type, since each already has its own nat
 ## Architecture and reference docs
 
 Each folder keeps its own index, with a status per doc: [`architecture/README.md`](architecture/README.md) (with a suggested reading order) and [`reference/README.md`](reference/README.md). [`decisions/README.md`](decisions/README.md) and [`audits/README.md`](audits/README.md) do the same for ADRs and audits.
+
+## Documentation site
+
+The Markdown in this repo is also built into a searchable, navigable site with [MkDocs](https://www.mkdocs.org/) and the Material theme (choice and trade-offs: [ADR 0017](decisions/0017-docs-site-generator.md)). The Markdown stays the single source of truth and stays readable on github.com; the site is a rendering of it, with nothing copied or moved. It will be published at <https://isejalabs.github.io/homelab/> once the owner has decided on public disclosure ([#1601](https://github.com/isejalabs/homelab/issues/1601)); until then the site is built and checked on every relevant pull request but not deployed, and it is marked `noindex`.
+
+What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
+
+- The whole checkout is the docs directory, so the per-folder READMEs and the root `README.md` appear on the site without being moved. Everything that is not documentation (`.github/`, `.agents/`, `_attic/`, `ZZ.bak/`, [`logs/`](logs), `AGENTS.md`) is excluded in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
+- Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
+- The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, an ADR's `## Status` section, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans).
+- `mermaid` code fences are rendered as diagrams.
+- A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
+
+Preview locally (Python 3.11 or newer, with the virtual environment outside the checkout so MkDocs does not scan it; the versions are pinned in [`requirements.txt`](../.ci/mkdocs/requirements.txt)), from the repository root:
+
+```sh
+python3 -m venv /tmp/venv-docs && . /tmp/venv-docs/bin/activate
+pip install -r .ci/mkdocs/requirements.txt
+NO_MKDOCS_2_WARNING=1 mkdocs serve --config-file .ci/mkdocs/mkdocs.yml    # live preview at http://127.0.0.1:8000
+NO_MKDOCS_2_WARNING=1 mkdocs build --strict --config-file .ci/mkdocs/mkdocs.yml --site-dir /tmp/homelab-site    # what CI runs
+```
+
+The [`docs-build`](../.github/workflows/docs-build.yml) workflow runs the strict build on pull requests that touch documentation, so a broken relative link or `#anchor` fails it. The deploy job runs on `main` only, and only while the repository variable `DOCS_PAGES_PUBLISH` is `true` and the repository's Pages source is set to GitHub Actions.

@@ -10,6 +10,7 @@ A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven h
 - **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see [`environments.md`](docs/architecture/environments.md) for what each one is for.
 - **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#a-bit-of-history) below.
 - **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, or [`docs/README.md`](docs/README.md) for the documentation index.
+- **Documentation site**: the same Markdown is built into a searchable site (see [how it is built](docs/README.md#documentation-site)); it is not published yet, pending the public-disclosure decision.
 
 ## I need to…
 
