@@ -111,7 +111,7 @@ Each folder keeps its own index, with a status per doc: [`architecture/README.md
 
 ## Documentation site
 
-The Markdown in this repo is also built into a searchable, navigable site with [MkDocs](https://www.mkdocs.org/) and the Material theme (choice and trade-offs: [ADR 0017](decisions/0017-docs-site-generator.md)). The Markdown stays the single source of truth and stays readable on github.com; the site is a rendering of it, with nothing copied or moved. It will be published at <https://isejalabs.github.io/homelab/> once the owner has decided on public disclosure ([#1601](https://github.com/isejalabs/homelab/issues/1601)); until then the site is built and checked on every relevant pull request but not deployed, and it is marked `noindex`.
+The Markdown in this repo is also built into a searchable, navigable site with [MkDocs](https://www.mkdocs.org/) and the Material theme (choice and trade-offs: [ADR 0017](decisions/0017-docs-site-generator.md)). The Markdown stays the single source of truth and stays readable on github.com; the site is a rendering of it, with nothing copied or moved. It is published at <https://isejalabs.github.io/homelab/> and open to search engines; the owner accepted that while the public-disclosure decision ([#1601](https://github.com/isejalabs/homelab/issues/1601)) is still pending. To hide it again, set `extra.noindex: true` in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml), which adds a `noindex` meta tag and a `robots.txt` that disallows everything.
 
 What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
 

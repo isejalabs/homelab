@@ -22,6 +22,9 @@ exclude_docs: |
   !*.jpeg
   !*.gif
   !*.webp
+  # the theme's own stylesheets, scripts and fonts are matched by these patterns too and would be dropped
+  # with everything else; they all live under the root-level assets/ directory of the built site
+  !/assets/**
   # directories that hold no site content (a trailing /** is needed: a bare directory pattern does not win
   # against the re-inclusion of directories above)
   /.git/**
@@ -115,9 +118,9 @@ markdown_extensions:
     custom_checkbox: true
 
 extra:
-  # Keeps the site out of search engines (meta tag and robots.txt) until the public-disclosure decision
-  # (#1601) is made; set to false only once that decision allows indexing.
-  noindex: true
+  # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
+  # go-ahead while the public-disclosure decision (#1601) is still pending.
+  noindex: false
   social: []
 
 nav:
