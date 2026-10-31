@@ -12,21 +12,14 @@ A personal, IaC-driven homelab: Proxmox VMs → Talos Linux → Kubernetes, prov
 
 ## Repository layout
 
+Humans start at the root [`README.md`](README.md), which holds the top-level folder map; this section is the short version for agents and links to the one place each level is described. Documentation is indexed in [`docs/README.md`](docs/README.md).
+
 - `terragrunt/` — OpenTofu/Terragrunt IaC that provisions Proxmox VMs and installs Talos. Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<module>`.
    - `terragrunt/_envcommon/` holds reusable `.hcl` includes (`vms.hcl`, `talos-proxmox.hcl`, `vehagn-k8s.hcl`, `tf-state-read-role.hcl`).
    - `terragrunt/root.hcl` is the top-level config: it merges `account.hcl`/`region.hcl`/`env.hcl` locals and SOPS-encrypted `*-secrets.sops.yaml` at each level (global → account → region → env → local, each overriding the last), and wires the S3 remote-state backend.
 - `k8s/bootstrap/` — the second bootstrap phase: `helmfile` installs foundational CRDs and infra (Cilium, sealed-secrets, cert-manager, external-secrets, onepassword-connect, flux-operator/instance) via `just bootstrap::cluster --env <env>`, then hands off to Flux. `k8s/bootstrap/cluster/flux/` defines the Flux `sets/` (`infra`, `apps`, each with `minimal`/`optional` subsets) that get composed per environment under `flux/envs/<env>/`. `k8s/bootstrap/helmfile/` has the helmfile definitions (`crds/`, `apps/`, `base/`, `templates/*.gotmpl`). `k8s/bootstrap/kustomize/personal/` holds personal credentials injected via `op inject` during bootstrap. See `k8s/bootstrap/README.md` for the full walkthrough and prerequisites.
-- `k8s/infra/` and `k8s/apps/` — the actual workloads Flux reconciles, grouped by domain (e.g. `k8s/infra/cert-manager/`, `k8s/infra/csi-proxmox/`, `k8s/apps/dns/adguard/`, `k8s/apps/finances/actualbudget/`). Every app/infra unit follows the same shape:
-  - `base/` — environment-agnostic manifests (a `kustomization.yaml` plus resources, using placeholder domain `example.com`).
-  - `envs/<env>/` — per-environment overlay: pulls in `../../../../../components/envs/<env>` as a kustomize component and patches (`patches:`) only what differs (Service LB IPs, replica counts, etc.).
-  - `flux/` — the Flux `Kustomization` (`ks.yaml`) that tells Flux to reconcile this unit, plus its own `kustomization.yaml`. Note `spec.path` in `ks.yaml` is written pointing at `base/` but gets rewritten per-environment (see below).
-- `k8s/components/` — the shared DRY layer. `components/envs/<env>/` are the per-environment kustomize Components included by every app/infra overlay. `components/transformers/` holds the actual kustomize transformers/replacements those components apply:
-  - `replace-path` — rewrites the last two path segments of every Flux `Kustomization.spec.path` (`.../base` → `.../envs/<env>`) using `ConfigMap` values `cluster-base-param`/`cluster-param` (`CLUSTER_ENVIRONMENT`), driven by `components/envs/base/cluster-base-param.yaml` and `components/envs/<env>/cluster-param.yaml`.
-  - `replace-domain` / `prefix-domain` — swap the placeholder `example.com` for the real domain (and prefix per-env, e.g. `dev-app.example.com`) across Ingress/HTTPRoute/TLSRoute/Gateway/Certificate resources.
-  - `add-labels` — adds common labels (e.g. `reconcile.fluxcd.io/watch: "Enabled"`).
-  - `set-flux-defaults` — sets default Flux `Kustomization`/`HelmRelease` reconciliation intervals.
-  - `kopiur-secret-env` — rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket name (both otherwise stated once, generically, in `base/`).
-  - `suspend-kopiur-schedule` — force-suspends every `SnapshotSchedule` in environments without an active kopiur backup schedule (`dbg`/`head`/`poc`/`src`), regardless of which storage component an app picked. See `k8s/components/README.md` for the folder structure.
+- `k8s/infra/` and `k8s/apps/` — the workloads Flux reconciles, grouped by domain. Every unit has the same `base/` + `envs/<env>/` + `flux/` shape; `spec.path` in `flux/ks.yaml` is written pointing at `base/` but rewritten per environment. The folder tree and the shape are described once, in [`k8s/README.md`](k8s/README.md).
+- `k8s/components/` — the shared DRY layer every overlay includes: `components/envs/<env>/` (per-environment kustomize Components) and `components/transformers/` (`replace-path`, `replace-domain`, `prefix-domain`, `add-labels`, `set-flux-defaults`, `kopiur-secret-env`, `suspend-kopiur-schedule`). What each transformer does is described once, in [`k8s/components/README.md`](k8s/components/README.md) and [`docs/architecture/kustomize.md`](docs/architecture/kustomize.md).
 - `scripts/` — helper shell scripts: `sops-encrypt-all.sh`/`sops-decrypt-all.sh` (bulk SOPS operations), `tg-state-rm.sh` (remove dangling/volume Terragrunt state before destroy), `volume-remove-state.sh`.
 - `_attic/`, `ZZ.bak/` — retired/old material, not part of the active implementation.
 
