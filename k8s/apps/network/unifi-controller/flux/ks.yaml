@@ -20,6 +20,7 @@ spec:
   dependsOn:
     - name: cilium
     - name: gateway-api
+    - name: kopiur-repository
     - name: proxmox-csi
     - name: sealed-secrets
     - name: unifi-mongodb

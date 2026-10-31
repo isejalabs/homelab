@@ -21,3 +21,5 @@ spec:
       PGID: "1000"
       PUID: "1000"
       STORAGE_CAPACITY: 2Gi
+  dependsOn:
+    - name: kopiur-repository

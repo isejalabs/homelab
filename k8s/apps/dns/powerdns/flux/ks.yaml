@@ -22,3 +22,5 @@ spec:
       # actual application data.
       STORAGE_CAPACITY: 128Mi
       STORAGE_CLASS: longhorn-ha
+  dependsOn:
+    - name: kopiur-repository

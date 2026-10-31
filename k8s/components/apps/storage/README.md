@@ -55,6 +55,10 @@ spec:
       # STORAGE_STAGING_CLASS: longhorn-scratch-xfs  # required alongside an xfs STORAGE_CLASS
       # PUID: "1001"
       # PGID: "1001"
+  dependsOn:
+    - name: kopiur-repository
 ```
+
+`dependsOn: kopiur-repository` is required, not optional: the component's `SnapshotPolicy`/`Restore` are admitted by kopiur's webhook, which reads the `ClusterRepository` that the `kopiur-repository` unit creates. Without the dependency, a cold bring-up fails the server-side dry-run (`cannot read ClusterRepository`) and only recovers on the next Kustomization interval. Every environment's Flux set includes `kopiur-repository`, so the dependency is always satisfiable. Keep `dependsOn` last, per the [sorting convention](../../../../.agents/instructions/sorting.md).
 
 That's it — no per-env patching, no separate secret wiring. The app's PVC binds empty on first deploy (`onMissingSnapshot: Continue`), and from then on (if using `pvc`, not `pvc-no-backup`) is backed up daily per [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md).

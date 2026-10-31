@@ -27,5 +27,6 @@ spec:
       STORAGE_STAGING_CLASS: longhorn-scratch-xfs
   dependsOn:
     - name: cilium
+    - name: kopiur-repository
     - name: proxmox-csi
     - name: sealed-secrets

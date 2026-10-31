@@ -15,6 +15,7 @@ spec:
   wait: true
   dependsOn:
     - name: gateway-api
+    - name: kopiur-repository
     - name: longhorn
   postBuild:
     substitute:
