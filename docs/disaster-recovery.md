@@ -97,7 +97,7 @@ Without waits for the 1Password CLI the active time was about 2 h 10 min. **Imag
 
 **What did not converge by itself** (follow-ups, all under [#1937](https://github.com/isejalabs/homelab/issues/1937)):
 
-- HelmReleases stay `Stalled` after one install that ran into the Helm timeout, which blocked `keycloak` through `cloudnative-pg` until `flux reconcile hr --reset --force`: [#2045](https://github.com/isejalabs/homelab/issues/2045).
+- HelmReleases stay `Stalled` after one install that ran into the Helm timeout, which blocked `keycloak` through `cloudnative-pg` until `flux reconcile hr --reset --force`: [#2045](https://github.com/isejalabs/homelab/issues/2045). Addressed by enabling helm-controller's `DefaultToRetryOnFailure` feature gate in [`flux-instance`](../k8s/infra/flux-system/flux-instance/base/helmrelease.yaml), see [`troubleshooting-flux.md`](troubleshooting-flux.md#4-helmrelease-specific-gotcha-readytrue-doesnt-always-mean-live-state-matches-git); not yet confirmed by a repeat of the cold start.
 - `powerdns` and `actualbudget` failed their dry-run on a kopiur webhook until the `ClusterRepository` existed: [#2046](https://github.com/isejalabs/homelab/issues/2046).
 - Cilium is installed twice (module 1.18, base 1.19), so every node pulls both generations of images: [#2044](https://github.com/isejalabs/homelab/issues/2044).
 
