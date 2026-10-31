@@ -19,6 +19,36 @@ status: current
 
 ## How it works
 
+The two flows below are the same mechanism seen from both sides: the schedule writes snapshots to `fiona`, and a new PVC reads the latest one back. The subsections after the diagram describe each flow step by step.
+
+```mermaid
+flowchart TD
+    accTitle: Kopiur backup and restore flow
+    accDescr: Backup, for apps using apps/storage/pvc only. A daily SnapshotSchedule creates a Snapshot, which takes a CSI VolumeSnapshot of the app's PVC, restores it into a temporary longhorn-scratch staging PVC, and runs the kopia mover that uploads to the fiona S3 repository; the staging PVC is deleted afterwards. Restore, for every app using the storage components. When the app's PVC is created, its dataSourceRef points at a Restore object that populates the volume from the latest matching snapshot in fiona before any pod mounts it. If no snapshot exists yet, the Restore continues and the volume starts empty.
+
+    subgraph backup["Backup: daily, apps/storage/pvc only"]
+        direction LR
+        sched["SnapshotSchedule<br/>cron H 3 * * *"] --> snap["Snapshot"]
+        snap --> vs["CSI VolumeSnapshot<br/>of the app PVC"]
+        vs --> stage["temporary staging PVC<br/>longhorn-scratch-ext4 or -xfs"]
+        stage --> mover["kopia mover"]
+        mover --> cleanup["staging PVC deleted"]
+    end
+
+    repo[("fiona<br/>S3 ClusterRepository<br/>bucket per environment")]
+
+    subgraph restore["Restore: when the PVC is created"]
+        direction LR
+        pvc["app PVC<br/>dataSourceRef"] --> rest["Restore<br/>onMissingSnapshot: Continue"]
+        rest --> found{"matching snapshot<br/>in fiona?"}
+        found -->|"yes"| populated["volume populated from the<br/>latest snapshot, then pod starts"]
+        found -->|"no, first deploy"| empty["empty volume, pod starts"]
+    end
+
+    mover -->|"upload"| repo
+    repo -->|"latest snapshot"| rest
+```
+
 ### Restore-on-create: the core idea
 
 An app's PVC has `dataSourceRef` pointing at a `Restore` object, using the CSI PVC-populator mechanism. This one mechanism covers both of the cases that matter, adapted from [onedr0p/home-ops](https://github.com/onedr0p/home-ops)' original design (see [Credits & changes from upstream](#credits--changes-from-upstream)):

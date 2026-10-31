@@ -107,6 +107,26 @@ That's a genuinely dynamic PVC — no pre-created `PersistentVolume`, no Terragr
 
 ## Choosing between them
 
+```mermaid
+flowchart TD
+    accTitle: Choosing a storage backend for a new volume
+    accDescr: A new volume goes to Longhorn unless it must survive a full cluster teardown by Terragrunt import or needs its size and placement declared in Terragrunt, in which case it uses proxmox-csi with a Terragrunt-declared volume. On Longhorn, the StorageClass is chosen by consistency and performance needs, and the app includes apps/storage/pvc for daily kopiur backups or apps/storage/pvc-no-backup when the data does not need protecting.
+
+    start["New volume"] --> q1{"Must survive a full cluster teardown<br/>by Terragrunt import, or need size and<br/>placement declared in Terragrunt?"}
+    q1 -->|"yes"| pcsi["proxmox-csi<br/>Terragrunt-declared volume<br/>reclaimPolicy Retain"]
+    q1 -->|"no, the default"| lh{"Which Longhorn StorageClass?"}
+    lh -->|"general purpose, 2 replicas"| std["longhorn-standard, -ext4 or -xfs"]
+    lh -->|"speed over HA, 1 replica"| fast["longhorn-fast<br/>strict-local"]
+    lh -->|"maximum resilience, 3 replicas"| ha["longhorn-ha<br/>reclaimPolicy Retain"]
+    std --> comp{"Does the data need a backup?"}
+    fast --> comp
+    ha --> comp
+    comp -->|"yes, the default"| pvc["apps/storage/pvc<br/>daily kopiur backup to S3"]
+    comp -->|"no"| nobk["apps/storage/pvc-no-backup<br/>restorable, but never scheduled"]
+```
+
+The diagram is the decision the two bullets below spell out. An app that includes one of the storage components gets `longhorn-standard` unless its `flux/ks.yaml` sets `STORAGE_CLASS` (see [`app-storage.md`](../app-storage.md)); the chart-default `longhorn` class (1 replica) only serves a PVC that names no class at all, see [StorageClasses](#storageclasses--one-driver-several-tradeoff-profiles).
+
 Longhorn is the default going forward — proxmox-csi is being phased out for new workloads, kept only where its specific properties are worth the Terragrunt overhead:
 
 - **proxmox-csi** — reach for it only when a volume needs to survive a full cluster teardown/rebuild by Terragrunt import rather than Longhorn's own backup/restore, or when its size/placement is meaningful enough to want declared explicitly in Terragrunt. In practice: the handful of volumes an app absolutely cannot lose (e.g. unifi-controller's MongoDB data) that predate the move to Longhorn.
