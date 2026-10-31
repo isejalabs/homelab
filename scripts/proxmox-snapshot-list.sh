@@ -1,7 +1,7 @@
 #!/bin/bash
 # Lists the Proxmox VMs belonging to one environment (discovered via scripts/lib/proxmox.sh's
 # 70081<id><n> vmid scheme, cross-checked against each VM's name prefix) and each VM's snapshots, via the
-# Proxmox REST API -- no SSH. Read-only. See docs/proxmox-vm-snapshots.md.
+# Proxmox REST API -- no SSH. Read-only. See docs/operations/proxmox-vm-snapshots.md.
 #
 # Usage: scripts/proxmox-snapshot-list.sh -e <env>
 set -euo pipefail

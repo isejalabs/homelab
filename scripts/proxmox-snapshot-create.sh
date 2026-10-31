@@ -1,7 +1,7 @@
 #!/bin/bash
 # Creates a Proxmox snapshot named <name> (default "initial") on every VM belonging to <env>, in parallel,
 # via the Proxmox REST API -- no SSH. The "Snapshot" half of #1296's one-go workflow. Non-destructive
-# (additive only) -- no confirmation prompt. See docs/proxmox-vm-snapshots.md.
+# (additive only) -- no confirmation prompt. See docs/operations/proxmox-vm-snapshots.md.
 #
 # Usage: scripts/proxmox-snapshot-create.sh -e <env> [--name <name>]
 set -euo pipefail

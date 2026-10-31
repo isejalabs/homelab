@@ -1,11 +1,11 @@
 #!/bin/bash
 # Rolls back every VM belonging to <env> to a named snapshot (default "initial") and, unless --no-start,
 # boots it back up -- the "Rollback" half of #1296's one-go workflow, via the Proxmox REST API -- no SSH.
-# See docs/proxmox-vm-snapshots.md.
+# See docs/operations/proxmox-vm-snapshots.md.
 #
 # Destructive: discards every disk change made since the snapshot. Requires typed confirmation unless
 # -y/--yes. Proxmox only allows rolling back to a VM's MOST RECENT snapshot -- if any discovered VM has a
-# newer snapshot on top of <name>, this aborts before touching any VM (see docs/proxmox-vm-snapshots.md for
+# newer snapshot on top of <name>, this aborts before touching any VM (see docs/operations/proxmox-vm-snapshots.md for
 # why, and how to proceed).
 #
 # Usage: scripts/proxmox-snapshot-rollback.sh -e <env> [--name <name>] [-y|--yes] [--no-start]
@@ -63,7 +63,7 @@ fi
 # rollback semantics (PVE::AbstractConfig::snapshot_rollback, independent of storage backend) refuse
 # rolling back to an older snapshot while a newer one sits on top of it -- a `force` API param exists to
 # override this by destroying the newer snapshots, but this script deliberately doesn't expose it (that's
-# a second, larger destructive action on top of the one asked for here; see docs/proxmox-vm-snapshots.md).
+# a second, larger destructive action on top of the one asked for here; see docs/operations/proxmox-vm-snapshots.md).
 # A single VM failing this check aborts the whole rollback before any VM is touched.
 MISSING=()
 NOT_LATEST=()
@@ -85,7 +85,7 @@ if [ "${#MISSING[@]}" -gt 0 ]; then
     exit 1
 fi
 if [ "${#NOT_LATEST[@]}" -gt 0 ]; then
-    log fatal "'${NAME}' is not the most recent snapshot on some VMs -- Proxmox only allows rolling back to the latest snapshot; remove the newer ones first (see docs/proxmox-vm-snapshots.md)" "vms" "${NOT_LATEST[*]}"
+    log fatal "'${NAME}' is not the most recent snapshot on some VMs -- Proxmox only allows rolling back to the latest snapshot; remove the newer ones first (see docs/operations/proxmox-vm-snapshots.md)" "vms" "${NOT_LATEST[*]}"
     exit 1
 fi
 

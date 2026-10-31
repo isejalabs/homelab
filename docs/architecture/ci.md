@@ -28,7 +28,7 @@ Phase 2 — checks that need a live/ephemeral cluster beyond what `bootstrap-app
 
 ## How a pull request reaches `main`
 
-The diagram shows which workflows a pull request triggers and where the merge decision sits. Which Renovate pull requests Mergify merges on its own is a separate decision, drawn in [`update-handling.md`](../update-handling.md#how-a-renovate-pull-request-gets-merged).
+The diagram shows which workflows a pull request triggers and where the merge decision sits. Which Renovate pull requests Mergify merges on its own is a separate decision, drawn in [`update-handling.md`](../operations/update-handling.md#how-a-renovate-pull-request-gets-merged).
 
 ```mermaid
 flowchart LR

@@ -59,5 +59,5 @@ Notifications are configured per site and never merged across sites. They are no
 - [`reference/monitoring-sites.md`](../reference/monitoring-sites.md) — containers, sites, editions, check intervals, licence state, ping-only hosts.
 - [`reference/monitoring-notifications.md`](../reference/monitoring-notifications.md) — notification settings per site and what is noise vs signal.
 - [`reference/monitoring-thresholds.md`](../reference/monitoring-thresholds.md) — rules tuned against false positives, with their evidence.
-- [`docs/checkmk-automation-user.md`](../checkmk-automation-user.md) — the role of the `terraform` user the Checkmk units use.
+- [`docs/operations/checkmk-automation-user.md`](../operations/checkmk-automation-user.md) — the role of the `terraform` user the Checkmk units use.
 - [`plans/2026-10-checkmk-consolidation.md`](../plans/2026-10-checkmk-consolidation.md) and [`plans/2026-09-observability.md`](../plans/2026-09-observability.md) — where this is heading.

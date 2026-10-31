@@ -205,7 +205,7 @@ proxmox_wait_task() {
 # followed by letters/digits/underscores/hyphens), plus an explicit rejection of "current" (Proxmox's
 # reserved name for the live/uncommitted VM state, never a real snapshot). This mirrors, but doesn't
 # replace, Proxmox's own server-side validation -- verify empirically against a real cluster before relying
-# on it (see docs/proxmox-vm-snapshots.md).
+# on it (see docs/operations/proxmox-vm-snapshots.md).
 proxmox_validate_snapshot_name() {
     local name="$1"
     if [ "${name}" = "current" ]; then
