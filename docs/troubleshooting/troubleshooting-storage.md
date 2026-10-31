@@ -4,11 +4,11 @@ status: current
 
 # Troubleshooting: storage (PVCs, Longhorn, proxmox-csi)
 
-For whoever's responding to a "volume won't bind" or "volume is degraded" incident — not an introduction to Longhorn vs. proxmox-csi (see [`architecture/storage.md`](architecture/storage.md) for that) and not app-data backup/restore (see [`kopiur-backup-restore.md`](kopiur-backup-restore.md) for that).
+For whoever's responding to a "volume won't bind" or "volume is degraded" incident — not an introduction to Longhorn vs. proxmox-csi (see [`architecture/storage.md`](../architecture/storage.md) for that) and not app-data backup/restore (see [`kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md) for that).
 
 ## 1. A PVC stuck `Pending`
 
-**Check this isn't expected behavior before treating it as stuck.** Every Longhorn `StorageClass` in this repo sets `volumeBindingMode: WaitForFirstConsumer` (see [`storage.md`](architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles)) — a freshly created PVC legitimately stays `Pending` until a Pod that actually claims it is scheduled. Check the owning Pod first:
+**Check this isn't expected behavior before treating it as stuck.** Every Longhorn `StorageClass` in this repo sets `volumeBindingMode: WaitForFirstConsumer` (see [`storage.md`](../architecture/storage.md#storageclasses--one-driver-several-tradeoff-profiles)) — a freshly created PVC legitimately stays `Pending` until a Pod that actually claims it is scheduled. Check the owning Pod first:
 
 ```sh
 kubectl get pod -n <namespace> -o wide
@@ -26,14 +26,14 @@ Read the `Events` section at the bottom — a CSI driver that isn't ready, a `st
 
 ### proxmox-csi specifically
 
-Confirm the driver has capacity and is actually running (real example output from [`k8s/infra/csi-proxmox/proxmox-csi/README.md`](../k8s/infra/csi-proxmox/proxmox-csi/README.md)):
+Confirm the driver has capacity and is actually running (real example output from [`k8s/infra/csi-proxmox/proxmox-csi/README.md`](../../k8s/infra/csi-proxmox/proxmox-csi/README.md)):
 
 ```sh
 kubectl get csistoragecapacities -ocustom-columns=CLASS:.storageClassName,AVAIL:.capacity,ZONE:.nodeTopology.matchLabels -A
 kubectl get pods -n csi-proxmox
 ```
 
-Remember proxmox-csi volumes in this repo are **Terragrunt-pinned, not dynamically provisioned** (see [`storage.md`](architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild)) — a PVC referencing one by `volumeName` failing to bind is more likely a mismatch between what the PVC expects and what Terragrunt actually created/imported than a transient driver issue. Re-importing a volume into Terragrunt state itself (e.g. after a cluster rebuild) is a bootstrapping task, not a troubleshooting one — see [`terragrunt/README.md`](../terragrunt/README.md#import-proxmox-volume) for those commands rather than re-deriving them here.
+Remember proxmox-csi volumes in this repo are **Terragrunt-pinned, not dynamically provisioned** (see [`storage.md`](../architecture/storage.md#proxmox-csi--terragrunt-pinned-volumes-that-survive-a-cluster-rebuild)) — a PVC referencing one by `volumeName` failing to bind is more likely a mismatch between what the PVC expects and what Terragrunt actually created/imported than a transient driver issue. Re-importing a volume into Terragrunt state itself (e.g. after a cluster rebuild) is a bootstrapping task, not a troubleshooting one — see [`terragrunt/README.md`](../../terragrunt/README.md#import-proxmox-volume) for those commands rather than re-deriving them here.
 
 **A `Released` PV with a stale `claimRef` is the single most common cause for these specific volumes.** Because proxmox-csi volumes here are statically named and meant to be *reused* (e.g. `pv-unifi`, `pv-mongodb`), a PV that previously bound to a since-deleted PVC doesn't go back to `Available` on its own — its `spec.claimRef` keeps pointing at that old PVC, and a *new* PVC with a matching `volumeName:` reference can only bind to an `Available` volume, not a `Released` one. Confirm the state:
 
@@ -61,11 +61,11 @@ Check the `ROBUSTNESS` column — **Degraded** means at least one replica is unh
 kubectl get replicas.longhorn.io -n longhorn-system -l longhornvolume=<volume-name>
 ```
 
-Common underlying causes, in order of likelihood: a node down or cordoned (`kubectl get nodes`), or the node's Longhorn data disk full (`defaultDataPath: /var/mnt/longhorn` per [`storage.md`](architecture/storage.md#longhorn--ordinary-in-cluster-dynamic-storage) — check with `df -h /var/mnt/longhorn` on that node, e.g. via `talosctl` or a debug pod). Fix the underlying node/disk problem first — Longhorn rebuilds a missing/unhealthy replica automatically once the node or disk it needs is healthy again; there's normally no direct action needed on the `Volume`/`Replica` objects themselves.
+Common underlying causes, in order of likelihood: a node down or cordoned (`kubectl get nodes`), or the node's Longhorn data disk full (`defaultDataPath: /var/mnt/longhorn` per [`storage.md`](../architecture/storage.md#longhorn--ordinary-in-cluster-dynamic-storage) — check with `df -h /var/mnt/longhorn` on that node, e.g. via `talosctl` or a debug pod). Fix the underlying node/disk problem first — Longhorn rebuilds a missing/unhealthy replica automatically once the node or disk it needs is healthy again; there's normally no direct action needed on the `Volume`/`Replica` objects themselves.
 
 ## 3. `reclaimPolicy: Retain` leaks — the most common self-inflicted cause
 
-Only `longhorn-ha` and `proxmox-csi` still use `reclaimPolicy: Retain`, deliberately (see [`storage.md`](architecture/storage.md#reclaimpolicy-retain-and-the-two-step-cleanup-gotcha)) — deleting a PVC or its namespace on those classes never deletes the underlying volume. (A PV provisioned before its class was switched to `Delete` still carries `Retain` until it is patched.) If a volume "should" be free but a new PVC can't claim it, check for an orphaned `PersistentVolume` left behind by an earlier deleted PVC/namespace (e.g. leftover from [`track-branch`](../.agents/skills/track-branch/SKILL.md) testing on a non-prod environment):
+Only `longhorn-ha` and `proxmox-csi` still use `reclaimPolicy: Retain`, deliberately (see [`storage.md`](../architecture/storage.md#reclaimpolicy-retain-and-the-two-step-cleanup-gotcha)) — deleting a PVC or its namespace on those classes never deletes the underlying volume. (A PV provisioned before its class was switched to `Delete` still carries `Retain` until it is patched.) If a volume "should" be free but a new PVC can't claim it, check for an orphaned `PersistentVolume` left behind by an earlier deleted PVC/namespace (e.g. leftover from [`track-branch`](../../.agents/skills/track-branch/SKILL.md) testing on a non-prod environment):
 
 ```sh
 kubectl get pv
@@ -78,7 +78,7 @@ kubectl delete pv <name>
 kubectl delete volumes.longhorn.io <name> -n longhorn-system
 ```
 
-For proxmox-csi, the equivalent cleanup is the Terragrunt state-removal flow in [`terragrunt/README.md`](../terragrunt/README.md#prevent-deletion-of-proxmox-volumes), not a plain `kubectl delete` — these volumes are Terragrunt-managed, so removing just the Kubernetes object without updating Terraform state leaves it dangling there instead.
+For proxmox-csi, the equivalent cleanup is the Terragrunt state-removal flow in [`terragrunt/README.md`](../../terragrunt/README.md#prevent-deletion-of-proxmox-volumes), not a plain `kubectl delete` — these volumes are Terragrunt-managed, so removing just the Kubernetes object without updating Terraform state leaves it dangling there instead.
 
 ## Verify the fix actually took
 

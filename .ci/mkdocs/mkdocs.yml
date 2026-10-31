@@ -1,0 +1,242 @@
+site_name: isejalabs homelab
+site_description: Documentation for the isejalabs homelab - Proxmox, Talos Linux, Kubernetes and Flux CD, provisioned as code.
+site_url: https://isejalabs.github.io/homelab/
+repo_url: https://github.com/isejalabs/homelab
+repo_name: isejalabs/homelab
+edit_uri: edit/main/
+
+# MkDocs refuses a docs_dir that contains mkdocs.yml, so this file lives in .ci/mkdocs/ and docs_dir points
+# back at the repository root. The Markdown stays where it is (docs/, plus READMEs next to the code they describe); the whole checkout is
+# the docs_dir and exclude_docs keeps everything but documentation out. See docs/decisions/0017-docs-site-generator.md.
+docs_dir: ../..
+# site_dir must not sit inside docs_dir (the checkout), so it is the sibling directory ../homelab-site.
+site_dir: ../../../homelab-site
+exclude_docs: |
+  # everything that is not Markdown or an image, in every directory
+  *
+  !*/
+  !*.md
+  !*.png
+  !*.svg
+  !*.jpg
+  !*.jpeg
+  !*.gif
+  !*.webp
+  # the theme's own stylesheets, scripts and fonts are matched by these patterns too and would be dropped
+  # with everything else; they all live under the root-level assets/ directory of the built site
+  !/assets/**
+  # directories that hold no site content (a trailing /** is needed: a bare directory pattern does not win
+  # against the re-inclusion of directories above)
+  /.git/**
+  /.github/**
+  /.agents/**
+  /.claude/**
+  /.codex/**
+  /.commons/**
+  /.ci/**
+  /.vscode/**
+  /_attic/**
+  /ZZ.bak/**
+  /terragrunt/**/.terraform/**
+  # agent instructions and local tooling notes, not documentation
+  /AGENTS.md
+  /CLAUDE.md
+  /scripts/mink-codex-hook.md
+
+use_directory_urls: true
+
+validation:
+  omitted_files: info
+  absolute_links: warn
+  unrecognized_links: warn
+  anchors: warn
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  palette:
+  - media: "(prefers-color-scheme)"
+    toggle:
+      icon: material/brightness-auto
+      name: Switch to light mode
+  - media: "(prefers-color-scheme: light)"
+    scheme: default
+    toggle:
+      icon: material/brightness-7
+      name: Switch to dark mode
+  - media: "(prefers-color-scheme: dark)"
+    scheme: slate
+    toggle:
+      icon: material/brightness-4
+      name: Switch to system preference
+  features:
+  - content.action.edit
+  - content.code.copy
+  - navigation.indexes
+  - navigation.instant
+  - navigation.sections
+  - navigation.tabs
+  - navigation.top
+  - navigation.tracking
+  - search.highlight
+  - search.suggest
+  - toc.follow
+
+hooks:
+- hooks.py
+
+plugins:
+- search
+
+markdown_extensions:
+- admonition
+- attr_list
+- def_list
+- footnotes
+- md_in_html
+- tables
+- toc:
+    permalink: true
+    # GitHub-compatible heading anchors, so `#anchor` links work the same on github.com and on the site
+    slugify: !!python/object/apply:pymdownx.slugs.slugify
+      kwds:
+        case: lower
+- pymdownx.details
+- pymdownx.highlight:
+    anchor_linenums: true
+- pymdownx.inlinehilite
+- pymdownx.superfences:
+    custom_fences:
+    - name: mermaid
+      class: mermaid
+      format: !!python/name:pymdownx.superfences.fence_code_format
+- pymdownx.tabbed:
+    alternate_style: true
+- pymdownx.tasklist:
+    custom_checkbox: true
+
+extra:
+  # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
+  # go-ahead while the public-disclosure decision (#1601) is still pending.
+  noindex: false
+  social: []
+
+nav:
+- Home: README.md
+- Documentation guide: docs/README.md
+- Build and operate:
+  - Provision VMs and install Talos: terragrunt/README.md
+  - Bootstrap a cluster: k8s/bootstrap/README.md
+  - Upgrade Talos or Kubernetes, replace a node: docs/operations/node-lifecycle.md
+  - Upgrade Kubernetes to the next minor: docs/operations/k8s-minor-upgrade.md
+  - Automated dependency updates: docs/operations/update-handling.md
+  - App storage variables: docs/operations/app-storage.md
+  - Project board statuses: docs/operations/project-board.md
+- Runbooks:
+  - Troubleshooting:
+    - Flux: docs/troubleshooting/troubleshooting-flux.md
+    - DNS: docs/troubleshooting/troubleshooting-dns.md
+    - Storage: docs/troubleshooting/troubleshooting-storage.md
+    - Terraform state: docs/troubleshooting/troubleshooting-terraform-state.md
+  - Backup and recovery:
+    - Rebuild a whole cluster: docs/backup/disaster-recovery.md
+    - App data with kopiur: docs/backup/kopiur-backup-restore.md
+    - Longhorn snapshots: docs/backup/longhorn-snapshots.md
+    - Keycloak database: docs/identity/keycloak-backup-restore.md
+    - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
+  - Proxmox:
+    - VM snapshots: docs/operations/proxmox-vm-snapshots.md
+    - VM power: docs/operations/proxmox-vm-power.md
+  - Identity:
+    - Keycloak realms: docs/identity/keycloak-realms.md
+    - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
+    - Keycloak exposure: docs/identity/keycloak-exposure.md
+  - Checkmk automation user: docs/operations/checkmk-automation-user.md
+- Architecture:
+  - Overview: docs/architecture/overview.md
+  - Index: docs/architecture/README.md
+  - Environments: docs/architecture/environments.md
+  - Kustomize overlays: docs/architecture/kustomize.md
+  - Secrets: docs/architecture/secrets.md
+  - Network: docs/architecture/network.md
+  - Storage: docs/architecture/storage.md
+  - Monitoring: docs/architecture/monitoring.md
+  - Workloads: docs/architecture/workloads.md
+  - Repositories: docs/architecture/repositories.md
+  - CI: docs/architecture/ci.md
+- Reference:
+  - Index: docs/reference/README.md
+  - Environments: docs/reference/environments.md
+  - Monitoring sites: docs/reference/monitoring-sites.md
+  - Monitoring thresholds: docs/reference/monitoring-thresholds.md
+  - Monitoring notifications: docs/reference/monitoring-notifications.md
+- Components and apps:
+  - Kubernetes layout: k8s/README.md
+  - Shared components: k8s/components/README.md
+  - Kopiur component: k8s/components/apps/kopiur/README.md
+  - Storage component: k8s/components/apps/storage/README.md
+  - Transformers:
+    - kopiur-secret-env: k8s/components/transformers/kopiur-secret-env/README.md
+    - powerdns-tsig-env: k8s/components/transformers/powerdns-tsig-env/README.md
+    - reverse-zone-env: k8s/components/transformers/reverse-zone-env/README.md
+    - suspend-kopiur-schedule: k8s/components/transformers/suspend-kopiur-schedule/README.md
+  - Infrastructure:
+    - cert-manager: k8s/infra/cert-manager/cert-manager/README.md
+    - Cilium: k8s/infra/kube-system/cilium/README.md
+    - external-secrets: k8s/infra/external-secrets/README.md
+    - Gateway: k8s/infra/gateway-api/gateway/README.md
+    - proxmox-csi: k8s/infra/csi-proxmox/proxmox-csi/README.md
+    - sealed-secrets: k8s/infra/sealed-secrets/sealed-secrets/README.md
+  - Apps:
+    - AdGuard: k8s/apps/dns/adguard/README.md
+    - PowerDNS: k8s/apps/dns/powerdns/README.md
+    - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
+    - UniFi controller: k8s/apps/network/unifi-controller/README.md
+    - UniFi MongoDB: k8s/apps/network/unifi-mongodb/README.md
+    - Zigbee2MQTT: k8s/apps/home-automation/zigbee2mqtt/README.md
+  - Terragrunt envcommon: terragrunt/_envcommon/README.md
+  - Scripts: scripts/README.md
+- Decisions:
+  - Index: docs/decisions/README.md
+  - "Proxmox + Talos as the virtualization and Kubernetes-node platform": docs/decisions/0001-proxmox-and-talos.md
+  - "OpenTofu over Terraform": docs/decisions/0002-opentofu-vs-terraform.md
+  - "Terragrunt for multi-environment OpenTofu": docs/decisions/0003-terragrunt.md
+  - "Kustomize overlays for the environment-variation axis": docs/decisions/0004-kustomize-overlays.md
+  - "Multiple environments, and why production differs from the rest": docs/decisions/0005-environments.md
+  - "Helm usage: kept independent of kustomize, moved from tool-agnostic to Flux-native values": docs/decisions/0006-helm-usage.md
+  - "Folder-based environment separation, not git branches": docs/decisions/0007-folder-based-environments-not-branches.md
+  - "Cilium as the CNI, with BGP for LoadBalancer IP advertisement": docs/decisions/0008-cilium-bgp.md
+  - "Flux over ArgoCD": docs/decisions/0009-flux-vs-argocd.md
+  - "SOPS vs. sealed-secrets vs. 1Password + External Secrets Operator": docs/decisions/0010-sops-vs-sealed-secrets-vs-1password-eso.md
+  - "PowerDNS as the in-cluster authoritative DNS server": docs/decisions/0011-powerdns-as-dns-server.md
+  - "TSIG over IP-ACL for AXFR and dynamic-update authorization": docs/decisions/0012-tsig-over-ip-acl-for-axfr.md
+  - "Repository and IaC tool boundaries": docs/decisions/0013-repository-and-tool-boundaries.md
+  - "Longhorn vs. proxmox-csi": docs/decisions/0014-longhorn-vs-proxmox-csi.md
+  - "Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
+  - "Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
+  - "Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+- Audits and plans (dated snapshots):
+  - Audits:
+    - Index: docs/audits/README.md
+    - "Documentation Audit — September 2026": docs/audits/2026-09-documentation.md
+    - "Observability assessment — independent pass (September 2026)": docs/audits/2026-09-observability-claude.md
+    - "Phase 0 inventory — Checkmk, Proxmox, loghost": docs/audits/2026-09-observability-phase0-checkmk-proxmox-claude.md
+    - "Observability Phase 0 — Findings": docs/audits/2026-09-observability-phase0-findings-claude.md
+    - "Observability phase 0 — baseline follow-up": docs/audits/2026-09-observability-phase0-followup.md
+    - "Phase 0 findings — TrueNAS/RustFS and Longhorn/Talos (read-only)": docs/audits/2026-09-observability-phase0-truenas-k8s-claude.md
+    - "Observability assessment — September 2026": docs/audits/2026-09-observability.md
+    - "Checkmk site `core`: result of stopping it — 2026-10-29": docs/audits/2026-10-checkmk-core-stopped-result.md
+    - "Checkmk site `free`: result of phase 1 (intervals) — 2026-10-28": docs/audits/2026-10-checkmk-free-phase1-result.md
+    - "Checkmk `prod_k8s`: result of phase 2b (ping-only hosts) — 2026-10-28": docs/audits/2026-10-checkmk-prod-k8s-ping-only-result.md
+    - "Documentation Audit — October 2026, second pass (structure, presentation and publishing)": docs/audits/2026-10-documentation-claude.md
+    - "Documentation Audit — October 2026": docs/audits/2026-10-documentation.md
+    - "Checkmk container OOMs — 2026-10-18": docs/audits/2026-10-monitoring-container-oom.md
+    - "Moving monitoring1 to pve1 instead of dev-ctrl-03 — 2026-10-28": docs/audits/2026-10-monitoring1-placement.md
+    - "Proxmox memory and CPU capacity — 2026-10-19": docs/audits/2026-10-proxmox-capacity.md
+    - "RustFS bucket capacity check — implementation decision": docs/audits/2026-10-rustfs-capacity.md
+  - Plans:
+    - "Observability implementation plan — independent pass": docs/plans/2026-09-observability-claude.md
+    - "Observability implementation plan": docs/plans/2026-09-observability.md
+    - "Checkmk site consolidation plan": docs/plans/2026-10-checkmk-consolidation.md
+    - "Identity and web SSO — independent design pass": docs/plans/2026-10-identity-claude.md

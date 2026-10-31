@@ -4,7 +4,7 @@ status: current
 
 # Checkmk automation user
 
-The Checkmk Terraform units in [`terragrunt/`](../terragrunt/README.md#checkmk-configuration) (`checkmk-password`, `checkmk-rustfs-monitoring`, `checkmk-longhorn-monitoring`) authenticate as the Checkmk automation user `terraform`, through the `checkmk` entry in `terragrunt/global-secrets.sops.yaml`. This doc sets up that user's permissions on the Checkmk site; see [ADR 0015](decisions/0015-checkmk-configuration-as-code.md) for why Checkmk is configured through Terraform, and [`reference/monitoring-sites.md`](reference/monitoring-sites.md) for the sites.
+The Checkmk Terraform units in [`terragrunt/`](../../terragrunt/README.md#checkmk-configuration) (`checkmk-password`, `checkmk-rustfs-monitoring`, `checkmk-longhorn-monitoring`) authenticate as the Checkmk automation user `terraform`, through the `checkmk` entry in `terragrunt/global-secrets.sops.yaml`. This doc sets up that user's permissions on the Checkmk site; see [ADR 0015](../decisions/0015-checkmk-configuration-as-code.md) for why Checkmk is configured through Terraform, and [`reference/monitoring-sites.md`](../reference/monitoring-sites.md) for the sites.
 
 ## The automation user's role
 

@@ -11,7 +11,7 @@
 # SnapshotSchedule/ExternalSecret all to the same ${APP} name.
 #
 # Land the STORAGE_CLASS (and, for apps/storage/pvc, STORAGE_STAGING_CLASS)
-# override in the app's flux/ks.yaml first -- see docs/app-storage.md -- so
+# override in the app's flux/ks.yaml first -- see docs/operations/app-storage.md -- so
 # that once the Kustomization/HelmRelease is resumed afterwards, its desired
 # state already matches the PVC this script hand-built and Flux has nothing
 # to reconcile.

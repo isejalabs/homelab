@@ -59,4 +59,4 @@ Registered per-env (alongside `prefix-domain`) in every `k8s/components/envs/<en
 
 Each `select` targets a specific `kind`+`name` (`ExternalSecret`/`kopiur-repository`, `ClusterRepository`/`fiona`). For any app that doesn't include `apps/storage/pvc`/`pvc-no-backup` at all, neither matches and the replacement silently no-ops — same behavior as `prefix-domain`'s `Ingress`/`HTTPRoute`/`TLSRoute` replacements for apps with none of those resources. No app-level wiring or opt-out is needed either way.
 
-See [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md) for the full backup/restore mechanism this supports.
+See [docs/backup/kopiur-backup-restore.md](../../../../docs/backup/kopiur-backup-restore.md) for the full backup/restore mechanism this supports.

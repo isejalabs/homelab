@@ -119,7 +119,7 @@ Time to DOWN, measured on 2026-10-28 with a controlled outage of `8.8.8.8` on `m
 
 ## Large-packet `PING` for `gw-kdg`
 
-Since 2026-10-30 ([#2020](https://github.com/isejalabs/homelab/issues/2020)) the `PING` service of `gw-kdg.home.iseja.net` sends 1500-byte packets (1472 data bytes) in `prod` and `prod_k8s`, because a default-size ping shows 0% loss during the home internet slowdown (see [#2012](https://github.com/isejalabs/homelab/issues/2012)) while a full-size ping with the don't-fragment flag loses a third to two thirds of its packets. The other `PING` services (`google-dns` and the rest) keep the default size.
+Since 2026-10-30 ([#2020](https://github.com/isejalabs/homelab/issues/2020)) the `PING` service of `gw-kdg.home.iseja.net` sends 1500-byte packets (1472 data bytes) in `prod` and `prod_k8s`, because a default-size ping shows 0% loss during the home internet slowdown (see [#2042](https://github.com/isejalabs/homelab/issues/2042)) while a full-size ping with the don't-fragment flag loses a third to two thirds of its packets. The other `PING` services (`google-dns` and the rest) keep the default size.
 
 Checkmk 2.5.0p15 has no packet size option in "Ping and host check parameters" (`ping_levels`) or in "Check hosts with PING" (`icmp`), and the Smart Ping host check has none either. The check is therefore one rule in "Integrate Nagios plugins" (`custom_checks`) per site, created through the REST API (nothing of it is in this repository):
 

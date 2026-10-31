@@ -4,7 +4,7 @@ status: current
 
 # Troubleshooting: Flux reconciliation
 
-For whoever's responding to an incident where something isn't reconciling — not an introduction to how Flux fits into this repo (see [`architecture/overview.md`](architecture/overview.md) and [`architecture/kustomize.md`](architecture/kustomize.md) for that) and not the full cluster-rebuild sequence (see [`disaster-recovery.md`](disaster-recovery.md) for that).
+For whoever's responding to an incident where something isn't reconciling — not an introduction to how Flux fits into this repo (see [`architecture/overview.md`](../architecture/overview.md) and [`architecture/kustomize.md`](../architecture/kustomize.md) for that) and not the full cluster-rebuild sequence (see [`disaster-recovery.md`](../backup/disaster-recovery.md) for that).
 
 ## 1. Survey state first
 
@@ -13,7 +13,7 @@ flux get ks -A
 flux get hr -A
 ```
 
-Real example output shape (from [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#flux-cd)):
+Real example output shape (from [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md#flux-cd)):
 
 ```
 NAMESPACE  	NAME                   	REVISION                     	SUSPENDED	READY	MESSAGE
@@ -29,7 +29,7 @@ A row that isn't `READY=True` is one of three different situations, and they nee
 
 ### a. `SUSPENDED=True`
 
-Someone (or an in-progress [kopiur restore](kopiur-backup-restore.md), which suspends a Kustomization/HelmRelease deliberately for the duration of the restore) paused it on purpose. Confirm there's no restore or other deliberate maintenance in progress before resuming — resuming mid-restore is exactly the mistake that doc's own gotchas section warns about:
+Someone (or an in-progress [kopiur restore](../backup/kopiur-backup-restore.md), which suspends a Kustomization/HelmRelease deliberately for the duration of the restore) paused it on purpose. Confirm there's no restore or other deliberate maintenance in progress before resuming — resuming mid-restore is exactly the mistake that doc's own gotchas section warns about:
 
 ```sh
 flux resume kustomization <name>
@@ -39,7 +39,7 @@ flux resume helmrelease <name> -n <namespace>
 
 ### b. `READY=False`, message names another resource as not ready yet
 
-Check [`dependsOn`](https://fluxcd.io/flux/components/kustomize/kustomizations/#dependencies) first — a real example from this repo, [`k8s/infra/longhorn-system/longhorn/flux/ks.yaml`](../k8s/infra/longhorn-system/longhorn/flux/ks.yaml):
+Check [`dependsOn`](https://fluxcd.io/flux/components/kustomize/kustomizations/#dependencies) first — a real example from this repo, [`k8s/infra/longhorn-system/longhorn/flux/ks.yaml`](../../k8s/infra/longhorn-system/longhorn/flux/ks.yaml):
 
 ```yaml
 dependsOn:
@@ -58,7 +58,7 @@ kubectl describe kustomization <name> -n flux-system
 kubectl get events -n <workload-namespace> --sort-by=.lastTimestamp
 ```
 
-Common real causes: a manifest that fails `kubeconform`-equivalent validation live (should have been caught by [`kustomize-build.yml`](../.github/workflows/kustomize-build.yml) in CI already, so this usually means the running cluster's CRD version is older than what main now expects), a webhook rejecting the applied object (the kopiur admission-webhook conflict documented in [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) is a real precedent for this shape of failure), or a missing/renamed dependency that `dependsOn` doesn't cover because it's a same-Kustomization resource ordering issue rather than a cross-Kustomization one.
+Common real causes: a manifest that fails `kubeconform`-equivalent validation live (should have been caught by [`kustomize-build.yml`](../../.github/workflows/kustomize-build.yml) in CI already, so this usually means the running cluster's CRD version is older than what main now expects), a webhook rejecting the applied object (the kopiur admission-webhook conflict documented in [`kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md#restore-an-app-from-its-latest-backup) is a real precedent for this shape of failure), or a missing/renamed dependency that `dependsOn` doesn't cover because it's a same-Kustomization resource ordering issue rather than a cross-Kustomization one.
 
 ## 3. Force a reconcile instead of waiting out the interval
 
@@ -71,9 +71,11 @@ flux reconcile helmrelease <name> -n <namespace>
 
 ## 4. HelmRelease-specific gotcha: `Ready=True` doesn't always mean live state matches git
 
-Confirmed live (dev, rebuild) per [`kopiur-backup-restore.md`](kopiur-backup-restore.md#restore-an-app-from-its-latest-backup): `flux resume helmrelease`/a successful reconcile can report `Ready=True` while a field that's unchanged between the HelmRelease's two most recent revisions (typically `replicas`) still doesn't match git, because `helm upgrade` diffs against the *previous release's own declared values*, not live cluster state. If a Helm-based app looks reconciled but a specific field still looks wrong, check that field explicitly (`kubectl get <resource> -n <namespace> -o yaml`) rather than trusting `READY=True` alone for it.
+Confirmed live (dev, rebuild) per [`kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md#restore-an-app-from-its-latest-backup): `flux resume helmrelease`/a successful reconcile can report `Ready=True` while a field that's unchanged between the HelmRelease's two most recent revisions (typically `replicas`) still doesn't match git, because `helm upgrade` diffs against the *previous release's own declared values*, not live cluster state. If a Helm-based app looks reconciled but a specific field still looks wrong, check that field explicitly (`kubectl get <resource> -n <namespace> -o yaml`) rather than trusting `READY=True` alone for it.
 
 **A `Stalled: RetriesExceeded` HelmRelease does not get retried by a plain `flux reconcile`.** Confirmed live, 2026-10-14: `cilium`'s HelmRelease had failed upgrading `1.18.13` -> `1.18.14` on `timeout waiting for: [DaemonSet/... status: 'InProgress']`, even though the live DaemonSet was already fully healthy at the new version (Helm's own release bookkeeping just never caught up). `flux reconcile helmrelease` immediately re-reported the same stale `Stalled`/`RetriesExceeded` status without attempting anything — only `flux suspend helmrelease` followed by `flux resume helmrelease` actually resets the retry counter and triggers a real attempt (which then resolved in seconds, since the DaemonSet had nothing left to change). Worth checking for proactively: a stuck HelmRelease like this silently blocks every Kustomization that depends on it via `dependsOn`, for as long as nobody notices.
+
+Since [#2045](https://github.com/isejalabs/homelab/issues/2045) the `flux-instance` HelmRelease enables helm-controller's `DefaultToRetryOnFailure` feature gate ([`k8s/infra/flux-system/flux-instance/base/helmrelease.yaml`](../../k8s/infra/flux-system/flux-instance/base/helmrelease.yaml)): a failed install or upgrade is retried every 5 minutes (the default `retryInterval`) without a retry budget instead of ending in `Stalled`. A slow cold bring-up (image pulls outlasting the 5-minute Helm timeout) should therefore converge on its own, and the `Stalled`/`RetriesExceeded` case above should only show up on a cluster where the gate is not active yet (check with `kubectl get deploy helm-controller -n flux-system -o jsonpath='{.spec.template.spec.containers[0].args}'`). The manual reset stays the way out there.
 
 ## 5. A Kustomization reconcile deadlocked mid-flight, not just failing
 
@@ -102,7 +104,7 @@ This kills the stuck in-process reconcile and makes the controller re-list and r
 kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
 ```
 
-Expect `{"name":"refs/heads/main"}`. If it's anything else, this environment's `flux-instance` was pointed at a different branch for testing (see the [`track-branch`](../.agents/skills/track-branch/SKILL.md) skill) and the override was never reverted — every `Kustomization` in the environment reconciling against a stale/unmerged branch instead of `main` looks identical to "nothing's wrong, but the live state doesn't match what I expect from `main`". Revert the override (see that skill's step 4) before diagnosing anything else in this environment.
+Expect `{"name":"refs/heads/main"}`. If it's anything else, this environment's `flux-instance` was pointed at a different branch for testing (see the [`track-branch`](../../.agents/skills/track-branch/SKILL.md) skill) and the override was never reverted — every `Kustomization` in the environment reconciling against a stale/unmerged branch instead of `main` looks identical to "nothing's wrong, but the live state doesn't match what I expect from `main`". Revert the override (see that skill's step 4) before diagnosing anything else in this environment.
 
 ## Verify the fix actually took
 

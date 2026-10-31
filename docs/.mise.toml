@@ -1,0 +1,15 @@
+[tools]
+# CI docs mermaid check (docs-mermaid-check.yml) - parses every mermaid fence in the Markdown files. Split out of the
+# root .mise.toml so that its npm-backed tool does not need an entry in the root mise.lock (which every workflow that
+# installs the whole root toolset reads), see k8s/.mise.toml for the same pattern.
+# Held at 11.12.0: 11.17.1 pulls chromium-bidi@157.0.8090-0, which mise's npm backend rejects with a trust-policy error
+# (no trust evidence, an earlier release had a trusted publisher), so the install fails before any diagram is parsed.
+# Renovate is held by .github/renovate/pin-versions.json5; both come out together, see
+# https://github.com/isejalabs/homelab/issues/2070
+"npm:@mermaid-js/mermaid-cli" = "11.12.0"
+
+[settings]
+# npm-backed tools need a dependency graph in the lockfile that only `mise lock` can write; until one is committed
+# the exact version above is the pin and no lockfile is read.
+lockfile = false
+locked = false
