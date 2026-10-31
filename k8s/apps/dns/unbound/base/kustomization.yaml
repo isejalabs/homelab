@@ -5,6 +5,7 @@ namespace: unbound
 
 resources:
   - ns.yaml
+  - daemonset-image-prepull.yaml
   - deployment.yaml
   - svc.yaml
 configMapGenerator:
@@ -24,3 +25,15 @@ configMapGenerator:
     files:
       - config/zones.d/unbound-iseja.conf
 
+replacements:
+  # the pre-pull DaemonSet caches exactly the image the Deployment runs (deployment.yaml is the one place that states it)
+  - source:
+      kind: Deployment
+      name: unbound
+      fieldPath: spec.template.spec.containers.[name=unbound].image
+    targets:
+      - select:
+          kind: DaemonSet
+          name: image-prepull
+        fieldPaths:
+          - spec.template.spec.containers.[name=unbound].image

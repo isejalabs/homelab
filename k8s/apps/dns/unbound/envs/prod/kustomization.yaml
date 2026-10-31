@@ -10,3 +10,16 @@ resources:
 patches:
   - path: deployment.yaml
   - path: svc.yaml
+replacements:
+  # prod pins its own unbound image (deployment.yaml), and this overlay patches it in after base/ has
+  # copied the base image to the pre-pull DaemonSet, so copy it again
+  - source:
+      kind: Deployment
+      name: unbound
+      fieldPath: spec.template.spec.containers.[name=unbound].image
+    targets:
+      - select:
+          kind: DaemonSet
+          name: image-prepull
+        fieldPaths:
+          - spec.template.spec.containers.[name=unbound].image

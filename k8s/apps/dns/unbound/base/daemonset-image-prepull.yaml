@@ -1,0 +1,56 @@
+# Keeps the Deployment's image in the containerd cache of every worker node, so a rollout or
+# reschedule of unbound does not depend on the internet being up. The image reference is copied
+# from the Deployment by kustomization.yaml (the reference below only keeps Renovate content with it);
+# the pod does nothing but sleep.
+# The unbound image ships no `sleep`, hence the busybox binary copied in by the init container;
+# it has to be the statically linked musl variant, the default (glibc) busybox does not run in this image.
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: image-prepull
+spec:
+  selector:
+    matchLabels:
+      app: image-prepull
+  template:
+    metadata:
+      labels:
+        app: image-prepull
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: unbound
+          command: ["/prepull/busybox", "sleep", "infinity"]
+          image: docker.io/madnuttah/unbound:1.26.2-0-quic@sha256:c8ec30bda5e4a3200cd716fd96ccc7ec594fb80c726f232847c9c02d78f90097 # overwritten with the Deployment's image, see kustomization.yaml
+          resources:
+            limits:
+              memory: 8Mi
+            requests:
+              cpu: 1m
+              memory: 4Mi
+          securityContext: &securityContext
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: prepull
+              mountPath: /prepull
+              readOnly: true
+      initContainers:
+        - name: copy-busybox
+          command: ["cp", "/bin/busybox", "/prepull/busybox"]
+          image: docker.io/library/busybox:1.37.0-musl@sha256:f6a95d611e0a8780fabdb2aec43e31275b2720dfefa3e41b16835bfc42454478
+          securityContext: *securityContext
+          volumeMounts:
+            - name: prepull
+              mountPath: /prepull
+      securityContext:
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: prepull
+          emptyDir: {}
