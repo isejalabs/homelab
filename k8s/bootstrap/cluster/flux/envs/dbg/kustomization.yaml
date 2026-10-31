@@ -5,4 +5,5 @@ components:
   - ../../../../../components/envs/dbg
 
 resources:
+  - ../../../../../apps/dns/unbound/flux
   - ../../sets/minimal
