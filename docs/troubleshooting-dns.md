@@ -40,6 +40,33 @@ If the answer is actually wrong (not just churning), check in this order:
 
 If a transfer is failing outright (not just stale), the most likely causes per that doc's own "Quirks encountered live" section are a `TSIG-ALLOW-AXFR` grant that got replaced instead of extended (it's full-replace, not additive) or a key mismatch between what PowerDNS has configured and what's in `/etc/bind/named.conf.local` on `10.7.2.12` itself.
 
+## 4. Unbound restarts (CrashLoopBackOff) while the internet is down
+
+**Symptom**: the `unbound` pods restart repeatedly or sit in `CrashLoopBackOff` while the home internet is down or degraded, and internal names (stub zone `iseja.net`, answered by `10.7.2.10`/`.12`) stop resolving through them although nothing is wrong with those servers. A restart never fixes it, because the container comes back with an empty cache.
+
+**Cause** (found in [#2043](https://github.com/isejalabs/homelab/issues/2043)): the liveness probe runs the image's `healthcheck.sh`. With `EXTENDED_HEALTHCHECK=true` it also resolves `EXTENDED_HEALTHCHECK_DOMAIN` through unbound itself. Until [#2043](https://github.com/isejalabs/homelab/issues/2043) that domain was `k.root-servers.net`, a name unbound only knows from a real recursion to the internet, and the probe had the default 1 s timeout. Without internet the recursion fails or takes longer than 1 s, the probe fails, kubelet kills the pod, and the empty cache makes the next probe a cold recursion again.
+
+**Check**:
+
+```sh
+kubectl -n unbound get pods
+kubectl -n unbound describe pod -l app=unbound   # Events: "Liveness probe failed: ... timed out" / "Port 5335 not open"
+kubectl -n unbound get deploy unbound -o jsonpath='{.spec.template.spec.containers[0].livenessProbe}{"\n"}{.spec.template.spec.containers[0].startupProbe}{"\n"}'
+kubectl -n unbound get cm | grep unbound-env     # the ConfigMap holding EXTENDED_HEALTHCHECK*, then:
+kubectl -n unbound get cm <unbound-env-name> -o jsonpath='{.data}{"\n"}'
+```
+
+Then query the pod's own resolver: `dig @<unbound-lb-ip> gw.<domain>` (stub zone, must answer without internet) and `dig @<unbound-lb-ip> example.com` (needs internet or a cached answer).
+
+**What the fix does** (base `k8s/apps/dns/unbound/base/`, inherited by every environment):
+
+- `EXTENDED_HEALTHCHECK_DOMAIN=localhost` keeps the extended check (unbound must really answer a query) but on a name from unbound's built-in local zone, so the probe never needs the internet or the LAN stub servers.
+- A `startupProbe` (up to 150 s) keeps the liveness probe off while unbound starts; the liveness probe has a 5 s timeout and 6 consecutive failures.
+- There is deliberately no readiness probe on an upstream name: it would pull the pod out of the Service and take the internal zones down too.
+- `prefetch: yes` and `serve-expired: yes` (bounded by `serve-expired-ttl`) let external names keep answering from stale cache during an outage.
+
+If a pod still restarts, `kubectl -n unbound logs <pod> --previous` shows whether unbound itself crashed (then it is a different problem) or was killed by the probe.
+
 ## Verify the fix actually took
 
 `dig` again from the actual layer a real LAN client uses first (`@<adguard-lb-ip>`), not just the layer you fixed — a correct answer at PowerDNS doesn't guarantee a client sees it yet if something upstream (Unbound's cache, AdGuard's own cache) is still holding a stale answer. If the client-facing query still looks wrong after the underlying record is confirmed correct, that's a caching/TTL wait, not a reason to keep changing the record.
