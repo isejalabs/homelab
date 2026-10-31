@@ -5,6 +5,7 @@ namespace: adguard
 
 resources:
   - ns.yaml
+  - daemonset-image-prepull.yaml
   - svc.yaml
   - svc-ui.yaml
   - secret-users.yaml
@@ -15,3 +16,25 @@ configMapGenerator:
     files:
       - config/AdGuardHome.yaml
 
+replacements:
+  # the pre-pull DaemonSet caches exactly the images the Deployment runs (deployment.yaml is the one place that states them)
+  - source:
+      kind: Deployment
+      name: adguard
+      fieldPath: spec.template.spec.containers.[name=adguard].image
+    targets:
+      - select:
+          kind: DaemonSet
+          name: image-prepull
+        fieldPaths:
+          - spec.template.spec.containers.[name=adguard].image
+  - source:
+      kind: Deployment
+      name: adguard
+      fieldPath: spec.template.spec.initContainers.[name=copy-base-config].image
+    targets:
+      - select:
+          kind: DaemonSet
+          name: image-prepull
+        fieldPaths:
+          - spec.template.spec.containers.[name=busybox].image

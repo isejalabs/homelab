@@ -67,6 +67,24 @@ Then query the pod's own resolver: `dig @<unbound-lb-ip> gw.<domain>` (stub zone
 
 If a pod still restarts, `kubectl -n unbound logs <pod> --previous` shows whether unbound itself crashed (then it is a different problem) or was killed by the probe.
 
+## 5. A DNS pod cannot start while the internet is down (`ImagePullBackOff`, stuck in `Pulling`)
+
+**Symptom**: after a restart, reschedule or rollout of `unbound` or `adguard` during an internet outage, the new pod sits in `ImagePullBackOff` or never leaves `ContainerCreating` (events: `Pulling image ...` and nothing after it), while the old pod, if any, still answers.
+
+**Cause** (found in [#2043](https://github.com/isejalabs/homelab/issues/2043)): every image is pinned by digest, so kubelet pulls only when the node does not hold it (`IfNotPresent`). A node that never ran the image, or whose copy was garbage-collected, has to download it from Docker Hub, which is impossible without internet.
+
+**What prevents it** (`k8s/apps/dns/{unbound,adguard}/base/daemonset-image-prepull.yaml`): each app runs a tiny `image-prepull` DaemonSet on every worker node whose containers use the very images of the Deployment (the init container images too) and only sleep. That keeps the images in containerd's cache and protected from image garbage collection, so a Deployment pod can start on any worker without the internet. `kustomization.yaml` copies the image references from the Deployment into the DaemonSet, so the cache follows every Renovate bump; prod re-copies them after its own pinned unbound image is patched in.
+
+**Check**:
+
+```sh
+kubectl -n unbound get ds image-prepull     # DESIRED = READY = number of worker nodes
+kubectl -n adguard get ds image-prepull
+kubectl -n unbound describe pod <stuck-pod> | grep -A3 Events
+```
+
+**Limits**: this only helps for an image a node already holds, that is, any restart or reschedule of the current version. A *new* image version still needs the internet once, to be pulled by the DaemonSet pod on each node; if an update rolls out during an outage it cannot start either. Other workloads and the `PowerDNS` stack are not covered.
+
 ## Verify the fix actually took
 
 `dig` again from the actual layer a real LAN client uses first (`@<adguard-lb-ip>`), not just the layer you fixed — a correct answer at PowerDNS doesn't guarantee a client sees it yet if something upstream (Unbound's cache, AdGuard's own cache) is still holding a stale answer. If the client-facing query still looks wrong after the underlying record is confirmed correct, that's a caching/TTL wait, not a reason to keep changing the record.
