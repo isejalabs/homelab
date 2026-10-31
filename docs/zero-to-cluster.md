@@ -10,7 +10,7 @@ This is the same sequence as the [full cluster rebuild](backup/disaster-recovery
 
 ## 0. Before you start
 
-Install the tools from the root README's [prerequisites table](../README.md#prerequisites) and get the access listed under [Terragrunt prerequisites](../terragrunt/README.md#prerequisites) (SOPS age key, AWS credentials for the state role, network access to the Proxmox API) and the [bootstrap prerequisites](../k8s/bootstrap/README.md#prerequisites-1) (a signed-in 1Password CLI).
+Install the tools from the root README's [prerequisites table](../README.md#prerequisites) and get the access listed under [Terragrunt prerequisites](../terragrunt/README.md#prerequisites) (SOPS age key, AWS credentials for the state role, network access to the Proxmox API) and the [bootstrap prerequisites](../k8s/bootstrap/README.md#deploying-infrastructure-and-applications) (a signed-in 1Password CLI).
 
 **Expected result:** the pinned tools are installed, and Terragrunt can decrypt the SOPS files and assume the environment's state role. Without the age key, values silently fall back to CI placeholders and a real plan fails.
 
