@@ -8,6 +8,17 @@ status: current
 
 **On this page:** [How backups work](#how-it-works) · [Daily tasks](#daily-tasks) · [Automatic per-environment credentials](#automatic-per-env-credentials) · [Known caveats](#known-caveats)
 
+## At a glance
+
+| | |
+| --- | --- |
+| When to use | An app's data needs to come back from a kopiur backup, or you need a manual backup, a listing, a blank volume or a prune. A lost PVC normally restores by itself when it is recreated ([Restore-on-create](#restore-on-create-the-core-idea)); use [Restore an app](#restore-an-app-from-its-latest-backup) only when you have to drive it. For the whole cluster see [`disaster-recovery.md`](disaster-recovery.md), for Longhorn local snapshots [`longhorn-snapshots.md`](longhorn-snapshots.md) |
+| Prerequisites | `just`, `kubectl` and `flux` with the target environment's context, the app's namespace, and at least one successful `Snapshot` to restore from ([list them](#list-all-available-backups-snapshots-of-an-app)). The `just backup::kopiur::restore` recipe needs `-e <env>` |
+| Steps | [Restore an app from its latest backup](#restore-an-app-from-its-latest-backup), steps 1 to 7. Expected output is recorded for a backup (`Pending` → `Running` → `Succeeded`) and for the new PVC (binds); no other output is recorded |
+| Verify | Step 7, the PVC binds, then confirm the data is what you expect |
+| Rollback | For a restore of a specific older snapshot: revert the `Restore` object to its default (`fromPolicy` `offset: 0`) before resuming Flux. For a restore of the latest backup no rollback is documented |
+| Last exercised | Not recorded as one run. Confirmed live: `qa` on 2026-09-13 (the `Restore` pin and the `flux resume` conflict), a `Retain` storage class on 2026-09-18 (the PVC manifest), Helm-based apps on `dev` and `rebuild` (dates not recorded), and the `kopiur-test` app on `rebuild` for restore-on-create (date not recorded) |
+
 ## Overview
 
 [kopiur](https://github.com/home-operations/kopiur) is the Kubernetes-native backup operator used in this cluster. It snapshots PVC data via CSI `VolumeSnapshot`s, uploads it with [kopia](https://kopia.io) (a content-addressable, deduplicating backup engine) to an S3-compatible repository, and can populate new PVCs from those backups via the standard Kubernetes CSI PVC-populator mechanism.
@@ -91,6 +102,9 @@ EOF
 ❯ just backup::kopiur::restore <app> -e <env> -n <namespace>
 ```
 
+> [!WARNING]
+> This recipe is destructive: it deletes the app's PVC and its `Restore` object.
+
 This runs steps 1-7 below end to end: detects whether the app is plain-manifest or Helm-based from the Deployment's own Flux labels, suspends the right object, scales down, deletes the PVC *and* the `Restore` object, resumes (force-reconciling the PVC's own owning Kustomization too if it differs from the Deployment's, for a Helm-based app), scales back up explicitly, and waits for the new PVC to bind. `-e/--environment` is required here (unlike `list`/`create`), since this is the destructive operation where an explicit target matters most. The manual steps are worth understanding regardless -- for restoring a *specific older* snapshot rather than the latest, which the recipe doesn't cover, see below.
 
 kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). The owning Flux object must be suspended first, or Flux fights the manual scale-down in step 3.
@@ -135,7 +149,8 @@ Similarly, for a Helm-based app the PVC itself is a *plain manifest* owned by a 
 
 The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly instead.
 
-**This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-7 above (delete the PVC, resume, scale up, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
+> [!WARNING]
+> **This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-7 above (delete the PVC, resume, scale up, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
 
 ```sh
 # find the Snapshot to restore -- reuse "list all available backups" above
@@ -185,7 +200,8 @@ Sometimes you want an app to start from an empty volume on an *existing* cluster
 
 This is interactive and blocks partway through: it suspends the owning Flux object, scales the app down, points its `Restore` at a policy name that can never match a real `Snapshot` (so the next PVC claim resolves `NoSnapshot` the same way an app's very first deploy does), deletes and manually recreates the PVC against that bypass policy, scales the app back up, and waits for the blank PVC to bind. At that point it pauses for you to do the actual data import (through the app's own means, not kopiur) -- press Enter once that's done, and it reverts the `Restore` back to its real policy and resumes Flux. Flux stays suspended for the whole window, not just the delete/recreate step, since resuming early would reconcile the `Restore` back to its git-declared (real) policy name before the blank PVC has actually claimed and resolved against the bogus one.
 
-Reverting the policy name back before resuming is not optional cleanup -- leaving `Restore` pinned to a policy that never matches anything would mean a *future*, accidental PVC loss for this app restores empty instead of from its real latest backup, the same landmine the "restore a specific older snapshot" procedure above guards against by reverting `snapshotRef` back to `fromPolicy` before resuming.
+> [!WARNING]
+> Reverting the policy name back before resuming is not optional cleanup -- leaving `Restore` pinned to a policy that never matches anything would mean a *future*, accidental PVC loss for this app restores empty instead of from its real latest backup, the same landmine the "restore a specific older snapshot" procedure above guards against by reverting `snapshotRef` back to `fromPolicy` before resuming.
 
 This only covers an already-running cluster (kopiur has a live `Restore` object to repoint). Getting the same "ignore whatever backup exists, boot empty" behavior on a *fresh* cluster bootstrap (e.g. testing a from-scratch `rebuild` deliberately ignoring backups left over from an earlier rebuild cycle, without deleting them) has no live object to patch before the first apply -- that would instead need a git-committed, temporary kustomize patch forcing the same bogus `fromPolicy.name` in the target env's overlay, applied and reverted the same way the `track-branch` skill's `tmp(<env>): ...` commits temporarily redirect Flux. Not yet built -- worth doing if that scenario comes up in practice.
 
@@ -212,7 +228,8 @@ Absolute — everything before a specific date (e.g. cleaning up everything from
     | xargs -r -n1 kubectl delete snapshot -n <namespace>
 ```
 
-Deleting a `Snapshot` CR (`deletionPolicy: Delete`, the default for produced backups) also deletes the underlying kopia snapshot from the repository, not just the Kubernetes object.
+> [!CAUTION]
+> Deleting a `Snapshot` CR (`deletionPolicy: Delete`, the default for produced backups) also deletes the underlying kopia snapshot from the repository, not just the Kubernetes object.
 
 ## Automatic per-env credentials
 

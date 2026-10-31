@@ -8,6 +8,17 @@ status: current
 
 How to move the fleet from one Kubernetes **minor** (e.g. `1.34` → `1.35`) — the part around the actual upgrade command: what to check first, how to change the Renovate pin, in which order to roll environments, and what to verify afterwards. The mechanics of upgrading one cluster (`talosctl upgrade-k8s`, then `terragrunt apply`) are in [`node-lifecycle.md`](node-lifecycle.md#2-kubernetes-version-upgrade) and are not repeated here. A *patch* bump (`1.34.6` → `1.34.11`) needs only that section, not this runbook.
 
+## At a glance
+
+| | |
+| --- | --- |
+| When to use | Moving the fleet from one Kubernetes *minor* to the next (for example `1.34` → `1.35`). A *patch* bump needs only [`node-lifecycle.md`](node-lifecycle.md#2-kubernetes-version-upgrade) |
+| Prerequisites | A [compatibility check](#1-compatibility-check) with every component row satisfied, a [pre-flight triage](#pre-flight-triage-do-not-start-on-an-unexplained-not-clean-cluster) of the environment with no blocker, a fresh restore point (Longhorn snapshots and kopiur backups, see [step 3](#3-upgrade-one-environment)), and `talosctl` contexts for the environment |
+| Steps | [Plan the pin and the rollout](#2-plan-the-pin-and-the-rollout), [upgrade one environment](#3-upgrade-one-environment), then [roll on](#5-roll-on-to-the-next-environment). Expected output is stated in the steps: the dry run prints `kubelet: <old> -> <new>` per node and ends with the known `cilium-install` error ([Known issues](#known-issues)), and the plan afterwards shows one in-place `talos_machine_configuration_apply` per node |
+| Verify | [Verify](#4-verify), cluster-level checks first, then per area |
+| Rollback | Not supported: Kubernetes minor downgrades are not, so stop and roll forward by fixing the cause, or rebuild the environment ([`disaster-recovery.md`](disaster-recovery.md)) |
+| Last exercised | 1-step method: `dev` on 2026-10-21 ([isejalabs/homelab#1812](https://github.com/isejalabs/homelab/pull/1812)). 2-step method: the `prod` patch rollout `1.34.6` → `1.34.11` ([#1747](https://github.com/isejalabs/homelab/issues/1747)). A complete minor rollout across the fleet is not recorded in this doc |
+
 ## Scope
 
 Kubernetes is pinned per environment in `cluster.kubernetes_version` of `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/terragrunt.hcl`, and is deliberately never auto-updated (see [`update-handling.md`](update-handling.md#non-standard-update-strategies)). Two things hold it at a minor: the `kubernetes/kubernetes` pin in [`.github/renovate/pin-versions.json5`](../.github/renovate/pin-versions.json5), and the compatibility of the components below. `head` and `poc` are exempt from the pin and run ahead of everything else, so they are the early warning, not the proof (see [`environments.md`](reference/environments.md)).
@@ -193,7 +204,8 @@ Do this in the earlier environments first. Each environment has its own Checkmk 
 - A short `CRIT` on the cluster host (`Failed to establish a connection at URL https://<env>-homelab-k8s-api...`) while the API server restarts during the node upgrades. It must be back to `Success` once the upgrade finished; a state that stays CRIT or UNKNOWN afterwards is a finding.
 - `Missing data` on hosts for namespaces, deployments or PVCs that no longer exist. The hosts in `prod` are added by hand and are not removed when the workload goes away, so list them in the baseline (tier *Ignore*) and clean them up separately.
 
-If something fails: stop, do **not** roll on, and roll forward by fixing the cause. Kubernetes minor downgrades are not supported; the realistic fallbacks are fixing the failing component or rebuilding the environment from state ([`disaster-recovery.md`](disaster-recovery.md)).
+> [!CAUTION]
+> If something fails: stop, do **not** roll on, and roll forward by fixing the cause. Kubernetes minor downgrades are not supported; the realistic fallbacks are fixing the failing component or rebuilding the environment from state ([`disaster-recovery.md`](disaster-recovery.md)).
 
 ## 5. Roll on to the next environment
 

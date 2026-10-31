@@ -130,7 +130,7 @@ A fresh checkout/worktree is missing a file every `vehagn-k8s` plan/apply needs,
 
 #### Remove existing contexts from config
 
-Delete exising talosconfig and kubeconfig cluster entries (otherwise new config would get suffixed with `-1`)
+Delete existing talosconfig and kubeconfig cluster entries (otherwise new config would get suffixed with `-1`)
 
 ```sh
 CLUSTER="dev-homelab"; talosctl config remove ${CLUSTER}; kubectl config delete-context admin@${CLUSTER}; kubectl config delete-user admin@${CLUSTER}; kubectl config delete-cluster ${CLUSTER}
