@@ -6,7 +6,8 @@
 # link, not a code span, so it can be clicked (a placeholder such as https://<env>-app.example.com stays code).
 # Headings and rows inside fenced code blocks do not count, so a "## " comment in a shell snippet cannot satisfy or
 # break the check. Content is not judged, only the shape, so a section that does not apply still has to say so in a
-# line.
+# line. Each README must also be listed in the docs site navigation (.ci/mkdocs/mkdocs.yml); an unlisted page is
+# built and searchable but missing from the sidebar, and the strict docs build does not complain about it.
 #
 # Usage: scripts/check-unit-readmes.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
@@ -17,6 +18,7 @@ set -eu
 SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
+NAV="${ROOT}/.ci/mkdocs/mkdocs.yml"
 WORK=$(mktemp -d)
 trap 'rm -rf "${WORK}"' EXIT
 
@@ -85,6 +87,11 @@ readme_problems() {
         }' "$1"
 }
 
+if [ ! -f "${NAV}" ]; then
+    log fatal "docs navigation file not found" "file" ".ci/mkdocs/mkdocs.yml"
+    exit 1
+fi
+
 status=0
 count=0
 for u in $(repo_units | sort); do
@@ -94,6 +101,10 @@ for u in $(repo_units | sort); do
         log error "unit has no README.md (template: k8s/README.md)" "unit" "k8s/${u}"
         status=1
         continue
+    fi
+    if ! grep -qE "^ *- .*: k8s/${u}/README\.md *\$" "${NAV}"; then
+        log error "README is not listed in the docs navigation (.ci/mkdocs/mkdocs.yml, Components and apps)" "file" "k8s/${u}/README.md"
+        status=1
     fi
     readme_problems "${readme}" >"${WORK}/problems"
     while IFS= read -r p; do
