@@ -31,10 +31,10 @@ The subdomain is `auth`, not `keycloak`. The general scheme is in [`reference/en
 
 | env | Base URL | Admin console of the `master` realm |
 | --- | --- | --- |
-| `dev` | [https://dev-auth.dev.iseja.net](https://dev-auth.dev.iseja.net) | [https://dev-auth.dev.iseja.net/admin/master/console/](https://dev-auth.dev.iseja.net/admin/master/console/) |
-| `qa` | [https://qa-auth.qa.iseja.net](https://qa-auth.qa.iseja.net) | [https://qa-auth.qa.iseja.net/admin/master/console/](https://qa-auth.qa.iseja.net/admin/master/console/) |
-| `rebuild` | [https://rebuild-auth.rebuild.iseja.net](https://rebuild-auth.rebuild.iseja.net) | [https://rebuild-auth.rebuild.iseja.net/admin/master/console/](https://rebuild-auth.rebuild.iseja.net/admin/master/console/) |
-| `prod` | [https://auth.iseja.net](https://auth.iseja.net) (not deployed yet) | [https://auth.iseja.net/admin/master/console/](https://auth.iseja.net/admin/master/console/) |
+| `dev` | `https://dev-auth.dev.iseja.net` | `https://dev-auth.dev.iseja.net/admin/master/console/` |
+| `qa` | `https://qa-auth.qa.iseja.net` | `https://qa-auth.qa.iseja.net/admin/master/console/` |
+| `rebuild` | `https://rebuild-auth.rebuild.iseja.net` | `https://rebuild-auth.rebuild.iseja.net/admin/master/console/` |
+| `prod` | `https://auth.iseja.net` (not deployed yet) | `https://auth.iseja.net/admin/master/console/` |
 | `dbg`, `head`, `poc`, `src` | not deployed: Keycloak runs only in the standing environments ([ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md), point 2) | |
 
 - **Prod is the exception to the scheme**: it does not get the environment prefix and, unlike every other app, is not under `prod.iseja.net`. The hostname is overridden in [`envs/prod`](envs/prod/kustomization.yaml) for both the `Keycloak` resource and the `HTTPRoute`; the Terragrunt `keycloak_url` must equal it (checked by `kustomize-build`).
