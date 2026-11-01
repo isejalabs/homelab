@@ -88,7 +88,7 @@ What problem it solves here and why this product (link the ADR if there is one).
 | `dev` | `https://dev-<sub>.dev.iseja.net` | |
 | `prod` | `https://<sub>.prod.iseja.net` | |
 
-Only environments that run it. State the subdomain when it differs from the folder name, the gateway it is attached to, and where the login lives (1Password item, no values). The general hostname scheme is in [`reference/environments.md`](../docs/reference/environments.md#domain-and-naming). Not exposed units say `Not exposed.` and name the in-cluster Service.
+Only environments that run it. Write every URL as a Markdown link (`[https://dev-<sub>.dev.iseja.net](https://dev-<sub>.dev.iseja.net)`), never as a code span, so it can be clicked; addresses and ports without a scheme stay code. State the subdomain when it differs from the folder name, the gateway it is attached to, and where the login lives (1Password item, no values). The general hostname scheme is in [`reference/environments.md`](../docs/reference/environments.md#domain-and-naming). Not exposed units say `Not exposed.` and name the in-cluster Service.
 
 ## Updates
 
