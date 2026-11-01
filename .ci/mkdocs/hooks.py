@@ -5,6 +5,9 @@ is rewritten on disk; these hooks only adjust the rendered site:
 
 * links that leave the served pages (source files, directories, workflow files, files excluded from the
   site) are rewritten to the matching github.com blob/tree URL, since the target does not exist on the site;
+* the relative `src` of a raw HTML `<img>` is rewritten to the image's URL relative to the page: MkDocs only
+  resolves Markdown images, and a page is served one directory deeper than its source file (`docs/a/b.md` is
+  `docs/a/b/`), so the path that works on github.com would be one level off on the site;
 * a visible status banner is added below the page title, from the `status:` front matter, the ADR
   `## Status` section, or the folder (audits and plans are dated snapshots);
 * the footer shows the git commit (ID and head line) the site was built from, read from the checkout;
@@ -23,6 +26,7 @@ BRANCH = "main"
 
 FENCE = re.compile(r"^\s*(```|~~~)")
 CODE_SPAN = re.compile(r"(`+[^`]*`+)")
+IMG_SRC = re.compile(r"(<img\b[^>]*?\bsrc=\")([^\"]+)(\")")
 INLINE_LINK = re.compile(r"(\]\()(<[^>]+>|[^)\s]+)((?:\s+(?:\"[^\"]*\"|'[^']*'))?\))")
 REFERENCE_DEF = re.compile(r"^(\s{0,3}\[[^\]]+\]:\s*)(\S+)")
 SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
@@ -95,6 +99,18 @@ def _rewrite_target(target, page, files, root):
     return f"<{url}>" if wrapped else url
 
 
+def _rewrite_img_src(match, page, files):
+    """Return the raw `<img>` tag with a relative `src` made relative to the page's URL; other sources stay."""
+    src = match.group(2)
+    if not src or src.startswith(("#", "/", "?")) or SCHEME.match(src):
+        return match.group(0)
+    resolved = posixpath.normpath(posixpath.join(posixpath.dirname(page.file.src_uri), unquote(src)))
+    served = files.get_file_from_path(resolved)
+    if served is None or served.inclusion.is_excluded():
+        return match.group(0)
+    return match.group(1) + served.url_relative_to(page.file) + match.group(3)
+
+
 def _rewrite_links(markdown, page, files, root):
     out = []
     in_fence = False
@@ -114,6 +130,7 @@ def _rewrite_links(markdown, page, files, root):
             pieces[i] = INLINE_LINK.sub(
                 lambda m: m.group(1) + _rewrite_target(m.group(2), page, files, root) + m.group(3), pieces[i]
             )
+            pieces[i] = IMG_SRC.sub(lambda m: _rewrite_img_src(m, page, files), pieces[i])
         out.append("".join(pieces))
     return "\n".join(out)
 
