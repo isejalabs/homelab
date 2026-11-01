@@ -1,4 +1,4 @@
-Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, the Keycloak database restore, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
+Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, the Keycloak database restore, Checkmk site checks, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
 
 Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh`, `longhorn-snapshot-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
 
@@ -58,6 +58,16 @@ Wrapped by `just backup::keycloak::<list|restore>` (see [`keycloak.just`](keyclo
 | [`keycloak-db-restore.sh`](keycloak-db-restore.sh) | restores the Keycloak database from a `pg_dump` in the `<env>-keycloak-db` bucket: verifies the dump in a scratch database first, then stops Flux/the operator/the dump CronJob, swaps the databases by renaming (the old one is kept) and starts Keycloak again; `--list` shows the available dumps |
 
 Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and kubecontext construction. Needs `kubectl`, `flux`, `gum` and `jq`.
+
+## Checkmk checks
+
+Run manually against one Checkmk site; see [`docs/identity/checkmk-sso.md`](../docs/identity/checkmk-sso.md#regression-check-agent-registration).
+
+| Script | Purpose |
+| --- | --- |
+| [`checkmk-agent-registration-check.sh`](checkmk-agent-registration-check.sh) | non-destructive regression check that agent registration still works on a site: a wrong password is refused with 401, and the registration user is accepted for an unknown host name (404 `does not exist`), without registering anything; the secret comes from `CMK_REGISTRATION_PASSWORD` |
+
+Sources [`lib/common.sh`](lib/common.sh) for logging. Needs `curl` and `gum`.
 
 ## Longhorn volume snapshots
 

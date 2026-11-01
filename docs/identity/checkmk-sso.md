@@ -94,6 +94,21 @@ A user that Checkmk creates at its first SAML login is a **pending change** in t
 
 Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this setup. It belongs to the `iseja` realm of Keycloak and comes with [#1827](https://github.com/isejalabs/homelab/issues/1827); until then every login, including `sebi`'s, asks for the Keycloak password. Checkmk itself needs no change for it, because it only trusts the SAML assertion.
 
+## Regression check: agent registration
+
+A change to how users log in must not break agents registering at a site. Registration goes to the site's own **agent receiver port**, not to 443 (`omd config show AGENT_RECEIVER_PORT` as the site user: `dev_k8s` 8083, `qa_k8s` 8082 on `monitoring1`, `prod` 8001 on `monitoring2`), authenticated as the htpasswd user `agent_registration` with its automation secret. SAML and LDAP connections do not touch that path, and the check proves it without registering a host:
+
+```sh
+CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
+  scripts/checkmk-agent-registration-check.sh --server monitoring1.home.iseja.net --port 8083 --site dev_k8s
+```
+
+[`checkmk-agent-registration-check.sh`](../../scripts/checkmk-agent-registration-check.sh) sends the registration request of the Agent Controller for a host name that does not exist. A wrong password must be refused with 401, and the right secret must end with 404 `Host ... does not exist`, which is the answer of the REST API call made as `agent_registration`, so the receiver reached the site and accepted the user. The secret is read from the environment, not from a flag, and the receiver certificate is not verified (it is signed by the site's own CA), so the check covers authentication, not trust.
+
+- **Result (2026-11-02):** passes on `dev_k8s` and `qa_k8s` with both SAML connections in place, and fails with exit 1 for a wrong secret. No run before the connections existed, so there is no baseline from before the change; the code paths do not overlap.
+- **`pairing` is not part of it:** `POST /pairing` answers 403 `You do not have the permission for agent pairing` for `agent_registration` on both sites. In 2.5.0p15 only the `admin` role has `general.agent_pairing` by default and the sites have no role overrides, so this is the default, not a result of SAML.
+- **Not covered:** the registration of a real host (it changes the host's UUID and trust) and the pull/TLS connection after it.
+
 ## Break-glass
 
 `cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Verified on `dev_k8s` on 2026-11-02 with the `dev` Keycloak stopped (its Flux `Kustomization` suspended and `spec.instances` of the `Keycloak` resource set to 0, restored after about five minutes): the metadata URL answered 503, the login page still loaded with the local form, `cmkadmin` logged in with it and reached the Checkmk index, and the REST API accepted `cmkadmin`. The same check was not repeated on `qa_k8s`.
@@ -102,4 +117,4 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 
 - `mary` as `guest`: she is not in `idm-users` or `app-checkmk-readonly` yet.
 - A user in no mapped group gets no role or access.
-- Agent registration (the `agent_registration` user is untouched, but registering an agent was not run).
+- Registering a real host end to end (only the non-destructive [regression check](#regression-check-agent-registration) was run).
