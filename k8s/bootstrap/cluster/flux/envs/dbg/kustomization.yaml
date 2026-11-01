@@ -4,8 +4,5 @@ kind: Kustomization
 components:
   - ../../../../../components/envs/dbg
 
-namespace: flux-system
-
 resources:
-  - ../../../../../apps/dns/unbound/flux
   - ../../sets/minimal
