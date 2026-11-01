@@ -31,4 +31,21 @@ terraform {
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   keycloak_url = "https://dev-auth.dev.iseja.net"
+
+  # The Checkmk site dev_k8s (Ultimate, on monitoring1) signs in humans through SAML, one client per realm because a
+  # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
+  saml_clients = {
+    "dev_k8s-iseja" = {
+      realm     = "iseja"
+      client_id = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
+      acs_url   = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
+      name      = "Checkmk dev_k8s (iseja)"
+    }
+    "dev_k8s-admin" = {
+      realm     = "admin"
+      client_id = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
+      acs_url   = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
+      name      = "Checkmk dev_k8s (admin)"
+    }
+  }
 }
