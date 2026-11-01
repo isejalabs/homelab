@@ -9,7 +9,7 @@ The [Checkmk Kubernetes monitoring agent](https://github.com/Checkmk/checkmk_kub
 | Namespace | `checkmk-kube-agent` |
 | Runs in | all 8 environments (Flux set `minimal`) |
 | Installed via | HelmRelease, chart `checkmk` from the `checkmk.github.io/checkmk_kube_agent` Helm repository, plus an `HTTPRoute` for the cluster collector |
-| Flux Kustomization | `checkmk-agent`, depends on `gateway-api` |
+| Flux Kustomization | `checkmk-kube-agent` (the unit is `checkmk-agent`), depends on `gateway-api` |
 
 ## Purpose
 
@@ -55,7 +55,7 @@ The endpoint wants the bearer token (see the cheat sheet). Which of these Checkm
 Replace `<env>` with the environment.
 
 ```sh
-flux get ks checkmk-agent --context admin@<env>-homelab
+flux get ks checkmk-kube-agent --context admin@<env>-homelab
 kubectl get pods,svc,httproute -n checkmk-kube-agent --context admin@<env>-homelab
 
 # the token for the Checkmk password store (pipe it, do not copy from a terminal: a trailing "%" breaks it)
