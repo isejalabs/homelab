@@ -21,7 +21,9 @@ jobs:
       with:
         install_args: lychee
     # Only http(s) URLs: local file and anchor targets are the job of the offline check. 429 counts as alive, because a rate
-    # limit says nothing about the link. Hosts that only resolve inside the homelab or are placeholders are excluded.
+    # limit says nothing about the link. Hosts that only resolve inside the homelab or are placeholders are excluded, and so is
+    # the private repo sebiklamar/salt-iseja.net (the token can't see it, so every link to it would read as dead). docs/audits is
+    # skipped because audits are never edited after the fact (docs/audits/README.md): a link that rotted there can't be fixed.
     # lychee exits 0 for no broken link, 2 for at least one; anything else is a failure of the check itself and fails the job.
     - id: lychee
       env:
@@ -30,7 +32,8 @@ jobs:
         set +e
         lychee --scheme http --scheme https --no-progress --max-retries 3 --timeout 30 --accept 200,204,429 \
           --exclude '^https?://([^/]+\.)?iseja\.net' --exclude '^https?://(localhost|127\.0\.0\.1)' --exclude '^https?://([^/]+\.)?example\.(com|org)' \
-          --exclude-path _attic --exclude-path ZZ.bak --format markdown --output lychee-report.md '**/*.md'
+          --exclude '^https://github\.com/sebiklamar/salt-iseja\.net' \
+          --exclude-path _attic --exclude-path ZZ.bak --exclude-path docs/audits --format markdown --output lychee-report.md '**/*.md'
         code=$?
         echo "code=$code" >> "$GITHUB_OUTPUT"
         if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
@@ -48,10 +51,25 @@ jobs:
           fi
           exit 0
         fi
+        # Every broken link becomes a task list item (lychee lists them as plain bullets), so single items can be turned into
+        # sub-issues by hand with "Convert to sub-issue". Converting removes the line from this body, and the body is rewritten
+        # by every run, so a link that is still broken would come back as a new item. To avoid a duplicate sub-issue, an item
+        # is left out while an open sub-issue of this issue has its URL in the title. lychee prints the URL in angle brackets,
+        # which GitHub drops from a title, so they are removed to keep the URL in the sub-issue's title.
+        open_titles=""
+        if [ -n "$number" ]; then
+          open_titles=$(gh api "repos/$GITHUB_REPOSITORY/issues/$number/sub_issues" --paginate --jq '.[] | select(.state == "open") | .title' || true)
+        fi
         {
-          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. This issue is updated by each run and closed when all links work again."
+          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. Each broken link is a task list item, so it can be converted to a sub-issue by hand. A link with an open sub-issue is not listed again. This issue is rewritten by each run and closed when all links work again."
           echo
-          cat lychee-report.md
+          sed -E 's/^[*-] /- [ ] /; s/<(https?:[^>]*)>/\1/' lychee-report.md | while IFS= read -r line; do
+            url=$(printf '%s\n' "$line" | grep -oE 'https?://[^ ]+' | head -n 1 || true)
+            if [ -n "$url" ] && [ -n "$open_titles" ] && printf '%s\n' "$open_titles" | grep -qF -- "$url"; then
+              continue
+            fi
+            printf '%s\n' "$line"
+          done
         } > issue-body.md
         if [ -n "$number" ]; then
           gh issue edit "$number" --body-file issue-body.md

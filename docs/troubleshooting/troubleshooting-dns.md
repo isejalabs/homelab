@@ -67,7 +67,25 @@ Then query the pod's own resolver: `dig @<unbound-lb-ip> gw.<domain>` (stub zone
 
 If a pod still restarts, `kubectl -n unbound logs <pod> --previous` shows whether unbound itself crashed (then it is a different problem) or was killed by the probe.
 
-## 5. AdGuard stalls or logs `operation not permitted` while Unbound is down
+## 5. External names return SERVFAIL through Unbound (DNSSEC)
+
+**Symptom**: a public name answers via AdGuard/Quad9 but returns `SERVFAIL` when queried at Unbound directly, while internal names (`iseja.net`, the `10.in-addr.arpa` reverse zone) are fine.
+
+**Cause**: Unbound validates DNSSEC (the `auto-trust-anchor-file` in [`unbound.conf`](../../k8s/apps/dns/unbound/base/config/unbound.conf), see [`network.md`](../architecture/network.md#dns-adguard--unbound)) and rejects answers whose signatures do not verify: a genuinely broken zone, a clock that is off (validation depends on correct time on the node), or a root key file that did not load. `iseja.net` is never validated (`domain-insecure`).
+
+**Check**: ask with and without validation. If the `+cd` query answers but the plain one gives `SERVFAIL`, validation is what rejects it:
+
+```sh
+dig @<unbound-lb-ip> +dnssec <name>        # status: SERVFAIL = rejected, flag "ad" = validated
+dig @<unbound-lb-ip> +cd <name>            # +cd = checking disabled, returns the data anyway
+dig @<unbound-lb-ip> +dnssec dnssec-failed.org   # must be SERVFAIL (deliberately broken test zone)
+dig @<unbound-lb-ip> +dnssec cloudflare.com      # must be NOERROR with "ad" in the flags
+kubectl -n unbound logs deploy/unbound | grep -iE 'trust|anchor|dnssec'
+```
+
+If even `cloudflare.com` has no `ad` flag, the trust anchor is not loaded. Check that `unbound-checkconf -o auto-trust-anchor-file` inside the pod (`/usr/local/unbound/unbound.d/sbin/unbound-checkconf -f /usr/local/unbound/unbound.conf -o auto-trust-anchor-file`) prints the root key path and that the node clock is correct.
+
+## 6. AdGuard stalls or logs `operation not permitted` while Unbound is down
 
 **Symptom**: AdGuard logs `dnsproxy: exchange failed upstream=10.8.8.8:53 ... connect: operation not permitted`, or internal names answer slowly or not at all for the first queries while the `unbound` Service has no healthy pod.
 
