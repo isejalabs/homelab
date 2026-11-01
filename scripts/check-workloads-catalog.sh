@@ -36,7 +36,8 @@ log() {
 
 # Prints "<kind>/<category>/<unit> <set>" for each row of the Apps and Infra tables in the doc. The Apps
 # table's rows are under "## Apps", the Infra table's under "## Infra"; the set is the first word of the last
-# column, backticks removed.
+# column, backticks removed. The unit cell is "<icon> [`unit`](link)": whatever precedes the "[`" (the decorative
+# emoji icon) is ignored.
 doc_rows() {
     awk -F'|' '
         /^## Apps/ { kind = "apps"; next }
@@ -46,7 +47,7 @@ doc_rows() {
         kind != "" && /^\| `/ {
             cat = $2; unit = $3; set = $(NF - 1)
             gsub(/[ `]/, "", cat)
-            sub(/^ *\[`/, "", unit); sub(/`\].*$/, "", unit)
+            sub(/^[^[]*\[`/, "", unit); sub(/`\].*$/, "", unit)
             gsub(/`/, "", set); sub(/^ */, "", set); sub(/[^a-z].*$/, "", set)
             print kind "/" cat "/" unit, set
         }' "${DOC}"

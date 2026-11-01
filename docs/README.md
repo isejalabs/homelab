@@ -15,7 +15,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | See the stack diagram and reading order | [`architecture/overview.md`](architecture/overview.md), [`architecture/README.md`](architecture/README.md) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
-| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
+| Read the project history | The root README's [history](../README.md#-a-bit-of-history) |
 
 ### Build and operate a cluster
 
@@ -155,7 +155,7 @@ Where it's signalled depends on the doc type, since each already has its own nat
   — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column of their folder's `README.md` index, since those tables are the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
-- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#folder-structure)).
+- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#-folder-structure)).
 
 ### Diagrams
 

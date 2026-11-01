@@ -19,7 +19,7 @@ There was also a research-driven hesitation worth recording honestly: around the
 
 ## Decision
 
-Flux CD reconciles every `k8s/infra`/`k8s/apps` unit from Git; ArgoCD has been fully decommissioned (migration: 3/2026-8/2026, done by hand — "the last big implementation done without AI guidance", root [`README.md`](../../README.md#a-bit-of-history)).
+Flux CD reconciles every `k8s/infra`/`k8s/apps` unit from Git; ArgoCD has been fully decommissioned (migration: 3/2026-8/2026, done by hand — "the last big implementation done without AI guidance", root [`README.md`](../../README.md#-a-bit-of-history)).
 
 ## Consequences
 
