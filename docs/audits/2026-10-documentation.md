@@ -12,7 +12,7 @@ The main remaining concerns are accuracy across entry points, the boundary betwe
 
 ### F1 — CI descriptions disagree across documentation
 
-**Priority:** High. The root [README](../../README.md#staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
+**Priority:** High. The root [README](../../README.md#-staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
 
 **Recommendation:** Make the root README, CI guide, and contributor instructions agree on which workflows validate changes, which are required checks, and which are automation. Link to the CI guide rather than duplicating a workflow count unless that count is maintained from an authoritative source.
 
