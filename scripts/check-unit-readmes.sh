@@ -2,9 +2,11 @@
 # Checks that every app/infra unit has a README.md that follows the template in k8s/README.md ("README of an
 # app/infra unit"): for each directory under k8s/apps and k8s/infra that has a flux/ folder, the README must start
 # with a level-1 title, contain the required level-2 headings in the template's order (extra sections are allowed,
-# anywhere), and have the four rows of the "At a glance" table. Headings and rows inside fenced code blocks do not
-# count, so a "## " comment in a shell snippet cannot satisfy or break the check. Content is not judged, only the
-# shape, so a section that does not apply still has to say so in a line.
+# anywhere), and have the four rows of the "At a glance" table. In the "Access" section a URL must be a Markdown
+# link, not a code span, so it can be clicked (a placeholder such as https://<env>-app.example.com stays code).
+# Headings and rows inside fenced code blocks do not count, so a "## " comment in a shell snippet cannot satisfy or
+# break the check. Content is not judged, only the shape, so a section that does not apply still has to say so in a
+# line.
 #
 # Usage: scripts/check-unit-readmes.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
@@ -49,7 +51,8 @@ repo_units() {
 
 # Prints one problem per line for the README given as $1, nothing if it has the required shape. Fenced code blocks
 # (opened by three or more backticks, closed by at least as many) are skipped. A heading counts only if it is the
-# whole line "## <name>", and the required ones must appear in the order of REQUIRED_HEADINGS.
+# whole line "## <name>", and the required ones must appear in the order of REQUIRED_HEADINGS. In the "Access"
+# section every http(s) URL in a code span (without a <placeholder>) is reported.
 readme_problems() {
     awk -v req="${REQUIRED_HEADINGS}" -v rows="${REQUIRED_ROWS}" '
         BEGIN { nreq = split(req, R, "|"); nrows = split(rows, W, "|"); fence = 0 }
@@ -64,7 +67,10 @@ readme_problems() {
             if (line ~ /^## /) {
                 h = substr(line, 4); sub(/[ \t]+$/, "", h)
                 if (!(h in at)) at[h] = NR
+                sec = h
             }
+            if (sec == "Access" && match(line, /`https?:\/\/[^`<>]*`/))
+                print "line " NR ": URL in a code span in \"Access\", write it as a Markdown link: " substr(line, RSTART, RLENGTH)
             for (i = 1; i <= nrows; i++) if (index(line, "| " W[i] " |") == 1) hasrow[W[i]] = 1
         }
         END {

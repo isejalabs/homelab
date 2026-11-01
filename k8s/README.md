@@ -56,7 +56,7 @@ A `_ns` folder (e.g. `infra/cert-manager/_ns`) is the exception: it only has a `
 
 Every unit has a `README.md` next to its `base/` (so GitHub shows it when the folder link in [`workloads.md`](../docs/architecture/workloads.md) is opened). It is the front door for one workload: what it is, where to reach it, what to run. It does not repeat what a cross-cutting doc owns; it links there (see [Central or in the README](#central-or-in-the-readme)). Tracked in [#2098](https://github.com/isejalabs/homelab/issues/2098).
 
-Headings are fixed and enforced: [`scripts/check-unit-readmes.sh`](../scripts/check-unit-readmes.sh) (run by the `docs-link-check` workflow) fails for a unit without a README, without one of the eight `##` headings below, with the headings out of order, or without the four rows of the `At a glance` table. Change the template and the script's two lists together. A section that does not apply says so in one line (`Not exposed.`) instead of being dropped. Extra sections (`Secrets and storage`, `Known quirks`, install notes) go after `Cheat sheet`.
+Headings are fixed and enforced: [`scripts/check-unit-readmes.sh`](../scripts/check-unit-readmes.sh) (run by the `docs-link-check` workflow) fails for a unit without a README, without one of the eight `##` headings below, with the headings out of order, without the four rows of the `At a glance` table, or with a URL in a code span in `Access`. Change the template and the script's two lists together. A section that does not apply says so in one line (`Not exposed.`) instead of being dropped. Extra sections (`Secrets and storage`, `Known quirks`, install notes) go after `Cheat sheet`.
 
 ````markdown
 # <name>
