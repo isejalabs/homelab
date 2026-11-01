@@ -6,7 +6,7 @@ status: planning
 
 Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). Only the Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered so far; `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) and the Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) are added when they are built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
-**Status:** the Keycloak side of `dev_k8s` is applied; the Checkmk side and the logins are **not** configured or verified yet, and neither is anything for `qa_k8s`. This page is `planning` until the acceptance criteria of #2107 are checked.
+**Status (2026-11-01):** for `dev_k8s` the UCS groups exist, the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. No complete login (Keycloak password and second factor, back to Checkmk) has been verified yet, and nothing is done for `qa_k8s`. This page is `planning` until the acceptance criteria of #2107 are checked.
 
 ## How it works
 
@@ -64,7 +64,7 @@ The identity provider metadata URLs are an output of the unit (`terragrunt outpu
 
 ## Checkmk side
 
-Per site, in *Setup → Users → SAML authentication → Add connection*, once for `iseja` and once for `admin`. Checkmk requires HTTPS, and the user ID attribute must be the full attribute name.
+Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML authentication → Add connection* or through the REST API (`POST /domain-types/saml_connection/collections/all`, available in 2.5.0p15). Checkmk requires HTTPS, and the user ID attribute must be the full attribute name. The REST API of `dev_k8s` was used on 2026-11-01 as the `automation` user from `monitoring1` against `http://127.0.0.1:5083/dev_k8s/check_mk/api/1.0` (the site's own Apache port), with the secret read from the site and never printed. The connections are saved at once, they are not a pending change to activate.
 
 | Field | `iseja` connection | `admin` connection |
 | --- | --- | --- |
@@ -72,13 +72,14 @@ Per site, in *Setup → Users → SAML authentication → Add connection*, once 
 | Name (login button label) | `Iseja` | `Admin` |
 | Identity provider metadata (URL) | `.../realms/iseja/protocol/saml/descriptor` | `.../realms/admin/protocol/saml/descriptor` |
 | Checkmk server URL | `https://monitoring1.home.iseja.net`, the host only without the site name (Checkmk adds `/<site>/check_mk`) | same |
+| Signing certificate | built-in | built-in |
 | User ID attribute | `https://iseja.net/claims/userid` | same |
-| Alias attribute | `https://iseja.net/claims/alias` | same |
+| Full name attribute | `https://iseja.net/claims/alias` | same |
 | E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` only | not set |
-| Roles | by attribute `https://iseja.net/claims/groups`: `app-checkmk-operator` → `user`, `app-checkmk-readonly` → `guest` | `app-checkmk-admin` → `admin` |
-| Contact groups | by the same attribute: `app-checkmk-operator` → `all` | none |
+| Roles | attribute `https://iseja.net/claims/groups`: `app-checkmk-operator` → `user`, `app-checkmk-readonly` → `guest` | `app-checkmk-admin` → `admin` |
+| Contact groups | type "map" on the same attribute: `app-checkmk-operator` → `all` | none |
 
-The exact form of the role and contact group mapping has not been tried; the Checkmk source offers a direct attribute-to-group mapping and a group mapping by attribute value, and which one reproduces the table is part of the first spike. After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
+The connections were accepted with the Ultimate sites in the free licence state, so the licence does not block SAML configuration. The REST body mirrors the table: `general_properties` (`id`, `name`), `connection_config` (`checkmk_server_url`, `identity_provider_metadata` of type `url`), `security` (`signing_certificate` of type `builtin`) and `users` (`id_attribute`, `full_name_attribute`, `email_attribute`, `contact_groups` and `roles` of type `map`). After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
 
 ## Break-glass
 
@@ -86,8 +87,8 @@ The exact form of the role and contact group mapping has not been tried; the Che
 
 ## Not verified yet
 
-- SAML works in the free licence state of the Ultimate sites (no licence check was found in the source; not run).
+- A complete login: `sebi` through `iseja` ends as `user` and member of `all`, `sebi-adm` through `admin` as `admin`.
 - A user in no mapped group gets no role or access.
-- The contact group mapping puts `app-checkmk-operator` members into `all`.
 - The assertion is accepted: signature algorithm and attribute names.
-- `cmkadmin` and the automation users keep working with a SAML connection configured and with the identity provider stopped.
+- `cmkadmin` and the automation users keep working with the identity provider stopped.
+- `qa_k8s`: everything above.
