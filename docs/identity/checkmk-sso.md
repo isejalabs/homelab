@@ -6,7 +6,7 @@ status: planning
 
 Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). Only the Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered so far; `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) and the Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) are added when they are built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
-**Status (2026-11-01):** for `dev_k8s` the UCS groups exist, the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. No complete login (Keycloak password and second factor, back to Checkmk) has been verified yet, and nothing is done for `qa_k8s`. This page is `planning` until the acceptance criteria of #2107 are checked.
+**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. A complete login was verified by the owner for `sebi` and `sebi-adm` in `dev_k8s` only; `qa_k8s` is configured but not logged in to yet. This page is `planning` until the acceptance criteria of #2107 are checked.
 
 ## How it works
 
@@ -64,7 +64,7 @@ The identity provider metadata URLs are an output of the unit (`terragrunt outpu
 
 ## Checkmk side
 
-Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML authentication → Add connection* or through the REST API (`POST /domain-types/saml_connection/collections/all`, available in 2.5.0p15). Checkmk requires HTTPS, and the user ID attribute must be the full attribute name. The REST API of `dev_k8s` was used on 2026-11-01 as the `automation` user from `monitoring1` against `http://127.0.0.1:5083/dev_k8s/check_mk/api/1.0` (the site's own Apache port), with the secret read from the site and never printed. The connections are saved at once, they are not a pending change to activate.
+Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML authentication → Add connection* or through the REST API (`POST /domain-types/saml_connection/collections/all`, available in 2.5.0p15). Checkmk requires HTTPS, and the user ID attribute must be the full attribute name. The REST API was used on 2026-11-01 and 2026-11-02 from `monitoring1` against the site's own Apache port (`http://127.0.0.1:<port>/<site>/check_mk/api/1.0`, `dev_k8s` 5083, `qa_k8s` 5082): `dev_k8s` as its `automation` user with the secret read from the site, `qa_k8s` (which has no automation user) as `cmkadmin` with the password from 1Password, neither ever printed. The connections are saved at once, they are not a pending change to activate.
 
 | Field | `iseja` connection | `admin` connection |
 | --- | --- | --- |
@@ -86,7 +86,7 @@ The connections were accepted with the Ultimate sites in the free licence state,
 A user that Checkmk creates at its first SAML login is a **pending change** in the site (one per user). Until an administrator activates it with *Activate changes*, the user exists but the monitoring configuration does not know them: the contact group membership (`all` for `sebi`) is not in effect and the user sees no hosts or services. Seen on 2026-11-02 in `dev_k8s`: `sebi` logged in first and saw nothing; after `sebi-adm` had logged in, two changes (the two new users) were pending, and activating them made the views fill.
 
 - **Every new SAML user needs this once**, not every login. Changes of the mapping applied by later logins (a role or contact group that changed in UCS) are pending changes again.
-- **Who activates:** a user with the `admin` role, for instance `sebi-adm` through the `admin` connection, or `cmkadmin`. The `terraform` and `automation` users also can; the `terraform` user's [limited role](../decisions/0015-checkmk-configuration-as-code.md) may not be enough on every site.
+- **Who activates:** a user with the `admin` role, for instance `sebi-adm` through the `admin` connection, or the local `cmkadmin`.
 - **Do not activate blindly:** activation applies all pending changes of the site, not only the new users (see the consequences in ADR 0015), so look at the list first.
 - **Not automated.** Activating after a first login is a manual step on purpose for now; whether it should be scripted is a follow-up if it becomes a nuisance.
 
@@ -104,4 +104,4 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 - A user in no mapped group gets no role or access.
 - The assertion is accepted: signature algorithm and attribute names.
 - `cmkadmin` and the automation users keep working with the identity provider stopped.
-- `qa_k8s`: everything above.
+- `qa_k8s`: the complete logins, including the activation of the first users and the e-mail address of `sebi`.
