@@ -19,7 +19,8 @@ jobs:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
-        install_args: lychee
+        # kubectl: only for `kubectl kustomize` (offline) in check-unit-readme-hostnames.sh below.
+        install_args: lychee kubectl
     # --offline: local file/anchor targets only, no network calls - deterministic, no third-party-downtime
     # flakiness. External URLs are a separate, much noisier concern (rate limits, real downtime) deliberately
     # left out of this PR-blocking check - see #1349. _attic/ZZ.bak are retired material that isn't kept up
@@ -28,4 +29,9 @@ jobs:
     - run: scripts/check-workloads-catalog.sh
     # Every k8s/{apps,infra} unit needs a README.md with the headings of the template in k8s/README.md (#2098).
     - run: scripts/check-unit-readmes.sh
+    # Every hostname linked in a unit README's Access section must be served by that unit's rendered overlay (#2111).
+    # Runs here, not in kustomize-build.yml, because that workflow skips README-only changes (its path filter excludes
+    # k8s/**/*.md) and is the wrong place for a docs check; the render is offline and takes a few seconds.
+    - run: scripts/test-readme-access.sh
+    - run: scripts/check-unit-readme-hostnames.sh
     - run: lychee --offline --include-fragments --no-progress --exclude-path _attic --exclude-path ZZ.bak '**/*.md'
