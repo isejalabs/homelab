@@ -29,6 +29,7 @@ jobs:
           - ".mise.toml"
           - "mise.lock"
           - "scripts/kustomize-build-all.sh"
+          - "scripts/vendor-manifests.sh"
           - "scripts/lib/common.sh"
           - ".github/workflows/kustomize-build.yml"
 
@@ -49,4 +50,5 @@ jobs:
         # with the root one (kubectl/gum etc.), same as running it by hand.
         working_directory: k8s
         install_args: gum kubeconform kubectl
+    - run: scripts/vendor-manifests.sh check
     - run: scripts/kustomize-build-all.sh
