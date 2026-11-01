@@ -1,4 +1,72 @@
-# Links
+# Checkmk Kubernetes agent
+
+The [Checkmk Kubernetes monitoring agent](https://github.com/Checkmk/checkmk_kube_agent): a cluster collector and a node collector per node that a Checkmk site queries to monitor the cluster, its nodes, namespaces, deployments and pods.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `checkmk-kube-agent` |
+| Runs in | all 8 environments (Flux set `minimal`) |
+| Installed via | HelmRelease, chart `checkmk` from the `checkmk.github.io/checkmk_kube_agent` Helm repository, plus an `HTTPRoute` for the cluster collector |
+| Flux Kustomization | `checkmk-kube-agent` (the unit is `checkmk-agent`), depends on `gateway-api` |
+
+## Purpose
+
+The in-cluster half of the Kubernetes monitoring: the collectors expose cluster and node data; the Kubernetes special agent in Checkmk reads it through the collector endpoint and the Kubernetes API. The split between Checkmk sites, what is monitored and who manages which part: [`monitoring.md`](../../../../docs/architecture/monitoring.md).
+
+## Where it is used
+
+- **Used by**: the Checkmk sites. Each environment has its own `<env>_k8s` site on `monitoring1` (or `monitoring2` for `prod`), and the `prod` site also queries `dev`, `qa` and `rebuild`: [`reference/environments.md`](../../../../docs/reference/environments.md#checkmk-monitoring-of-the-clusters).
+- **Depends on**: the `internal` Gateway for the collector endpoint, and a service-account token (Secret `checkmk-kube-agent-checkmk`) that has to be copied into the Checkmk password store.
+
+## Access
+
+The cluster collector is published through the `internal` Gateway; the Checkmk special agent is configured with this URL as its "Collector NodePort / Ingress endpoint". The subdomain is `cmk-k8s-cluster-collector`.
+
+| env | Collector URL |
+| --- | --- |
+| `dbg` | [https://dbg-cmk-k8s-cluster-collector.dbg.iseja.net](https://dbg-cmk-k8s-cluster-collector.dbg.iseja.net) |
+| `dev` | [https://dev-cmk-k8s-cluster-collector.dev.iseja.net](https://dev-cmk-k8s-cluster-collector.dev.iseja.net) |
+| `head` | [https://head-cmk-k8s-cluster-collector.head.iseja.net](https://head-cmk-k8s-cluster-collector.head.iseja.net) |
+| `poc` | [https://poc-cmk-k8s-cluster-collector.poc.iseja.net](https://poc-cmk-k8s-cluster-collector.poc.iseja.net) |
+| `prod` | [https://cmk-k8s-cluster-collector.prod.iseja.net](https://cmk-k8s-cluster-collector.prod.iseja.net) |
+| `qa` | [https://qa-cmk-k8s-cluster-collector.qa.iseja.net](https://qa-cmk-k8s-cluster-collector.qa.iseja.net) |
+| `rebuild` | [https://rebuild-cmk-k8s-cluster-collector.rebuild.iseja.net](https://rebuild-cmk-k8s-cluster-collector.rebuild.iseja.net) |
+| `src` | [https://src-cmk-k8s-cluster-collector.src.iseja.net](https://src-cmk-k8s-cluster-collector.src.iseja.net) |
+
+The endpoint wants the bearer token (see the cheat sheet). Which of these Checkmk actually queries: [`reference/environments.md`](../../../../docs/reference/environments.md#checkmk-monitoring-of-the-clusters).
+
+## Updates
+
+- **Chart**: `spec.chart.spec.version` in [`base/helmrelease.yaml`](base/helmrelease.yaml). The collector API and the special agent in Checkmk must stay compatible, so check the Checkmk side after a major bump.
+- No special Renovate rule: the default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md) applies. Values (resources of the collectors) are in the same file; the vendor's reference is [`values.yaml`](https://github.com/Checkmk/checkmk_kube_agent/blob/main/deploy/charts/checkmk/values.yaml).
+
+## Operations
+
+| Task | Where |
+| --- | --- |
+| Refresh the token and CA after a cluster is recreated | [Refresh the token](#refresh-the-token-after-a-cluster-is-recreated) below |
+| Folders, hosts, special agent rule, discovery in Checkmk | [Checkmk setup](#checkmk-setup-kept-from-the-earlier-readme) below |
+| Checkmk sites, thresholds, notifications | [`reference/`](../../../../docs/reference/README.md) |
+
+## Cheat sheet
+
+Replace `<env>` with the environment.
+
+```sh
+flux get ks checkmk-kube-agent --context admin@<env>-homelab
+kubectl get pods,svc,httproute -n checkmk-kube-agent --context admin@<env>-homelab
+
+# the token for the Checkmk password store (pipe it, do not copy from a terminal: a trailing "%" breaks it)
+kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent --context admin@<env>-homelab -o jsonpath='{.data.token}' | base64 --decode
+
+# test the collector endpoint
+MYTOKEN=$(kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent --context admin@<env>-homelab -o jsonpath='{.data.token}' | base64 --decode)
+curl -k -H "Authorization: Bearer $MYTOKEN" https://<env>-cmk-k8s-cluster-collector.<env>.iseja.net/metadata | jq
+```
+
+## Upstream
 
 - https://docs.checkmk.com/latest/en/monitoring_kubernetes.html
 - [checkmk_kube_agent/deploy/charts/checkmk at main · Checkmk/checkmk_kube_agent](https://github.com/Checkmk/checkmk_kube_agent/tree/main/deploy/charts/checkmk)
@@ -7,98 +75,15 @@
 - https://checkmk.atlassian.net/wiki/spaces/KB/pages/88834049/Debugging+Special+Agents+Combined#DebuggingSpecialAgents(Combined)-Kubernetes-k8sspecialagent
 - https://github.com/kuhn-ruess/Checkmk-Checks/tree/master/datamover
 
-# INSTALL
+## Checkmk setup (kept from the earlier README)
 
-adopted from https://docs.checkmk.com/latest/en/monitoring_kubernetes.html
+How the Checkmk side was set up for this agent, written for `dev` (hostnames and names change per environment). The Helm chart itself is installed by the HelmRelease, not as described in the Checkmk documentation.
 
-## Helm Chart
-
-### Repo
-
-- https://github.com/Checkmk/checkmk_kube_agent
-
-### values.yaml
-
-see vendor's [values.yaml](https://github.com/Checkmk/checkmk_kube_agent/blob/main/deploy/charts/checkmk/values.yaml) for all possible values
-
-#### homelab repo's version
-
-using kustomize overlays and `HelmChartInflationGenerator`, link with up-to-date used value: [base/helm/helmChart.yaml](https://github.com/isejalabs/homelab/blob/main/k8s/apps/monitoring/checkmk-agent/base/helm/helmChart.yaml)
-
-#### example and maybe outdated version:
-
-```yaml
-  clusterCollector:
-    resources:
-      requests:
-        cpu: 30m
-        memory: 70Mi
-      limits:
-        cpu: 100m
-        memory: 120Mi
-
-  nodeCollector:
-    # collect metrics also on control plane nodes
-    tolerations:
-      - operator: "Exists"
-        effect: "NoSchedule"
-
-    cadvisor:
-      resources:
-        requests:
-          cpu: 15m
-          memory: 40Mi
-        limits:
-          cpu: 100m
-          memory: 50Mi
-
-    containerMetricsCollector:
-      resources:
-        requests:
-          cpu: 15m
-          memory: 40Mi
-
-        limits:
-          cpu: 100m
-          memory: 50Mi
-
-    machineSectionsCollector:
-      resources:
-        requests:
-          cpu: 30m
-          memory: 25Mi
-        limits:
-          cpu: 100m
-          memory: 30Mi
-```
-
-### Kustomize
-
-```yaml
-apiVersion: kustomize.config.k8s.io/v1beta1
-kind: Kustomization
-
-# DISABLED: do not prefix name nor do other env.-specific transformations
-# components:
-#   - ../../../../../components/envs/src
-
-resources:
-  - ../../base
-
-helmCharts:
-  - name: checkmk
-    repo: https://checkmk.github.io/checkmk_kube_agent
-    version: 1.6.0
-    releaseName: myrelease
-    namespace: checkmk-kube-agent
-    valuesFile: values.yaml
-```
-
-## Setup Secrets in cmk
+### Setup Secrets in cmk
 
 cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#helm_output) and [Storing the password (token) in Checkmk](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#token)
 
-### Token (Password)
+#### Token (Password)
 
 **Path:** `Setup > General > Passwords` Name: `k8s_dev-homelab_cmk-agent`
 
@@ -106,7 +91,7 @@ cf. [Helm output](https://docs.checkmk.com/latest/en/monitoring_kubernetes.html#
 k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data.token | @base64d'
 ```
 
-#### Refresh the token after a cluster is recreated
+##### Refresh the token after a cluster is recreated
 
 A recreated cluster (for example `rebuild`) gets a new service-account token. The password-store entry then holds the old one and the Kubernetes special agent fails on `/version` (Checkmk 2.5 reports `Data from endpoint /version did not have mandatory field 'gitVersion'` with an `Unauthorized` status body, i.e. HTTP 401). Read the new token from the cluster as above and replace it in `Setup > General > Passwords`; the entries are named `k8s-<env>-homelab` (and `prod-checkmk` for `prod`). Then activate the changes. The same applies to a newly deployed agent (the first deployment in an environment).
 
@@ -115,7 +100,7 @@ Two pitfalls, both seen on 2026-10-22/23:
 - **Copy the token without the shell's end-of-output marker.** `zsh` prints a `%` after output that has no trailing newline; copied along, it becomes the last character of the token (1331 instead of 1330 characters) and the API answers `401`. Pipe it instead: `kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent -o jsonpath='{.data.token}' | base64 --decode | pbcopy`. The same goes for the CA (`ca.crt`): it must be the CA of the *current* cluster, a recreated cluster has a new one.
 - **Editing the password store alone does not reach the running checks on a Community site.** The scheduled `Check_MK` checks read a snapshot of the password store and the CA bundle (`var/check_mk/core/helper_config/latest/`) that is only rewritten when the core configuration is regenerated, while `cmk -d <host>` reads the live files and already works. After saving the password (and the CA), activate a change that regenerates the core configuration, or run `cmk -O` as the site user, then wait for the next check. Verify with `cmk -d <collector host>` first.
 
-### Certificate
+#### Certificate
 
 **Path:** `Setup > General > Global settings > Site management > Trusted certificate authorities for SSL`
 
@@ -123,7 +108,7 @@ Two pitfalls, both seen on 2026-10-22/23:
 k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '.data."ca.crt" | @base64d'
 ```
 
-### Test connection
+#### Test connection
 
 ```sh
 ❯ export MYTOKEN=$(kubectl get secret checkmk-kube-agent-checkmk -n checkmk-kube-agent -o=jsonpath='{.data.token}' | base64 --decode)
@@ -149,11 +134,11 @@ k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '
   ...
 ```
 
-## Create Host Folders
+### Create Host Folders
 
 **Path:** `Setup > Hosts > Folder > Create`
 
-### Folders
+#### Folders
 
 - k8s
   - piggys (RAW w/ multi-env only)
@@ -163,27 +148,27 @@ k get secrets -n checkmk-kube-agent -o yaml checkmk-kube-agent-checkmk | yq -r '
     - prod
   - nodes (optional)
 
-### Settings
+#### Settings
 
-#### Folder: K8S
+##### Folder: K8S
 
 different per Edition
 
-##### Ent Ed.
+###### Ent Ed.
 
 | Setting                         | Value                                           |
 | ------------------------------- | ----------------------------------------------- |
 | IP Address Family               | `No IP`                                         |
 | Checkmk agent / API integration | `Configured API integrations, no Checkmk agent` |
 
-##### RAW Ed.
+###### RAW Ed.
 
 | Setting                            | Value                                  |
 | ---------------------------------- | -------------------------------------- |
 | IP Address Family                  | `No IP`                                |
 | Piggyback (where option available) | `Always use and expect piggyback data` |
 
-#### Folder: envs
+##### Folder: envs
 
 `envs` folder only (sub-folders will derive settings)
 
@@ -192,7 +177,7 @@ different per Edition
 | IP Address Family                  | `No IP`                                |
 | Piggyback (where option available) | `Always use and expect piggyback data` |
 
-## Create a cluster-collector piggyback host
+### Create a cluster-collector piggyback host
 
 **Path:** `Setup > Hosts > Hosts > Create`
 
@@ -202,7 +187,7 @@ different per Edition
 | IP address familie | `No IP` (inherited)                                                                         |
 | Piggyback          | `Use piggyback data from other hosts if present`, **not** `Always use and expect piggyback data`: the collector host only sends piggyback data, it never receives any, so "expect" leaves its `Check_MK` services at WARN |
 
-## Dynamic Host Management (Enterprise Ed.)
+### Dynamic Host Management (Enterprise Ed.)
 
 **Path:** `Setup > Hosts > Dynamic host management > Add connection`
 
@@ -216,7 +201,7 @@ different per Edition
 | Sync interval           | `5 min` (default `1 min`)                                                                                                                          |
 | Only add matching hosts | - `^prod`<br>- `^daemonset_`<br>- `^deployment_`<br>- `^namespace_(.+)`<br>- `^statefulset_`<br>- `^pod_(.+)_unifi`<br>- `.+unifi`<br>- `.+immich` |
 
-## Periodic service discovery
+### Periodic service discovery
 
 **Path:** `Setup > Services > Discovery rules > Periodic service discovery`
 
@@ -225,7 +210,7 @@ different per Edition
 | Every                                      | `0h33m`                       |
 | Automatically update service configuration | `tabula-rasa` or 5x `X` (all) |
 
-## Special agent
+### Special agent
 
 **Path:** `Setup > Agents > VM, cloud, container > Kubernetes`
 
@@ -245,7 +230,7 @@ different per Edition
 | Import annotations as host labels     | `checkmk-monitoring$`                                                                                                                                                    |
 | Condition - Folder                    | `dev-cmk-ingress.dev.iseja.net`                                                                                                                                          |
 
-## Host name translation for piggybacked hosts
+### Host name translation for piggybacked hosts
 
 **Path:** `Setup > Agents > Agent access rules > Host name translation for piggybacked hosts` Description: `Remove node_<cluster> prefix` Multiple regular expressions:
 
@@ -257,9 +242,9 @@ Condition - Folder:
 
 - `K8S/envs
 
-# CONFIGURATION
+### CONFIGURATION
 
-## Kubernetes node count
+#### Kubernetes node count
 
 Path: `Setup > Services > Service monitoring rules > Kubernetes node count` Description: `K8S node count`
 

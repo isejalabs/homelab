@@ -186,7 +186,8 @@ nav:
   - Infrastructure:
     - cert-manager: k8s/infra/cert-manager/cert-manager/README.md
     - Cilium: k8s/infra/kube-system/cilium/README.md
-    - external-secrets: k8s/infra/external-secrets/README.md
+    - external-secrets: k8s/infra/external-secrets/external-secrets/README.md
+    - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md
     - Gateway: k8s/infra/gateway-api/gateway/README.md
     - proxmox-csi: k8s/infra/csi-proxmox/proxmox-csi/README.md
     - sealed-secrets: k8s/infra/sealed-secrets/sealed-secrets/README.md

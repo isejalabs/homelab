@@ -1,8 +1,64 @@
 # Zigbee2MQTT
 
+[Zigbee2MQTT](https://www.zigbee2mqtt.io/) is the bridge between the Zigbee network and the MQTT broker that Home Assistant uses. It talks to the ConBee II coordinator stick.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `zigbee2mqtt` |
+| Runs in | `prod` only (registered in [`flux/envs/prod`](../../../bootstrap/cluster/flux/envs/prod/kustomization.yaml), in no Flux set) |
+| Installed via | HelmRelease with the `bjw-s-labs/app-template` OCI chart, plus the `apps/storage/pvc` component (2Gi, backed up by kopiur) |
+| Flux Kustomization | `zigbee2mqtt`, no `dependsOn`, `wait: true` |
+
+## Purpose
+
 Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kubernetes worker, so it can only run in **one** environment at a time. It runs in prod (`prod-work-01` on Proxmox host `pve1`, node label `prod-work-01.home.iseja.net`); no other environment registers the app, although every environment has the usual overlay folder. The migration from the legacy instance was tested in dev first (`dev-work-01` on `pve1`) and moved to prod on 2026-10-18; the dev registration was removed after the soak period. The application uses the existing MQTT broker at `mqtt.home.iseja.net`. The app-template Helm release generates an HTTPRoute for the frontend on the internal Gateway (`zigbee2mqtt.prod.iseja.net`; the hostname is set in the prod overlay because the domain replacement does not reach HelmRelease values).
 
+## Where it is used
+
+- **Used by**: Home Assistant, which discovers the Zigbee devices over MQTT. The frontend is for pairing and diagnosing devices.
+- **Depends on**: the MQTT broker `mqtt.home.iseja.net` (outside this repo), credentials from the `zigbee2mqtt-mqtt` Secret that External Secrets builds from the 1Password item `zigbee2mqtt` (`MQTT_USER`, `MQTT_PASSWORD`); the ConBee II stick on `prod-work-01`, passed through by Proxmox and made readable by a Talos udev rule; Longhorn for the data volume.
+
+## Access
+
+| env | Frontend |
+| --- | --- |
+| `prod` | [https://zigbee2mqtt.prod.iseja.net](https://zigbee2mqtt.prod.iseja.net) (internal Gateway, port 8080 of the Service) |
+
+Other environments do not run it. The hostname is set in [`envs/prod/helmrelease.yaml`](envs/prod/helmrelease.yaml) because the domain replacement does not reach HelmRelease values; the `example.com` name in `base/` stays unrewritten.
+
+## Updates
+
+- **Chart**: `app-template` tag and digest in [`base/ocirepository.yaml`](base/ocirepository.yaml).
+- **Image**: `ghcr.io/koenkk/zigbee2mqtt` tag in [`base/helmrelease.yaml`](base/helmrelease.yaml) (a `renovate: docker=ghcr.io/koenkk/zigbee2mqtt` comment drives it). It is not pinned by a digest.
+- **No staged rollout**: only `prod` runs it, so an image bump in `base/` goes straight to the one live instance that owns the Zigbee network (patch updates are automerged by Renovate, minor ones by Mergify, see [`update-handling.md`](../../../../docs/operations/update-handling.md#automatic-merging-rules)). Read the release notes of a minor or major Zigbee2MQTT release before it merges.
+
+## Operations
+
 The sections below keep the runbook of the migration as it was done (dev as test stage, then the cut-over to prod); use it again if the stick and data ever have to move to another environment.
+
+| Task | Where |
+| --- | --- |
+| Move the stick and data to another environment | [Setup and migration](#setup-and-migration), [Promotion to production](#promotion-to-production) below |
+| Back up and restore the data volume | [`kopiur-backup-restore.md`](../../../../docs/backup/kopiur-backup-restore.md) |
+
+## Cheat sheet
+
+```sh
+flux get ks zigbee2mqtt --context admin@prod-homelab
+kubectl get pods,pvc,httproute -n zigbee2mqtt --context admin@prod-homelab
+kubectl logs -n zigbee2mqtt deploy/zigbee2mqtt -f --context admin@prod-homelab   # logs go to stdout only
+
+# the coordinator device must exist in the pod
+kubectl exec -n zigbee2mqtt deploy/zigbee2mqtt --context admin@prod-homelab -- ls -l /dev/ttyACM0
+```
+
+## Upstream
+
+- Homepage and documentation: <https://www.zigbee2mqtt.io/>
+- Source and releases: <https://github.com/Koenkk/zigbee2mqtt>
+- Chart: <https://github.com/bjw-s-labs/helm-charts> (`app-template`)
 
 ## Setup and migration
 
