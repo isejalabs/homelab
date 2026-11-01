@@ -20,14 +20,16 @@ spec:
                 - /bin/sh
                 - -ec
                 - |
-                  # Keep the newest 14 dumps; the dump just uploaded is always among them.
+                  # Keep the newest 14 dumps. Only keycloak-* objects are candidates, and the dump just uploaded is
+                  # skipped by name, so a clock or sort problem can never delete it.
                   name="keycloak-$(date -u +%Y-%m-%dT%H%M%SZ).dump"
                   test -s /dump/keycloak.dump
                   aws s3 cp /dump/keycloak.dump "s3://${BUCKET}/${name}" --only-show-errors
                   aws s3 ls "s3://${BUCKET}/${name}"
-                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
+                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix keycloak- --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
                   for key in $old; do
                     [ "$key" = "None" ] && break
+                    [ "$key" = "${name}" ] && continue
                     aws s3 rm "s3://${BUCKET}/${key}" --only-show-errors
                   done
               env:
@@ -74,9 +76,12 @@ spec:
               # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
               image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce
               command:
-                - pg_dump
-                - --format=custom
-                - --file=/dump/keycloak.dump
+                - /bin/sh
+                - -ec
+                - |
+                  pg_dump --format=custom --file=/dump/keycloak.dump
+                  # pg_restore must be able to read the table of contents, else the job fails before anything is uploaded
+                  pg_restore --list /dump/keycloak.dump > /dev/null
               env:
                 - name: PGDATABASE
                   valueFrom:
