@@ -239,7 +239,7 @@ resources:
   - vendor/standard-install.yaml
 ```
 
-Renovate bumps the version in that URL comment; [`scripts/vendor-manifests.sh`](../../scripts/vendor-manifests.sh) `update` then fetches the matching file, and `check` (part of the `kustomize-build` workflow) fails while a vendored file differs from its URL. Changes to a vendored manifest go in a `patches:` entry, never into the vendored file. See [Package updates](../operations/update-handling.md#renovate) for the Renovate side.
+Renovate bumps the version in that URL comment; [`scripts/vendor-manifests.sh`](../../scripts/vendor-manifests.sh) `update` then fetches the matching file, and `check` (part of the `kustomize-build` workflow) fails while a vendored file differs from its URL. Changes to a vendored manifest go in a `patches:` entry, never into the vendored file. `.gitattributes` marks `vendor/` files as generated, so GitHub collapses them in PR diffs. See [Package updates](../operations/update-handling.md#renovate) for the Renovate side.
 
 ## Sorting and other conventions
 
