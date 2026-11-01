@@ -57,10 +57,10 @@ To add a client, append it to `wireguard_hub_peers` in `inventory/group_vars/wir
 
 ## Convert `gw4` into a client
 
-Menu names are those of OPNsense 24.7 and later (VPN → WireGuard → Instances / Peers); adapt them if your version differs. Keep the instance `wg1` and its interface assignment: the firewall rules are bound to the interface, so they stay valid.
+Menu names are those of OPNsense 24.7 and later (VPN → WireGuard → Instances / Peers); adapt them if your version differs. Reuse the existing instance and its interface assignment where OPNsense allows it: the firewall rules are bound to the interface, so they stay valid.
 
 1. Save a configuration backup (System → Configuration → Backups). This is the rollback.
-2. Edit the instance `wg1`: keep the key pair, set the tunnel address `10.7.19.4/24`, MTU `1364`, and clear the listen port (the instance dials out). This ends the server role: clients that still connect to `gw4` directly stop working, which is the situation anyway while the LTE router blocks the port.
+2. Edit the instance (it may come back as `wg2` after the conversion; check `wg show` and the interface assignment): keep the key pair, set the tunnel address `10.7.19.4/24`, MTU `1364`, and a **fixed listen port** `51821`. The instance dials out, but an empty port makes OPNsense pick a random one on every restart, and one such source port got stuck behind the LTE router (see [Troubleshooting](#troubleshooting)). This ends the server role: clients that still connect to `gw4` directly stop working, which is the situation anyway while the LTE router blocks the port.
 3. Add a peer `srv3`: public key of the hub (table above), endpoint address `srv3.iseja.net`, port `51820`, allowed IPs `10.7.19.0/24`, keep alive `25`.
 4. In the instance, make `srv3` the only peer: remove the old client peers or disable them, because they now live on `srv3`. Save and apply.
 5. Check the firewall rules of the `wg1` interface: they must still allow what the clients are allowed today. The WAN rule for UDP 51819 is no longer needed and can be removed once all clients are switched.
@@ -98,6 +98,19 @@ dig @10.8.8.8 adguard.prod.iseja.net
 ```
 
 To confirm that the source address is preserved, capture on `gw4` (Interfaces → Diagnostics → Packet Capture, interface `wg1`, or the live log of the firewall rule) while the client pings `10.7.8.1`: the source must be the client's `10.7.19.x`, not `10.7.19.229`.
+
+## Troubleshooting
+
+Seen on 2026-11-01: the tunnel between `gw4` and `srv3` worked for about an hour, then both sides showed a stale handshake. `gw4` sent a 148-byte handshake initiation every 5 s (its sent counter grew by 11 × 148 bytes per minute, nothing was received), but nothing arrived on `srv3`, while other UDP packets from `gw4` with a fresh source port did arrive. The old flow (source port `47666`, an automatically chosen listen port) was stuck behind the LTE router; a new fixed listen port gave a fresh NAT mapping and the handshake came back at once.
+
+To tell where packets are lost, count them on `srv3` without changing the permanent rules (the rule is not saved to `/etc/nftables.conf` and is deleted at the end):
+
+```sh
+H=$(nft --echo --handle insert rule inet filter input udp dport 51820 counter | sed -n 's/.*# handle \([0-9]*\).*/\1/p')
+sleep 60; nft list chain inet filter input | grep counter; nft delete rule inet filter input handle $H
+```
+
+`insert` is required: with `add` the rule lands behind the accept rule and never counts. On `gw4`, `wg show <instance> transfer` twice 60 s apart shows whether it sends (handshake attempts are 148 bytes each); `tcpdump -ni <wan-interface> udp and host 185.228.136.229` shows whether the packets leave. If `gw4` sends and `srv3` receives nothing, change the listen port on `gw4`.
 
 ## Roll back
 
