@@ -204,7 +204,7 @@ If the cluster's sealed-secrets controller is ever lost without this key having 
 
 ### 1Password + External Secrets Operator — for secrets sourced live from a vault
 
-[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/README.md) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
+[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/) ([`external-secrets`](../../k8s/infra/external-secrets/external-secrets/README.md) and [`onepassword-connect`](../../k8s/infra/external-secrets/onepassword-connect/README.md)) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
 
 ```yaml
 apiVersion: external-secrets.io/v1
