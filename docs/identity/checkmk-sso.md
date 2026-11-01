@@ -58,6 +58,8 @@ The unit creates, per site, one client in `iseja` and one in `admin`, with the e
 | `https://iseja.net/claims/groups` | the names of the user's `app-*` groups, multi-valued |
 | `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` |
 
+The `https://iseja.net/claims/` prefix is only a namespace that makes the attribute names unique, like an XML namespace: nothing is ever fetched from it, it need not resolve, and it is the same in every environment (it is not replaced by `dev-auth.dev.iseja.net` or any other host). It has to be a URL because Checkmk insists on a user ID attribute name that starts with `http`. It is the default of `saml_claims` in the module and can be overridden there, but the Keycloak mappers and the Checkmk connection must use the same names.
+
 The identity provider metadata URLs are an output of the unit (`terragrunt output saml_idp_metadata_urls`), for `dev`: `https://dev-auth.dev.iseja.net/realms/iseja/protocol/saml/descriptor` and `.../realms/admin/protocol/saml/descriptor`. `monitoring1` reaches them and trusts their certificate (checked 2026-11-01), so the metadata can be entered as a URL.
 
 ## Checkmk side
