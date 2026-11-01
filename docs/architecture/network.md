@@ -13,18 +13,18 @@ The flow has three strands that meet at the Gateway's LoadBalancer IP: the DNS l
 ```mermaid
 flowchart TD
     accTitle: DNS and traffic path from a LAN client to a pod
-    accDescr: A LAN client asks AdGuard for a name. AdGuard forwards the internal domain and reverse lookups to Unbound, with the OPNsense resolver as fallback, and everything else to Quad9 over DoH. Unbound resolves the internal domain through a stub zone to the root nameservers and the answer is the Gateway's LoadBalancer IP. Separately, Cilium LB-IPAM assigns that IP and the Cilium BGP control plane advertises it as a host route from the worker nodes to the OPNsense pair. The client then sends its HTTPS request to the IP; OPNsense routes it to a worker node, the Cilium-implemented Gateway terminates TLS with a cert-manager certificate and matches the HTTPRoute hostname, and the Kubernetes Service forwards to a pod.
+    accDescr: A LAN client asks AdGuard for a name. AdGuard forwards the internal domain and reverse lookups to Unbound, and in parallel to the OPNsense resolver, and everything else to Quad9 over DoH. Unbound resolves the internal domain through a stub zone to the root nameservers and the answer is the Gateway's LoadBalancer IP. Separately, Cilium LB-IPAM assigns that IP and the Cilium BGP control plane advertises it as a host route from the worker nodes to the OPNsense pair. The client then sends its HTTPS request to the IP; OPNsense routes it to a worker node, the Cilium-implemented Gateway terminates TLS with a cert-manager certificate and matches the HTTPRoute hostname, and the Kubernetes Service forwards to a pod.
 
     client["LAN client"]
 
     subgraph dns["1 - DNS: name to Gateway IP"]
         adguard["AdGuard<br/>LoadBalancer 10.8.8.53<br/>filtering, then forward by domain"]
         unbound["Unbound<br/>LoadBalancer 10.8.8.8 and 10.8.8.11<br/>validating recursive resolver"]
-        opnresolver["OPNsense resolver<br/>VIP 10.9.9.9<br/>fallback for the same domains"]
+        opnresolver["OPNsense resolver<br/>VIP 10.9.9.9<br/>asked in parallel for the same domains"]
         quad9["Quad9<br/>public DoH"]
         roots["root nameservers<br/>10.7.2.10 and 10.7.2.12"]
         adguard -->|"iseja.net and 10.in-addr.arpa"| unbound
-        adguard -.->|"if Unbound is unreachable"| opnresolver
+        adguard -->|"same queries, in parallel"| opnresolver
         adguard -->|"everything else"| quad9
         unbound -->|"stub zone iseja.net"| roots
     end
@@ -168,7 +168,7 @@ upstream_dns:
   - "[/10.in-addr.arpa/]10.8.8.8 10.9.9.9"
 ```
 
-`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of these two `upstream_dns` entries lists Unbound first, then that OPNsense-hosted resolver as a fallback if Unbound is unreachable. AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for the real domain ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
+`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of these two `upstream_dns` entries names two equivalent resolvers for the same domains, and `upstream_mode: parallel` sends every such query to both at once and takes the first answer. That keeps internal names resolving, without a stall, when Unbound is down or silently dropping packets (the default `load_balance` mode tries one resolver at a time and waits up to 20 s on a dropping one, see [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#6-adguard-stalls-or-logs-operation-not-permitted-while-unbound-is-down)). AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for the real domain ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
 
 ```
 stub-zone:

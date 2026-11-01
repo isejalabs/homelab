@@ -85,6 +85,23 @@ kubectl -n unbound logs deploy/unbound | grep -iE 'trust|anchor|dnssec'
 
 If even `cloudflare.com` has no `ad` flag, the trust anchor is not loaded. Check that `unbound-checkconf -o auto-trust-anchor-file` inside the pod (`/usr/local/unbound/unbound.d/sbin/unbound-checkconf -f /usr/local/unbound/unbound.conf -o auto-trust-anchor-file`) prints the root key path and that the node clock is correct.
 
+## 6. AdGuard stalls or logs `operation not permitted` while Unbound is down
+
+**Symptom**: AdGuard logs `dnsproxy: exchange failed upstream=10.8.8.8:53 ... connect: operation not permitted`, or internal names answer slowly or not at all for the first queries while the `unbound` Service has no healthy pod.
+
+**Cause**: `connect: operation not permitted` is not a firewall. Cilium's socket load balancing (`kubeProxyReplacement`) rejects a `connect()` to a Service or LoadBalancer IP that has no ready backend, and the kernel reports that rejection as `EPERM`. It is the fast failure; a pod that is up but not answering, or a dead node still announced over BGP, is a silent drop and much slower. With the former `upstream_mode: load_balance`, AdGuard asked one resolver at a time (weighted by past round-trip time, first pick random) and waited up to 20 s on a dropping one before trying `10.9.9.9`. Reproduced with the pinned AdGuard image: a silently dropping first upstream stalled the first four queries, a refusing one cost nothing.
+
+**What is configured**: `upstream_mode: parallel` in [`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) sends each `iseja.net` or reverse query to `10.8.8.8` and `10.9.9.9` at once and takes the first answer, so either one can be down or dropping. There is deliberately no `fallback_dns`: it only applies after every upstream failed, and a public resolver there does not know the internal records (and would see the queried names).
+
+**Check**:
+
+```sh
+kubectl -n unbound get endpointslices                      # empty ENDPOINTS = the Service has no backend
+kubectl -n adguard logs deploy/adguard | grep 'exchange failed'
+dig @<adguard-lb-ip> gw.<domain>                           # must answer while unbound is down
+dig @10.9.9.9 gw.<domain>                                  # the surviving resolver on its own
+```
+
 ## Verify the fix actually took
 
 `dig` again from the actual layer a real LAN client uses first (`@<adguard-lb-ip>`), not just the layer you fixed — a correct answer at PowerDNS doesn't guarantee a client sees it yet if something upstream (Unbound's cache, AdGuard's own cache) is still holding a stale answer. If the client-facing query still looks wrong after the underlying record is confirmed correct, that's a caching/TTL wait, not a reason to keep changing the record.
