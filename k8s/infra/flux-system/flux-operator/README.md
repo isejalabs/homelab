@@ -26,14 +26,14 @@ The web UI is published through the `internal` Gateway under the subdomain `flux
 
 | env | URL |
 | --- | --- |
-| `dbg` | `https://dbg-flux.dbg.iseja.net` |
-| `dev` | `https://dev-flux.dev.iseja.net` |
-| `head` | `https://head-flux.head.iseja.net` |
-| `poc` | `https://poc-flux.poc.iseja.net` |
-| `prod` | `https://flux.prod.iseja.net` |
-| `qa` | `https://qa-flux.qa.iseja.net` |
-| `rebuild` | `https://rebuild-flux.rebuild.iseja.net` |
-| `src` | `https://src-flux.src.iseja.net` |
+| `dbg` | [https://dbg-flux.dbg.iseja.net](https://dbg-flux.dbg.iseja.net) |
+| `dev` | [https://dev-flux.dev.iseja.net](https://dev-flux.dev.iseja.net) |
+| `head` | [https://head-flux.head.iseja.net](https://head-flux.head.iseja.net) |
+| `poc` | [https://poc-flux.poc.iseja.net](https://poc-flux.poc.iseja.net) |
+| `prod` | [https://flux.prod.iseja.net](https://flux.prod.iseja.net) |
+| `qa` | [https://qa-flux.qa.iseja.net](https://qa-flux.qa.iseja.net) |
+| `rebuild` | [https://rebuild-flux.rebuild.iseja.net](https://rebuild-flux.rebuild.iseja.net) |
+| `src` | [https://src-flux.src.iseja.net](https://src-flux.src.iseja.net) |
 
 Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 

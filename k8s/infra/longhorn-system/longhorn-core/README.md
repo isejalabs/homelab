@@ -26,14 +26,14 @@ The Longhorn UI is published through the `internal` Gateway under the subdomain 
 
 | env | URL |
 | --- | --- |
-| `dbg` | `https://dbg-longhorn.dbg.iseja.net` |
-| `dev` | `https://dev-longhorn.dev.iseja.net` |
-| `head` | `https://head-longhorn.head.iseja.net` |
-| `poc` | `https://poc-longhorn.poc.iseja.net` |
-| `prod` | `https://longhorn.prod.iseja.net` |
-| `qa` | `https://qa-longhorn.qa.iseja.net` |
-| `rebuild` | `https://rebuild-longhorn.rebuild.iseja.net` |
-| `src` | `https://src-longhorn.src.iseja.net` |
+| `dbg` | [https://dbg-longhorn.dbg.iseja.net](https://dbg-longhorn.dbg.iseja.net) |
+| `dev` | [https://dev-longhorn.dev.iseja.net](https://dev-longhorn.dev.iseja.net) |
+| `head` | [https://head-longhorn.head.iseja.net](https://head-longhorn.head.iseja.net) |
+| `poc` | [https://poc-longhorn.poc.iseja.net](https://poc-longhorn.poc.iseja.net) |
+| `prod` | [https://longhorn.prod.iseja.net](https://longhorn.prod.iseja.net) |
+| `qa` | [https://qa-longhorn.qa.iseja.net](https://qa-longhorn.qa.iseja.net) |
+| `rebuild` | [https://rebuild-longhorn.rebuild.iseja.net](https://rebuild-longhorn.rebuild.iseja.net) |
+| `src` | [https://src-longhorn.src.iseja.net](https://src-longhorn.src.iseja.net) |
 
 The route is on the `internal` Gateway, so it is reachable from the LAN only. Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 
