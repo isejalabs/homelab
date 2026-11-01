@@ -71,7 +71,7 @@ If a pod still restarts, `kubectl -n unbound logs <pod> --previous` shows whethe
 
 **Symptom**: a public name answers via AdGuard/Quad9 but returns `SERVFAIL` when queried at Unbound directly, while internal names (`iseja.net`, the `10.in-addr.arpa` reverse zone) are fine.
 
-**Cause**: Unbound validates DNSSEC (the `auto-trust-anchor-file` in [`unbound.conf`](../k8s/apps/dns/unbound/base/config/unbound.conf), see [`network.md`](architecture/network.md#dns-adguard--unbound)) and rejects answers whose signatures do not verify: a genuinely broken zone, a clock that is off (validation depends on correct time on the node), or a root key file that did not load. `iseja.net` is never validated (`domain-insecure`).
+**Cause**: Unbound validates DNSSEC (the `auto-trust-anchor-file` in [`unbound.conf`](../../k8s/apps/dns/unbound/base/config/unbound.conf), see [`network.md`](../architecture/network.md#dns-adguard--unbound)) and rejects answers whose signatures do not verify: a genuinely broken zone, a clock that is off (validation depends on correct time on the node), or a root key file that did not load. `iseja.net` is never validated (`domain-insecure`).
 
 **Check**: ask with and without validation. If the `+cd` query answers but the plain one gives `SERVFAIL`, validation is what rejects it:
 
