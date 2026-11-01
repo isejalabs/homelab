@@ -25,9 +25,11 @@ jobs:
           relevant:
           - "k8s/**"
           - "!k8s/**/*.md" # a README under k8s/ (there are ~17) isn't a manifest kustomize-build validates
+          - "terragrunt/**/keycloak-realm/terragrunt.hcl" # its keycloak_url is checked against the Keycloak overlay
           - ".mise.toml"
           - "mise.lock"
           - "scripts/kustomize-build-all.sh"
+          - "scripts/vendor-manifests.sh"
           - "scripts/lib/common.sh"
           - ".github/workflows/kustomize-build.yml"
 
@@ -48,4 +50,5 @@ jobs:
         # with the root one (kubectl/gum etc.), same as running it by hand.
         working_directory: k8s
         install_args: gum kubeconform kubectl
+    - run: scripts/vendor-manifests.sh check
     - run: scripts/kustomize-build-all.sh

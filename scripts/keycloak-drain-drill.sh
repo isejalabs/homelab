@@ -1,7 +1,7 @@
 #!/bin/sh
 # Measures how long Keycloak logins are interrupted when the node running its database is drained (or, with
 # --observe, when something else takes the node away: a reboot, a VM shutdown, a node failure). It is the
-# measurement half of the availability drill in docs/keycloak-drain-drill.md.
+# measurement half of the availability drill in docs/identity/keycloak-drain-drill.md.
 #
 # While the disturbance runs, two probes hit the environment's Keycloak from this machine every few seconds:
 #   discovery  GET  /realms/master/.well-known/openid-configuration  expected 200 (Keycloak pod serves requests)
@@ -148,7 +148,7 @@ cleanup() {
 # Exits fatal unless the control plane is healthy enough to take a drill: the API server answers /readyz, every
 # node is Ready, the kube-apiserver/-controller-manager/-scheduler pods are ready and so are the pods of the
 # CloudNativePG operator, which has to recreate the database pod after the eviction. A drill on a wobbling
-# control plane measures the control plane, not Keycloak (see docs/keycloak-drain-drill.md).
+# control plane measures the control plane, not Keycloak (see docs/identity/keycloak-drain-drill.md).
 control_plane_check() {
     if ! kc get --raw /readyz --request-timeout=10s >/dev/null 2>&1; then
         log fatal "the API server is not ready, not starting the drill"

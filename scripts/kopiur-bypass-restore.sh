@@ -4,7 +4,7 @@
 # import/export from another environment) instead of restoring from the app's own kopiur history.
 #
 # kopiur's Restore CR resolves which snapshot (if any) populates a *new* PVC once, at that PVC's creation.
-# docs/kopiur-backup-restore.md's "restore a specific older snapshot" procedure confirms live that patching
+# docs/backup/kopiur-backup-restore.md's "restore a specific older snapshot" procedure confirms live that patching
 # a Restore's own spec.source forces it to re-resolve on the next PVC claim, even though the object itself
 # isn't recreated. This script uses the same lever in the opposite direction: it points spec.source.fromPolicy
 # at a throwaway SnapshotPolicy, created here specifically so it can never have a real Snapshot under it, so
@@ -164,9 +164,9 @@ kubectl --context "${CTX}" patch restore "${APP}" -n "${NS}" --type merge \
 # it first so the recreated PVC matches what git/Flux already declared (size, storageClass, etc.). The dump
 # must have its binding-related fields stripped before being reapplied: a Bound PVC's own `get -o yaml`
 # includes spec.volumeName pinned to its *current* PV, and reapplying that verbatim recreates a PVC statically
-# pinned to that same (by then Released, not Available -- storage-class reclaimPolicy is Retain) PV instead of
-# going through fresh dynamic provisioning, which never reaches the CSI populator/Restore at all and leaves
-# the PVC stuck in phase Lost. Confirmed live (rebuild, unifi-mongodb, 2026-09-18).
+# pinned to that same PV (by then Released under Retain, or gone under Delete -- never Available again) instead
+# of going through fresh dynamic provisioning, which never reaches the CSI populator/Restore at all and leaves
+# the PVC stuck in phase Lost. Confirmed live on a Retain class (rebuild, unifi-mongodb, 2026-09-18).
 TMP_PVC=$(mktemp)
 trap 'rm -f "${TMP_PVC}"' EXIT
 log info "Deleting and recreating the PVC against the bypass policy" "step" "5/9" "app" "${APP}" "namespace" "${NS}"

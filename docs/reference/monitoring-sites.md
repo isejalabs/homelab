@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-10-30. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -12,7 +12,7 @@ Authoritative inventory of the Checkmk containers and sites. Container and versi
 
 | Container | CT | Proxmox node | CPU / memory limit / swap | Sites |
 | --- | --- | --- | --- | --- |
-| `monitoring1.home.iseja.net` | 7002061 | pve5 (pve6 in the September audits) | 3 cores / 10 GiB / none | `core`, `qa_k8s`, `dev_k8s` |
+| `monitoring1.home.iseja.net` | 7002061 | pve5 (pve6 in the September audits) | 3 cores / 10 GiB / none | `qa_k8s`, `dev_k8s`; `core` (stopped since 2026-10-29, archive) |
 | `monitoring2.home.iseja.net` | 7002056 | pve4 | 3 cores / 10 GiB (`memory: 10240`, raised from 8 GiB on 2026-10-19 after the [OOMs](../audits/2026-10-monitoring-container-oom.md)) / none | `free`, `prod`, `prod_k8s` |
 
 Which sites send notifications, with what delay and period, is in [`monitoring-notifications.md`](monitoring-notifications.md).
@@ -27,14 +27,114 @@ All sites run Checkmk 2.5.0p15 since the upgrade on 2026-10-18 (`omd update` fro
 | --- | --- | --- | --- |
 | `prod` | monitoring2 | Community (formerly RAW) | Main distributed-monitoring site. Monitors virtual hosts and general infrastructure checks such as DNS, HTTP/SSL, SMTP and TCP. Some of those checks are still assigned to `free` in the live configuration and appear in the combined view through distributed monitoring. Also monitors selected Kubernetes hosts and services, with nodes, namespaces and deployments added manually; the `*_k8s` sites provide automatic, dynamic Kubernetes monitoring. Since 2026-10-16 it also runs the Kubernetes special agent against the `dev`, `qa`, `prod` and `rebuild` clusters, see [the `prod` site also queries the clusters](environments.md#the-prod-site-also-queries-the-clusters). |
 | `free` | monitoring2 | Community (formerly RAW) | Monitors physical hosts, including remote sites, and critical network infrastructure implemented as virtual OPNsense HA gateways. Live configuration confirms Proxmox nodes (for example `pve4`) and a gateway VM (`gw3`) are assigned here. It does not monitor Kubernetes hosts. Its data is included in `prod` through distributed monitoring. See [why `free` exists](#why-free-exists). |
-| `prod_k8s` | monitoring2 | Ultimate | Production Kubernetes cluster. |
+| `prod_k8s` | monitoring2 | Ultimate | Production Kubernetes cluster. Since 2026-10-28 also the ten ping-only hosts that need a one-second or six-second Smart Ping, see [ping-only hosts](#ping-only-hosts-in-prod_k8s). |
 | `qa_k8s` | monitoring1 | Ultimate | QA Kubernetes cluster. |
-| `dev_k8s` | monitoring1 | Ultimate | Dev Kubernetes cluster. Re-enabled on 2026-10-22 (autostart on, `omd config dev_k8s set AUTOSTART on`) after being stopped on 2026-10-19, to compare the dev cluster with `qa_k8s`/`prod_k8s` while investigating the collector warnings ([#1845](https://github.com/isejalabs/homelab/issues/1845)). `checkmk-kube-agent` runs in every environment, so dev is queryable again. |
-| `core` | monitoring1 | Ultimate | Meant for Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping stopped working. Kept for now; a decommissioning candidate, not decided. |
+| `dev_k8s` | monitoring1 | Ultimate | Dev Kubernetes cluster. Re-enabled on 2026-10-22 (autostart on, `omd config dev_k8s set AUTOSTART on`) after being stopped on 2026-10-19, to compare the dev cluster with `qa_k8s`/`prod_k8s` while investigating the collector warnings ([#1845](https://github.com/isejalabs/homelab/issues/1845)). `checkmk-kube-agent` runs in every environment, so dev is queryable again. Meant to stay running (owner, 2026-10-28): its purpose is to anticipate the load of new apps for prod, to size requests and limits, until [#71](https://github.com/isejalabs/homelab/issues/71) settles or another way is found (`kubectl top pods`, or sizing in `qa`). It costs about 2.8 GiB on `monitoring1`, see [moving `monitoring1`](../audits/2026-10-monitoring1-placement.md). |
+| `core` | monitoring1 | Ultimate | Smart Ping of the LAN and WAN connection (all crucial physical hosts), the original intent of `free`. Smart Ping works (checked 2026-10-28: all ten hosts UP with "Packet received via smart PING", the ICMP sender and receiver are running); the earlier "stopped working" report could not be reproduced. **Stopped on 2026-10-29** at 00:05 CET on the owner's go (`omd stop core`, `omd config core set AUTOSTART off`, phase 2b of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md)); its ten one-second and six-second hosts run in `prod_k8s` since 2026-10-28. The site and its data stay as a restorable archive; to bring it back: `omd start core`, `omd config core set AUTOSTART on`. In `prod` the `OMD core ...`/`Process core ...`/`Site core statistics` services of `monitoring1` are hidden by a Disabled-services rule (id `99854e7c-…`, 2026-10-29) and `core` is no longer in the service-count rule (below); delete that rule if `core` is started again. |
 
 ### Why `free` exists
 
 Hosts were once moved out of `prod` into a new site on a commercial edition, which offered Smart Ping and other features. Checkmk used to allow integrating such a remote site into the Community site for one combined view, then dropped that. `free` was therefore downgraded to Community and the split stayed. Merging `free` back into `prod` is possible but needs a data migration, so it has not been done. It is a recorded follow-up, not a plan.
+
+## Check intervals and licence state
+
+Read from the live sites with `lq` (livestatus) on 2026-10-20: `check_interval` and `retry_interval` per host and per service, and the scheduled executions per minute computed from them (hosts: sum of 1 / interval; services: sum of count / interval). `dev_k8s` is stopped and was not read. The measured rate is the core's own `host_checks_rate` and `service_checks_rate`.
+
+| Site | Core | Hosts | Host check (interval, command) | Services | Service intervals | Scheduled / min (hosts, services) | Measured / s (hosts, services) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `prod` | Nagios | 84 | 47 ping at 1 min, 37 `host-ok` at 1 min | 1,411 | 1,349 at 5 min (1,220 passive, 129 active), 29 at 1 min, 33 at 125 min | 84, 299 | 0.3 to 1.0, 5.3 to 6.5 |
+| `free` | Nagios | 18 | 18 ping at 1 min (12 of them at 1 second until 2026-10-28, see below) | 609 | 576 passive and 18 active at 5 min, 5 active at 1 min (the four `PING` services of `external_sites` and `DNS www.iseja.net` of `google-dns`), 10 at 125 min | 18, 124 | 0.36 to 0.38, 0.7 to 1.0 (before 2026-10-28: 5.4 to 5.8, 3.3 to 9.6) |
+| `prod_k8s` | CMC | 83 (73 until 2026-10-28) | 73 `host-ok` at 1 min, 8 Smart Ping at 1 second, 2 Smart Ping at 6 seconds | 599 (679 until 2026-10-21, 589 until 2026-10-28, see below) | 443 at 1 min (370 passive, 73 active), 10 `PING` at 5 min, 73 at 33 min, 73 at 1,440 min | 73 plus 8 x 60 + 2 x 10, 445 | 9.4 to 11.8, 6.5 to 9.2 (2026-10-28 after the change; hosts were 1.7 to 3.0 and services 9.8 to 11.6 before it) |
+| `core` (stopped 2026-10-29, values of 2026-10-20) | CMC | 22 | **Smart Ping**: 11 at 1 second, 10 at 6 seconds, 1 ping at 1 second | 636 | 478 passive and 7 active at 5 min, 125 passive and 15 active at 1 min, 11 at 125 min | 820, 237 | 13.6, 2.2 |
+| `qa_k8s` | CMC | 68 | 68 `host-ok` at 1 min | 616 | 480 at 1 min (412 passive, 68 active), 68 at 5 min, 68 at 1,440 min | 68, 494 | 3.5, 10.8 |
+| `dev_k8s` | CMC | not read (stopped) | | | | | |
+
+Scheduled and measured rates agree for `prod`, `prod_k8s` and the `core` host checks (13.6 measured against 13.7 scheduled), and are within a factor of about 2 elsewhere, so the intervals above are roughly what the cores run. The host check commands in use are `check-mk-host-ping` (the `check_icmp` plugin, one process per check on Nagios), `check-mk-host-ok` and `check-mk-host-smart` (Smart Ping, `core` only).
+
+### Change of 2026-10-28: `free` intervals
+
+Phase 1 of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md) was applied in `prod` (the central site, `free` receives its configuration from there) and activated on `prod` and `free`, with REST API calls of the `terraform` user. Three rules changed, the rule properties carry a comment with the old value:
+
+| Rule id | Rule set | Folder | Before | After |
+| --- | --- | --- | --- | --- |
+| `b308a945-20b6-4a98-bb01-7196024b6a38` | Normal check interval for service checks (`extra_service_conf:check_interval`, `Check_MK$`) | `/network-2` | 1 min | 5 min |
+| `1e8aad76-e7b3-44d5-9329-30d1aca17202` | Normal check interval for host checks (`extra_host_conf:check_interval`) | `/external_sites` | 1 s | 1 min |
+| `46616260-59d3-4b93-9bfd-e889d021dcbc` | Normal check interval for host checks (`extra_host_conf:check_interval`) | `/network-2` | 1 s | 1 min |
+
+`core` keeps pinging the same 12 hosts every second (Smart Ping) until it is retired. Measured result: [`2026-10-checkmk-free-phase1-result.md`](../audits/2026-10-checkmk-free-phase1-result.md). To roll back, set the three rules to 1 minute, 1 second and 1 second and activate.
+
+### Licence state
+
+All four Ultimate sites (`prod_k8s`, `core`, `qa_k8s`, `dev_k8s`) report **`LicenseState.FREE`** (read through the site's own licensing code). In the Checkmk 2.5.0p15 source (`cmk/utils/nonfree/pro/licensing`):
+
+- The limit is `NUM_SERVICES_LIMIT = 750` services. It is counted per site from livestatus (`num_services` of the site), and the label `cmk/licensing:excluded` does not exclude anything in the free state.
+- Above the limit, **Activate changes is blocked** (and the core may not start after a restart) until services are removed.
+- **Distributed monitoring is not available** in the free state: a site with shadow hosts (including hosts added via CMCDump) has Activate changes blocked.
+- Checkmk's published description of the free mode is "one site, up to 750 services" (Checkmk product pages and forum, see [the forum thread](https://forum.checkmk.com/t/question-about-free-enterprise-going-forward/59014)); the code enforces the service count per site. Whether running four separate free sites is within the licence terms was not checked.
+
+| Site | Services | Headroom to 750 |
+| --- | --- | --- |
+| `prod_k8s` | 599 (679 before 2026-10-21, 589 before 2026-10-28) | 151 (80% used) |
+| `core` (stopped 2026-10-29) | 636 | 114 |
+| `qa_k8s` | 616 | 134 |
+| `dev_k8s` | not read | |
+
+The Community sites `prod` and `free` have no limit.
+
+On 2026-10-21 (22:26 to 22:39 CEST) the rule "Disabled services" (rule set `ignored_services`, folder Main, rule id `e1473dd0-5026-47e0-ab74-d906e9187ad7`) was created in `prod_k8s` for the six Kubernetes node hosts (`prod-ctrl-01` to `-03`, `prod-work-01` to `-03`, all `.home.iseja.net`) and the 15 services `CPU load`, `CPU resources`, `CPU utilization`, `Condition`, `Containers`, `Disk IO SUMMARY`, `Filesystem /`, `Info`, `Kernel Performance`, `Kubelet`, `Memory`, `Memory resources`, `Number of threads`, `Pod resources` and `Uptime` (each anchored with `$`). The same services are monitored on the same hosts in `prod` from the same piggyback source. The services of `prod_k8s` went from 679 to 589; each node keeps `Check_MK`, `Check_MK Agent`, `Check_MK Discovery` and `Check_MK HW/SW Inventory`. The services show under "Disabled services" in the host's service list; to undo, delete the rule and activate.
+
+On the same day (22:44 CEST) the rule "Checkmk site performance and settings" (rule set `checkgroup_parameters:livestatus_status`, created in the central site `prod`, rule id `d9e78913-e40a-42c3-8761-667f5d67aeac`) was added with "Levels services" **warning at or above 675 and critical at or above 713** (90% and 95% of 750) for the monitoring sites `prod_k8s`, `qa_k8s` and `dev_k8s` (`core` was removed from it on 2026-10-29 when the site was stopped). It applies to the existing services `OMD <site> performance` of `monitoring1` and `monitoring2` in `prod`, which check every 5 minutes and show the service count as the metric `monitored_services`. Verified with `cmk -D`: the effective parameters of those four services (while `core` was still in the rule) contained `levels_services: (675, 713)`, `prod` and `free` have none. A real WARN has not been triggered.
+
+## Ping-only hosts in `prod_k8s`
+
+Since 2026-10-28 (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md), [#1783](https://github.com/isejalabs/homelab/issues/1783)) `prod_k8s` monitors ten hosts that only need a fast ping, so that `core` can be retired. They sit in the folder `/ping-only` (host attributes `no-agent`, `no-snmp`, IPv4 only), have no agent and no SNMP, and their host check is **Smart Ping** (`check-mk-host-smart`). Same names as in `core` and `free`, no suffix (the FQDNs of `core`, and `google-dns` without domain).
+
+| Host | Address | Host check interval | Note |
+| --- | --- | --- | --- |
+| `gw.home.iseja.net` | 10.7.0.1 | 1 s | cluster of `gw2` and `gw3` in `core`; a plain host here, virtual address |
+| `gw2.home.iseja.net` | 10.7.0.2 | 1 s | |
+| `gw3.home.iseja.net` | 10.7.0.3 | 1 s | |
+| `gw4.home.iseja.net` | 192.168.8.4 | 1 s | test host of 2026-10-28 |
+| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
+| `google-dns` | 8.8.8.8 | 1 s | tag `networking: wan` |
+| `sw01.home.iseja.net` | 10.7.10.50 | 1 s | alias `switch-kueche.home.iseja.net` |
+| `core-switch.home.iseja.net` | 10.7.20.150 | 1 s | |
+| `ap-wozi.home.iseja.net` | 10.7.20.151 | 6 s (default) | |
+| `ap-kueche.home.iseja.net` | 10.7.20.152 | 6 s (default) | |
+
+How it is configured, all in `prod_k8s` (Setup, click-ops or the REST API; nothing of it is in this repository):
+
+- **Interval:** one rule in "Normal check interval for host checks" (rule id `34109bf2-0ce1-4d5e-b4e4-2e4f5ce853a3`, folder Main) sets 1 second (0.0166667 minutes) for the eight hosts by name. The two access points have no rule and use the Smart Ping default of 6 seconds (`SMARTPING_CHECK_INTERVAL` is 0.1 minutes in the Checkmk code).
+- **Timeout:** no rule. The rule set "Settings for host checks via Smart Ping" (`cmc_smartping_settings`, one parameter, "Expected packet rate") defaults to 2.5 times the host check interval, so a 1-second host is DOWN after about 2.5 seconds without a packet and a 6-second host after 15 seconds (the 15 seconds in Checkmk's description is this 2.5 times 6 seconds). It is measured from the last packet seen, not from the last packet sent. A fixed rate in seconds is the alternative.
+- **One `PING` service per host.** A ping-only host does **not** have zero services: when a host has no services at all, the CMC configuration generation adds an active `PING` service (`check_icmp`; Checkmk source `cmk/base/nonfree/cmc/_services.py`, comment "Nagios requires at least one service"). "Disabled services" does not remove it. Each of the ten hosts therefore counts one service towards the 750-service limit: `prod_k8s` went from 589 to 599 (headroom 151). A rule in "Normal check interval for service checks" (folder `/ping-only`, service `PING$`) sets the 10 services to 5 minutes instead of 1 minute, so they cost 2 `check_icmp` runs per minute in total. The `PING` service of the two WAN hosts uses the existing "Ping and host check parameters" rule for `networking: wan` (6 packets, 20 second timeout).
+- **No parents.** `core` and `free` have parents for some of these hosts (`gw2` on `pve5`, `gw3` on `pve2`, `gw4` on `core-switch`); the parents do not exist in `prod_k8s`, so none are set and an outage shows as DOWN, not UNREACHABLE.
+- **REST API:** `prod_k8s` has its own automation user `terraform` (role Administrator, secret stored in cleartext in the site, created on 2026-10-28 in the web interface). The URL is `https://monitoring2.home.iseja.net/prod_k8s/check_mk/api/1.0`. Activate changes through the API returns 403 when pending changes come from other users, unless foreign changes are allowed explicitly. The dynamic configuration daemon (`dcd`) of `prod_k8s` only manages the folder `k8s/prod`, the folder `/ping-only` is not touched by it.
+- **Duplicate names:** the hosts also exist, or will after the merge of `free` (phase 3), in the unconnected sites `prod`/`free`. This is no problem for the cores. Notifications are per site and never merged; `core`, `prod` and `free` have no notification rules and the rule of `prod_k8s` has no mail address (see [`monitoring-notifications.md`](monitoring-notifications.md)). It only matters when notifications are switched on in several sites ([#1901](https://github.com/isejalabs/homelab/issues/1901)): then the same outage notifies once per site.
+
+Measured on 2026-10-28 after the change (`lq "GET status"` and the CPU seconds of all processes of the site over 120 seconds, record in the audit linked below): `prod_k8s` 83 hosts, 599 services, 9.4 host checks per second (1.7 before), 0.12 cores (0.10 before); `core` 0.04 cores. The ten `PING` services are OK at 5 minutes and the ten hosts are UP.
+
+`core` was stopped on 2026-10-29 at 00:05 CET (see the [site table](#sites)); [`2026-10-checkmk-core-stopped-result.md`](../audits/2026-10-checkmk-core-stopped-result.md) has the memory and CPU figures.
+
+Time to DOWN, measured on 2026-10-28 with a controlled outage of `8.8.8.8` on `monitoring1` and `monitoring2` at the same second: `core` and `prod_k8s` logged DOWN in the same second, 6 seconds after the block, and UP within 1 second after it ended, so the new ping detects an outage as fast as the old one. Method, log lines and caveats: [`2026-10-checkmk-prod-k8s-ping-only-result.md`](../audits/2026-10-checkmk-prod-k8s-ping-only-result.md).
+
+## Large-packet `PING` for `gw-kdg`
+
+Since 2026-10-30 ([#2020](https://github.com/isejalabs/homelab/issues/2020)) the `PING` service of `gw-kdg.home.iseja.net` sends 1500-byte packets (1472 data bytes) in `prod` and `prod_k8s`, because a default-size ping shows 0% loss during the home internet slowdown (see [#2042](https://github.com/isejalabs/homelab/issues/2042)) while a full-size ping with the don't-fragment flag loses a third to two thirds of its packets. The other `PING` services (`google-dns` and the rest) keep the default size.
+
+Checkmk 2.5.0p15 has no packet size option in "Ping and host check parameters" (`ping_levels`) or in "Check hosts with PING" (`icmp`), and the Smart Ping host check has none either. The check is therefore one rule in "Integrate Nagios plugins" (`custom_checks`) per site, created through the REST API (nothing of it is in this repository):
+
+| Site | Rule id | Folder | Condition |
+| --- | --- | --- | --- |
+| `prod` | `e09e2dda-9ab8-44cd-ac30-e2e9a1e3c218` | Main | host name `gw-kdg.home.iseja.net` |
+| `prod_k8s` | `599a1c3e-95ff-40a2-a38f-2b316472e59a` | Main | host name `gw-kdg.home.iseja.net` |
+
+Both set the service name `PING` and the command line `$USER1$/check_icmp -n 6 -t 20 -b 1472 -w 1500.00,20% -c 3000.00,50% $HOSTADDRESS$`.
+
+- **Same service name.** The service stays `PING`, so its history and the 5-minute interval rule for `/ping-only` in `prod_k8s` carry over. The implicit `PING` service of ping-only hosts disappears by itself once the host has another service, so the service count does not change.
+- **Thresholds are in the command line.** The `networking: wan` rule of `ping_levels` (80% warning, 100% critical) does not apply to this service. With 6 packets one lost packet is 17%, so 20% is WARN from the second lost packet on and 50% is CRIT from the third. The rule of `ping_levels` still applies to the host check of `gw-kdg` in `prod` (default packet size).
+- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and `188.195.100.252` lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
+- **Result after activation (2026-10-30):** `prod_k8s` was CRITICAL ("lost 83% > 50%") on its first run and `prod` OK ("lost 0%"), which fits a loss that comes and goes.
+- **Roll back:** delete the two rules and activate; the implicit `PING` service with the default packet size comes back.
 
 ## Reading container memory
 
@@ -47,3 +147,46 @@ Proxmox reports a container's memory as the cgroup's `memory.current` minus its 
 | `anon` + `shmem` at the first OOM kill (20:13:48) | about 7.9 GiB (98 %) |
 
 Neither figure is a good alarm threshold on its own: the OOMs came from a short spike on top of the idle level, shorter than the 1-minute RRD resolution.
+
+## Root filesystem growth
+
+Tracking: [#1843](https://github.com/isejalabs/homelab/issues/1843). Read-only investigation on 2026-10-22 after Checkmk reported `Filesystem /` on both containers as CRIT ("full in about 30 days"). Root is an 11 GiB ZFS subvolume on each container.
+
+| Container | Used (2026-10-22) | Steady growth since the upgrade settled |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | about 3 MB/day |
+| `monitoring2` | 6.2 GiB (56 %) | about 35–45 MB/day, so roughly 4 months of headroom |
+
+- **The trend alarm mostly measures one-off steps, not steady growth.** The daily `fs_used` history shows jumps on 2026-10-02 and 2026-10-11 and drops on 2026-10-12 and 2026-10-19 (the `omd update` to 2.5.0p15). The "+3.3 / +4.4 GiB per 21 days" figures come from that window and cannot be reproduced as sustained growth. The alarm should clear once the window has moved past the upgrade.
+- **Where the space is.** Checkmk 2.5 itself takes 2.3 GiB on `monitoring2` and 1.3 GiB on `monitoring1`. The old 2.4 versions are already gone, so `omd cleanup` has nothing to remove. Site data takes 2.2 GiB on `monitoring2` and 1.1 GiB on `monitoring1`.
+- **Historical data that does not need to stay.** The Nagios log archive (`var/nagios/archive`, daily files back to 2015) is about 388 MB in `prod` and about 355 MB of files older than a year in each of `free` and `core`. The `licensing.log` of the Ultimate sites is 33–38 MB each. `apt` caches take 62 MB and journald 111 MB on `monitoring2`. These are the cleanup candidates.
+- **Not identified yet.** The remaining roughly 40 MB/day on `monitoring2`. Candidates are the large `prod_k8s` logs (`wato_audit.log` 45 MB, core history 35 MB), journald and the `rrdcached` journals.
+- **RRDs are not the cause.** Their files have a fixed size once created.
+
+Handling of the trend alarm while this is open: if the `Filesystem /` trend drops to WARN it is acknowledged to take it off the dashboard; if it stays CRIT it stays visible for active monitoring. This is specific to #1843, not a general rule; acknowledgement handling is decided in [#71](https://github.com/isejalabs/homelab/issues/71).
+
+### Cleanup applied on 2026-10-22
+
+Applied on both containers: `apt-get clean` and removal of the `apt` package caches; journald vacuumed to 30 MB; Nagios archive files dated before 2025-10-22 deleted (752 in `core`, 752 in `free`, 4022 in `prod`); `licensing.log` truncated in every Ultimate site.
+
+| Container | Used before | Used after |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | 3.6 GiB (33 %) |
+| `monitoring2` | 6.2 GiB (56 %) | 5.7 GiB (52 %) |
+
+The gain is smaller than the file sizes suggest because ZFS compresses the logs. RRDs, core history, WATO audit logs and WATO snapshots were left alone. The `licensing.log` files regrow, so this is a one-off, not a retention setting. The trend state after the cleanup is in the next section.
+
+### Reading of 2026-10-30
+
+Read-only, eight days after the cleanup (live `Filesystem /` service state via `lq` on the `prod` site, `du`, `journalctl`).
+
+| Container | Used | Trend per 21 days | Time left (WARN below 105 d / CRIT below 70 d) | State |
+| --- | --- | --- | --- | --- |
+| `monitoring1` | 3.70 GiB (33.7 %), unchanged since 2026-10-25 | +3.37 GiB | 45 d 10 h (39 d on 2026-10-25) | CRIT |
+| `monitoring2` | 6.10 GiB (55.5 %), 5.75 GiB on 2026-10-25 | +2.59 GiB | 39 d 18 h (40 d on 2026-10-25) | CRIT |
+
+- **`monitoring1` has stopped growing.** Used space has been flat for five days, so time left only rises because the decaying trend average shrinks. It stays on course to reach WARN in the second half of November.
+- **`monitoring2` is still growing**, about 70 MiB/day since 2026-10-25 and about 50 MiB/day since the cleanup. Time left stopped rising and turned down, so it does not recover by itself.
+- **journald is the largest identified source on `monitoring2`.** The journal was vacuumed to 30 MB on 2026-10-22 and is 233 MB again, about 25 MB/day, while it is 9 MB on `monitoring1`. Since the vacuum it holds about 190,000 `init.scope`, 150,000 `cron.service` and 3 × 93,000 `user@<site uid>.service` entries, in the current hour mostly `pam_unix(cron:session)` opened/closed lines and `su` sessions of the site users, plus a user manager start/stop for each of them. That is the every-minute site crontabs plus the Checkmk agent's per-site `su` runs. No `SystemMaxUse` is set in `journald.conf` or its drop-ins, so the default cap (10 % of the filesystem, about 1.1 GiB here) applies and the journal keeps growing toward it.
+- **Still unidentified:** the other roughly 25 MiB/day on `monitoring2`. Candidates are unchanged: `prod_k8s` core history (35 MB, written today), `wato_audit.log` (44 MB) and the `rrdcached` journal of `prod`.
+- **Not applied:** capping journald on `monitoring2` (for example `SystemMaxUse=100M`). It is a persistent change to the host and is left for a decision on [#1843](https://github.com/isejalabs/homelab/issues/1843).

@@ -6,6 +6,7 @@
     "github>isejalabs/homelab//.github/renovate/automerge-enable.json5",
     "github>isejalabs/homelab//.github/renovate/automerge-disable.json5",
     "github>isejalabs/homelab//.github/renovate/custom-datasource-1password-cli.json5",
+    "github>isejalabs/homelab//.github/renovate/docs-site.json5",
     "github>isejalabs/homelab//.github/renovate/git-submodules.json5",
     "github>isejalabs/homelab//.github/renovate/labels.json5",
     "github>isejalabs/homelab//.github/renovate/major-test-plan.json5",
@@ -25,7 +26,12 @@
   // internals, not something to Renovate-track (confirmed live: without
   // this, the customManagers entry below would match 30+ files across
   // those vendored trees).
-  ignorePaths: ["_attic/**", "**/charts/**"],
+  // "**/vendor/**": upstream manifests copied verbatim (scripts/vendor-manifests.sh),
+  // whose image references follow the upstream release, so they must not get their
+  // own Renovate bumps. The version is bumped through the URL comment in the unit's
+  // kustomization.yaml (matched by the customManagers below), then the file is
+  // refreshed with `scripts/vendor-manifests.sh update`.
+  ignorePaths: ["_attic/**", "**/charts/**", "**/vendor/**"],
   terragrunt: {
     versioning: "regex:^((?<compatibility>.*)-v|v*)(?<major>\\d+)\\.(?<minor>\\d+)\\.(?<patch>\\d+)$",
   },
@@ -88,6 +94,17 @@
       managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
       matchStrings: [
         "repository:\\s*(?<depName>\\S+)\\s+tag:\\s*[\"']?(?<currentValue>[\\w.\\-]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\"']?",
+      ],
+      datasourceTemplate: "docker",
+    },
+    {
+      // CloudNativePG `Cluster.spec.imageName` (a single "repo:tag@digest" string, which the built-in
+      // kubernetes manager only reads from `image:` keys). Pinned explicitly so a PostgreSQL bump is
+      // a reviewed PR instead of an operator default changing under the cluster.
+      customType: "regex",
+      managerFilePatterns: ["/(^|/)k8s/.+\\.yaml$/"],
+      matchStrings: [
+        "imageName:\\s*[\"']?(?<depName>[^\\s:\"']+):(?<currentValue>[\\w.\\-]+)(?:@(?<currentDigest>sha256:[a-f0-9]+))?[\"']?",
       ],
       datasourceTemplate: "docker",
     },

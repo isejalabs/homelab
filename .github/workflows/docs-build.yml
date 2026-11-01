@@ -1,0 +1,92 @@
+name: "Docs build"
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+  # Publishes the site on demand (e.g. right after enabling DOCS_PAGES_PUBLISH) without a docs change.
+  workflow_dispatch:
+
+# One deployment at a time; a newer push does not cancel a deployment that is already running.
+concurrency:
+  group: docs-build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  changes:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      id: filter
+      with:
+        # see kustomize-build.yml: the default predicate-quantifier does not honor '!' exclusions
+        predicate-quantifier: 'some-with-excludes'
+        filters: |
+          relevant:
+          - "**/*.md"
+          - "!.agents/**"
+          - "!.claude/**"
+          - "!.commons/**"
+          - "!_attic/**"
+          - "!ZZ.bak/**"
+          - "docs/**/*.{png,svg,jpg,jpeg,gif,webp}"
+          - ".ci/mkdocs/**"
+          # a link from a page to a source file or directory is rewritten at build time and fails the strict
+          # build when the target is gone, so those files count as relevant too
+          - "k8s/**"
+          - "terragrunt/**"
+          - "scripts/**"
+          - ".github/**"
+          - ".mise.toml"
+
+  docs-build:
+    needs: changes
+    # job-level if, not a workflow-level paths: trigger filter, so this job still reports a status (skipped
+    # counts as passing for required-status-checks purposes) instead of never running at all -- see #1511.
+    if: needs.changes.outputs.relevant == 'true' || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      with:
+        python-version: '3.13'
+        cache: pip
+        cache-dependency-path: .ci/mkdocs/requirements.txt
+    - run: pip install -r .ci/mkdocs/requirements.txt
+    # --strict: any warning, including a broken relative link or `#anchor`, fails the build. The NO_MKDOCS_2_WARNING
+    # variable only silences the end-of-life banner of the theme (see docs/decisions/0017-docs-site-generator.md).
+    - run: mkdocs build --strict --config-file .ci/mkdocs/mkdocs.yml --site-dir "$RUNNER_TEMP/site"
+      env:
+        NO_MKDOCS_2_WARNING: '1'
+    # The exclude_docs rules once dropped the theme's own CSS and JS (an unstyled site that still built "fine"),
+    # so fail if the stylesheet or the bundle is missing.
+    - run: |
+        compgen -G "$RUNNER_TEMP/site/assets/stylesheets/main.*.min.css" > /dev/null
+        compgen -G "$RUNNER_TEMP/site/assets/javascripts/bundle.*.min.js" > /dev/null
+    - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+      if: github.ref == 'refs/heads/main'
+      with:
+        path: ${{ runner.temp }}/site
+
+  # Runs on main only, and only once the owner has decided to publish (#1601): set the repository variable
+  # DOCS_PAGES_PUBLISH to 'true' and the Pages source to "GitHub Actions". Until then the job is skipped.
+  docs-deploy:
+    needs: docs-build
+    if: github.ref == 'refs/heads/main' && vars.DOCS_PAGES_PUBLISH == 'true'
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
+      id: deployment

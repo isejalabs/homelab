@@ -6,6 +6,35 @@ status: current
 
 Every unit under `k8s/infra/` and `k8s/apps/` (an "app") and every entry under `k8s/bootstrap/cluster/flux/sets/` (a Flux "set" — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md)) is built with [kustomize](https://kustomize.io/), composed the same way across all 8 environments (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`). The goal is to describe each app **once**, environment-agnostically, and only spell out the handful of values that actually differ per environment (a Service's load-balancer IP, a replica count, the reconciliation interval, the domain, ...).
 
+## Composition at a glance
+
+Two kustomize builds are involved, and both pull in the same shared `components/envs/<env>` layer: one renders what an app runs, the other renders the Flux `Kustomization` objects that tell Flux which overlay to reconcile.
+
+```mermaid
+flowchart TB
+    accTitle: Kustomize composition per environment
+    accDescr: Two builds share the same components for an environment. The app build combines an app's base folder, its envs overlay and the shared components into the rendered manifests. The Flux build aggregates every app's flux ks.yaml under the bootstrap flux sets, applies the same shared components to rewrite each spec.path from base to envs for the environment, and the resulting Flux Kustomization points Flux at the app's envs overlay.
+
+    subgraph appbuild["App build: what runs in the cluster"]
+        direction LR
+        base["base/<br/>environment-agnostic manifests,<br/>placeholder domain example.com"] --> overlay["envs/&lt;env&gt;/<br/>patches only what differs"]
+        comp1["components/envs/&lt;env&gt;<br/>cluster-param and shared transformers"] --> overlay
+        overlay --> rendered["rendered manifests<br/>for this environment"]
+    end
+
+    subgraph fluxbuild["Flux build: what Flux is told to reconcile"]
+        direction LR
+        ks["flux/ks.yaml of every unit<br/>spec.path ends in base"] --> sets["bootstrap/cluster/flux/sets<br/>aggregates the ks.yaml files"]
+        sets --> envbuild["bootstrap/cluster/flux/envs/&lt;env&gt;"]
+        comp2["components/envs/&lt;env&gt;<br/>replace-path"] --> envbuild
+        envbuild --> fluxks["Flux Kustomization objects<br/>spec.path ends in envs/&lt;env&gt;"]
+    end
+
+    fluxks -->|"Flux reconciles that path"| overlay
+```
+
+The sections below walk through each box: the `base` / `envs/<env>` / `flux` triad is the left-hand folder shape, the [shared components layer](#the-shared-components-layer) and [transformers](#transformers-and-replacements) are `components/envs/<env>`, and [`replace-path`](#flux-path-rewriting-replace-path) is the rewrite on the second build.
+
 ## The `base` / `envs/<env>` / `flux` triad
 
 Every app follows the same three-folder shape, e.g. [`k8s/apps/dns/adguard`](../../k8s/apps/dns/adguard):
@@ -131,7 +160,7 @@ spec:
     ├── 📁 replace-domain      # example.com -> your.sub.domain.com
     ├── 📁 replace-path        # rewrite Flux Kustomization spec.path: .../base -> .../envs/<env>
     ├── 📁 reverse-zone-env    # per-env PTR-zone name into powerdns + external-dns (all 8 envs, not via base)
-    ├── 📁 set-flux-defaults   # set Flux Kustomization/HelmRelease reconciliation intervals
+    ├── 📁 set-flux-defaults   # set Flux Kustomization/HelmRelease reconciliation intervals and Kustomization retry interval
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur backup in dbg/head/poc/src (not via base)
 ```
 
@@ -176,11 +205,11 @@ components:
 
 Each transformer is itself a small `Component` under `components/transformers/<name>/kustomization.yaml`, implemented with either a built-in [transformer](https://kubectl.docs.kubernetes.io/references/kustomize/builtins/) (`add-labels`, via a `LabelTransformer`) or kustomize's [`replacements`](https://kubectl.docs.kubernetes.io/references/kustomize/kustomization/replacements/) field (all the others). A `replacements` entry copies a value from one resource field (`source`) into one or more fields on other resources (`targets`), optionally splitting/rejoining it with `options.delimiter` and `options.index` — that's how a single `cluster-param` ConfigMap value fans out into edits across many resources of a given `kind`.
 
-- **`replace-domain` / `prefix-domain`** — swap the placeholder `example.com` for the real domain, across every `Ingress`/`HTTPRoute`/`TLSRoute`/`Gateway`/`Service`/`Certificate` resource that carries one (apps in this repo route traffic via the Gateway API, so in practice it's mostly `HTTPRoute`/`Gateway`/`Certificate` that get rewritten; the `Ingress` replacement exists for completeness but currently has nothing to match). `replace-domain` splits a hostname on `.` and replaces the two rightmost segments with `DOMAIN_BASE`/`DOMAIN_TLD` from the `cluster-param` ConfigMap — e.g. [`replace-domain/repl/httproute-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/httproute-replace-domain.yaml) turns `adguard.example.com` (`spec.hostnames.*` in [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml)) into `adguard.dev.iseja.net` in the `dev` environment. `prefix-domain` then prepends `CLUSTER_ENVIRONMENT` as an extra dash-delimited segment in front of the resulting hostname (so `dev` + `adguard.dev.iseja.net` becomes `dev-adguard.dev.iseja.net`) — every non-prod environment includes it, `prod` does not (see above), so only prod's hostnames stay unprefixed. The same two components also rewrite each Gateway's own `external-dns.kubernetes.io/target`/`hostname` annotations ([`gateway-external-dns-hostname.yaml`](../../k8s/components/transformers/replace-domain/repl/gateway-external-dns-hostname.yaml) in each) and a handful of standalone `LoadBalancer` Services' `external-dns.kubernetes.io/hostname` annotation ([`service-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/service-replace-domain.yaml)) — see [`docs/architecture/network.md`](network.md)'s DNS section for why those exist.
+- **`replace-domain` / `prefix-domain`** — swap the placeholder `example.com` for the real domain, across every `Ingress`/`HTTPRoute`/`TLSRoute`/`Gateway`/`Service`/`Certificate` resource that carries one (apps in this repo route traffic via the Gateway API, so in practice it's mostly `HTTPRoute`/`Gateway`/`Certificate` that get rewritten; the `Ingress` replacement exists for completeness but currently has nothing to match). `replace-domain` splits a hostname on `.` and replaces the two rightmost segments with `DOMAIN_BASE`/`DOMAIN_TLD` from the `cluster-param` ConfigMap — e.g. [`replace-domain/repl/httproute-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/httproute-replace-domain.yaml) turns `adguard.example.com` (`spec.hostnames.*` in [`k8s/apps/dns/adguard/base/http-route.yaml`](../../k8s/apps/dns/adguard/base/http-route.yaml)) into `adguard.dev.iseja.net` in the `dev` environment. `prefix-domain` then prepends `CLUSTER_ENVIRONMENT` as an extra dash-delimited segment in front of the resulting hostname (so `dev` + `adguard.dev.iseja.net` becomes `dev-adguard.dev.iseja.net`) — every non-prod environment includes it, `prod` does not (see above), so only prod's hostnames stay unprefixed. The same two components also rewrite each Gateway's own `external-dns.kubernetes.io/target`/`hostname` annotations ([`gateway-external-dns-hostname.yaml`](../../k8s/components/transformers/replace-domain/repl/gateway-external-dns-hostname.yaml) in each) and a handful of standalone `LoadBalancer` Services' `external-dns.kubernetes.io/hostname` annotation ([`service-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/service-replace-domain.yaml)) — see [`docs/architecture/network.md`](network.md)'s DNS section for why those exist. The `Keycloak` resource's public `spec.hostname.hostname` is rewritten by the same pair ([`keycloak-replace-domain.yaml`](../../k8s/components/transformers/replace-domain/repl/keycloak-replace-domain.yaml), [`keycloak-prefix-domain.yaml`](../../k8s/components/transformers/prefix-domain/repl/keycloak-prefix-domain.yaml)), so it cannot drift from the `HTTPRoute`'s hostname; the one copy typed by hand is the `keycloak_url` of each `keycloak-realm` Terragrunt unit, which `scripts/kustomize-build-all.sh` checks against both.
 - **`add-labels`** — a built-in `LabelTransformer` that stamps `reconcile.fluxcd.io/watch: "Enabled"` onto every `ConfigMap`, so Flux's Helm Controller notices a ConfigMap change and immediately upgrades the `HelmRelease` that mounts it, rather than waiting for the next reconciliation interval.
-- **`set-flux-defaults`** — copies `FLUX_RECONCILIATION_INTERVAL` from `cluster-param` into `spec.interval` of every Flux `Kustomization` and `HelmRelease`, so each environment can reconcile at a different cadence (e.g. `10m` in `dev`, `1h` in `prod`) without every app having to hardcode it.
+- **`set-flux-defaults`** — copies `FLUX_RECONCILIATION_INTERVAL` from `cluster-param` into `spec.interval` of every Flux `Kustomization` and `HelmRelease`, so each environment can reconcile at a different cadence (e.g. `10m` in `dev`, `1h` in `prod`) without every app having to hardcode it. It also sets `spec.retryInterval: 1m` on every Flux `Kustomization`, so a unit that fails during a cold bring-up (e.g. an app's kopiur `SnapshotPolicy` being rejected until the `kopiur-repository` unit has created the `ClusterRepository` its admission webhook reads) is retried after a minute instead of after a whole `spec.interval`. This is the repo's answer to such ordering races between units that cannot be expressed as a CRD dependency; a `dependsOn` is still the tool for an ordering that must hold at all times.
 - **`replace-path`** (see below) — rewrites `spec.path` on every Flux `Kustomization`.
-- **`kopiur-secret-env`** / **`suspend-kopiur-schedule`** — kopiur backup/restore-specific, included per-env rather than via `../base` (unlike the four above, which every environment gets unconditionally): `kopiur-secret-env` rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket name, included in all 8 environments; `suspend-kopiur-schedule` force-suspends every `SnapshotSchedule`, included only in the 4 environments without an active backup schedule (`dbg`/`head`/`poc`/`src`). See [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for the full mechanism.
+- **`kopiur-secret-env`** / **`suspend-kopiur-schedule`** — kopiur backup/restore-specific, included per-env rather than via `../base` (unlike the four above, which every environment gets unconditionally): `kopiur-secret-env` rewrites `kopiur-repository`'s per-env 1Password key and `ClusterRepository` bucket name, included in all 8 environments; `suspend-kopiur-schedule` force-suspends every `SnapshotSchedule`, included only in the 4 environments without an active backup schedule (`dbg`/`head`/`poc`/`src`). See [`docs/backup/kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md) for the full mechanism.
 - **`powerdns-tsig-env`** / **`reverse-zone-env`** — PowerDNS/external-dns specific, also included per-env in all 8 environments rather than via `../base`: `powerdns-tsig-env` rewrites PowerDNS's per-env TSIG-key 1Password keys, `reverse-zone-env` wires each env's own PTR-zone name into both PowerDNS's zone-bootstrap `initContainer` and external-dns's `domainFilters`/`--rfc2136-zone` (not derivable from the domain like a normal hostname, so it needs its own per-env `cluster-param` value). See [`powerdns-tsig-env`](../../k8s/components/transformers/powerdns-tsig-env/README.md)'s and [`reverse-zone-env`](../../k8s/components/transformers/reverse-zone-env/README.md)'s own READMEs for the full mechanism.
 
 ### Flux path rewriting (`replace-path`)
@@ -200,6 +229,18 @@ resources:
   - ../../sets/minimal
 ```
 
+## Vendored upstream manifests
+
+A `kustomization.yaml` never lists an `https://` resource: Flux runs `kustomize build` inside the cluster, so a remote resource makes the unit fail whenever the internet (or cluster DNS) is down, and every unit that `dependsOn` it waits too. Upstream manifests without a chart are copied byte-identically into a `vendor/` directory of the unit instead (Gateway API CRDs, kubelet-serving-cert-approver, the Keycloak operator, Longhorn's uninstall job). The URL they came from stays in a comment directly above the `vendor/` entry:
+
+```yaml
+resources:
+  # https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+  - vendor/standard-install.yaml
+```
+
+Renovate bumps the version in that URL comment; [`scripts/vendor-manifests.sh`](../../scripts/vendor-manifests.sh) `update` then fetches the matching file, and `check` (part of the `kustomize-build` workflow) fails while a vendored file differs from its URL. Changes to a vendored manifest go in a `patches:` entry, never into the vendored file. `.gitattributes` marks `vendor/` files as generated, so GitHub collapses them in PR diffs. See [Package updates](../operations/update-handling.md#renovate) for the Renovate side.
+
 ## Sorting and other conventions
 
-Field/list ordering inside these files (`kustomization.yaml`, Flux `Kustomization`/`HelmRelease`, and any other manifest) follows [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md).
+Field/list ordering inside these files (`kustomization.yaml`, Flux `Kustomization`/`HelmRelease`, and any other manifest) follows [`.agents/instructions/sorting.md`](../../.agents/instructions/sorting.md); `vendor/` and `charts/` directories (upstream files kept verbatim) are exempt.

@@ -1,2 +1,4 @@
 *.sops.* diff=sopsdiffer
 #*.sops.yaml filter=sops-yaml diff=sops-yaml
+# vendored upstream manifests (scripts/vendor-manifests.sh): collapse them in PR diffs
+k8s/**/vendor/** linguist-generated=true

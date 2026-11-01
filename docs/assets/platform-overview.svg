@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 700" width="960" height="700" role="img" aria-labelledby="po-title po-desc">
+  <title id="po-title">Homelab platform overview</title>
+  <desc id="po-desc">Terragrunt provisions Proxmox VMs and installs Talos Linux, which bootstraps Kubernetes. The bootstrap helmfile installs the foundational CRDs and infrastructure once, then Flux CD reconciles the Git repository isejalabs/homelab and keeps k8s/infra and k8s/apps in sync. Around the cluster: 1Password Connect with External Secrets Operator supplies secrets, Cilium provides CNI, load-balancer IPs, BGP and Gateway API, Longhorn and proxmox-csi provide persistent storage, and kopiur backs up volume snapshots to an S3-compatible NAS. The same stack runs in all 8 environments.</desc>
+  <!-- Source of truth: docs/architecture/overview.md. Update this file in the same PR that changes the architecture it shows. -->
+  <style>
+    svg {
+      --text: #1f2328;
+      --muted: #59636e;
+      --box: #f6f8fa;
+      --line: #8c959f;
+      --accent: #0969da;
+      --accent-fill: #ddf4ff;
+      --packet: #bc4c00;
+    }
+    @media (prefers-color-scheme: dark) {
+      svg {
+        --text: #e6edf3;
+        --muted: #9198a1;
+        --box: #161b22;
+        --line: #6e7681;
+        --accent: #58a6ff;
+        --accent-fill: #0d2744;
+        --packet: #f0883e;
+      }
+    }
+    text { font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; fill: var(--text); }
+    .title { font-size: 16px; font-weight: 600; text-anchor: middle; }
+    .sub { font-size: 12px; text-anchor: middle; fill: var(--muted); }
+    .lbl { font-size: 12px; fill: var(--muted); }
+    .foot { font-size: 13px; text-anchor: middle; fill: var(--muted); }
+    .box { fill: var(--box); stroke: var(--line); stroke-width: 1.5; }
+    .core { fill: var(--accent-fill); stroke: var(--accent); stroke-width: 2; }
+    .conn { fill: none; stroke: var(--line); stroke-width: 1.5; marker-end: url(#po-arrow); }
+    .arrowhead { fill: var(--line); }
+    .pkt { fill: var(--packet); }
+    @media (prefers-reduced-motion: reduce) {
+      .pkt { display: none; }
+    }
+  </style>
+  <defs>
+    <marker id="po-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" class="arrowhead"/>
+    </marker>
+  </defs>
+
+  <!-- connectors (also the motion paths of the packets) -->
+  <path id="po-p1" class="conn" d="M480 102 V150"/>
+  <path id="po-p2" class="conn" d="M480 222 V270"/>
+  <path id="po-p3" class="conn" d="M480 342 V390"/>
+  <path id="po-p4" class="conn" d="M480 462 V510"/>
+  <path id="po-l1" class="conn" d="M260 306 H330"/>
+  <path id="po-l2" class="conn" d="M260 426 H330"/>
+  <path id="po-r1" class="conn" d="M630 306 H700"/>
+  <path id="po-r2" class="conn" d="M630 426 H700"/>
+  <path id="po-r3" class="conn" d="M810 462 V510"/>
+  <path id="po-r4" class="conn" d="M810 582 V612"/>
+
+  <!-- connector labels -->
+  <text class="lbl" x="494" y="130">Terragrunt: VMs + Talos</text>
+  <text class="lbl" x="494" y="250">Terragrunt: bootstrap</text>
+  <text class="lbl" x="494" y="370">helmfile: CRDs + core infra</text>
+  <text class="lbl" x="494" y="490">reconciles</text>
+  <text class="lbl" x="822" y="491">snapshots</text>
+  <text class="lbl" x="822" y="601">backups</text>
+
+  <!-- centre column: the stack -->
+  <rect class="core" x="330" y="30" width="300" height="72" rx="10"/>
+  <text class="title" x="480" y="62">Proxmox</text>
+  <text class="sub" x="480" y="82">hypervisors</text>
+
+  <rect class="core" x="330" y="150" width="300" height="72" rx="10"/>
+  <text class="title" x="480" y="182">Talos Linux</text>
+  <text class="sub" x="480" y="202">immutable, API-managed OS</text>
+
+  <rect class="core" x="330" y="270" width="300" height="72" rx="10"/>
+  <text class="title" x="480" y="302">Kubernetes</text>
+  <text class="sub" x="480" y="322">control plane and nodes</text>
+
+  <rect class="core" x="330" y="390" width="300" height="72" rx="10"/>
+  <text class="title" x="480" y="422">Flux CD</text>
+  <text class="sub" x="480" y="442">GitOps controller</text>
+
+  <rect class="box" x="330" y="510" width="300" height="72" rx="10"/>
+  <text class="title" x="480" y="542">k8s/infra/* and k8s/apps/*</text>
+  <text class="sub" x="480" y="562">cluster infrastructure and applications</text>
+
+  <!-- left column: where things come from -->
+  <rect class="box" x="40" y="270" width="220" height="72" rx="10"/>
+  <text class="title" x="150" y="302">1Password Connect</text>
+  <text class="sub" x="150" y="322">+ External Secrets Operator</text>
+
+  <rect class="box" x="40" y="390" width="220" height="72" rx="10"/>
+  <text class="title" x="150" y="422">Git</text>
+  <text class="sub" x="150" y="442">isejalabs/homelab</text>
+
+  <!-- right column: what the cluster relies on -->
+  <rect class="box" x="700" y="270" width="220" height="72" rx="10"/>
+  <text class="title" x="810" y="302">Cilium</text>
+  <text class="sub" x="810" y="322">CNI, LB-IPAM, BGP, Gateway API</text>
+
+  <rect class="box" x="700" y="390" width="220" height="72" rx="10"/>
+  <text class="title" x="810" y="422">Longhorn · proxmox-csi</text>
+  <text class="sub" x="810" y="442">persistent storage</text>
+
+  <rect class="box" x="700" y="510" width="220" height="72" rx="10"/>
+  <text class="title" x="810" y="542">kopiur</text>
+  <text class="sub" x="810" y="562">volume snapshot backups</text>
+
+  <rect class="box" x="700" y="612" width="220" height="72" rx="10"/>
+  <text class="title" x="810" y="644">S3-compatible NAS</text>
+  <text class="sub" x="810" y="664">one bucket per environment</text>
+
+  <text class="foot" x="260" y="650">The same stack runs in all 8 environments:</text>
+  <text class="foot" x="260" y="670">dbg · dev · head · poc · prod · qa · rebuild · src</text>
+
+  <!-- packets (SMIL; hidden under prefers-reduced-motion) -->
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.6s"><mpath href="#po-p1"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.4s"><mpath href="#po-p2"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.8s"><mpath href="#po-p3"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.2s"><mpath href="#po-p4"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.2s"><mpath href="#po-l1"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.6s"><mpath href="#po-l2"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.0s"><mpath href="#po-r1"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-1.4s"><mpath href="#po-r2"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.3s"><mpath href="#po-r3"/></animateMotion></circle>
+  <circle class="pkt" r="4"><animateMotion dur="1.6s" repeatCount="indefinite" begin="-0.9s"><mpath href="#po-r4"/></animateMotion></circle>
+</svg>

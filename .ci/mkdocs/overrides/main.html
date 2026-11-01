@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {#- Keep the site out of search engines until the public-disclosure decision (#1601) is made; flip extra.noindex in mkdocs.yml. -#}
+  {% if config.extra.noindex %}
+  <meta name="robots" content="noindex, nofollow">
+  {% endif %}
+  {{ super() }}
+{% endblock %}

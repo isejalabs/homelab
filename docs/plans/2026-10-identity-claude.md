@@ -18,7 +18,7 @@ The owner's brief (paraphrased): UCS on `adelheid` (pve1) and `baerbel` (pve5) p
 
 Repository and issue facts that shape the design:
 
-- 8 environments; `prod` (3+3 nodes, Let's Encrypt production) is the only HA cluster. `qa`, `dev` also use Let's Encrypt production; the others use staging ([`docs/architecture/environments.md`](../architecture/environments.md), `k8s/infra/cert-manager/cert-manager/envs/*/cluster-issuer.yaml`).
+- 8 environments; `prod` (3+3 nodes, Let's Encrypt production) is the only HA cluster. `qa`, `dev`, and `rebuild` also use Let's Encrypt production; `dbg`, `head`, `poc`, and `src` use staging ([`docs/architecture/environments.md`](../architecture/environments.md), `k8s/infra/cert-manager/cert-manager/envs/*/cluster-issuer.yaml`).
 - Cilium 1.18 in `prod`/`poc`, 1.20 in `head`; Gateway API 1.4.1 CRDs ([`docs/architecture/network.md`](../architecture/network.md), [#1715](https://github.com/isejalabs/homelab/issues/1715)).
 - Browser-facing `HTTPRoute`s today: Flux Operator UI, Longhorn UI, whoami, actualbudget, checkmk-agent, AdGuard, Zigbee2MQTT. Hubble UI is disabled.
 - UCS stability is its own open workstream: [#1813](https://github.com/isejalabs/homelab/issues/1813) (adelheid hangs), [#1816](https://github.com/isejalabs/homelab/issues/1816) (both DCs have 2.5 GB RAM), [#1817](https://github.com/isejalabs/homelab/issues/1817), [#1818](https://github.com/isejalabs/homelab/issues/1818), [#1821](https://github.com/isejalabs/homelab/issues/1821) (redundancy of DNS/DHCP/LDAP on one DC).
