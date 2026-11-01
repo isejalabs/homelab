@@ -26,10 +26,10 @@ A `LoadBalancer` Service with a fixed address per environment, also published by
 
 | env | UI | Address |
 | --- | --- | --- |
-| `head` | `https://head-unifi-controller.head.iseja.net:8443` | `10.8.1.20` |
-| `qa` | `https://qa-unifi-controller.qa.iseja.net:8443` | `10.8.2.20` |
-| `rebuild` | `https://rebuild-unifi-controller.rebuild.iseja.net:8443` | `10.8.7.20` |
-| `prod` | `https://unifi-controller.prod.iseja.net:8443` | `10.8.8.20` |
+| `head` | [https://head-unifi-controller.head.iseja.net:8443](https://head-unifi-controller.head.iseja.net:8443) | `10.8.1.20` |
+| `qa` | [https://qa-unifi-controller.qa.iseja.net:8443](https://qa-unifi-controller.qa.iseja.net:8443) | `10.8.2.20` |
+| `rebuild` | [https://rebuild-unifi-controller.rebuild.iseja.net:8443](https://rebuild-unifi-controller.rebuild.iseja.net:8443) | `10.8.7.20` |
+| `prod` | [https://unifi-controller.prod.iseja.net:8443](https://unifi-controller.prod.iseja.net:8443) | `10.8.8.20` |
 
 Other ports on the same address: `8080` (device inform), `3478` (STUN), `10001` (discovery), `8843` and `8880` (guest portal).
 

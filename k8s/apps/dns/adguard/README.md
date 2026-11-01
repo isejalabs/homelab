@@ -29,10 +29,10 @@ Two separate Services: DNS on a load balancer address, the admin UI only through
 
 | env | DNS (port 53) | Admin UI |
 | --- | --- | --- |
-| `head` | `10.8.1.53` | `https://head-adguard.head.iseja.net` |
-| `qa` | `10.8.2.53` | `https://qa-adguard.qa.iseja.net` |
-| `rebuild` | `10.8.7.53` | `https://rebuild-adguard.rebuild.iseja.net` |
-| `prod` | `10.8.8.53` | `https://adguard.prod.iseja.net` |
+| `head` | `10.8.1.53` | [https://head-adguard.head.iseja.net](https://head-adguard.head.iseja.net) |
+| `qa` | `10.8.2.53` | [https://qa-adguard.qa.iseja.net](https://qa-adguard.qa.iseja.net) |
+| `rebuild` | `10.8.7.53` | [https://rebuild-adguard.rebuild.iseja.net](https://rebuild-adguard.rebuild.iseja.net) |
+| `prod` | `10.8.8.53` | [https://adguard.prod.iseja.net](https://adguard.prod.iseja.net) |
 
 The DNS Service also gets the record `adguard-lb.<env>.iseja.net` (with the prefix, `qa-adguard-lb.qa.iseja.net`); the bare name belongs to the UI route. Both Services use `externalTrafficPolicy: Local` so per-client rules see the real client address. The UI login is the `users` SealedSecret (see the cheat sheet to change it). The hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 

@@ -26,10 +26,10 @@ Through the `internal` Gateway; the subdomain is `budget`, not `actualbudget`. T
 
 | env | URL |
 | --- | --- |
-| `head` | `https://head-budget.head.iseja.net` |
-| `qa` | `https://qa-budget.qa.iseja.net` |
-| `rebuild` | `https://rebuild-budget.rebuild.iseja.net` |
-| `prod` | `https://budget.prod.iseja.net` |
+| `head` | [https://head-budget.head.iseja.net](https://head-budget.head.iseja.net) |
+| `qa` | [https://qa-budget.qa.iseja.net](https://qa-budget.qa.iseja.net) |
+| `rebuild` | [https://rebuild-budget.rebuild.iseja.net](https://rebuild-budget.rebuild.iseja.net) |
+| `prod` | [https://budget.prod.iseja.net](https://budget.prod.iseja.net) |
 
 The server password is set in the app on first start; there is no credential in Git.
 
