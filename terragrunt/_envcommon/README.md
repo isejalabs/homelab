@@ -7,6 +7,7 @@ This directory holds the configuration each unit type shares across the environm
 | `checkmk-longhorn-monitoring.hcl` | `checkmk-longhorn-monitoring` (`prod` only); also lists the monitored environments |
 | `checkmk-password.hcl` | `checkmk-password` |
 | `checkmk-rustfs-monitoring.hcl` | `checkmk-rustfs-monitoring` (`prod` only); also lists the monitored identities (`identity_envs`) |
+| `keycloak-automation.hcl` | `keycloak-automation`; the service-account client of `keycloak-realm` |
 | `keycloak-realm.hcl` | `keycloak-realm`; holds the directory facts and realm definitions |
 | `rustfs-bucket-reader.hcl` | `rustfs-bucket-reader` |
 | `rustfs-keycloak-db.hcl` | `rustfs-keycloak-db` |

@@ -1,8 +1,8 @@
 #!/bin/sh
 # Runs `kubectl kustomize` + kubeconform against every kustomize overlay under k8s/ (except the
 # non-standalone Components under k8s/components/), to catch a broken build or schema-invalid manifest
-# before Flux hits it for real. Also checks that every keycloak-realm Terragrunt unit's `keycloak_url` matches the
-# hostname its environment's Keycloak overlay serves.
+# before Flux hits it for real. Also checks that every keycloak-realm and keycloak-automation Terragrunt unit's
+# `keycloak_url` matches the hostname its environment's Keycloak overlay serves.
 #
 # Usage: scripts/kustomize-build-all.sh
 # Takes no arguments; run from the repo root (invoked by the kustomize-build CI workflow).
@@ -32,18 +32,18 @@ rendered_hostname() {
         k == kind && kind == "HTTPRoute" && /^  hostnames:$/ { getline; sub(/^ *- */, ""); print }'
 }
 
-# Fails (status=1) when the hostname a keycloak-realm Terragrunt unit calls (`keycloak_url`) differs from the one its
+# Fails (status=1) when the hostname a keycloak-realm or keycloak-automation Terragrunt unit calls (`keycloak_url`) differs from the one its
 # environment's Keycloak overlay serves, either on the `Keycloak` resource or on the `HTTPRoute`. The Terragrunt side
 # cannot read the overlay's replace-domain/prefix-domain result, so it is the one typed by hand (#1946); a drift
 # would otherwise only show up as a failing realm apply or a wrong issuer. Needs no cluster, only `kubectl kustomize`.
 check_keycloak_hostnames() {
-    for hcl in $(find terragrunt -path '*/keycloak-realm/terragrunt.hcl' | sort); do
+    for hcl in $(find terragrunt \( -path '*/keycloak-realm/terragrunt.hcl' -o -path '*/keycloak-automation/terragrunt.hcl' \) | sort); do
         env=$(basename "$(dirname "$(dirname "$hcl")")")
         overlay="k8s/apps/identity/keycloak/envs/${env}"
         url_host=$(sed -n 's|^ *keycloak_url *= *"https://\([^"/]*\)/\{0,1\}".*|\1|p' "$hcl")
 
         if [ -z "$url_host" ]; then
-            log error "no https keycloak_url found in the keycloak-realm unit" "file" "$hcl"
+            log error "no https keycloak_url found in the Keycloak Terragrunt unit" "file" "$hcl"
             status=1
             continue
         fi
