@@ -22,7 +22,7 @@ Tells kopiur where and how to store backups: the S3 endpoint `fiona.home.iseja.n
 
 ## Access
 
-Not exposed in the cluster. The bucket is on the NAS's S3 endpoint [https://fiona.home.iseja.net:9000](https://fiona.home.iseja.net:9000); use the RustFS or S3 tooling there to inspect it.
+Not exposed in the cluster. The bucket is on the NAS's S3 endpoint `fiona.home.iseja.net:9000`; use the RustFS or S3 tooling there to inspect it.
 
 ## Updates
 
