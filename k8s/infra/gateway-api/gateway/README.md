@@ -1,4 +1,66 @@
-See [`docs/architecture/network.md`](../../../../docs/architecture/network.md) for how this Gateway setup fits into the overall networking story (LB IPAM, DNS, the physical network).
+# Gateway
+
+The shared Gateway API entry points of each environment: the `Gateway` objects (`internal`, `internal-http`, `external`), the wildcard `Certificate` they serve, and the HTTP-to-HTTPS redirect. Every app's `HTTPRoute` attaches to one of them.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `gateway-api` |
+| Runs in | all 8 environments (Flux set `minimal`); `poc` also has a `tls-passthrough` Gateway |
+| Installed via | Raw Gateway API resources (`Gateway`, `HTTPRoute`, cert-manager `Certificate`); the implementation is [Cilium](../../kube-system/cilium/README.md) |
+| Flux Kustomization | `gateway-api` (the unit is `gateway`), depends on `gateway-api-crds`, `infra-ns` |
+
+## Purpose
+
+One place that terminates TLS and routes by hostname, so apps only declare an `HTTPRoute`. The big picture, including DNS and the physical network: [`network.md`](../../../../docs/architecture/network.md#gateway-api-cilium-as-the-implementation).
+
+## Where it is used
+
+- **Used by**: every app that has a web UI (`HTTPRoute` with `parentRefs` to `internal` in `gateway-api`), see [`workloads.md`](../../../../docs/architecture/workloads.md). external-dns publishes each route as a CNAME to the Gateway's own name (below).
+- **Depends on**: [`gateway-api-crds`](../gateway-api-crds/) for the CRDs, Cilium for the implementation and the address, cert-manager and the ClusterIssuer `cloudflare-cluster-issuer` (DNS-01) for the wildcard certificate, external-dns for the names.
+
+## Access
+
+| Gateway | Listener | Address | Use |
+| --- | --- | --- | --- |
+| `internal` | HTTPS 443, `*.<env>.iseja.net` | `10.8.<env-id>.80` | every app's `HTTPRoute` |
+| `internal-http` | HTTP 80 | `10.8.<env-id>.80` (same address) | redirect to HTTPS only |
+| `external` | HTTPS 443 | `10.8.<env-id>.83` | reserved for public routes; no route uses it |
+
+The names are `gw-internal.<env>.iseja.net` and `gw-external.<env>.iseja.net` (with the prefix, `dev-gw-internal.dev.iseja.net`). `<env-id>` is the environment ID in [`reference/environments.md`](../../../../docs/reference/environments.md#environment-id), e.g. `10.8.3.80` for `dev`.
+
+The certificate is a Let's Encrypt **production** one in `dev`, `prod`, `qa` and `rebuild`; `dbg`, `head`, `poc` and `src` use the **staging** CA, which browsers do not trust ([`network.md`](../../../../docs/architecture/network.md#gateway-api-cilium-as-the-implementation)). In `poc` the extra Gateway `tls-passthrough` (`10.8.6.82`) passes the TLS of `poc-unifi.poc.iseja.net` through to the backend.
+
+## Updates
+
+No version of its own: the resources follow the Gateway API CRDs ([`gateway-api-crds`](../gateway-api-crds/), capped for Cilium compatibility) and the Cilium release. A Cilium bump can change how Gateways are translated, so test it in a non-prod environment first.
+
+## Operations
+
+| Task | Doc |
+| --- | --- |
+| A name does not resolve or points to the wrong target | [`troubleshooting-dns.md`](../../../../docs/troubleshooting/troubleshooting-dns.md) |
+| Let's Encrypt limits when `rebuild` is rebuilt repeatedly | [`network.md`](../../../../docs/architecture/network.md#lets-encrypt-production-limits-and-rebuild) |
+
+## Cheat sheet
+
+```sh
+flux get ks gateway-api --context admin@<env>-homelab
+kubectl get gateway,httproute -A --context admin@<env>-homelab
+kubectl get certificate,secret -n gateway-api --context admin@<env>-homelab
+
+# which routes attach to the internal Gateway, and is the certificate ready?
+kubectl describe gateway internal -n gateway-api --context admin@<env>-homelab
+kubectl get certificate cert -n gateway-api -o jsonpath='{.status.conditions[?(@.type=="Ready")].message}' --context admin@<env>-homelab
+```
+
+## Upstream
+
+- Gateway API: <https://gateway-api.sigs.k8s.io/>
+- Cilium's implementation: <https://docs.cilium.io/en/stable/network/servicemesh/gateway-api/gateway-api/>
+
+## Design notes
 
 `http-route-redirect.yaml`'s `http-redirect-to-https` `HTTPRoute` has no `hostname` specification (it matches all hosts), so the domain-replacement/prefix components reject it by name to avoid a zero-match hard error - see `components/transformers/replace-domain/repl/httproute-replace-domain.yaml` and `components/transformers/prefix-domain/repl/httproute-prefix-domain.yaml`.
 
