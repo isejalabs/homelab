@@ -21,7 +21,9 @@ jobs:
       with:
         install_args: lychee
     # Only http(s) URLs: local file and anchor targets are the job of the offline check. 429 counts as alive, because a rate
-    # limit says nothing about the link. Hosts that only resolve inside the homelab or are placeholders are excluded.
+    # limit says nothing about the link. Hosts that only resolve inside the homelab or are placeholders are excluded, and so is
+    # the private repo sebiklamar/salt-iseja.net (the token can't see it, so every link to it would read as dead). docs/audits is
+    # skipped because audits are never edited after the fact (docs/audits/README.md): a link that rotted there can't be fixed.
     # lychee exits 0 for no broken link, 2 for at least one; anything else is a failure of the check itself and fails the job.
     - id: lychee
       env:
@@ -30,7 +32,8 @@ jobs:
         set +e
         lychee --scheme http --scheme https --no-progress --max-retries 3 --timeout 30 --accept 200,204,429 \
           --exclude '^https?://([^/]+\.)?iseja\.net' --exclude '^https?://(localhost|127\.0\.0\.1)' --exclude '^https?://([^/]+\.)?example\.(com|org)' \
-          --exclude-path _attic --exclude-path ZZ.bak --format markdown --output lychee-report.md '**/*.md'
+          --exclude '^https://github\.com/sebiklamar/salt-iseja\.net' \
+          --exclude-path _attic --exclude-path ZZ.bak --exclude-path docs/audits --format markdown --output lychee-report.md '**/*.md'
         code=$?
         echo "code=$code" >> "$GITHUB_OUTPUT"
         if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
@@ -48,10 +51,23 @@ jobs:
           fi
           exit 0
         fi
+        # Every broken link becomes a task list item (lychee lists them as plain bullets), so single items can be turned into
+        # sub-issues by hand with "Convert to sub-issue". The body is rewritten by every run, so lines already converted
+        # (task items without a URL, which is what GitHub leaves behind) are carried over under "Triaged".
+        triaged=""
+        if [ -n "$number" ]; then
+          triaged=$(gh issue view "$number" --json body --jq .body | grep -E '^- \[[ xX]\] ' | grep -Ev 'https?://' | awk '!seen[$0]++' || true)
+        fi
         {
-          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. This issue is updated by each run and closed when all links work again."
+          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. Each broken link is a task list item, so it can be converted to a sub-issue by hand. This issue is rewritten by each run and closed when all links work again."
           echo
-          cat lychee-report.md
+          if [ -n "$triaged" ]; then
+            echo "## Triaged"
+            echo
+            echo "$triaged"
+            echo
+          fi
+          sed -E 's/^[*-] /- [ ] /' lychee-report.md
         } > issue-body.md
         if [ -n "$number" ]; then
           gh issue edit "$number" --body-file issue-body.md

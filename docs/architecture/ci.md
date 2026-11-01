@@ -65,9 +65,11 @@ It keeps exactly one tracking issue, titled `docs: external links in the documen
 
 - Broken links and no open issue: it opens one (label `documentation`) with the `lychee` report.
 - Broken links and an open issue: it replaces the issue body with the new report.
+
+Each broken link is a task list item (`- [ ] ...`), so single items can be converted to sub-issues by hand with GitHub's "Convert to sub-issue"; nothing is converted automatically. Because every run rewrites the body, task items without a URL (what GitHub leaves behind after a conversion) are carried over under a `## Triaged` heading. A link that stays broken is listed again as a new item.
 - No broken link and an open issue: it closes the issue with a comment.
 
-HTTP 429 counts as alive (a rate limit says nothing about the link); the `iseja.net` hosts, `localhost` and the `example.com`/`example.org` placeholders are excluded, as are `_attic` and `ZZ.bak`. The exit codes 0 and 2 of `lychee` are handled; any other exit code fails the job, which is the signal that the check itself broke. To run it by hand: `gh workflow run docs-link-check-external.yml`.
+HTTP 429 counts as alive (a rate limit says nothing about the link); the `iseja.net` hosts, `localhost` and the `example.com`/`example.org` placeholders are excluded, as is the private repository `sebiklamar/salt-iseja.net`, which the workflow token can't read, so its links would always look dead. `_attic` and `ZZ.bak` are skipped as retired material, and so is `docs/audits`: audits are never edited after the fact ([`docs/audits/README.md`](../audits/README.md)), so a dead URL there can't be fixed. The offline check still covers the audits. The exit codes 0 and 2 of `lychee` are handled; any other exit code fails the job, which is the signal that the check itself broke. To run it by hand: `gh workflow run docs-link-check-external.yml`.
 
 ### Spell check (advisory)
 
