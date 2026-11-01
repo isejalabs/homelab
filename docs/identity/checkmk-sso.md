@@ -1,12 +1,12 @@
 ---
-status: planning
+status: current
 ---
 
 # Checkmk human SSO
 
 Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). Only the Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered so far; `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) and the Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) are added when they are built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
-**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi` and `sebi-adm` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address) and `sebi-adm` (role `admin`, no contact group). This page is `planning` until the acceptance criteria of #2107 are checked.
+**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address), `sebi-adm` (role `admin`, no contact group) and `mary` (role `guest`). The page describes these two sites; `prod_k8s` and `prod` are not set up and are added when they are.
 
 ## How it works
 
@@ -98,7 +98,7 @@ A UCS group change takes three steps to reach a Checkmk login, and the middle on
 2. **Keycloak:** the federation reads the group membership of an imported user only when it syncs that user. The changed-users sync runs every **3600 s** (`ldap.changed_sync_period`) and the full sync every 86400 s, so a change takes up to an hour to arrive. The interval stays at one hour on purpose (owner decision, 2026-11-02); a shorter `changed_sync_period` in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) would apply to every environment. To skip the wait, trigger it in the admin console of the realm under *User federation → ucs → Sync changed users* (or `POST .../user-storage/<id>/sync?action=triggerChangedUsersSync`).
 3. **Checkmk:** roles and contact groups are applied at each login, so the next login after step 2 is enough. A newly created user still needs the [activation](#first-login-and-activation).
 
-Seen on 2026-11-02 in `dev_k8s`: `mary` was added to `idm-users` and `app-checkmk-readonly` and her login failed, while Keycloak still held her as an imported user without groups; one changed-users sync later `app-checkmk-readonly` appeared in Keycloak.
+Seen on 2026-11-02 in `dev_k8s`: `mary` was added to `idm-users` and `app-checkmk-readonly` and her login failed, while Keycloak still held her as an imported user without groups; one changed-users sync later `app-checkmk-readonly` appeared in Keycloak and her logins worked in `dev_k8s` and `qa_k8s`.
 
 **A user without any `app-checkmk-*` group cannot log in.** Keycloak then sends no groups attribute at all, and Checkmk refuses the login with `Configured user attribute cannot be found in response` in `var/log/web.log` of the site (logger `cmk.web.saml2`, owner-tested on `dev_k8s`, 2026-11-02). The same message appears for a user whose group change has not reached Keycloak yet, so that log line alone does not say which of the two it is: look at the user's *Groups* in the Keycloak admin console.
 
@@ -127,5 +127,4 @@ CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
 
 ## Not verified yet
 
-- `mary` as `guest`: she is in `idm-users` and `app-checkmk-readonly`, but the first login attempt failed on the Keycloak sync delay described above; the retest after a sync is open.
 - Registering a real host end to end (only the non-destructive [regression check](#regression-check-agent-registration) was run).
