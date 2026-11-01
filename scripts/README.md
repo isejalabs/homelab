@@ -15,10 +15,12 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | [`flate-test-all.sh`](flate-test-all.sh) | `flate test all` against every environment's top-level Flux sync target |
 | [`bootstrap-apps-ci-test.sh`](bootstrap-apps-ci-test.sh) | the bootstrap `apps` helmfile stage, against an ephemeral kind cluster |
 | [`check-workloads-catalog.sh`](check-workloads-catalog.sh) | the `Apps`/`Infra` tables in `docs/architecture/workloads.md` against `k8s/{apps,infra}/*/*/flux` and the unit lists in `k8s/bootstrap/cluster/flux/sets/` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
-| [`check-unit-readmes.sh`](check-unit-readmes.sh) | every unit under `k8s/{apps,infra}/*/*` with a `flux/` folder has a `README.md` that follows the template in `k8s/README.md`: a level-1 title, the required `##` headings in order (extra sections allowed) the four rows of the `At a glance` table and no URL in a code span in `Access`, and an entry in the docs navigation `.ci/mkdocs/mkdocs.yml` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
+| [`check-unit-readmes.sh`](check-unit-readmes.sh) | every unit under `k8s/{apps,infra}/*/*` with a `flux/` folder has a `README.md` that follows the template in `k8s/README.md`: a level-1 title, the required `##` headings in order (extra sections allowed) the four rows of the `At a glance` table and no URL in a code span in `Access`, an entry in the docs navigation `.ci/mkdocs/mkdocs.yml`, and the `Namespace`, `Flux Kustomization` (name and `dependsOn`) and `Runs in` (environments and Flux set) rows against `base/kustomization.yaml`, `flux/ks.yaml`, the Flux sets and `flux/envs/*` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
 | [`check-sorting.py`](check-sorting.py) | leading-field/`metadata` key ordering (`.agents/instructions/sorting.md`) — needs [`requirements.txt`](requirements.txt) installed first |
 | [`install-actionlint.sh`](install-actionlint.sh) | not a check itself — installs the pinned `actionlint` binary the `actionlint` workflow lints with |
 | [`renovate-config-validator-version.sh`](renovate-config-validator-version.sh) | not a check itself — sourced to pin the `renovate-config-validator` version the `renovate-config-validate` workflow uses |
+
+`check-workloads-catalog.sh` and `check-unit-readmes.sh` source [`lib/flux-sets.sh`](lib/flux-sets.sh) (which Flux set lists a unit, which environments run it), which needs only POSIX `sh`, `awk` and `sed`, unlike `lib/common.sh`.
 
 ## SOPS bulk operations
 

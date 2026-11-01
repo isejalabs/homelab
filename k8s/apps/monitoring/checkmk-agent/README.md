@@ -9,11 +9,11 @@ The [Checkmk Kubernetes monitoring agent](https://github.com/Checkmk/checkmk_kub
 | Namespace | `checkmk-kube-agent` |
 | Runs in | all 8 environments (Flux set `minimal`) |
 | Installed via | HelmRelease, chart `checkmk` from the `checkmk.github.io/checkmk_kube_agent` Helm repository, plus an `HTTPRoute` for the cluster collector |
-| Flux Kustomization | `checkmk-kube-agent` (the unit is `checkmk-agent`), depends on `gateway-api` |
+| Flux Kustomization | `checkmk-kube-agent`, depends on `gateway-api` |
 
 ## Purpose
 
-The in-cluster half of the Kubernetes monitoring: the collectors expose cluster and node data; the Kubernetes special agent in Checkmk reads it through the collector endpoint and the Kubernetes API. The split between Checkmk sites, what is monitored and who manages which part: [`monitoring.md`](../../../../docs/architecture/monitoring.md).
+The Flux Kustomization is named `checkmk-kube-agent`, not `checkmk-agent` like the folder; use that name with `flux get ks`. The in-cluster half of the Kubernetes monitoring: the collectors expose cluster and node data; the Kubernetes special agent in Checkmk reads it through the collector endpoint and the Kubernetes API. The split between Checkmk sites, what is monitored and who manages which part: [`monitoring.md`](../../../../docs/architecture/monitoring.md).
 
 ## Where it is used
 

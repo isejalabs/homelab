@@ -15,9 +15,11 @@ SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
 DOC="${ROOT}/docs/architecture/workloads.md"
-SETS="${ROOT}/k8s/bootstrap/cluster/flux/sets"
 WORK=$(mktemp -d)
 trap 'rm -rf "${WORK}"' EXIT
+
+# repo_units and sets_listing (which Flux set lists which unit) are shared with check-unit-readmes.sh.
+. "${SCRIPTS_DIR}/lib/flux-sets.sh"
 
 # Prints "level: message key=value ..." to stderr from (level, message, key, value, key, value, ...). Plain
 # printf instead of lib/common.sh's gum-backed log(), so the check needs only a POSIX shell, awk and sed in CI.
@@ -30,19 +32,6 @@ log() {
         shift 2
     done
     printf '%s: %s\n' "$lvl" "$msg" >&2
-}
-
-# Prints "<kind>/<category>/<unit> <set>" for each unit a sets/<dir>/kustomization.yaml lists, where <set> is
-# the name of the directory the listing file is in (apps/minimal -> minimal). A unit listed in more than one
-# set gets one line per set, which then shows up as a mismatch below.
-sets_listing() {
-    for f in "${SETS}"/apps/minimal "${SETS}"/apps/optional "${SETS}"/infra/minimal "${SETS}"/infra/optional "${SETS}"/soaking; do
-        set_name=$(basename "$f")
-        sed -E -n 's#^ *- *(\.\./)*(apps|infra)/([^/]+)/([^/]+)/flux *$#\2/\3/\4#p' "$f/kustomization.yaml" |
-            while read -r unit || [ -n "$unit" ]; do
-                echo "$unit $set_name"
-            done
-    done
 }
 
 # Prints "<kind>/<category>/<unit> <set>" for each row of the Apps and Infra tables in the doc. The Apps
@@ -61,17 +50,6 @@ doc_rows() {
             gsub(/`/, "", set); sub(/^ */, "", set); sub(/[^a-z].*$/, "", set)
             print kind "/" cat "/" unit, set
         }' "${DOC}"
-}
-
-# Prints "<kind>/<category>/<unit>" for each directory under k8s/apps and k8s/infra that has a flux/ folder.
-repo_units() {
-    for kind in apps infra; do
-        for d in "${ROOT}/k8s/${kind}"/*/*/flux; do
-            [ -d "$d" ] || continue
-            rel=${d#"${ROOT}/k8s/"}
-            echo "${rel%/flux}"
-        done
-    done
 }
 
 sets_listing | sort >"${WORK}/sets"

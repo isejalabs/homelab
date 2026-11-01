@@ -9,7 +9,7 @@ Not a workload but a registration point: the one Flux Kustomization that creates
 | Namespace | none of its own: it creates the namespaces listed in [`base/kustomization.yaml`](base/kustomization.yaml) |
 | Runs in | all 8 environments (Flux set `minimal`) |
 | Installed via | Plain kustomize aggregation of every group's `_ns/base` folder |
-| Flux Kustomization | `infra-ns`, no `dependsOn`; most infra units `dependsOn: infra-ns` |
+| Flux Kustomization | `infra-ns`, no `dependsOn` |
 
 ## Purpose
 

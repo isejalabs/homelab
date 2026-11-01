@@ -7,9 +7,9 @@
 | | |
 | --- | --- |
 | Namespace | `zigbee2mqtt` |
-| Runs in | `prod` only (registered in [`flux/envs/prod`](../../../bootstrap/cluster/flux/envs/prod/kustomization.yaml), in no Flux set) |
+| Runs in | `prod` (no Flux set, registered in [`flux/envs/prod`](../../../bootstrap/cluster/flux/envs/prod/kustomization.yaml)); no other environment runs it |
 | Installed via | HelmRelease with the `bjw-s-labs/app-template` OCI chart, plus the `apps/storage/pvc` component (2Gi, backed up by kopiur) |
-| Flux Kustomization | `zigbee2mqtt`, no `dependsOn`, `wait: true` |
+| Flux Kustomization | `zigbee2mqtt`, no `dependsOn` |
 
 ## Purpose
 
@@ -32,6 +32,7 @@ Other environments do not run it. The hostname is set in [`envs/prod/helmrelease
 
 - **Chart**: `app-template` tag and digest in [`base/ocirepository.yaml`](base/ocirepository.yaml).
 - **Image**: `ghcr.io/koenkk/zigbee2mqtt` tag in [`base/helmrelease.yaml`](base/helmrelease.yaml) (a `renovate: docker=ghcr.io/koenkk/zigbee2mqtt` comment drives it). It is not pinned by a digest.
+- **Flux**: the Kustomization in [`flux/ks.yaml`](flux/ks.yaml) sets `wait: true`, so Flux reports it ready only once the HelmRelease is healthy.
 - **No staged rollout**: only `prod` runs it, so an image bump in `base/` goes straight to the one live instance that owns the Zigbee network (patch updates are automerged by Renovate, minor ones by Mergify, see [`update-handling.md`](../../../../docs/operations/update-handling.md#automatic-merging-rules)). Read the release notes of a minor or major Zigbee2MQTT release before it merges.
 
 ## Operations

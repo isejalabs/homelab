@@ -7,7 +7,7 @@ The `ClusterRepository` `fiona` for [kopiur](../kopiur/README.md): the S3-compat
 | | |
 | --- | --- |
 | Namespace | `kopiur-system` (the `ClusterRepository` itself is cluster-scoped) |
-| Runs in | all 8 environments (Flux set `optional`; every environment includes the full infra set) |
+| Runs in | all 8 environments (Flux set `optional`); every environment includes the full infra set |
 | Installed via | Raw kopiur resource ([`base/clusterrepository.yaml`](base/clusterrepository.yaml)); the credentials Secret `kopiur-repository-secret` is created by an `ExternalSecret` from the `apps/kopiur` component |
 | Flux Kustomization | `kopiur-repository`, depends on `kopiur`, `onepassword-connect` |
 

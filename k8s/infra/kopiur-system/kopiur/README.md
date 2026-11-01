@@ -7,7 +7,7 @@
 | | |
 | --- | --- |
 | Namespace | `kopiur-system` |
-| Runs in | all 8 environments (Flux set `optional`; every environment includes the full infra set), but active backup schedules only in `dev`, `prod`, `qa` and `rebuild` |
+| Runs in | all 8 environments (Flux set `optional`); every environment includes the full infra set, but active backup schedules only in `dev`, `prod`, `qa` and `rebuild` |
 | Installed via | HelmRelease, chart from the OCI repository `ghcr.io/home-operations/charts/kopiur` ([`base/ocirepository.yaml`](base/ocirepository.yaml)); the per-app wiring is the `apps/storage/pvc` component |
 | Flux Kustomization | `kopiur`, depends on `infra-ns` |
 

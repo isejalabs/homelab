@@ -9,11 +9,11 @@ The shared Gateway API entry points of each environment: the `Gateway` objects (
 | Namespace | `gateway-api` |
 | Runs in | all 8 environments (Flux set `minimal`); `poc` also has a `tls-passthrough` Gateway |
 | Installed via | Raw Gateway API resources (`Gateway`, `HTTPRoute`, cert-manager `Certificate`); the implementation is [Cilium](../../kube-system/cilium/README.md) |
-| Flux Kustomization | `gateway-api` (the unit is `gateway`), depends on `gateway-api-crds`, `infra-ns` |
+| Flux Kustomization | `gateway-api`, depends on `gateway-api-crds`, `infra-ns` |
 
 ## Purpose
 
-One place that terminates TLS and routes by hostname, so apps only declare an `HTTPRoute`. The big picture, including DNS and the physical network: [`network.md`](../../../../docs/architecture/network.md#gateway-api-cilium-as-the-implementation).
+The Flux Kustomization is named `gateway-api`, not `gateway` like the folder; use that name with `flux get ks`. One place that terminates TLS and routes by hostname, so apps only declare an `HTTPRoute`. The big picture, including DNS and the physical network: [`network.md`](../../../../docs/architecture/network.md#gateway-api-cilium-as-the-implementation).
 
 ## Where it is used
 
