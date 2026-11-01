@@ -220,7 +220,7 @@ Everything in this section is physical infrastructure with no representation in 
 
 **The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a *separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone itself, distinct from UCS's subdomain-scoped DNS role. `10.7.2.10` (today's master) is planned to be superseded by the in-cluster PowerDNS instance described [above](#dns-authoritative-zones-powerdns); `10.7.2.12` keeps its existing slave-only role unchanged, just re-pointed at the new master once that cutover happens.
 
-**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows through, and not a BGP peer, DHCP/identity provider, or nameserver. Its [README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
+**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows through, and not a BGP peer, DHCP/identity provider, or nameserver. Its [README](../../k8s/apps/network/unifi-controller/README.md) lists the per-environment address and ports.
 
 ## What's not here
 
