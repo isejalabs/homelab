@@ -106,3 +106,13 @@ Run manually (needs 1Password and network access to the RustFS, so not for CI) â
 | [`rustfs-verify-monitoring.sh`](rustfs-verify-monitoring.sh) | verifies one environment's `<env>-checkmk-monitoring` identity reads quota of its own buckets and is denied everything else (non-mutating) |
 
 Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and unrecognized-flag handling.
+
+## Keycloak availability drill
+
+Run manually (disrupts the cluster, needs a kubecontext and network access to Keycloak, so not for CI) â€” see [`docs/identity/keycloak-drain-drill.md`](../docs/identity/keycloak-drain-drill.md) for the procedure, the probes and how to read the report.
+
+| Script | Purpose |
+| --- | --- |
+| [`keycloak-drain-drill.sh`](keycloak-drain-drill.sh) | drains the node of the Keycloak database (or, with `--observe`, only measures while something else disturbs it) and reports the login outage windows, a pod-event timeline and the image pull times; checks the control plane first and refuses `prod` |
+
+Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation, kubecontext construction and unrecognized-flag handling.

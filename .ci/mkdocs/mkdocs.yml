@@ -154,6 +154,7 @@ nav:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
+    - Keycloak drain drill: docs/identity/keycloak-drain-drill.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
   - Overview: docs/architecture/overview.md
