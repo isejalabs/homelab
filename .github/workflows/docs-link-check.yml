@@ -26,4 +26,6 @@ jobs:
     # to date by design, so link rot there is expected, not something to flag. --include-fragments: also
     # check that a `#anchor` exists in the target file, not only that the file exists.
     - run: scripts/check-workloads-catalog.sh
+    # Every k8s/{apps,infra} unit needs a README.md with the headings of the template in k8s/README.md (#2098).
+    - run: scripts/check-unit-readmes.sh
     - run: lychee --offline --include-fragments --no-progress --exclude-path _attic --exclude-path ZZ.bak '**/*.md'
