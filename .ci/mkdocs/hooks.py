@@ -7,12 +7,15 @@ is rewritten on disk; these hooks only adjust the rendered site:
   site) are rewritten to the matching github.com blob/tree URL, since the target does not exist on the site;
 * a visible status banner is added below the page title, from the `status:` front matter, the ADR
   `## Status` section, or the folder (audits and plans are dated snapshots);
+* the footer shows the git commit (ID and head line) the site was built from, read from the checkout;
 * a robots.txt is written while `extra.noindex` is set in mkdocs.yml.
 """
 
+import html
 import os
 import posixpath
 import re
+import subprocess
 from urllib.parse import unquote
 
 REPO_URL = "https://github.com/isejalabs/homelab"
@@ -43,6 +46,19 @@ BANNERS = {
         "An implementation plan that follows from an audit. Check its own Status line; it is not current-state documentation.",
     ),
 }
+
+
+def _head_commit(root):
+    """Return (full SHA, short SHA, subject) of the checkout's HEAD, or None outside a git checkout."""
+    try:
+        out = subprocess.run(
+            ["git", "-C", root, "log", "-1", "--format=%H%n%h%n%s"],
+            check=True, capture_output=True, text=True, timeout=30,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return None
+    parts = out.rstrip("\n").split("\n", 2)
+    return tuple(parts) if len(parts) == 3 and parts[0] else None
 
 
 def _repo_root(config):
@@ -132,6 +148,18 @@ def _add_banner(markdown, status):
         elif not in_fence and TITLE.match(line):
             return "\n".join(lines[: i + 1] + ["", *block.split("\n"), *lines[i + 1 :]])
     return block + "\n" + markdown
+
+
+def on_config(config):
+    """Show the built commit in the footer (the theme prints `copyright` there, as HTML)."""
+    commit = _head_commit(_repo_root(config))
+    if commit:
+        sha, short, subject = commit
+        config["copyright"] = (
+            f'Built from commit <a href="{REPO_URL}/commit/{sha}"><code>{short}</code></a>'
+            f" &ndash; {html.escape(subject)}"
+        )
+    return config
 
 
 def on_page_markdown(markdown, page, config, files):
