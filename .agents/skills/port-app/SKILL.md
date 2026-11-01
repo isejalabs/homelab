@@ -166,6 +166,8 @@ Append (alphabetically, by full relative path) one line per new component's `flu
 
 (six `../` levels for infra/apps sets — count the existing entries in the target file to confirm depth rather than assuming.)
 
+Also add the row to `docs/architecture/workloads.md` and write the unit's `README.md` from the template in `k8s/README.md` ("README of an app/infra unit"), filling `Access` and `Updates` from what the ported component actually sets rather than from the source repo.
+
 ## 7. Special case: bootstrap-time secrets (rare — flag, don't auto-apply)
 
 If (and only if) the ported component is itself part of the secrets-bootstrap chain — i.e. it needs a `Secret` to exist *before* External Secrets Operator / the `ClusterSecretStore` can resolve `op://` references for it, a chicken-and-egg problem — this repo has a documented escape hatch (`k8s/bootstrap/kustomize/personal/<component>/{kustomization.yaml,s3cr3t.yaml}`, injected via `op inject` during `just bootstrap::cluster`, registered in `k8s/bootstrap/kustomize/personal/kustomization.yaml` and `k8s/bootstrap/mod.just`) and sometimes needs the component installed as a `helmfile` release (`k8s/bootstrap/helmfile/apps/helmfile.yaml.gotmpl`) instead of purely via Flux. This is what commit `3be16891...` did for `external-secrets`/`onepassword-connect` themselves. **Do not replicate this pattern automatically** — it's specific to components that participate in bootstrapping secrets management. Flag it to the user and point at that commit as precedent; let them decide.
