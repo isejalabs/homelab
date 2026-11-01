@@ -96,11 +96,10 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 
 ## Break-glass
 
-`cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Test it with the identity provider stopped before the site is called done; not exercised yet.
+`cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Verified on `dev_k8s` on 2026-11-02 with the `dev` Keycloak stopped (its Flux `Kustomization` suspended and `spec.instances` of the `Keycloak` resource set to 0, restored after about five minutes): the metadata URL answered 503, the login page still loaded with the local form, `cmkadmin` logged in with it and reached the Checkmk index, and the REST API accepted `cmkadmin`. The same check was not repeated on `qa_k8s`.
 
 ## Not verified yet
 
 - `mary` as `guest`: she is not in `idm-users` or `app-checkmk-readonly` yet.
 - A user in no mapped group gets no role or access.
-- `cmkadmin` and the automation users keep working with the identity provider stopped.
 - Agent registration (the `agent_registration` user is untouched, but registering an agent was not run).
