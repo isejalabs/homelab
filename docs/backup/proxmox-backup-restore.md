@@ -13,7 +13,7 @@ status: current
 This is the backup/restore tier for when a whole VM/LXC is lost or corrupted, not just its application data — a different failure mode than anything else documented here:
 
 - [`kopiur-backup-restore.md`](kopiur-backup-restore.md) — in-cluster PVC/application data (a pod's volume gets corrupted, the VM/node it runs on is fine).
-- [`proxmox-vm-snapshots.md`](proxmox-vm-snapshots.md) — local Proxmox snapshots for the Terraform-managed `vehagn-k8s` environments (`dev`, `qa`, `prod`, etc.) — fast rollback on the same host, not an offsite backup.
+- [`proxmox-vm-snapshots.md`](../operations/proxmox-vm-snapshots.md) — local Proxmox snapshots for the Terraform-managed `vehagn-k8s` environments (`dev`, `qa`, `prod`, etc.) — fast rollback on the same host, not an offsite backup.
 - [`disaster-recovery.md`](disaster-recovery.md) — full cluster rebuild, which reprovisions those same `vehagn-k8s` environments from Terraform/Talos rather than restoring them from a backup at all.
 
 **This doc's scope is deliberately the complement of all three**: the manually-managed "pet" VMs/LXCs — DNS servers, gateways, monitoring, mail relay, web front end, and similar — that aren't Terraform-reprovisionable and would be genuinely painful to lose. See [Why Talos K8s nodes aren't covered here](#why-talos-k8s-nodes-arent-covered-here) for why the two don't overlap.
@@ -105,7 +105,7 @@ This has **not** been tested live in this repo — only the new-VMID path above 
 
 ## Live-tested record (F8)
 
-Per [finding F8](audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability) — this backup tier's restore path has now actually been exercised, not just assumed to work because backups exist and show `verification.state: "ok"`.
+Per [finding F8](../audits/2026-09-documentation.md#f8--backup-documentation-should-emphasize-restore-capability) — this backup tier's restore path has now actually been exercised, not just assumed to work because backups exist and show `verification.state: "ok"`.
 
 **2026-10-11**: restored `testlinux2.test.iseja.net` (LXC, VMID `7004056`, a member of the `Test` pool) from its latest PBS backup (`pbs:backup/ct/7004056/2026-10-10T21:34:38Z`) to a new VMID (`7004098`) on `pve1`/`local-zfs`, using the side-by-side procedure above. Confirmed genuinely usable, not just unpacked:
 

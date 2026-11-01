@@ -1,6 +1,6 @@
 ## Cert Manager
 
-You can also check the for the certificate beging issued successfully by checking the status of the certificate resource:
+You can also check the for the certificate being issued successfully by checking the status of the certificate resource:
 
 ```sh
 ❯ k get certificate -n gateway-api

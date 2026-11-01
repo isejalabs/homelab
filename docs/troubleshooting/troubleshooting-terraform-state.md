@@ -4,7 +4,7 @@ status: current
 
 # Troubleshooting: stale Terraform/OpenTofu state lock
 
-For whoever's responding to a `terragrunt plan`/`apply` that fails immediately with a state-lock error — not an introduction to the remote-state setup itself (see [`terragrunt/README.md`](../terragrunt/README.md) for the `.envrc`/`TG_IAM_ASSUME_ROLE` and provider-lock-file mechanics).
+For whoever's responding to a `terragrunt plan`/`apply` that fails immediately with a state-lock error — not an introduction to the remote-state setup itself (see [`terragrunt/README.md`](../../terragrunt/README.md) for the `.envrc`/`TG_IAM_ASSUME_ROLE` and provider-lock-file mechanics).
 
 ## 1. Recognize the symptom
 
@@ -29,7 +29,7 @@ Check `Who` and `Created` against what's actually still running — removing a l
 
 ## 3. Clear it
 
-The direct way, using the env's normal `TG_IAM_ASSUME_ROLE` (see [`terragrunt/README.md`](../terragrunt/README.md)):
+The direct way, using the env's normal `TG_IAM_ASSUME_ROLE` (see [`terragrunt/README.md`](../../terragrunt/README.md)):
 
 ```sh
 terragrunt force-unlock -force <LOCK_ID>
@@ -56,4 +56,4 @@ The retried command gets past "Error acquiring the state lock" and reaches its n
 
 ## Verification status and sources
 
-The direct S3 deletion fallback was used in the incident that prompted [PR #1624](https://github.com/isejalabs/homelab/pull/1624). The alternative `terragrunt force-unlock` command is documented as the normal path, but a separate live use of it is not recorded here. The authoritative backend setting is [`use_lockfile = true` in `terragrunt/root.hcl`](../terragrunt/root.hcl); for a real recovery, the runtime error's `Path` and lock `ID` are authoritative for that unit, not the example values in this guide.
+The direct S3 deletion fallback was used in the incident that prompted [PR #1624](https://github.com/isejalabs/homelab/pull/1624). The alternative `terragrunt force-unlock` command is documented as the normal path, but a separate live use of it is not recorded here. The authoritative backend setting is [`use_lockfile = true` in `terragrunt/root.hcl`](../../terragrunt/root.hcl); for a real recovery, the runtime error's `Path` and lock `ID` are authoritative for that unit, not the example values in this guide.

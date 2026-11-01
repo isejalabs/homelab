@@ -10,11 +10,11 @@ status: current
 
 ## Overview
 
-The identity provider never protects its own recovery path ([ADR 0016](decisions/0016-identity-and-web-sso.md), point 9; [design plan](plans/2026-10-identity-claude.md)). Keycloak's own administration therefore does not go through the realms `iseja` and `admin`, which need UCS to log anybody in, but through one local account in the built-in **`master` realm**: the *bootstrap admin*.
+The identity provider never protects its own recovery path ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 9; [design plan](../plans/2026-10-identity-claude.md)). Keycloak's own administration therefore does not go through the realms `iseja` and `admin`, which need UCS to log anybody in, but through one local account in the built-in **`master` realm**: the *bootstrap admin*.
 
 - The `master` realm has no user federation. The Terragrunt unit [`keycloak-realm`](keycloak-realms.md) manages only `iseja` and `admin`, so a login in `master` needs neither UCS, nor the other realms, nor the Terragrunt state.
 - It does need the Keycloak pod, its database, the internal Gateway with the Keycloak route, and a certificate. When the cluster itself is down there is no break-glass path to Keycloak; the services in the break-glass list of the ADR (Proxmox, OPNsense, TrueNAS, RustFS, `talosctl`) have their own local logins, which are not covered here.
-- The same account is what the Terragrunt provider logs in with (`admin_item_title` in [`terragrunt/_envcommon/keycloak-realm.hcl`](../terragrunt/_envcommon/keycloak-realm.hcl)).
+- The same account is what the Terragrunt provider logs in with (`admin_item_title` in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)).
 
 | Situation | Path |
 | --- | --- |
@@ -30,7 +30,7 @@ The identity provider never protects its own recovery path ([ADR 0016](decisions
 | 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev` and `qa`; the `prod` and `rebuild` items are created when those environments register Keycloak. |
 | `ExternalSecret` `keycloak-bootstrap-admin` in namespace `keycloak` | Extracts the whole item (key `keycloak-bootstrap-admin#<env>`, set per environment in `k8s/apps/identity/keycloak/envs/<env>/`), refresh interval 1 h. |
 | `Secret` `keycloak-bootstrap-admin` in namespace `keycloak` | Created by the ExternalSecret. Carries `username`, `password` and `notesPlain` (the item's notes field). |
-| Keycloak pod `keycloak-0` | The Keycloak Operator maps the Secret (`spec.bootstrapAdmin.user.secret` in [`keycloak.yaml`](../k8s/apps/identity/keycloak/base/keycloak.yaml)) to the environment variables `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD`. |
+| Keycloak pod `keycloak-0` | The Keycloak Operator maps the Secret (`spec.bootstrapAdmin.user.secret` in [`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml)) to the environment variables `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD`. |
 
 **These variables take effect once.** Keycloak creates the account only on the first start against an empty database, when it creates the `master` realm; the operator documents the field as "used only for initial cluster creation". Changing the Secret or the 1Password item later does **not** change the password inside Keycloak. The item is only correct as long as nobody changed the password in Keycloak without updating it; see [Rotate the credential](#rotate-the-credential).
 

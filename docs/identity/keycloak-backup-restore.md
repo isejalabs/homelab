@@ -8,9 +8,20 @@ status: current
 
 **On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [Restore drill](#restore-drill) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
 
+## At a glance
+
+| | |
+| --- | --- |
+| When to use | The Keycloak database is lost, broken or holds wrong content, or a dump from another environment has to be loaded. To check or trigger a backup see [Daily tasks](#daily-tasks). For signing in while Keycloak or UCS is down see [`keycloak-break-glass.md`](keycloak-break-glass.md) |
+| Prerequisites | `just`, `kubectl`, `flux`, `gum` and `jq` locally, the kube context `admin@<env>-homelab`, and a dump in the `<env>-keycloak-db` bucket ([list them](#restore)) |
+| Steps | [Restore](#restore): `just backup::keycloak::restore -e <env>`, four phases (select and verify, stop the writers, swap, start again). Expected output is recorded for the drills: [Restore drill](#restore-drill) |
+| Verify | [After the script](#restore): sign in (`master` realm) and check the realms and a user |
+| Rollback | [Roll back](#roll-back): possible until the old database `keycloak_before_<timestamp>` is dropped |
+| Last exercised | The script on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)); the manual procedure on 2026-10-26 in `rebuild` ([#1920](https://github.com/isejalabs/homelab/issues/1920)). The login check is pending the owner's browser check, and the roll back and a dump with a failing `pg_restore` are not drilled |
+
 ## Overview
 
-Keycloak (see [#1826](https://github.com/isejalabs/homelab/issues/1826)) keeps its state in a single-instance [CloudNativePG](https://cloudnative-pg.io/) cluster, `keycloak-db` in the `keycloak` namespace ([`k8s/apps/identity/keycloak/`](../k8s/apps/identity/keycloak/)). It is backed up with a **daily logical dump** (`pg_dump`), uploaded to a per-environment bucket on `fiona`, the S3-compatible NAS (`<env>-keycloak-db`).
+Keycloak (see [#1826](https://github.com/isejalabs/homelab/issues/1826)) keeps its state in a single-instance [CloudNativePG](https://cloudnative-pg.io/) cluster, `keycloak-db` in the `keycloak` namespace ([`k8s/apps/identity/keycloak/`](../../k8s/apps/identity/keycloak/)). It is backed up with a **daily logical dump** (`pg_dump`), uploaded to a per-environment bucket on `fiona`, the S3-compatible NAS (`<env>-keycloak-db`).
 
 What is in the database, and what a restore from the latest dump loses:
 
@@ -21,15 +32,15 @@ What is in the database, and what a restore from the latest dump loses:
 | Sessions | Lost for anything created since the dump; users sign in again |
 | MFA enrollments (WebAuthn keys, TOTP secrets) | Lost for anything enrolled since the dump; those users must **enroll again**, which for the `admin` realm needs [break-glass access](keycloak-break-glass.md) |
 
-The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2026-10-identity-claude.md`](plans/2026-10-identity-claude.md)): a database loss is a break-glass situation anyway, so the last day of sessions and new enrollments may be lost.
+The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2026-10-identity-claude.md`](../plans/2026-10-identity-claude.md)): a database loss is a break-glass situation anyway, so the last day of sessions and new enrollments may be lost.
 
 ## How it works
 
-- **Schedule**: the `keycloak-db-dump` `CronJob` runs every day at 02:00 (`Europe/Berlin`), see [`cronjob-dump.yaml`](../k8s/apps/identity/keycloak/base/cronjob-dump.yaml).
+- **Schedule**: the `keycloak-db-dump` `CronJob` runs every day at 02:00 (`Europe/Berlin`), see [`cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/base/cronjob-dump.yaml).
 - **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. The main container uploads the file as `keycloak-<UTC timestamp>.dump` with the AWS CLI and then deletes everything but the newest 14 dumps. A failed dump leaves nothing to upload, so a broken dump never replaces a good one.
-- **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
-- **Client version**: `pg_dump` must be at least as new as the server. The server image is pinned explicitly (`spec.imageName` in [`cluster.yaml`](../k8s/apps/identity/keycloak/base/cluster.yaml), tag and digest) and a kustomize replacement in [`kustomization.yaml`](../k8s/apps/identity/keycloak/base/kustomization.yaml) copies that value into the dump job, so the two cannot drift apart. The restore script builds its Job from the dump CronJob, so it restores with the same image. How the image is bumped: [Upgrading PostgreSQL](#upgrading-postgresql).
-- **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
+- **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
+- **Client version**: `pg_dump` must be at least as new as the server. The server image is pinned explicitly (`spec.imageName` in [`cluster.yaml`](../../k8s/apps/identity/keycloak/base/cluster.yaml), tag and digest) and a kustomize replacement in [`kustomization.yaml`](../../k8s/apps/identity/keycloak/base/kustomization.yaml) copies that value into the dump job, so the two cannot drift apart. The restore script builds its Job from the dump CronJob, so it restores with the same image. How the image is bumped: [Upgrading PostgreSQL](#upgrading-postgresql).
+- **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
 
 ## Daily tasks
 
@@ -50,7 +61,10 @@ List the dumps in the bucket with the credentials of the `keycloak-db#<env>` 1Pa
 
 ## Restore
 
-Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/keycloak-db-restore.sh`](../scripts/keycloak-db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
+> [!WARNING]
+> Keycloak is down from phase 2 (stop the writers) until phase 4 has finished.
+
+Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/keycloak-db-restore.sh`](../../scripts/keycloak-db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
 
 You need `just`, `kubectl`, `flux`, `gum` and `jq` locally and the kube context `admin@<env>-homelab`. A restore always names its environment:
 
@@ -106,7 +120,8 @@ Copy the dump into the target's `<env>-keycloak-db` bucket first (each environme
 - **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. Whether the next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is clean after a restore from another environment has not been tried.
 - **MFA enrollments.** WebAuthn keys and TOTP secrets in the dump belong to users of the source environment. A WebAuthn key is registered for a relying-party ID that normally follows the hostname, so keys enrolled in another environment are not expected to work in the target; not tried, see [#1943](https://github.com/isejalabs/homelab/issues/1943).
 
-A dump holds password hashes, MFA secrets, client secrets and realm keys, so treat it as a secret of its source environment: a `prod` dump restored into `dev` hands `dev` the `prod` realm keys and client secrets.
+> [!WARNING]
+> A dump holds password hashes, MFA secrets, client secrets and realm keys, so treat it as a secret of its source environment: a `prod` dump restored into `dev` hands `dev` the `prod` realm keys and client secrets.
 
 ### Why Flux is suspended
 
@@ -114,7 +129,7 @@ The earlier procedure scaled the operator and the `StatefulSet` down by hand and
 
 | Part | Can it undo the scale-down? | Basis |
 | --- | --- | --- |
-| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../scripts/kopiur-restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-keycloak-db-restoresh): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
+| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../../scripts/kopiur-restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-keycloak-db-restoresh): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
 | Keycloak `StatefulSet` (owned by the operator, not in Git) | Flux does not touch it, but a revived operator reconciles it back to `spec.instances: 1` | Observed in the same drill: the `StatefulSet`, scaled to 0 by the script, was recreated at 1 replica about 10 s after the operator came back |
 | `keycloak-db-dump` `CronJob` (02:00) | Nothing scales it; it simply runs if the restore is in progress at 02:00 and dumps a half-restored database | The earlier guide did not suspend it |
 
@@ -164,7 +179,7 @@ What the drill confirmed about the unverified parts of the script: `psql` as `po
 
 ## Upgrading PostgreSQL
 
-The server image is stated once, as `spec.imageName` (tag and digest) in [`cluster.yaml`](../k8s/apps/identity/keycloak/base/cluster.yaml). Renovate tracks that line through a regex entry in [`renovate.json5`](../.github/renovate.json5) and opens a PR for every new tag or digest; the package is excluded from automerge ([`automerge-disable.json5`](../.github/renovate/automerge-disable.json5), label `updateStrategy:manual`), so an image change always waits for a human. The dump job follows by itself (see [How it works](#how-it-works)); the restore script derives its Job from the dump CronJob, so it uses that image too.
+The server image is stated once, as `spec.imageName` (tag and digest) in [`cluster.yaml`](../../k8s/apps/identity/keycloak/base/cluster.yaml). Renovate tracks that line through a regex entry in [`renovate.json5`](../../.github/renovate.json5) and opens a PR for every new tag or digest; the package is excluded from automerge ([`automerge-disable.json5`](../../.github/renovate/automerge-disable.json5), label `updateStrategy:manual`), so an image change always waits for a human. The dump job follows by itself (see [How it works](#how-it-works)); the restore script derives its Job from the dump CronJob, so it uses that image too.
 
 **Why it is pinned.** A cluster without `imageName` runs the default image of the installed CloudNativePG operator. Checked in the source of operator 1.30.1 (the version of the deployed chart 0.29.1): the defaulting (`setDefaults` in `api/v1/cluster_defaults.go`) fills an empty `imageName` with the operator's built-in default, `ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie` in that release, and the controller rolls the instance pods whenever the image in the cluster status differs from the running pod's image. So the PostgreSQL version of an unpinned cluster is whatever the operator's default says whenever the cluster object is (re)defaulted, not a decision made in this repository, and a higher PostgreSQL major version in that default would start an offline in-place `pg_upgrade` (see below). Whether an operator upgrade alone moves an existing cluster depends on whether the stored value survives the next Flux apply, which is not settled by the source. The explicit pin makes the question moot: the PostgreSQL version changes only by a commit here. The explicit pin is the only thing that decides the version.
 
@@ -173,7 +188,7 @@ Observed in `dev` (2026-10-29, `dev` pointed at the branch that introduced the p
 **Minor and digest updates** (`18.6` to `18.7`, or a rebuilt `18.6` image): CloudNativePG replaces the instance pod, which on this single instance means a restart of the primary and a short Keycloak outage.
 
 1. Trigger a backup right before ([Daily tasks](#daily-tasks)) and check that the dump landed in the bucket.
-2. Test the update in a non-`prod` environment first: [`track-branch`](../.agents/skills/track-branch/SKILL.md) the PR branch in `qa` (or `dev`), then wait until `kubectl get cluster keycloak-db -n keycloak` is `Cluster in healthy state` and the `Keycloak` resource is ready.
+2. Test the update in a non-`prod` environment first: [`track-branch`](../../.agents/skills/track-branch/SKILL.md) the PR branch in `qa` (or `dev`), then wait until `kubectl get cluster keycloak-db -n keycloak` is `Cluster in healthy state` and the `Keycloak` resource is ready.
 3. Run the dump job once by hand and restore that dump into a scratch database or into `rebuild` as described in [Restore](#restore). The dump job already uses the new client, so this is the check that new client, new server and restore still fit together.
 4. Merge the PR. The other environments follow through Flux.
 
@@ -192,7 +207,7 @@ The first design archived WAL and took base backups with the Barman Cloud plugin
 - The database holds only a few MB (a fresh one is 13 MB), so a full dump is cheap and the 24 h recovery point is the daily schedule itself. There is no point-in-time recovery.
 - The remaining WAL is kept small on purpose: `wal_keep_size 64MB` (CloudNativePG defaults to 512MB, half of this volume), `max_wal_size 256MB`, `min_wal_size 64MB`, `wal_compression on`, `wal_level replica`. The volume stays at 1Gi.
 
-This differs from point 6 of [ADR 0016](decisions/0016-identity-and-web-sso.md) (CloudNativePG base backups and WAL archiving to RustFS); the ADR is a historical record and is not rewritten; it carries a dated [amendment](decisions/0016-identity-and-web-sso.md#status) that records the deployed backup method, instance counts and recovery point. The reasoning above is the current state.
+This differs from point 6 of [ADR 0016](../decisions/0016-identity-and-web-sso.md) (CloudNativePG base backups and WAL archiving to RustFS); the ADR is a historical record and is not rewritten; it carries a dated [amendment](../decisions/0016-identity-and-web-sso.md#status) that records the deployed backup method, instance counts and recovery point. The reasoning above is the current state.
 
 ## Known caveats
 

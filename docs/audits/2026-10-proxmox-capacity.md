@@ -100,7 +100,7 @@ Source: the same week of RRD data in its native 30-minute steps, averaged per ti
 
 ### pve4 outside the nights
 
-The first pass over the week showed pve4 at 75 to 99% host CPU and load 20 to 85 from Tuesday 07:00 to 21:00. That is 2026-10-13, the day of the interim control-plane rollouts on `rebuild` and `dev` ([`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host)). The interim `ctrl-02` VMs ran on pve4 and were retired again, so they are not in today's guest list, and image imports and VM creation run on the host as well. The attribution to that work is an inference from the dates; the per-guest data of the destroyed VMs no longer exists. Its daily mean load that day was 22.6 at 75% CPU. This one day lifted every average that included it; it is left out of the comparisons here.
+The first pass over the week showed pve4 at 75 to 99% host CPU and load 20 to 85 from Tuesday 07:00 to 21:00. That is 2026-10-13, the day of the interim control-plane rollouts on `rebuild` and `dev` ([`node-lifecycle.md`](../operations/node-lifecycle.md#5-moving-a-node-to-another-proxmox-host)). The interim `ctrl-02` VMs ran on pve4 and were retired again, so they are not in today's guest list, and image imports and VM creation run on the host as well. The attribution to that work is an inference from the dates; the per-guest data of the destroyed VMs no longer exists. Its daily mean load that day was 22.6 at 75% CPU. This one day lifted every average that included it; it is left out of the comparisons here.
 
 Without that day pve4 is steady, not bursty:
 
@@ -186,7 +186,7 @@ All figures are estimates from the measurements above; none has been tried.
 
 ## Options considered
 
-1. **Move `dev-ctrl-03` from pve5 to pve1** (recommended): frees about 4 GiB on pve5, leaves about 5 GiB over peaks on pve1, adds 0.33 cores to a node with 2.6 cores of guest load. Dev has a single control plane, so it follows the interim-control-plane procedure in [`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host), not an in-place `host_node` change. `dev-ctrl-02` on pve1 would be the interim node and also the final one.
+1. **Move `dev-ctrl-03` from pve5 to pve1** (recommended): frees about 4 GiB on pve5, leaves about 5 GiB over peaks on pve1, adds 0.33 cores to a node with 2.6 cores of guest load. Dev has a single control plane, so it follows the interim-control-plane procedure in [`node-lifecycle.md`](../operations/node-lifecycle.md#5-moving-a-node-to-another-proxmox-host), not an in-place `host_node` change. `dev-ctrl-02` on pve1 would be the interim node and also the final one.
 2. **Move `dev-ctrl-03` to pve4:** frees the same on pve5 but adds to the node with the highest load. Not recommended.
 3. **Resize workers** (more memory for the `-02` workers, less for the `-03` workers): only `qa-work-03` has real slack (about 1.5 GiB), the other `-03` workers peak at their allocation, so it frees at most 1.5 GiB on pve5. Uneven sizes inside one cluster also complicate scheduling and Longhorn replica placement. Whether a memory change reboots or recreates the VM was not checked. Growing the pve4 workers uses pve4's free memory, which is what it has plenty of.
 4. **Move `monitoring1` to pve1:** does not fit (9.4 GiB peak against about 9 GiB headroom), and a monitor on the host with the gateway, directory, Home Assistant and PBS would be lost together with the monitoring of exactly those services if pve1 failed.
