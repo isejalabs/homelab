@@ -24,7 +24,7 @@ Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kuber
 
 | env | Frontend |
 | --- | --- |
-| `prod` | `https://zigbee2mqtt.prod.iseja.net` (internal Gateway, port 8080 of the Service) |
+| `prod` | [https://zigbee2mqtt.prod.iseja.net](https://zigbee2mqtt.prod.iseja.net) (internal Gateway, port 8080 of the Service) |
 
 Other environments do not run it. The hostname is set in [`envs/prod/helmrelease.yaml`](envs/prod/helmrelease.yaml) because the domain replacement does not reach HelmRelease values; the `example.com` name in `base/` stays unrewritten.
 

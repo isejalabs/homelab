@@ -26,14 +26,14 @@ The cluster collector is published through the `internal` Gateway; the Checkmk s
 
 | env | Collector URL |
 | --- | --- |
-| `dbg` | `https://dbg-cmk-k8s-cluster-collector.dbg.iseja.net` |
-| `dev` | `https://dev-cmk-k8s-cluster-collector.dev.iseja.net` |
-| `head` | `https://head-cmk-k8s-cluster-collector.head.iseja.net` |
-| `poc` | `https://poc-cmk-k8s-cluster-collector.poc.iseja.net` |
-| `prod` | `https://cmk-k8s-cluster-collector.prod.iseja.net` |
-| `qa` | `https://qa-cmk-k8s-cluster-collector.qa.iseja.net` |
-| `rebuild` | `https://rebuild-cmk-k8s-cluster-collector.rebuild.iseja.net` |
-| `src` | `https://src-cmk-k8s-cluster-collector.src.iseja.net` |
+| `dbg` | [https://dbg-cmk-k8s-cluster-collector.dbg.iseja.net](https://dbg-cmk-k8s-cluster-collector.dbg.iseja.net) |
+| `dev` | [https://dev-cmk-k8s-cluster-collector.dev.iseja.net](https://dev-cmk-k8s-cluster-collector.dev.iseja.net) |
+| `head` | [https://head-cmk-k8s-cluster-collector.head.iseja.net](https://head-cmk-k8s-cluster-collector.head.iseja.net) |
+| `poc` | [https://poc-cmk-k8s-cluster-collector.poc.iseja.net](https://poc-cmk-k8s-cluster-collector.poc.iseja.net) |
+| `prod` | [https://cmk-k8s-cluster-collector.prod.iseja.net](https://cmk-k8s-cluster-collector.prod.iseja.net) |
+| `qa` | [https://qa-cmk-k8s-cluster-collector.qa.iseja.net](https://qa-cmk-k8s-cluster-collector.qa.iseja.net) |
+| `rebuild` | [https://rebuild-cmk-k8s-cluster-collector.rebuild.iseja.net](https://rebuild-cmk-k8s-cluster-collector.rebuild.iseja.net) |
+| `src` | [https://src-cmk-k8s-cluster-collector.src.iseja.net](https://src-cmk-k8s-cluster-collector.src.iseja.net) |
 
 The endpoint wants the bearer token (see the cheat sheet). Which of these Checkmk actually queries: [`reference/environments.md`](../../../../docs/reference/environments.md#checkmk-monitoring-of-the-clusters).
 

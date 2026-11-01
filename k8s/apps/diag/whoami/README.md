@@ -26,14 +26,14 @@ Three names for the same app, each exercising a different path. The HTTPS names 
 
 | env | Gateway (HTTPS) | Load balancer (HTTP) |
 | --- | --- | --- |
-| `dbg` | `https://dbg-whoami.dbg.iseja.net` | `http://dbg-whoami-lb.dbg.iseja.net`, `10.8.9.87` |
-| `dev` | `https://dev-whoami.dev.iseja.net` | `http://dev-whoami-lb.dev.iseja.net`, `10.8.3.87` |
-| `head` | `https://head-whoami.head.iseja.net` | `http://head-whoami-lb.head.iseja.net`, `10.8.1.87` |
-| `poc` | `https://poc-whoami.poc.iseja.net` | `http://poc-whoami-lb.poc.iseja.net`, `10.8.6.87` |
-| `prod` | `https://whoami.prod.iseja.net` | `http://whoami-lb.prod.iseja.net`, `10.8.8.87` |
-| `qa` | `https://qa-whoami.qa.iseja.net` | `http://qa-whoami-lb.qa.iseja.net`, `10.8.2.87` |
-| `rebuild` | `https://rebuild-whoami.rebuild.iseja.net` | `http://rebuild-whoami-lb.rebuild.iseja.net`, `10.8.7.87` |
-| `src` | `https://src-whoami.src.iseja.net` | `http://src-whoami-lb.src.iseja.net`, `10.8.5.87` |
+| `dbg` | [https://dbg-whoami.dbg.iseja.net](https://dbg-whoami.dbg.iseja.net) | [http://dbg-whoami-lb.dbg.iseja.net](http://dbg-whoami-lb.dbg.iseja.net), `10.8.9.87` |
+| `dev` | [https://dev-whoami.dev.iseja.net](https://dev-whoami.dev.iseja.net) | [http://dev-whoami-lb.dev.iseja.net](http://dev-whoami-lb.dev.iseja.net), `10.8.3.87` |
+| `head` | [https://head-whoami.head.iseja.net](https://head-whoami.head.iseja.net) | [http://head-whoami-lb.head.iseja.net](http://head-whoami-lb.head.iseja.net), `10.8.1.87` |
+| `poc` | [https://poc-whoami.poc.iseja.net](https://poc-whoami.poc.iseja.net) | [http://poc-whoami-lb.poc.iseja.net](http://poc-whoami-lb.poc.iseja.net), `10.8.6.87` |
+| `prod` | [https://whoami.prod.iseja.net](https://whoami.prod.iseja.net) | [http://whoami-lb.prod.iseja.net](http://whoami-lb.prod.iseja.net), `10.8.8.87` |
+| `qa` | [https://qa-whoami.qa.iseja.net](https://qa-whoami.qa.iseja.net) | [http://qa-whoami-lb.qa.iseja.net](http://qa-whoami-lb.qa.iseja.net), `10.8.2.87` |
+| `rebuild` | [https://rebuild-whoami.rebuild.iseja.net](https://rebuild-whoami.rebuild.iseja.net) | [http://rebuild-whoami-lb.rebuild.iseja.net](http://rebuild-whoami-lb.rebuild.iseja.net), `10.8.7.87` |
+| `src` | [https://src-whoami.src.iseja.net](https://src-whoami.src.iseja.net) | [http://src-whoami-lb.src.iseja.net](http://src-whoami-lb.src.iseja.net), `10.8.5.87` |
 
 `whoami-ingress.<env>.iseja.net` (prefixed likewise) is a second name on the same route. The `-lb` suffix exists because the bare name is taken by the route's CNAME and DNS forbids a CNAME next to another record at the same name ([`network.md`](../../../../docs/architecture/network.md#dns-authoritative-zones-powerdns)). Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 
