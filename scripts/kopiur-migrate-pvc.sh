@@ -1,7 +1,7 @@
 #!/bin/sh
 # Copies an app's data from an old PVC onto a new kopiur-managed PVC, ahead of
 # a claimName/existingClaim cut-over commit. Generic across apps -- see
-# docs/kopiur-backup-restore.md and #1205 (actualbudget, the pilot) / #1263
+# docs/backup/kopiur-backup-restore.md and #1205 (actualbudget, the pilot) / #1263
 # for the lessons folded in here.
 #
 # - Runs the copy Job as the target uid/gid rather than trying to preserve

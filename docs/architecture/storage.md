@@ -4,7 +4,7 @@ status: current
 
 # Storage: Longhorn vs. proxmox-csi
 
-Two storage backends are available in-cluster. This isn't a permanent 50/50 split: **Longhorn is replacing proxmox-csi step by step**, and proxmox-csi is being kept only where there's a specific benefit to sticking with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending on Longhorn's own backup/restore path. So the practical question for a new volume isn't "which is better" but "does this volume need the proxmox-csi property badly enough to justify it" — if not, it goes on Longhorn. That consolidation was largely delivered by [issue #807](https://github.com/isejalabs/homelab/issues/807) (closed) rolling out [kopiur](https://github.com/home-operations/kopiur) as the common backup/restore operator (see [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)); the remaining storage/CSI fine-tuning discovered along the way — reviewing `reclaimPolicy: Retain` now that kopiur exists — is tracked separately at [issue #80](https://github.com/isejalabs/homelab/issues/80), open.
+Two storage backends are available in-cluster. This isn't a permanent 50/50 split: **Longhorn is replacing proxmox-csi step by step**, and proxmox-csi is being kept only where there's a specific benefit to sticking with Proxmox-provided volumes instead — chiefly, surviving a full cluster teardown/rebuild without depending on Longhorn's own backup/restore path. So the practical question for a new volume isn't "which is better" but "does this volume need the proxmox-csi property badly enough to justify it" — if not, it goes on Longhorn. That consolidation was largely delivered by [issue #807](https://github.com/isejalabs/homelab/issues/807) (closed) rolling out [kopiur](https://github.com/home-operations/kopiur) as the common backup/restore operator (see [`docs/backup/kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md)); the remaining storage/CSI fine-tuning discovered along the way — reviewing `reclaimPolicy: Retain` now that kopiur exists — is tracked separately at [issue #80](https://github.com/isejalabs/homelab/issues/80), open.
 
 ## proxmox-csi — Terragrunt-pinned volumes that survive a cluster rebuild
 
@@ -77,7 +77,7 @@ for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); d
 
 ### StorageClasses — one driver, several tradeoff profiles
 
-There are six data-volume classes, not five -- one easy to miss because it isn't declared alongside the others. Five are custom, in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/), sharing `provisioner: driver.longhorn.io`, `volumeBindingMode: WaitForFirstConsumer`, `allowVolumeExpansion: true` -- only the `parameters:` and the `reclaimPolicy` differ (the same folder also holds the disposable backup-mover classes `longhorn-scratch-*` and `longhorn-cache`, see [`app-storage.md`](../app-storage.md#storage-classes)):
+There are six data-volume classes, not five -- one easy to miss because it isn't declared alongside the others. Five are custom, in [`k8s/infra/longhorn-system/longhorn/base/sc-*.yaml`](../../k8s/infra/longhorn-system/longhorn/base/), sharing `provisioner: driver.longhorn.io`, `volumeBindingMode: WaitForFirstConsumer`, `allowVolumeExpansion: true` -- only the `parameters:` and the `reclaimPolicy` differ (the same folder also holds the disposable backup-mover classes `longhorn-scratch-*` and `longhorn-cache`, see [`app-storage.md`](../operations/app-storage.md#storage-classes)):
 
 | StorageClass | fsType | replicas | reclaimPolicy | notes |
 | --- | --- | --- | --- | --- |
@@ -103,9 +103,29 @@ persistence:
   storageClass: longhorn-standard
 ```
 
-That's a genuinely dynamic PVC — no pre-created `PersistentVolume`, no Terragrunt involvement, just a StorageClass reference. This is the default pattern for any app that needs a volume: pick the `longhorn-*` class matching its consistency/performance needs, and let Longhorn provision and replicate it. Longhorn's own S3-backed native backup `RecurringJob`s were the original offsite backup mechanism for this tier — there's no Terragrunt-style state-exclusion/re-import dance for Longhorn volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) (closed) made this more rigorous: it settled on [kopiur](https://github.com/home-operations/kopiur) over [VolSync](https://github.com/backube/volsync) as the backup/restore operator, split into the Kubernetes-side rollout ([#1127](https://github.com/isejalabs/homelab/issues/1127) — operator, components, StorageClasses), the S3 backup target in RustFS ([#1128](https://github.com/isejalabs/homelab/issues/1128)), and the 1Password credentials kopiur needs to authenticate against it ([#1129](https://github.com/isejalabs/homelab/issues/1129)) — see [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md) for day-to-day use. [Issue #1125](https://github.com/isejalabs/homelab/issues/1125) tracks their removal now that kopiur covers the Longhorn-backed apps.
+That's a genuinely dynamic PVC — no pre-created `PersistentVolume`, no Terragrunt involvement, just a StorageClass reference. This is the default pattern for any app that needs a volume: pick the `longhorn-*` class matching its consistency/performance needs, and let Longhorn provision and replicate it. Longhorn's own S3-backed native backup `RecurringJob`s were the original offsite backup mechanism for this tier — there's no Terragrunt-style state-exclusion/re-import dance for Longhorn volumes, so they don't automatically survive a full cluster rebuild the way proxmox-csi's pinned volumes do. [Issue #807](https://github.com/isejalabs/homelab/issues/807) (closed) made this more rigorous: it settled on [kopiur](https://github.com/home-operations/kopiur) over [VolSync](https://github.com/backube/volsync) as the backup/restore operator, split into the Kubernetes-side rollout ([#1127](https://github.com/isejalabs/homelab/issues/1127) — operator, components, StorageClasses), the S3 backup target in RustFS ([#1128](https://github.com/isejalabs/homelab/issues/1128)), and the 1Password credentials kopiur needs to authenticate against it ([#1129](https://github.com/isejalabs/homelab/issues/1129)) — see [`docs/backup/kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md) for day-to-day use. [Issue #1125](https://github.com/isejalabs/homelab/issues/1125) tracks their removal now that kopiur covers the Longhorn-backed apps.
 
 ## Choosing between them
+
+```mermaid
+flowchart TD
+    accTitle: Choosing a storage backend for a new volume
+    accDescr: A new volume goes to Longhorn unless it must survive a full cluster teardown by Terragrunt import or needs its size and placement declared in Terragrunt, in which case it uses proxmox-csi with a Terragrunt-declared volume. On Longhorn, the StorageClass is chosen by consistency and performance needs, and the app includes apps/storage/pvc for daily kopiur backups or apps/storage/pvc-no-backup when the data does not need protecting.
+
+    start["New volume"] --> q1{"Must survive a full cluster teardown<br/>by Terragrunt import, or need size and<br/>placement declared in Terragrunt?"}
+    q1 -->|"yes"| pcsi["proxmox-csi<br/>Terragrunt-declared volume<br/>reclaimPolicy Retain"]
+    q1 -->|"no, the default"| lh{"Which Longhorn StorageClass?"}
+    lh -->|"general purpose, 2 replicas"| std["longhorn-standard, -ext4 or -xfs"]
+    lh -->|"speed over HA, 1 replica"| fast["longhorn-fast<br/>strict-local"]
+    lh -->|"maximum resilience, 3 replicas"| ha["longhorn-ha<br/>reclaimPolicy Retain"]
+    std --> comp{"Does the data need a backup?"}
+    fast --> comp
+    ha --> comp
+    comp -->|"yes, the default"| pvc["apps/storage/pvc<br/>daily kopiur backup to S3"]
+    comp -->|"no"| nobk["apps/storage/pvc-no-backup<br/>restorable, but never scheduled"]
+```
+
+The diagram is the decision the two bullets below spell out. An app that includes one of the storage components gets `longhorn-standard` unless its `flux/ks.yaml` sets `STORAGE_CLASS` (see [`app-storage.md`](../operations/app-storage.md)); the chart-default `longhorn` class (1 replica) only serves a PVC that names no class at all, see [StorageClasses](#storageclasses--one-driver-several-tradeoff-profiles).
 
 Longhorn is the default going forward — proxmox-csi is being phased out for new workloads, kept only where its specific properties are worth the Terragrunt overhead:
 
@@ -119,7 +139,7 @@ The reclaim policy decides what happens to the volume when its `PersistentVolume
 | Class | `reclaimPolicy` | Why |
 | --- | --- | --- |
 | `longhorn-standard` / `-ext4` / `-xfs` / `-fast` | `Delete` | Apps on these classes use `apps/storage/pvc` (daily kopiur backup, offsite), so a leftover volume is not the safety net; it only leaks. Longhorn snapshots live inside the volume and are deleted with it, so they never were one either. An app on `apps/storage/pvc-no-backup` has no schedule, so its data is only as safe as its last manual backup |
-| `longhorn-scratch-*`, `longhorn-cache`, chart default `longhorn` | `Delete` | Disposable by design, see [`app-storage.md`](../app-storage.md#storage-classes) |
+| `longhorn-scratch-*`, `longhorn-cache`, chart default `longhorn` | `Delete` | Disposable by design, see [`app-storage.md`](../operations/app-storage.md#storage-classes) |
 | `longhorn-ha` | `Retain` | Holds the keycloak database, whose backup is a dump `CronJob` (dev/qa only, none on prod) rather than a kopiur schedule; switch it once that is as strong |
 | `proxmox-csi` | `Retain` | Volumes are Terragrunt-declared and must survive a PVC deletion, see above |
 

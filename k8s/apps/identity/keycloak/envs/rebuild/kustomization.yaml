@@ -9,13 +9,6 @@ resources:
 
 patches:
   - patch: |-
-      - op: replace
-        path: /spec/hostname/hostname
-        value: rebuild-auth.rebuild.iseja.net
-    target:
-      kind: Keycloak
-      name: keycloak
-  - patch: |-
       apiVersion: batch/v1
       kind: CronJob
       metadata:

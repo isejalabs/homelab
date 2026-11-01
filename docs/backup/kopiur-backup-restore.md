@@ -1,0 +1,284 @@
+---
+status: current
+---
+
+# Kopiur Backup & Restore
+
+**Choose a task:** routine backup listing and manual snapshots are under [Daily tasks](#daily-tasks); a lost PVC normally restores automatically when recreated, while an operator-driven restore is available for a specific app. [Restore an app](#restore-an-app-from-its-latest-backup) covers the normal latest-snapshot path and explains the manual steps for an older snapshot; [Give an app a blank volume](#give-an-app-a-blank-volume-bypassing-its-existing-backups) and [Prune old backups](#prune-old-backups) are exceptional maintenance operations.
+
+**On this page:** [How backups work](#how-it-works) · [Daily tasks](#daily-tasks) · [Automatic per-environment credentials](#automatic-per-env-credentials) · [Known caveats](#known-caveats)
+
+## At a glance
+
+| | |
+| --- | --- |
+| When to use | An app's data needs to come back from a kopiur backup, or you need a manual backup, a listing, a blank volume or a prune. A lost PVC normally restores by itself when it is recreated ([Restore-on-create](#restore-on-create-the-core-idea)); use [Restore an app](#restore-an-app-from-its-latest-backup) only when you have to drive it. For the whole cluster see [`disaster-recovery.md`](disaster-recovery.md), for Longhorn local snapshots [`longhorn-snapshots.md`](longhorn-snapshots.md) |
+| Prerequisites | `just`, `kubectl` and `flux` with the target environment's context, the app's namespace, and at least one successful `Snapshot` to restore from ([list them](#list-all-available-backups-snapshots-of-an-app)). The `just backup::kopiur::restore` recipe needs `-e <env>` |
+| Steps | [Restore an app from its latest backup](#restore-an-app-from-its-latest-backup), steps 1 to 7. Expected output is recorded for a backup (`Pending` → `Running` → `Succeeded`) and for the new PVC (binds); no other output is recorded |
+| Verify | Step 7, the PVC binds, then confirm the data is what you expect |
+| Rollback | For a restore of a specific older snapshot: revert the `Restore` object to its default (`fromPolicy` `offset: 0`) before resuming Flux. For a restore of the latest backup no rollback is documented |
+| Last exercised | Not recorded as one run. Confirmed live: `qa` on 2026-09-13 (the `Restore` pin and the `flux resume` conflict), a `Retain` storage class on 2026-09-18 (the PVC manifest), Helm-based apps on `dev` and `rebuild` (dates not recorded), and the `kopiur-test` app on `rebuild` for restore-on-create (date not recorded) |
+
+## Overview
+
+[kopiur](https://github.com/home-operations/kopiur) is the Kubernetes-native backup operator used in this cluster. It snapshots PVC data via CSI `VolumeSnapshot`s, uploads it with [kopia](https://kopia.io) (a content-addressable, deduplicating backup engine) to an S3-compatible repository, and can populate new PVCs from those backups via the standard Kubernetes CSI PVC-populator mechanism.
+
+- **Repository**: `fiona`, a `ClusterRepository` pointing at this cluster's S3-compatible NAS (`fiona.home.iseja.net:9000`), with a separate bucket per environment (`<env>-kopiur-backup`) in all 8 environments.
+- **Wiring an app up**: include exactly one of `apps/storage/pvc` or `apps/storage/pvc-no-backup` in the app's `base/kustomization.yaml` -- requiring storage gets it backed up automatically by default; use `pvc-no-backup` only when the data genuinely doesn't need protecting. Both pull in kopiur's credential-wiring `apps/kopiur/secret` component automatically -- no separate reference needed, and no per-env patching either (see [Automatic per-env credentials](#automatic-per-env-credentials) below). See [k8s/components/apps/storage/README.md](../../k8s/components/apps/storage/README.md) for what each component does, and [docs/operations/app-storage.md](../operations/app-storage.md) for the full variable/storage-class reference.
+- **kopiur provides offsite backups; Longhorn provides local snapshots.** Longhorn's native daily/weekly/monthly offsite backup jobs were removed after every Longhorn-backed app had a kopiur schedule. The `hourly-snapshot` RecurringJob remains for quick local rollback against bad writes; it does not protect against loss of the volume or cluster. Apps using `apps/storage/pvc` get daily offsite backups through kopiur.
+- **Not every environment runs an active schedule.** `dbg`/`head`/`poc`/`src` get a real bucket and the storage components too (so `Restore`'s CSI populator has something valid to connect to), but any `SnapshotSchedule` there is force-suspended by the `suspend-kopiur-schedule` transformer -- see [Dormant environments](#dormant-environments) below.
+
+## How it works
+
+The two flows below are the same mechanism seen from both sides: the schedule writes snapshots to `fiona`, and a new PVC reads the latest one back. The subsections after the diagram describe each flow step by step.
+
+```mermaid
+flowchart TD
+    accTitle: Kopiur backup and restore flow
+    accDescr: Backup, for apps using apps/storage/pvc only. A daily SnapshotSchedule creates a Snapshot, which takes a CSI VolumeSnapshot of the app's PVC, restores it into a temporary longhorn-scratch staging PVC, and runs the kopia mover that uploads to the fiona S3 repository; the staging PVC is deleted afterwards. Restore, for every app using the storage components. When the app's PVC is created, its dataSourceRef points at a Restore object that populates the volume from the latest matching snapshot in fiona before any pod mounts it. If no snapshot exists yet, the Restore continues and the volume starts empty.
+
+    subgraph backup["Backup: daily, apps/storage/pvc only"]
+        direction LR
+        sched["SnapshotSchedule<br/>cron H 3 * * *"] --> snap["Snapshot"]
+        snap --> vs["CSI VolumeSnapshot<br/>of the app PVC"]
+        vs --> stage["temporary staging PVC<br/>longhorn-scratch-ext4 or -xfs"]
+        stage --> mover["kopia mover"]
+        mover --> cleanup["staging PVC deleted"]
+    end
+
+    repo[("fiona<br/>S3 ClusterRepository<br/>bucket per environment")]
+
+    subgraph restore["Restore: when the PVC is created"]
+        direction LR
+        pvc["app PVC<br/>dataSourceRef"] --> rest["Restore<br/>onMissingSnapshot: Continue"]
+        rest --> found{"matching snapshot<br/>in fiona?"}
+        found -->|"yes"| populated["volume populated from the<br/>latest snapshot, then pod starts"]
+        found -->|"no, first deploy"| empty["empty volume, pod starts"]
+    end
+
+    mover -->|"upload"| repo
+    repo -->|"latest snapshot"| rest
+```
+
+### Restore-on-create: the core idea
+
+An app's PVC has `dataSourceRef` pointing at a `Restore` object, using the CSI PVC-populator mechanism. This one mechanism covers both of the cases that matter, adapted from [onedr0p/home-ops](https://github.com/onedr0p/home-ops)' original design (see [Credits & changes from upstream](#credits--changes-from-upstream)):
+
+- **An existing backup exists** (app redeployed, PVC deleted/recreated, or a full namespace recreation): kopiur automatically restores the latest matching snapshot into the new PVC *before* any pod can mount it -- kubelet just waits. No explicit "restore" command needed for the common "the volume got lost and needs to come back" case.
+- **No backup exists yet** (very first deploy): `Restore.spec.policy.onMissingSnapshot: Continue` populates an empty volume instead of blocking forever. Confirmed live: a brand-new app's PVC binds and its pod starts immediately, no manual intervention needed.
+
+### Ongoing protection (`apps/storage/pvc` only)
+
+A `SnapshotSchedule` fires daily (`cron: H 3 * * *`, off-peak, ahead of Longhorn's own ~4am jobs) per app, creating a `Snapshot` object. That `Snapshot`:
+1. Takes a CSI `VolumeSnapshot` of the source PVC.
+2. Restores it into a temporary staging PVC (`longhorn-scratch-ext4`/`longhorn-scratch-xfs` -- fast, single-replica, disposable; **must match the source PVC's filesystem**, since a `VolumeSnapshot` restore is a raw block copy, not a reformat -- see [docs/operations/app-storage.md](../operations/app-storage.md)).
+3. Runs the kopia mover, which reads the staging PVC and uploads to `fiona`.
+4. Deletes the staging PVC automatically once done (confirmed: no accumulation from routine operation, only from the app itself being deleted/recreated repeatedly, which orphans the *data* PVC's old `Retain`-policy volume, not the staging one).
+
+Retention is GFS-style (`SnapshotPolicy.spec.retention`: `keepLatest` / `keepHourly` / `keepDaily` / `keepWeekly`) -- old snapshots beyond those counts are pruned automatically; no manual cleanup needed for normal operation. `keepHourly` is `0` now that snapshots are daily, not hourly.
+
+### Dormant environments
+
+`dbg`/`head`/`poc`/`src` are throwaway/ephemeral environments that don't need scheduled protection, but should still have storage provisioning behave consistently with the rest of the cluster. Rather than excluding them from the storage components entirely, the [`suspend-kopiur-schedule`](../../k8s/components/transformers/suspend-kopiur-schedule) transformer (registered only in those 4 envs' `k8s/components/envs/<env>/kustomization.yaml`) force-patches every `SnapshotSchedule` to `spec.schedule.suspend: true`, regardless of which storage component an app picked. The object stays visible (`kubectl get snapshotschedule` shows `Suspended: true`) rather than disappearing -- "available, not activated," not excluded.
+
+This grouping is its own axis, independent of which apps an environment runs -- see [`docs/architecture/environments.md`](../architecture/environments.md#1-which-apps-run-there--the-flux-minimalfull-split) for how it diverges from the apps minimal/full split (`dev` is minimal-apps but kopiur-active; `head` is full-apps but kopiur-dormant).
+
+## Daily tasks
+
+A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`/`bypass-restore`, in `scripts/kopiur.just`) wraps the commands below for the common cases. Each subsection shows both: the recipe first, then the manual equivalent it runs -- the manual form is still worth knowing, both to understand what the recipe actually does and for anything it doesn't cover (restoring a *specific older* snapshot rather than the latest, and pruning, below, are manual-only).
+
+### List all available backups (snapshots) of an app
+
+```sh
+❯ just backup::kopiur::list <app> -n <namespace>              # -e <env> optional; drop <app> to list every app; -n <namespace>|-A required
+```
+
+`<app>` is optional (omit it to list every app's snapshots) and namespace scope is `-n <namespace>` or `-A` for every namespace, same as `create` below. The `NAMESPACE`/`APP` columns only appear when that axis isn't already fixed by a flag.
+
+Manual equivalent:
+
+```sh
+❯ kubectl get snapshot -n <namespace> -l kopiur.home-operations.com/config=<app> \
+    -o custom-columns=NAME:.metadata.name,PHASE:.status.phase,ORIGIN:.status.origin,KOPIA_ID:.status.snapshot.kopiaSnapshotID,SIZE:.status.stats.sizeBytes,CREATED:.metadata.creationTimestamp
+```
+
+### Trigger a manual backup
+
+```sh
+❯ just backup::kopiur::create <app> -n <namespace>            # -e <env> optional; --all backs up every app in scope instead of one
+```
+
+Manual equivalent:
+
+```sh
+❯ kubectl create -f - <<EOF
+apiVersion: kopiur.home-operations.com/v1alpha1
+kind: Snapshot
+metadata:
+  generateName: <app>-manual-
+  namespace: <namespace>
+spec:
+  policyRef:
+    name: <app>
+  description: "manual backup"
+EOF
+
+❯ kubectl get snapshot -n <namespace> -w   # watch it progress: Pending -> Running -> Succeeded
+```
+
+### Restore an app from its latest backup
+
+```sh
+❯ just backup::kopiur::restore <app> -e <env> -n <namespace>
+```
+
+> [!WARNING]
+> This recipe is destructive: it deletes the app's PVC and its `Restore` object.
+
+This runs steps 1-7 below end to end: detects whether the app is plain-manifest or Helm-based from the Deployment's own Flux labels, suspends the right object, scales down, deletes the PVC *and* the `Restore` object, resumes (force-reconciling the PVC's own owning Kustomization too if it differs from the Deployment's, for a Helm-based app), scales back up explicitly, and waits for the new PVC to bind. `-e/--environment` is required here (unlike `list`/`create`), since this is the destructive operation where an explicit target matters most. The manual steps are worth understanding regardless -- for restoring a *specific older* snapshot rather than the latest, which the recipe doesn't cover, see below.
+
+kopiur's `Restore` is a CSI populator — it only fires once, at PVC creation, and pins its snapshot resolution the first time it resolves. There's no "roll this existing volume back in place"; restoring means deleting the PVC *and* the `Restore` object and letting fresh ones populate (see step 4 for why both). The owning Flux object must be suspended first, or Flux fights the manual scale-down in step 3.
+
+For a **plain-manifest app**, resuming its Kustomization is enough to bring the Deployment back to its original replica count — the Kustomization does real drift detection and corrects any live divergence from git, including a field that hasn't otherwise changed. For a **Helm-based app**, it is not: `helm upgrade` computes its patch as a diff against the *previous release's own declared values*, not against live state, so a field unchanged between revisions (typically `replicas`, since it's rarely bumped) is simply absent from the patch, and the manual `kubectl scale --replicas=0` from step 3 is never corrected by resuming/reconciling alone. Confirmed live (dev, rebuild): `flux resume helmrelease` completes successfully, but the Deployment stays at 0 replicas indefinitely. Step 6 below scales it back up explicitly instead of relying on this — do that regardless of which kind of app this is, it's a no-op if Flux already fixed it.
+
+Similarly, for a Helm-based app the PVC itself is a *plain manifest* owned by a different Flux Kustomization than the HelmRelease (the app's own `base/kustomization.yaml` applies both as siblings) — resuming the HelmRelease alone does nothing for the deleted PVC, which otherwise waits for that Kustomization's own reconcile interval (up to 1h) to notice it's missing and recreate it. Find that Kustomization from the PVC's own labels (`kustomize.toolkit.fluxcd.io/name`/`namespace`) before deleting it, and force-reconcile it too in step 5.
+
+1. **Determine ownership** — check the Deployment's own labels:
+   ```sh
+   ❯ kubectl get deploy <app> -n <namespace> -o jsonpath='{.metadata.labels}'
+   ```
+   A plain-manifest app carries `kustomize.toolkit.fluxcd.io/name` directly; a Helm-based app carries `helm.toolkit.fluxcd.io/name` instead (one hop further removed — the Kustomization created the HelmRelease, which created the Deployment).
+2. **Suspend it:**
+   ```sh
+   ❯ flux suspend kustomization <name>       # or: flux suspend helmrelease <name> -n <namespace>
+   ```
+3. **Scale down and wait for the pod to go away:**
+   ```sh
+   ❯ kubectl scale deployment <app> -n <namespace> --replicas=0
+   ❯ kubectl wait pod -l app=<app> -n <namespace> --for=delete --timeout=120s
+   ```
+4. **Delete the PVC *and* the `Restore` object:**
+   ```sh
+   ❯ kubectl delete pvc <app> -n <namespace>
+   ❯ kubectl delete restore <app> -n <namespace>
+   ```
+   Both, not just the PVC -- confirmed live (qa, 2026-09-13): `Restore.status.resolved` pins its snapshot resolution once (`pinnedAt`/`resolution`) and does not re-evaluate it on a later PVC claim. An app's very first deploy resolves to `NoSnapshot` (nothing exists yet) and pins that; deleting only the PVC afterward recreates an *empty* volume again, silently reusing the stale `NoSnapshot` pin instead of picking up a snapshot that was taken in the meantime. Deleting the `Restore` object too forces Flux to recreate it fresh on the next reconcile, so it resolves against whatever snapshots actually exist right now.
+5. **Resume**, and for a Helm-based app, also force-reconcile the PVC's own owning Kustomization (found from its labels before step 4 deleted it — for a plain-manifest app this is the same Kustomization already resumed here, so skip the second command):
+   ```sh
+   ❯ flux resume kustomization <name>            # or: flux resume helmrelease <name> -n <namespace>
+   ❯ flux reconcile kustomization <pvc-owner>     # Helm-based app only; recreates the PVC
+   ```
+6. **Scale back up explicitly** — don't rely on the resume/reconcile above to have done it (see why above):
+   ```sh
+   ❯ kubectl scale deployment <app> -n <namespace> --replicas=<original count>
+   ```
+7. **Wait for the PVC to bind:**
+   ```sh
+   ❯ kubectl get pvc <app> -n <namespace> -w
+   ```
+
+The steps above restore the **latest** backup — the app's `Restore` object (from the `apps/storage/pvc`/`pvc-no-backup` components) defaults to `spec.source.fromPolicy.offset: 0`. This isn't yet exposed as an easy override in the shared component, so restoring to a specific older backup means patching the `Restore` object directly instead.
+
+> [!WARNING]
+> **This cannot use `flux resume`/`flux reconcile` at all until the very end** -- confirmed live (qa, 2026-09-13): the moment Flux reconciles while the live `Restore` diverges from git (which still declares the default `fromPolicy`), it tries to merge git's `fromPolicy` back in on top of the live `snapshotRef` patch. `spec.source` only accepts exactly one of the two, so the merged object fails `mutate.kopiur.home-operations.com`'s admission webhook (`invalid value: map, expected map with a single key`) -- and since this happens during the Kustomization's own dry-run, it blocks the *entire* apply, not just the `Restore`. So steps 4-7 above (delete the PVC, resume, scale up, wait for bind) do not apply here -- do this instead, entirely with the Kustomization still suspended from step 2:
+
+```sh
+# find the Snapshot to restore -- reuse "list all available backups" above
+❯ kubectl get snapshot -n <namespace> -l kopiur.home-operations.com/config=<app>
+
+# point the Restore at that exact Snapshot CR (clears fromPolicy, sets snapshotRef)
+❯ kubectl patch restore <app> -n <namespace> --type merge \
+    -p '{"spec":{"source":{"fromPolicy":null,"snapshotRef":{"name":"<snapshot-name>"}}}}'
+
+# save the PVC's manifest (stripped of its binding-related fields -- reapplying a Bound PVC's raw `get -o yaml`
+# verbatim pins spec.volumeName to its *current* PV, so the recreated PVC statically binds to that same PV
+# instead of going through fresh dynamic provisioning; the old PV is Released (Retain) or gone (Delete) once the
+# PVC below is deleted, never Available again, so the recreated PVC gets stuck in phase Lost instead of ever
+# reaching the CSI populator. Confirmed live on a Retain class, 2026-09-18), then delete it -- Flux staying
+# suspended means nothing will recreate it for you
+❯ kubectl get pvc <app> -n <namespace> -o json \
+    | jq 'del(.metadata.resourceVersion, .metadata.uid, .metadata.creationTimestamp, .metadata.finalizers, .metadata.annotations, .spec.volumeName, .status)' \
+    > /tmp/<app>-pvc.yaml
+❯ kubectl delete pvc <app> -n <namespace>
+
+# manually recreate the PVC and scale the app back up -- *not* `flux resume`, which is exactly what
+# would trigger the reconcile conflict above
+❯ kubectl apply -f /tmp/<app>-pvc.yaml
+❯ kubectl scale deployment <app> -n <namespace> --replicas=1
+❯ kubectl get pvc <app> -n <namespace> -w   # wait for Bound, then confirm the data is what you expect
+```
+
+Two other selectors work too, if a specific `Snapshot` CR isn't handy:
+- `fromPolicy.offset: N` — the Nth-from-latest snapshot in this policy's succession (`0` = latest, `1` = previous, ...).
+- `fromPolicy.asOf: "<RFC3339 timestamp>"` — the newest snapshot at or before that point in time.
+
+Once confirmed, revert the `Restore` object back to its default (latest) so a future *accidental* PVC loss doesn't silently restore from this now-stale pin -- do this **before** resuming, so the live state matches git again and the resume is a clean no-op instead of tripping the same conflict:
+
+```sh
+❯ kubectl patch restore <app> -n <namespace> --type merge \
+    -p '{"spec":{"source":{"snapshotRef":null,"fromPolicy":{"name":"<app>","offset":0}}}}'
+❯ flux resume kustomization <name>        # or: flux resume helmrelease <name> -n <namespace>
+```
+
+### Give an app a blank volume, bypassing its existing backups
+
+Sometimes you want an app to start from an empty volume on an *existing* cluster even though real kopiur backups exist for it -- e.g. importing prod-like data into `rebuild`/`qa` through the app's own import/export tooling, where letting kopiur's normal restore-on-create win would just overwrite the empty volume with the app's *old* data before you get to import anything. This bypasses the existing backups without deleting them; a plain `just backup::kopiur::restore` or a future accidental PVC loss still restores the real latest snapshot afterward.
+
+```sh
+❯ just backup::kopiur::bypass-restore <app> -e <env> -n <namespace>
+```
+
+This is interactive and blocks partway through: it suspends the owning Flux object, scales the app down, points its `Restore` at a policy name that can never match a real `Snapshot` (so the next PVC claim resolves `NoSnapshot` the same way an app's very first deploy does), deletes and manually recreates the PVC against that bypass policy, scales the app back up, and waits for the blank PVC to bind. At that point it pauses for you to do the actual data import (through the app's own means, not kopiur) -- press Enter once that's done, and it reverts the `Restore` back to its real policy and resumes Flux. Flux stays suspended for the whole window, not just the delete/recreate step, since resuming early would reconcile the `Restore` back to its git-declared (real) policy name before the blank PVC has actually claimed and resolved against the bogus one.
+
+> [!WARNING]
+> Reverting the policy name back before resuming is not optional cleanup -- leaving `Restore` pinned to a policy that never matches anything would mean a *future*, accidental PVC loss for this app restores empty instead of from its real latest backup, the same landmine the "restore a specific older snapshot" procedure above guards against by reverting `snapshotRef` back to `fromPolicy` before resuming.
+
+This only covers an already-running cluster (kopiur has a live `Restore` object to repoint). Getting the same "ignore whatever backup exists, boot empty" behavior on a *fresh* cluster bootstrap (e.g. testing a from-scratch `rebuild` deliberately ignoring backups left over from an earlier rebuild cycle, without deleting them) has no live object to patch before the first apply -- that would instead need a git-committed, temporary kustomize patch forcing the same bogus `fromPolicy.name` in the target env's overlay, applied and reverted the same way the `track-branch` skill's `tmp(<env>): ...` commits temporarily redirect Flux. Not yet built -- worth doing if that scenario comes up in practice.
+
+### Prune old backups
+
+Retention is automatic and GFS-based (see above) — normal operation needs no manual pruning. kopiur has no built-in "delete everything older than N days" command; if you need one anyway (e.g. after changing retention settings, or cleaning up a since-deleted test app's history), delete the matching `Snapshot` CRs directly:
+
+Relative — everything older than N days:
+
+```sh
+# macOS/BSD date; on Linux use: date -u -d '30 days ago' +%Y-%m-%dT%H:%M:%SZ
+❯ CUTOFF=$(date -u -v-30d +%Y-%m-%dT%H:%M:%SZ)
+❯ kubectl get snapshot -n <namespace> -l kopiur.home-operations.com/config=<app> -o json \
+    | jq -r --arg cutoff "$CUTOFF" '.items[] | select(.metadata.creationTimestamp < $cutoff) | .metadata.name' \
+    | xargs -r -n1 kubectl delete snapshot -n <namespace>
+```
+
+Absolute — everything before a specific date (e.g. cleaning up everything from before a known-bad period):
+
+```sh
+❯ CUTOFF="2026-08-01T00:00:00Z"
+❯ kubectl get snapshot -n <namespace> -l kopiur.home-operations.com/config=<app> -o json \
+    | jq -r --arg cutoff "$CUTOFF" '.items[] | select(.metadata.creationTimestamp < $cutoff) | .metadata.name' \
+    | xargs -r -n1 kubectl delete snapshot -n <namespace>
+```
+
+> [!CAUTION]
+> Deleting a `Snapshot` CR (`deletionPolicy: Delete`, the default for produced backups) also deletes the underlying kopia snapshot from the repository, not just the Kubernetes object.
+
+## Automatic per-env credentials
+
+Each environment has its own bucket and credentials (`kopiur-backup#dev`, `kopiur-backup#qa`, etc.), for all 8 environments. The `kopiur-secret-env` transformer (`k8s/components/transformers/kopiur-secret-env`, included by every `k8s/components/envs/<env>`) rewrites `kopiur-secret`'s `ExternalSecret` key accordingly (`kopiur-backup#base` → `kopiur-backup#dev`, ...) and the `ClusterRepository`'s bucket name the same way — no per-app patching needed, and it's a no-op for apps that don't include `apps/storage/pvc`/`pvc-no-backup` at all.
+
+## Known caveats
+
+- **fsType matching**: the staging `StorageClass` must match the source data's filesystem — a `VolumeSnapshot` restore is a raw block-level copy, not a reformat. Full variable reference and the storage-class table live in [docs/operations/app-storage.md](../operations/app-storage.md); the rule itself is documented inline in `k8s/components/apps/storage/pvc-no-backup/snapshotpolicy.yaml`.
+- **Longhorn-backed volumes only, for now.** kopiur relies on the standard Kubernetes CSI `VolumeSnapshot` API, which is CSI-driver-agnostic in principle — but this cluster's `proxmox-csi` driver (`csi.proxmox.sinextra.dev`) doesn't support it today: its controller deployment has no `csi-snapshotter` sidecar, and there's no `VolumeSnapshotClass` for it (only `longhorn-snapshot` exists). Confirmed by testing directly: creating a `VolumeSnapshot` against a `proxmox-csi`-backed PVC (referencing `longhorn-snapshot`, since nothing else exists) fails with `rpc error: code = Unavailable ... error reading from server: EOF` — Kubernetes doesn't validate that a `VolumeSnapshotClass`'s driver matches the source PVC's provisioner, so the request silently routes to Longhorn's driver, which can't act on a volume it doesn't own. An app whose data lives on `proxmox-csi` can't be backed up by kopiur as currently deployed; it would need a `VolumeSnapshotClass` and functioning snapshot support added to `proxmox-csi` first.
+- **`copyMethod: Clone` would not avoid the staging PVC's data copy.** Longhorn's copy-on-write behavior only applies *within one Volume's own lineage* (its live head plus its own snapshot chain) — there's no `zfs clone`-style mechanism for a second, independent Volume to share physical blocks with another volume's snapshot or live data. Traced directly in Longhorn's CSI driver source (`longhorn-manager`'s `csi/controller_server.go`): both `Snapshot` (`VolumeContentSource_Snapshot` → `dataSource: snapshot://...`) and `Clone` (`VolumeContentSource_Volume` → `dataSource: volume://...`) provision a brand-new, fully independent replica set for the staging PVC and populate it with a real, full-sized copy — they only differ in which CSI object triggers that copy, not in whether one happens. Switching a `SnapshotPolicy` to `Clone` buys no reduction in the staging PVC's data movement; `Direct` is the only copyMethod that avoids a second copy entirely, at the cost of node co-location and weaker consistency (see kopiur's own [copy methods docs](https://kopiur.home-operations.com/copy-methods/)). See [#1214](https://github.com/isejalabs/homelab/issues/1214).
+- **Cache-PVC ownership breaks after a `PUID`/`PGID` change.** The mover's cache PVC (`kopiur-cache-<app>`) does not get the automatic `fsGroup` remediation an app's own data PVC gets at mount time. Its `fsGroup` is a fixed value (`65532`) set internally by the kopiur operator, entirely independent of the `SnapshotPolicy`'s `PUID`/`PGID` substitution — confirmed identical before and after a uid/gid change (only `uid`/`gid`, the mover's primary user, changed). The cache directory's actual write permissions are tied to the *owning uid* of whichever run first created it, not just group bits, so once the mover starts running under a different uid it can no longer write into a cache it no longer owns — surfaces as a manual or scheduled `Snapshot` failing with `PermissionDenied` on `/var/cache/kopia/cache`/`CACHEDIR.TAG`. Kubernetes' `fsGroup`-based supplemental-group access doesn't rescue this, since the fixed `fsGroup: 65532` never changes either way and isn't what broke. **Fix**: delete the stale `kopiur-cache-<app>` PVC and let kopiur recreate it fresh under the current uid — it's disposable (a local dedup-cache optimization, see [docs/operations/app-storage.md](../operations/app-storage.md)), not app data, and its `longhorn-cache` class is `reclaimPolicy: Delete`, so deleting the PVC also removes the volume (no PV or `volumes.longhorn.io` cleanup; a cache PVC created before that class existed would still have a `Retain` PV, see [#1183](https://github.com/isejalabs/homelab/issues/1183)). Any app that changes `PUID`/`PGID` *after* it's already had at least one successful kopiur backup needs this same cache-PVC recreation, or every subsequent backup silently fails until someone notices. Hit live during the actualbudget migration ([#1205](https://github.com/isejalabs/homelab/issues/1205)) when its uid/gid moved from the chart's default `1001` to the storage component's own default `1000`; worth checking for again on any future `PUID`/`PGID` change to an app that already has backups flowing (e.g. unifi, mongo).
+
+## Credits & changes from upstream
+
+This is adapted from [onedr0p/home-ops](https://github.com/onedr0p/home-ops)' original kopiur backup component -- including the core "existing backup restores automatically on fresh bootstrap, otherwise a clean PVC" idea described above, which is onedr0p's design, not this repo's. Changes made since adopting it:
+
+- Storage classes: Ceph-specific defaults (`csi-ceph-blockpool`, `ceph-block`, `miroir-slow`) replaced with this cluster's Longhorn equivalents.
+- Coverage extended to all 8 environments, with `dbg`/`head`/`poc`/`src` dormant (see [Dormant environments](#dormant-environments)) rather than excluded outright.
+- Off-site cadence changed from hourly to daily (`H 3 * * *`), since Longhorn's own hourly *local* snapshots already cover the "recent changes" recovery case independently.
+- The single `kopiur-backup` component was split into an opt-*out* pair, `apps/storage/pvc` (default, includes backup) and `apps/storage/pvc-no-backup` (explicit exception) -- see [k8s/components/apps/storage/README.md](../../k8s/components/apps/storage/README.md).
+- App-facing variables (`KOPIUR_*`) renamed to generic, implementation-agnostic names (`STORAGE_*`, `PUID`/`PGID`) so the interface doesn't hard-depend on kopiur specifically -- see [docs/operations/app-storage.md](../operations/app-storage.md).
+- `fiona`'s `spec.moverDefaults.cache`/`spec.maintenance.schedule`/`spec.parameters.epoch` (see [k8s/infra/kopiur-system/kopiur-repository/base/clusterrepository.yaml](../../k8s/infra/kopiur-system/kopiur-repository/base/clusterrepository.yaml)) ported forward from onedr0p/home-ops after our initial adoption, once they hit and fixed a real bug: kopia's default cache budgets (~5000Mi) exceed the 5Gi cache PVC every app gets by default, so the sweeper never trims it and the cache fills the volume.

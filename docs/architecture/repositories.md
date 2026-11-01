@@ -53,7 +53,7 @@ Terraform writes generated credentials to 1Password (via the `onepassword-item` 
 
 - A problem owned by one repo is filed in that repo.
 - A problem spanning two or more repos gets one umbrella issue in `homelab`, with a real sub-issue in each repo that owns part of the fix (GitHub sub-issues work across repos within an org). This follows the sub-issue convention in the commons conventions.
-- Steering uses the org project [isejalabs/projects/1](https://github.com/orgs/isejalabs/projects/1) as the single board across repos; status meanings are in [`../project-board.md`](../project-board.md).
+- Steering uses the org project [isejalabs/projects/1](https://github.com/orgs/isejalabs/projects/1) as the single board across repos; status meanings are in [`../project-board.md`](../operations/project-board.md).
 
 Worked examples:
 

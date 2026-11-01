@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-10-30. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -112,7 +112,7 @@ Since 2026-10-28 (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-
 | `gw2.home.iseja.net` | 10.7.0.2 | 1 s | |
 | `gw3.home.iseja.net` | 10.7.0.3 | 1 s | |
 | `gw4.home.iseja.net` | 192.168.8.4 | 1 s | test host of 2026-10-28 |
-| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan` |
+| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
 | `google-dns` | 8.8.8.8 | 1 s | tag `networking: wan` |
 | `sw01.home.iseja.net` | 10.7.10.50 | 1 s | alias `switch-kueche.home.iseja.net` |
 | `core-switch.home.iseja.net` | 10.7.20.150 | 1 s | |
@@ -134,6 +134,25 @@ Measured on 2026-10-28 after the change (`lq "GET status"` and the CPU seconds o
 
 Time to DOWN, measured on 2026-10-28 with a controlled outage of `8.8.8.8` on `monitoring1` and `monitoring2` at the same second: `core` and `prod_k8s` logged DOWN in the same second, 6 seconds after the block, and UP within 1 second after it ended, so the new ping detects an outage as fast as the old one. Method, log lines and caveats: [`2026-10-checkmk-prod-k8s-ping-only-result.md`](../audits/2026-10-checkmk-prod-k8s-ping-only-result.md).
 
+## Large-packet `PING` for `gw-kdg`
+
+Since 2026-10-30 ([#2020](https://github.com/isejalabs/homelab/issues/2020)) the `PING` service of `gw-kdg.home.iseja.net` sends 1500-byte packets (1472 data bytes) in `prod` and `prod_k8s`, because a default-size ping shows 0% loss during the home internet slowdown (see [#2042](https://github.com/isejalabs/homelab/issues/2042)) while a full-size ping with the don't-fragment flag loses a third to two thirds of its packets. The other `PING` services (`google-dns` and the rest) keep the default size.
+
+Checkmk 2.5.0p15 has no packet size option in "Ping and host check parameters" (`ping_levels`) or in "Check hosts with PING" (`icmp`), and the Smart Ping host check has none either. The check is therefore one rule in "Integrate Nagios plugins" (`custom_checks`) per site, created through the REST API (nothing of it is in this repository):
+
+| Site | Rule id | Folder | Condition |
+| --- | --- | --- | --- |
+| `prod` | `e09e2dda-9ab8-44cd-ac30-e2e9a1e3c218` | Main | host name `gw-kdg.home.iseja.net` |
+| `prod_k8s` | `599a1c3e-95ff-40a2-a38f-2b316472e59a` | Main | host name `gw-kdg.home.iseja.net` |
+
+Both set the service name `PING` and the command line `$USER1$/check_icmp -n 6 -t 20 -b 1472 -w 1500.00,20% -c 3000.00,50% $HOSTADDRESS$`.
+
+- **Same service name.** The service stays `PING`, so its history and the 5-minute interval rule for `/ping-only` in `prod_k8s` carry over. The implicit `PING` service of ping-only hosts disappears by itself once the host has another service, so the service count does not change.
+- **Thresholds are in the command line.** The `networking: wan` rule of `ping_levels` (80% warning, 100% critical) does not apply to this service. With 6 packets one lost packet is 17%, so 20% is WARN from the second lost packet on and 50% is CRIT from the third. The rule of `ping_levels` still applies to the host check of `gw-kdg` in `prod` (default packet size).
+- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and `188.195.100.252` lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
+- **Result after activation (2026-10-30):** `prod_k8s` was CRITICAL ("lost 83% > 50%") on its first run and `prod` OK ("lost 0%"), which fits a loss that comes and goes.
+- **Roll back:** delete the two rules and activate; the implicit `PING` service with the default packet size comes back.
+
 ## Reading container memory
 
 Proxmox reports a container's memory as the cgroup's `memory.current` minus its file-backed pages. The file-backed pages include `shmem`, which cannot be reclaimed without swap. The Proxmox figure therefore understates what the OOM-killer counts. Verified on CT 7002056 on 2026-10-18: `memory.current` 6.95 GB minus `file` 1.41 GB is 5.54 GB, against Proxmox's 5.1–5.5 GiB.
@@ -145,3 +164,46 @@ Proxmox reports a container's memory as the cgroup's `memory.current` minus its 
 | `anon` + `shmem` at the first OOM kill (20:13:48) | about 7.9 GiB (98 %) |
 
 Neither figure is a good alarm threshold on its own: the OOMs came from a short spike on top of the idle level, shorter than the 1-minute RRD resolution.
+
+## Root filesystem growth
+
+Tracking: [#1843](https://github.com/isejalabs/homelab/issues/1843). Read-only investigation on 2026-10-22 after Checkmk reported `Filesystem /` on both containers as CRIT ("full in about 30 days"). Root is an 11 GiB ZFS subvolume on each container.
+
+| Container | Used (2026-10-22) | Steady growth since the upgrade settled |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | about 3 MB/day |
+| `monitoring2` | 6.2 GiB (56 %) | about 35–45 MB/day, so roughly 4 months of headroom |
+
+- **The trend alarm mostly measures one-off steps, not steady growth.** The daily `fs_used` history shows jumps on 2026-10-02 and 2026-10-11 and drops on 2026-10-12 and 2026-10-19 (the `omd update` to 2.5.0p15). The "+3.3 / +4.4 GiB per 21 days" figures come from that window and cannot be reproduced as sustained growth. The alarm should clear once the window has moved past the upgrade.
+- **Where the space is.** Checkmk 2.5 itself takes 2.3 GiB on `monitoring2` and 1.3 GiB on `monitoring1`. The old 2.4 versions are already gone, so `omd cleanup` has nothing to remove. Site data takes 2.2 GiB on `monitoring2` and 1.1 GiB on `monitoring1`.
+- **Historical data that does not need to stay.** The Nagios log archive (`var/nagios/archive`, daily files back to 2015) is about 388 MB in `prod` and about 355 MB of files older than a year in each of `free` and `core`. The `licensing.log` of the Ultimate sites is 33–38 MB each. `apt` caches take 62 MB and journald 111 MB on `monitoring2`. These are the cleanup candidates.
+- **Not identified yet.** The remaining roughly 40 MB/day on `monitoring2`. Candidates are the large `prod_k8s` logs (`wato_audit.log` 45 MB, core history 35 MB), journald and the `rrdcached` journals.
+- **RRDs are not the cause.** Their files have a fixed size once created.
+
+Handling of the trend alarm while this is open: if the `Filesystem /` trend drops to WARN it is acknowledged to take it off the dashboard; if it stays CRIT it stays visible for active monitoring. This is specific to #1843, not a general rule; acknowledgement handling is decided in [#71](https://github.com/isejalabs/homelab/issues/71).
+
+### Cleanup applied on 2026-10-22
+
+Applied on both containers: `apt-get clean` and removal of the `apt` package caches; journald vacuumed to 30 MB; Nagios archive files dated before 2025-10-22 deleted (752 in `core`, 752 in `free`, 4022 in `prod`); `licensing.log` truncated in every Ultimate site.
+
+| Container | Used before | Used after |
+| --- | --- | --- |
+| `monitoring1` | 3.8 GiB (34 %) | 3.6 GiB (33 %) |
+| `monitoring2` | 6.2 GiB (56 %) | 5.7 GiB (52 %) |
+
+The gain is smaller than the file sizes suggest because ZFS compresses the logs. RRDs, core history, WATO audit logs and WATO snapshots were left alone. The `licensing.log` files regrow, so this is a one-off, not a retention setting. The trend state after the cleanup is in the next section.
+
+### Reading of 2026-10-30
+
+Read-only, eight days after the cleanup (live `Filesystem /` service state via `lq` on the `prod` site, `du`, `journalctl`).
+
+| Container | Used | Trend per 21 days | Time left (WARN below 105 d / CRIT below 70 d) | State |
+| --- | --- | --- | --- | --- |
+| `monitoring1` | 3.70 GiB (33.7 %), unchanged since 2026-10-25 | +3.37 GiB | 45 d 10 h (39 d on 2026-10-25) | CRIT |
+| `monitoring2` | 6.10 GiB (55.5 %), 5.75 GiB on 2026-10-25 | +2.59 GiB | 39 d 18 h (40 d on 2026-10-25) | CRIT |
+
+- **`monitoring1` has stopped growing.** Used space has been flat for five days, so time left only rises because the decaying trend average shrinks. It stays on course to reach WARN in the second half of November.
+- **`monitoring2` is still growing**, about 70 MiB/day since 2026-10-25 and about 50 MiB/day since the cleanup. Time left stopped rising and turned down, so it does not recover by itself.
+- **journald is the largest identified source on `monitoring2`.** The journal was vacuumed to 30 MB on 2026-10-22 and is 233 MB again, about 25 MB/day, while it is 9 MB on `monitoring1`. Since the vacuum it holds about 190,000 `init.scope`, 150,000 `cron.service` and 3 × 93,000 `user@<site uid>.service` entries, in the current hour mostly `pam_unix(cron:session)` opened/closed lines and `su` sessions of the site users, plus a user manager start/stop for each of them. That is the every-minute site crontabs plus the Checkmk agent's per-site `su` runs. No `SystemMaxUse` is set in `journald.conf` or its drop-ins, so the default cap (10 % of the filesystem, about 1.1 GiB here) applies and the journal keeps growing toward it.
+- **Still unidentified:** the other roughly 25 MiB/day on `monitoring2`. Candidates are unchanged: `prod_k8s` core history (35 MB, written today), `wato_audit.log` (44 MB) and the `rrdcached` journal of `prod`.
+- **Not applied:** capping journald on `monitoring2` (for example `SystemMaxUse=100M`). It is a persistent change to the host and is left for a decision on [#1843](https://github.com/isejalabs/homelab/issues/1843).

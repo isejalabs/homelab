@@ -51,3 +51,4 @@ current | planning | superseded
 | [0014](0014-longhorn-vs-proxmox-csi.md) | Longhorn vs. proxmox-csi | current |
 | [0015](0015-checkmk-configuration-as-code.md) | Checkmk configuration as code: Terraform provider, Ansible deferred | current |
 | [0016](0016-identity-and-web-sso.md) | Identity and web SSO architecture | planning |
+| [0017](0017-docs-site-generator.md) | Documentation site generator: MkDocs with the Material theme | current |

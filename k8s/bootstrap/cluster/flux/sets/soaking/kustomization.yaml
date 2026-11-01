@@ -4,12 +4,17 @@ kind: Kustomization
 
 namespace: flux-system
 
-# Promoting a unit to prod also means giving prod its own version pins (docs/update-handling.md, "Staged rollout:
+# Promoting a unit to prod also means giving prod its own version pins (docs/operations/update-handling.md, "Staged rollout:
 # Keycloak and CloudNativePG"); this set gates which envs run the units, not which versions.
 # Units that are developed in dev and soak in qa before they go to prod. rebuild takes them too, to rehearse the
 # database restore. Deliberately not part of ../kustomization.yaml (which prod includes via ../../sets): only the envs
 # that name this set get these units. To promote a unit to prod, move its line to the matching infra/apps set.
 # Currently: Keycloak and its database (#1826).
+# Promotion (checked for #1946): Keycloak runs only in the standing envs dev, qa, prod and rebuild, not in the on-demand
+# ones (dbg, head, poc, src; ADR 0016 point 2). So its destination is neither ../../sets (which head includes too) nor
+# ../../sets/minimal (dbg, poc, src) but a set for the standing envs, ../standing (#2001), which those four include.
+# Move the lines there and drop them here: qa and rebuild also include the full ../../sets, and the same unit listed
+# twice fails the build.
 resources:
   - ../../../../../infra/cnpg-system/cloudnative-pg/flux
   - ../../../../../infra/keycloak/keycloak-operator/flux

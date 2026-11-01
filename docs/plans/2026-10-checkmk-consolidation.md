@@ -48,7 +48,7 @@ Each phase is independent and reversible, in this order because the cheapest, sa
 
 ### Phase 0 — Before changing anything
 
-1. Take a Proxmox snapshot or `vzdump` of CT 7002056 (monitoring2) and CT 7002061 (monitoring1), see [`proxmox-vm-snapshots.md`](../proxmox-vm-snapshots.md).
+1. Take a Proxmox snapshot or `vzdump` of CT 7002056 (monitoring2) and CT 7002061 (monitoring1), see [`proxmox-vm-snapshots.md`](../operations/proxmox-vm-snapshots.md).
 2. Record the baseline: cumulative CPU per site (the method of the audit), `host_checks_rate` and `service_checks_rate` from `lq "GET status"`, and the process spawn rate. The audit has the values of 2026-10-20.
 3. Find out why Smart Ping in `core` is reported as not working ([`monitoring-sites.md`](../reference/monitoring-sites.md#sites)), because phase 2 relies on it. The measurement shows its host checks run (13.6 per second).
 4. What `pve2` and `pve3` cost (decided: leave them as they are). The services do not matter for the load, because the Checkmk agent data of a host is fetched by a single `check_mk` run (the caching agent on the target answers repeated queries); an offline host costs a process that waits and times out. Per hour that is 120 host checks (1 per minute and host, each waiting about 3.8 seconds), 24 `Check_MK` service checks (every 5 minutes, about 6 seconds until the timeout) and about 1 discovery run (every 125 minutes, about 8 seconds): about 145 runs per hour, 0.04 per second, against about 9 spawned processes per second for `free` in total (under 0.5%). The nodes are offline, so no load reaches them. What remains is noise in the problem views: acknowledge or put the hosts in a long downtime if it bothers.

@@ -20,9 +20,15 @@ spec:
             - configMapRef:
                 name: unbound-env
           image: docker.io/madnuttah/unbound:1.26.2-0-quic@sha256:c8ec30bda5e4a3200cd716fd96ccc7ec594fb80c726f232847c9c02d78f90097
+          # restart only helps if unbound itself is stuck: the extended healthcheck queries
+          # EXTENDED_HEALTHCHECK_DOMAIN (a name unbound answers locally, see kustomization.yaml),
+          # so the probes never depend on the internet; generous timing so a slow answer does not kill the pod
           livenessProbe:
-            exec:
+            exec: &healthcheck
               command: ['/usr/local/unbound/sbin/healthcheck.sh']
+            failureThreshold: 6
+            periodSeconds: 10
+            timeoutSeconds: 5
           ports:
             - name: dns-tcp
               containerPort: 5335
@@ -42,6 +48,11 @@ spec:
             # readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          startupProbe:
+            exec: *healthcheck
+            failureThreshold: 30
+            periodSeconds: 5
+            timeoutSeconds: 5
           volumeMounts:
             - name: unbound-conf
               mountPath: /usr/local/unbound/conf.d/access-control.conf
