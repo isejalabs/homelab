@@ -6,7 +6,7 @@ status: planning
 
 Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). Only the Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered so far; `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) and the Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) are added when they are built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
-**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. A complete login was verified by the owner for `sebi` and `sebi-adm` in `dev_k8s` only; `qa_k8s` is configured but not logged in to yet. This page is `planning` until the acceptance criteria of #2107 are checked.
+**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi` and `sebi-adm` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address) and `sebi-adm` (role `admin`, no contact group). This page is `planning` until the acceptance criteria of #2107 are checked.
 
 ## How it works
 
@@ -100,8 +100,8 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 
 ## Not verified yet
 
-- A complete login: `sebi` through `iseja` worked on `dev_k8s` (2026-11-02, owner), as did `sebi-adm` through `admin`; the resulting roles and the contact group membership of `all` are not recorded here yet.
+- `mary` as `guest`: she is not in `idm-users` or `app-checkmk-readonly` yet.
 - A user in no mapped group gets no role or access.
 - The assertion is accepted: signature algorithm and attribute names.
 - `cmkadmin` and the automation users keep working with the identity provider stopped.
-- `qa_k8s`: the complete logins, including the activation of the first users and the e-mail address of `sebi`.
+- Agent registration (the `agent_registration` user is untouched, but registering an agent was not run).
