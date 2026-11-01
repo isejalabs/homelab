@@ -37,7 +37,7 @@ spec:
               ZIGBEE2MQTT_CONFIG_SERIAL_PORT: /dev/ttyACM0
             image:
               repository: ghcr.io/koenkk/zigbee2mqtt
-              tag: 2.14.2 # renovate: docker=ghcr.io/koenkk/zigbee2mqtt
+              tag: 2.14.3 # renovate: docker=ghcr.io/koenkk/zigbee2mqtt
             probes:
               liveness:
                 spec:
