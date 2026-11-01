@@ -102,6 +102,5 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 
 - `mary` as `guest`: she is not in `idm-users` or `app-checkmk-readonly` yet.
 - A user in no mapped group gets no role or access.
-- The assertion is accepted: signature algorithm and attribute names.
 - `cmkadmin` and the automation users keep working with the identity provider stopped.
 - Agent registration (the `agent_registration` user is untouched, but registering an agent was not run).
