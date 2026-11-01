@@ -81,13 +81,26 @@ Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML au
 
 The connections were accepted with the Ultimate sites in the free licence state, so the licence does not block SAML configuration. The REST body mirrors the table: `general_properties` (`id`, `name`), `connection_config` (`checkmk_server_url`, `identity_provider_metadata` of type `url`), `security` (`signing_certificate` of type `builtin`) and `users` (`id_attribute`, `full_name_attribute`, `email_attribute`, `contact_groups` and `roles` of type `map`). After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
 
+## First login and activation
+
+A user that Checkmk creates at its first SAML login is a **pending change** in the site (one per user). Until an administrator activates it with *Activate changes*, the user exists but the monitoring configuration does not know them: the contact group membership (`all` for `sebi`) is not in effect and the user sees no hosts or services. Seen on 2026-11-02 in `dev_k8s`: `sebi` logged in first and saw nothing; after `sebi-adm` had logged in, two changes (the two new users) were pending, and activating them made the views fill.
+
+- **Every new SAML user needs this once**, not every login. Changes of the mapping applied by later logins (a role or contact group that changed in UCS) are pending changes again.
+- **Who activates:** a user with the `admin` role, for instance `sebi-adm` through the `admin` connection, or `cmkadmin`. The `terraform` and `automation` users also can; the `terraform` user's [limited role](../decisions/0015-checkmk-configuration-as-code.md) may not be enough on every site.
+- **Do not activate blindly:** activation applies all pending changes of the site, not only the new users (see the consequences in ADR 0015), so look at the list first.
+- **Not automated.** Activating after a first login is a manual step on purpose for now; whether it should be scripted is a follow-up if it becomes a nuisance.
+
+## Kerberos
+
+Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this setup. It belongs to the `iseja` realm of Keycloak and comes with [#1827](https://github.com/isejalabs/homelab/issues/1827); until then every login, including `sebi`'s, asks for the Keycloak password. Checkmk itself needs no change for it, because it only trusts the SAML assertion.
+
 ## Break-glass
 
 `cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Test it with the identity provider stopped before the site is called done; not exercised yet.
 
 ## Not verified yet
 
-- A complete login: `sebi` through `iseja` ends as `user` and member of `all`, `sebi-adm` through `admin` as `admin`.
+- A complete login: `sebi` through `iseja` worked on `dev_k8s` (2026-11-02, owner), as did `sebi-adm` through `admin`; the resulting roles and the contact group membership of `all` are not recorded here yet.
 - A user in no mapped group gets no role or access.
 - The assertion is accepted: signature algorithm and attribute names.
 - `cmkadmin` and the automation users keep working with the identity provider stopped.
