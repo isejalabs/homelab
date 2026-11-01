@@ -6,7 +6,7 @@ This folder holds only the *live* configuration (which module, which version, wh
 
 **Common tasks:** [plan/apply a unit](#plan-and-apply-a-unit) · [reconnect cluster access after bootstrap](#cluster-bootstrap) · [import a Proxmox volume](#import-proxmox-volume) · [clean up state or destroy a cluster](#cluster-end-of-lifecycle) · [snapshot or power-cycle VMs](#proxmox-vm-snapshots-and-power) · [rebuild a whole cluster](../docs/backup/disaster-recovery.md#full-cluster-rebuild).
 
-**On this page:** [Prerequisites](#prerequisites) · [Folder structure](#folder-structure) · [Units](#units) · [Plan and apply a unit](#plan-and-apply-a-unit) · [Provider lock files](#provider-lock-files) · [Cluster (`vehagn-k8s`)](#cluster-vehagn-k8s) · [`poc`-only units](#poc-only-units-vms-talos-proxmox) · [State access role](#state-access-role-tf-state-read-role) · [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) · [RustFS monitoring identity](#rustfs-monitoring-identity) · [Keycloak realms](#keycloak-realms-keycloak-realm) · [Checkmk configuration](#checkmk-configuration)
+**On this page:** [Prerequisites](#prerequisites) · [Folder structure](#folder-structure) · [Units](#units) · [Plan and apply a unit](#plan-and-apply-a-unit) · [Provider lock files](#provider-lock-files) · [Cluster (`vehagn-k8s`)](#cluster-vehagn-k8s) · [`poc`-only units](#poc-only-units-vms-talos-proxmox) · [State access role](#state-access-role-tf-state-read-role) · [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) · [RustFS monitoring identity](#rustfs-monitoring-identity) · [Keycloak realms](#keycloak-realms-keycloak-realm) · [Automation client](#automation-client-keycloak-automation) · [Checkmk configuration](#checkmk-configuration)
 
 ## Prerequisites
 
@@ -29,6 +29,7 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 │   ├── checkmk-longhorn-monitoring.hcl
 │   ├── checkmk-password.hcl
 │   ├── checkmk-rustfs-monitoring.hcl
+│   ├── keycloak-automation.hcl
 │   ├── keycloak-realm.hcl
 │   ├── rustfs-bucket-reader.hcl
 │   ├── rustfs-keycloak-db.hcl
@@ -72,6 +73,7 @@ Module versions follow the environments' roles ([`docs/architecture/environments
 | `checkmk-password` | Checkmk Password Store entry for that identity | `checkmk-password` | all 8 | [Password Store entries](#password-store-entries-checkmk-password) |
 | `checkmk-rustfs-monitoring` | Checkmk hosts and rules for RustFS quota monitoring | `checkmk-rustfs-monitoring` | `prod` only (one shared unit) | [Host and rules](#host-and-rules-checkmk-rustfs-monitoring) |
 | `checkmk-longhorn-monitoring` | Checkmk hosts and rules for Longhorn capacity monitoring | `checkmk-longhorn-monitoring` | `prod` only (one shared unit) | [Longhorn capacity](#longhorn-capacity-checkmk-longhorn-monitoring) |
+| `keycloak-automation` | Service-account client `terragrunt` in the Keycloak `master` realm, its secret in `keycloak-terragrunt#<env>` | `keycloak-automation` | `dev`, `qa` | [Automation client](#automation-client-keycloak-automation) |
 | `keycloak-realm` | Keycloak realms, LDAP federation to UCS, `groups` scope | `keycloak-realm` | `dev`, `qa` | [Keycloak realms](#keycloak-realms-keycloak-realm) |
 | `vms`, `talos-proxmox` | experimental standalone VMs / Talos cluster | `vms`, `talos-proxmox` | `poc` only | [`poc`-only units](#poc-only-units-vms-talos-proxmox) |
 
@@ -282,6 +284,10 @@ Pitfalls it already accounts for, in case you query by hand:
 ## Keycloak realms (`keycloak-realm`)
 
 `keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS and a `groups` claim scope) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev` and `qa`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
+
+### Automation client (`keycloak-automation`)
+
+`keycloak-realm` logs in as a dedicated service-account client `terragrunt` in the Keycloak `master` realm instead of the break-glass administrator. `keycloak-automation` creates that client through the module `keycloak-automation` from `isejalabs/terraform-modules` (also pinned to a release tag) and writes its secret to the 1Password item `keycloak-terragrunt#<env>`. It is the one unit that still logs in with the break-glass administrator (`keycloak-bootstrap-admin#<env>`), and it has to be applied **before** `keycloak-realm` of the same environment; apply order, secret rotation and the restore case are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md#automation-client). Units exist for `dev` and `qa` (the `qa` one with its tracked provider lock); `existing_realms` lists the realms that exist already, empty on a fresh instance.
 
 ## Checkmk configuration
 

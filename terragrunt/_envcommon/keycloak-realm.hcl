@@ -44,7 +44,7 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.2.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.4.0"
 
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
@@ -94,7 +94,8 @@ inputs = {
   # Set some secure values that are not inherited as implicit variables from the root config.
   onepassword = local.secret_vars.onepassword
 
-  admin_item_title     = "keycloak-bootstrap-admin#${local.env}"
+  # Logs in as the service-account client of the `keycloak-automation` unit, not as the break-glass administrator.
+  client_item_title    = "keycloak-terragrunt#${local.env}"
   ldap                 = local.ldap
   onepassword_vault_id = local.onepassword_vault_id
   realms               = local.realms
