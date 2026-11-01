@@ -166,7 +166,7 @@ Append (alphabetically, by full relative path) one line per new component's `flu
 
 (six `../` levels for infra/apps sets — count the existing entries in the target file to confirm depth rather than assuming.)
 
-Also add the row to `docs/architecture/workloads.md` and write the unit's `README.md` from the template in `k8s/README.md` ("README of an app/infra unit"), filling `Access` and `Updates` from what the ported component actually sets rather than from the source repo.
+Also add the row to `docs/architecture/workloads.md` and write the unit's `README.md` from the template in `k8s/README.md` ("README of an app/infra unit"), filling `Access` and `Updates` from what the ported component actually sets rather than from the source repo. Add the README to the docs navigation (`Components and apps` in `.ci/mkdocs/mkdocs.yml`).
 
 ## 7. Special case: bootstrap-time secrets (rare — flag, don't auto-apply)
 

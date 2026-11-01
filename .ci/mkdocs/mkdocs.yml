@@ -184,19 +184,37 @@ nav:
     - reverse-zone-env: k8s/components/transformers/reverse-zone-env/README.md
     - suspend-kopiur-schedule: k8s/components/transformers/suspend-kopiur-schedule/README.md
   - Infrastructure:
+    - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md
     - cert-manager: k8s/infra/cert-manager/cert-manager/README.md
     - Cilium: k8s/infra/kube-system/cilium/README.md
+    - CloudNativePG: k8s/infra/cnpg-system/cloudnative-pg/README.md
+    - external-dns: k8s/infra/external-dns/external-dns/README.md
     - external-secrets: k8s/infra/external-secrets/external-secrets/README.md
-    - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md
+    - Flux instance: k8s/infra/flux-system/flux-instance/README.md
+    - Flux Operator: k8s/infra/flux-system/flux-operator/README.md
     - Gateway: k8s/infra/gateway-api/gateway/README.md
+    - Gateway API CRDs: k8s/infra/gateway-api/gateway-api-crds/README.md
+    - infra-ns: k8s/infra/common/ns/README.md
+    - Keycloak operator: k8s/infra/keycloak/keycloak-operator/README.md
+    - kopiur: k8s/infra/kopiur-system/kopiur/README.md
+    - kopiur repository: k8s/infra/kopiur-system/kopiur-repository/README.md
+    - kubelet-serving-cert-approver: k8s/infra/kube-system/kubelet-serving-cert-approver/README.md
+    - Longhorn classes and jobs: k8s/infra/longhorn-system/longhorn/README.md
+    - Longhorn core: k8s/infra/longhorn-system/longhorn-core/README.md
     - proxmox-csi: k8s/infra/csi-proxmox/proxmox-csi/README.md
     - sealed-secrets: k8s/infra/sealed-secrets/sealed-secrets/README.md
+    - snapshot-controller: k8s/infra/kube-system/snapshot-controller/README.md
   - Apps:
+    - Actual Budget: k8s/apps/finances/actualbudget/README.md
     - AdGuard: k8s/apps/dns/adguard/README.md
-    - PowerDNS: k8s/apps/dns/powerdns/README.md
     - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
+    - Keycloak: k8s/apps/identity/keycloak/README.md
+    - metrics-server: k8s/apps/monitoring/metrics-server/README.md
+    - PowerDNS: k8s/apps/dns/powerdns/README.md
+    - Unbound: k8s/apps/dns/unbound/README.md
     - UniFi controller: k8s/apps/network/unifi-controller/README.md
     - UniFi MongoDB: k8s/apps/network/unifi-mongodb/README.md
+    - whoami: k8s/apps/diag/whoami/README.md
     - Zigbee2MQTT: k8s/apps/home-automation/zigbee2mqtt/README.md
   - Terragrunt envcommon: terragrunt/_envcommon/README.md
   - Scripts: scripts/README.md
