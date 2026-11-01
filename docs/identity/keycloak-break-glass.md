@@ -110,7 +110,7 @@ Checked on `qa` (2026-10-26) against the live resources unless noted otherwise:
 | `kc.sh bootstrap-admin user` needs all nodes stopped | From the Keycloak documentation, not tried |
 | Reading the item with `op item get` | Command standard, not run in this session |
 | Sign-in to `master` with the item's credential, the rotation steps, the `kcadm.sh` login | Not tried (no credential read in the writing session) |
-| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Not tried (the unit has not been applied yet) |
+| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Verified in `dev` (2026-11-01): the unit, which logs in with this account (password grant), planned, applied and planned again clean after the client existed. The sign-in in the admin console was not tried |
 | Facts for `prod` and `rebuild` | Not applicable yet, nothing is deployed there |
 
 ## Open points
