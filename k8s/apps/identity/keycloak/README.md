@@ -22,7 +22,7 @@ One place that knows who may sign in to what. UCS stays the authoritative direct
   - the `keycloak-db` PostgreSQL cluster in the same namespace (CloudNativePG, volume on `longhorn-ha`);
   - the `internal` Gateway in `gateway-api` (TLS ends there, Keycloak speaks plain HTTP on 8080);
   - the UCS domain controllers on LDAPS `7636` and the UCS CA, mounted from the Secret `keycloak-ucs-ca`;
-  - External Secrets and 1Password for the bootstrap admin, the database dump credentials and the CA;
+  - External Secrets and 1Password for the bootstrap admin, the database dump credentials, the dump heartbeat URL (`qa`) and the CA;
   - RustFS on `fiona` (the S3-compatible NAS) for the daily dump, bucket `<env>-keycloak-db`.
 
 ## Access
@@ -80,7 +80,7 @@ op item get 'keycloak-bootstrap-admin#<env>' --vault K8S --fields label=username
 # database dumps: list, take one now, restore (see keycloak-backup-restore.md before restoring)
 just backup::keycloak::list -e <env>
 kubectl create job --from=cronjob/keycloak-db-dump manual-$(date +%Y%m%d-%H%M) -n keycloak --context admin@<env>-homelab
-just backup::keycloak::restore -e <env>
+just backup::keycloak::restore -e <env> --identity <age private key file>
 
 # reach the pod without the Gateway (API and discovery only; the console does not work this way)
 kubectl port-forward -n keycloak svc/keycloak-service 18080:8080 --context admin@<env>-homelab

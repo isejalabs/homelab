@@ -27,10 +27,17 @@
 #
 # The old database is NOT dropped; the end of the run prints the rollback and the cleanup commands.
 #
-# Usage: scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>|latest] [-y]
+# Dumps are encrypted with age (`*.dump.age`); older ones are plain `*.dump`. For an encrypted dump `--identity`
+# names the age private key file. It is put into a temporary Secret `keycloak-db-restore-identity-<timestamp>`
+# that only the restore Job mounts, and the Secret is deleted again right after that Job ended (and by the exit
+# trap), so the key is in the cluster for the minutes of the restore and nowhere else.
+#
+# Usage: scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>|latest] [--identity <file>] [-y]
 #   -e, --environment  environment whose cluster is restored (required, a restore always names its target)
 #   --list             only list the dumps in the bucket (key, last modified, size) and exit
 #   --dump <key>       dump object to restore; default `latest` (the newest)
+#   --identity <file>  age private key to decrypt a `*.age` dump; a process substitution works, for example
+#                      `--identity <(op read 'op://Private/keycloak-db age key/private key')`
 #   -y, --yes          do not ask for confirmation (the safety checks still apply)
 # A dump from another environment must be copied into this environment's bucket first.
 set -eu
@@ -48,15 +55,16 @@ LIVE_DB="keycloak"
 SCRATCH_DB="keycloak_restore"
 
 usage() {
-    echo "Usage: $(basename "$0") -e <env> [--list] [--dump <key>|latest] [-y]" >&2
+    echo "Usage: $(basename "$0") -e <env> [--list] [--dump <key>|latest] [--identity <file>] [-y]" >&2
     exit 1
 }
 
 ENV=""
 LIST_ONLY=0
 DUMP="latest"
+IDENTITY=""
 YES=0
-# Parses -e/--environment, --list, --dump and -y/--yes; there are no positional arguments.
+# Parses -e/--environment, --list, --dump, --identity and -y/--yes; there are no positional arguments.
 while [ $# -gt 0 ]; do
     case "$1" in
         -e | --environment)
@@ -69,6 +77,10 @@ while [ $# -gt 0 ]; do
             ;;
         --dump)
             DUMP="$2"
+            shift 2
+            ;;
+        --identity)
+            IDENTITY="$2"
             shift 2
             ;;
         -y | --yes)
@@ -91,6 +103,8 @@ ORIG_OPERATOR_REPLICAS=""
 ORIG_CRON_SUSPEND=""
 # Flux Kustomizations this run suspended (one that was suspended already stays suspended).
 SUSPENDED_KS=""
+# Name of the temporary Secret that holds the age private key while the restore Job runs (empty: none created).
+IDENTITY_SECRET=""
 
 # kubectl in the Keycloak namespace of the target cluster.
 kc() {
@@ -123,15 +137,33 @@ elapsed() {
     echo $(($(date +%s) - START))
 }
 
+# Shell run by the `download` container of a restore Job: fetches dump $DUMP_KEY and, for an age-encrypted one,
+# decrypts it with the private key mounted from the temporary Secret. Either way the plain dump ends up in
+# /dump/keycloak.dump. Kept in one place so build_job passes it to jq as a plain string.
+DOWNLOAD_SCRIPT='case "${DUMP_KEY}" in
+  *.age)
+    aws s3 cp "s3://${BUCKET}/${DUMP_KEY}" /dump/keycloak.dump.age --only-show-errors
+    /age/age -d -i /identity/age.key -o /dump/keycloak.dump /dump/keycloak.dump.age
+    rm /dump/keycloak.dump.age
+    ;;
+  *) aws s3 cp "s3://${BUCKET}/${DUMP_KEY}" /dump/keycloak.dump --only-show-errors ;;
+esac
+test -s /dump/keycloak.dump'
+
 # Builds a one-shot Job from the live dump CronJob and prints it as JSON. $1 is the Job name, $2 the mode:
-# `list` runs an S3 listing in the aws-cli container; `load` downloads dump $3 and `pg_restore`s it into
-# database $4. Image, credentials, endpoint, bucket and security context are inherited from the CronJob.
+# `list` runs an S3 listing in the aws-cli container; `load` downloads dump $3 (decrypting it when its key ends
+# in `.age`, with the Secret ${IDENTITY_SECRET}) and `pg_restore`s it into database $4. Image, credentials,
+# endpoint, bucket and security context are inherited from the CronJob; an encrypted dump also inherits the
+# CronJob's `fetch-age` step, which provides the age binary.
 build_job() {
     kc get cronjob "${CRONJOB}" -o json | jq \
-        --arg name "$1" --arg mode "$2" --arg key "${3:-}" --arg db "${4:-}" '
+        --arg name "$1" --arg mode "$2" --arg key "${3:-}" --arg db "${4:-}" \
+        --arg identity "${IDENTITY_SECRET}" --arg download "${DOWNLOAD_SCRIPT}" '
         .spec.jobTemplate.spec.template.spec as $pod
         | ($pod.containers[] | select(.name == "upload")) as $aws
         | ($pod.initContainers[] | select(.name == "dump")) as $pg
+        | ($pod.initContainers[] | select(.name == "fetch-age")) as $fetch
+        | ($key | endswith(".age")) as $encrypted
         | {
             apiVersion: "batch/v1", kind: "Job",
             metadata: {name: $name, namespace: .metadata.namespace,
@@ -143,12 +175,22 @@ build_job() {
                          "aws s3api list-objects-v2 --bucket \"${BUCKET}\" --query \"sort_by(Contents,&LastModified)[].[Key,LastModified,Size]\" --output text"]}]
                      else
                        $pod
-                       | .initContainers = [$aws + {name: "download", command: ["/bin/sh", "-ec",
-                           "aws s3 cp \"s3://${BUCKET}/${DUMP_KEY}\" /dump/keycloak.dump --only-show-errors; test -s /dump/keycloak.dump"],
-                           env: ($aws.env + [{name: "DUMP_KEY", value: $key}])}]
+                       | .initContainers = (
+                           (if $encrypted then [$fetch] else [] end)
+                           + [$aws + {name: "download", command: ["/bin/sh", "-ec", $download],
+                               env: ($aws.env + [{name: "DUMP_KEY", value: $key}]),
+                               volumeMounts: ($aws.volumeMounts
+                                              + (if $encrypted then [{name: "identity", mountPath: "/identity", readOnly: true}] else [] end))}])
+                       | .volumes += (if $encrypted then [{name: "identity", secret: {secretName: $identity}}] else [] end)
                        | .containers = [$pg + {name: "restore",
                            command: ["pg_restore", "--no-owner", "--exit-on-error", "--dbname=" + $db, "/dump/keycloak.dump"]}]
                      end)}}}'
+}
+
+# Deletes the temporary Secret with the age private key, if one was created. Safe to call repeatedly.
+delete_identity_secret() {
+    [ -n "${IDENTITY_SECRET}" ] || return 0
+    kc delete secret "${IDENTITY_SECRET}" --ignore-not-found >/dev/null
 }
 
 # Creates the Job $1 (JSON on stdin) and waits up to $2 seconds for it to succeed or fail; its logs are
@@ -219,6 +261,7 @@ resume_all() {
 # Exit trap: if phase 2 started and nothing resumed yet (any failure, Ctrl-C, declined prompt), put the
 # environment back the way it was.
 cleanup() {
+    delete_identity_secret || log error "could not delete the temporary age Secret, delete it by hand" "secret" "${IDENTITY_SECRET}"
     if [ "${SUSPENDED}" -eq 1 ] && [ "${RESUMED}" -eq 0 ]; then
         log warn "leaving early, resuming Flux, the operator and the dump CronJob"
         resume_all || log error "resuming failed, do it by hand (flux resume kustomization keycloak-operator keycloak; scale the operator; un-suspend the CronJob)"
@@ -264,6 +307,20 @@ if ! printf '%s\n' "${DUMPS}" | cut -f1 | grep -qFx "${DUMP}"; then
 fi
 log info "Selected dump" "dump" "${DUMP}"
 
+# An encrypted dump needs the private key; refuse before anything is created, with the live database untouched.
+case "${DUMP}" in
+    *.age)
+        if [ -z "${IDENTITY}" ]; then
+            log fatal "the dump is age-encrypted, pass the private key with --identity <file>" "dump" "${DUMP}"
+            exit 1
+        fi
+        if [ ! -r "${IDENTITY}" ]; then
+            log fatal "cannot read the age identity file" "file" "${IDENTITY}"
+            exit 1
+        fi
+        ;;
+esac
+
 # A scratch database left behind by an earlier aborted run is safe to replace: only this script uses the name.
 if [ -n "$(sql_value postgres "select 1 from pg_database where datname = '${SCRATCH_DB}';")" ]; then
     log warn "dropping the scratch database of an earlier run" "database" "${SCRATCH_DB}"
@@ -272,11 +329,19 @@ fi
 sql_value postgres "create database ${SCRATCH_DB} owner keycloak;" >/dev/null
 
 log info "Restoring the dump into the scratch database (Keycloak keeps running)" "phase" "1/4" "database" "${SCRATCH_DB}"
+case "${DUMP}" in
+    *.age)
+        IDENTITY_SECRET="keycloak-db-restore-identity-${TS}"
+        kc create secret generic "${IDENTITY_SECRET}" --from-file=age.key="${IDENTITY}" >/dev/null
+        ;;
+esac
 build_job "keycloak-db-restore-${TS}" load "${DUMP}" "${SCRATCH_DB}" | run_job "keycloak-db-restore-${TS}" 600 || {
+    delete_identity_secret || true
     log fatal "restoring into the scratch database failed, the live database was not touched"
     sql_value postgres "drop database ${SCRATCH_DB};" >/dev/null || true
     exit 1
 }
+delete_identity_secret
 
 tables_live=$(sql_value "${LIVE_DB}" "select count(*) from information_schema.tables where table_schema = 'public';")
 tables_new=$(sql_value "${SCRATCH_DB}" "select count(*) from information_schema.tables where table_schema = 'public';")
