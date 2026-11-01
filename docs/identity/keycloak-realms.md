@@ -14,7 +14,7 @@ The directory facts (base DN, domain controllers, bind account, group names) and
 
 The unit is developed and proven in `dev`, then promoted to `qa` (the gate) and `prod`: copy the unit directory to the next environment (with its provider lock file, see [`terragrunt/README.md`](../../terragrunt/README.md#provider-lock-files)) in a pull request, merge it, and apply `qa`/`prod` from `main` only, never from the branch. `dev` and `qa` have the unit; `prod` and `rebuild` do not yet. Every environment needs its Keycloak instance up and answering on its URL first.
 
-1. **Admin login:** the 1Password item `keycloak-bootstrap-admin#<env>` (the same item the Keycloak Operator uses) with `username` and `password`. The provider logs in with it through the `admin-cli` client. The same account is the break-glass login to Keycloak's `master` realm, see [`keycloak-break-glass.md`](keycloak-break-glass.md).
+1. **Automation client:** the 1Password item `keycloak-terragrunt#<env>` (client ID as `username`, client secret as `password`), written by the unit `keycloak-automation`, see [Automation client](#automation-client). The provider logs in with it through the client-credentials grant. It is not the break-glass administrator `keycloak-bootstrap-admin#<env>` of Keycloak's `master` realm ([`keycloak-break-glass.md`](keycloak-break-glass.md)), which routine plan and apply do not use any more.
 2. **UCS groups and bind account:** see [UCS setup](#ucs-setup). The bind password goes into the 1Password item `keycloak-ldap-bind#<env>` (field `password`); every environment that applies the unit needs its own item, so copy the `dev` one to `keycloak-ldap-bind#qa` before the first `qa` apply.
 3. **Network and trust:** the Keycloak pods must reach both domain controllers on LDAPS **7636** (UCS OpenLDAP; 636 is Samba AD's own LDAP and is not used) and trust the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, CN `iseja.net Directory Services`), which signs the DCs' certificates. The Keycloak resource mounts it as a truststore from the Secret `keycloak-ucs-ca`, which External Secrets fills from the 1Password item `ucs-ca` (field `ca.pem`, shared by all environments; the certificate is public):
 
@@ -55,6 +55,20 @@ It must return the entry with `entryUUID` and, after the group setup, `memberOf:
 
 The per-application groups `app-<name>-<role>` are not created here: each integration issue creates its own when the application is rolled out, and the `app-*` filter of the group mapper picks them up at the next sync.
 
+## Automation client
+
+Plan and apply of `keycloak-realm` log in as a dedicated service-account client `terragrunt` in the `master` realm, not as the break-glass administrator, so whoever runs Terragrunt does not hold the emergency credential ([#1942](https://github.com/isejalabs/homelab/issues/1942)). The client is created by the Terragrunt unit `keycloak-automation` through the module [`keycloak-automation`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-automation): a confidential client that can only use the client-credentials grant, with the realm role `create-realm` and `realm-admin` of the `iseja` and `admin` management clients (`existing_realms`), nothing else; the generated secret goes into the 1Password item `keycloak-terragrunt#<env>`.
+
+The unit is the one place where the break-glass administrator (`keycloak-bootstrap-admin#<env>`) is still used by Terragrunt, and it runs rarely:
+
+| When | What |
+| --- | --- |
+| First setup of an environment, **before** `keycloak-realm` | `terragrunt apply` in `keycloak-automation`. On a fresh instance without realms leave `existing_realms` empty: the client creates the realms itself and Keycloak makes it their administrator. |
+| Rotating the secret | Set `secret_rotation = "<date>"` in the `inputs` of the unit (the module default is `initial`) and apply `keycloak-automation`. Keycloak generates the new secret and the 1Password item is updated in the same apply; the next `keycloak-realm` run reads it. The old secret stops working at once. |
+| After a restore of a dump ([restore](keycloak-backup-restore.md#restore)), also one from another environment | The restored `master` realm carries that dump's `terragrunt` client and secret, not this environment's. Sign in with the break-glass administrator **of the restored data**, then apply `keycloak-automation` with a changed `secret_rotation`; if the restored realm has no such client, the apply recreates it. Not tried yet. |
+
+Both units pin their module to a release tag, see [`terragrunt/README.md`](../../terragrunt/README.md#automation-client-keycloak-automation). The secret is part of the state of both units, see [Caveats](#caveats).
+
 ## Apply and verify
 
 ```sh
@@ -70,4 +84,4 @@ Then, in the Keycloak admin console of each realm, open *User federation* → `u
 
 - A user filter decides which realm an account may use. Keep the `iseja` and `admin` filters disjoint.
 - Changing a realm name destroys the realm and everything in it, and changes every issuer URL.
-- The bind credential and the admin login are part of the Terraform state; the state bucket is access-controlled per environment.
+- The bind credential and the automation client's secret are part of the state of `keycloak-realm`, and the client secret and the break-glass admin login of the state of `keycloak-automation`; the state bucket is access-controlled per environment.

@@ -14,7 +14,7 @@ The identity provider never protects its own recovery path ([ADR 0016](../decisi
 
 - The `master` realm has no user federation. The Terragrunt unit [`keycloak-realm`](keycloak-realms.md) manages only `iseja` and `admin`, so a login in `master` needs neither UCS, nor the other realms, nor the Terragrunt state.
 - It does need the Keycloak pod, its database, the internal Gateway with the Keycloak route, and a certificate. When the cluster itself is down there is no break-glass path to Keycloak; the services in the break-glass list of the ADR (Proxmox, OPNsense, TrueNAS, RustFS, `talosctl`) have their own local logins, which are not covered here.
-- The same account is what the Terragrunt provider logs in with (`admin_item_title` in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)).
+- Routine automation does not use this account: the Terragrunt unit `keycloak-realm` logs in as the service-account client `terragrunt` ([automation client](keycloak-realms.md#automation-client)). Only the unit `keycloak-automation` (first setup, rotating the client secret, recreating the client after a restore) logs in with the account described here (`admin_item_title` in [`terragrunt/_envcommon/keycloak-automation.hcl`](../../terragrunt/_envcommon/keycloak-automation.hcl)).
 
 | Situation | Path |
 | --- | --- |
@@ -78,7 +78,7 @@ The hostname is fixed in the Keycloak resource, so Keycloak builds every redirec
 
 Typical causes, most likely first:
 
-1. **The password was changed in Keycloak, but not in 1Password** (or the other way round). Another `master` admin, if one exists, resets it under *Users* → `<username>` → *Credentials*. The Terragrunt unit fails the same way (login error from the provider), which is how it usually shows up.
+1. **The password was changed in Keycloak, but not in 1Password** (or the other way round). Another `master` admin, if one exists, resets it under *Users* → `<username>` → *Credentials*. The Terragrunt unit `keycloak-automation` fails the same way (login error from the provider), which is how it usually shows up; `keycloak-realm` is not affected, it uses the automation client.
 2. **The database was restored from a dump** taken before a password change. The restored `master` realm has the password as of the dump, not the one in the Secret.
 3. **The database was recreated empty.** Keycloak then bootstraps again from the Secret, so the 1Password item is right again (and everything else is gone; [restore](keycloak-backup-restore.md#restore) the dump).
 4. **Nobody can sign in to `master` any more.** Keycloak's documented way is the command `kc.sh bootstrap-admin user` with **all Keycloak nodes stopped**, run with the same database options as the server; it creates a new temporary admin in the `master` realm. The Keycloak documentation does not describe this for the Operator, and it has **not been tried here**. The outline: scale down the Keycloak Operator and the `keycloak` StatefulSet, run a one-off pod from the same image, database settings and (new) credentials, delete it, scale up again, then [rotate](#rotate-the-credential) to a known password. Rehearse in `dev` before relying on it.
@@ -93,7 +93,7 @@ Typical causes, most likely first:
    kubectl annotate externalsecret keycloak-bootstrap-admin -n keycloak --context admin@<env>-homelab force-sync="$(date +%s)" --overwrite
    ```
 
-4. Check that the Terragrunt provider still logs in: `terragrunt plan` in `keycloak-realm` of that environment must succeed without drift ([apply and verify](keycloak-realms.md#apply-and-verify)).
+4. Check that the Terragrunt provider still logs in with it: `terragrunt plan` in `keycloak-automation` of that environment must succeed without drift. `keycloak-realm` does not use this credential ([apply and verify](keycloak-realms.md#apply-and-verify)).
 
 The running pod keeps the old value in its environment until it restarts; that is harmless, as the variables are not read again.
 
@@ -110,11 +110,12 @@ Checked on `qa` (2026-10-26) against the live resources unless noted otherwise:
 | `kc.sh bootstrap-admin user` needs all nodes stopped | From the Keycloak documentation, not tried |
 | Reading the item with `op item get` | Command standard, not run in this session |
 | Sign-in to `master` with the item's credential, the rotation steps, the `kcadm.sh` login | Not tried (no credential read in the writing session) |
+| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Not tried (the unit has not been applied yet) |
 | Facts for `prod` and `rebuild` | Not applicable yet, nothing is deployed there |
 
 ## Open points
 
 - **MFA for the bootstrap admin.** The plan asks for the local admin of each core service to have its own MFA where the product supports it. That is not configured on the `master` account here. Enabling it needs a decision first: the Terragrunt provider signs in with the password through the `admin-cli` client and probably cannot answer a one-time-code prompt, so it would need a service account of its own beforehand.
 - **A second named `master` admin** per person (instead of only the shared bootstrap account) would make cause 1 above recoverable without the `kc.sh` route. Not decided.
-- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass and Terraform login; the console may keep warning about it.
+- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass login and the login of the `keycloak-automation` unit; the console may keep warning about it.
 - **Rehearse the lost-admin recovery (cause 4)** in `dev`, and the sign-in itself in `prod` once it is deployed ([#1826](https://github.com/isejalabs/homelab/issues/1826)).
