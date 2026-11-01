@@ -7,7 +7,7 @@ The configuration around [Longhorn core](../longhorn-core/README.md): the `Stora
 | | |
 | --- | --- |
 | Namespace | `longhorn-system` |
-| Runs in | all 8 environments (Flux set `optional`; every environment includes the full infra set) |
+| Runs in | all 8 environments (Flux set `optional`); every environment includes the full infra set |
 | Installed via | Raw Longhorn and Kubernetes resources in `base/`: `StorageClass`es, `VolumeSnapshotClass` `vsc-standard`, two `RecurringJob`s |
 | Flux Kustomization | `longhorn`, depends on `longhorn-core` |
 

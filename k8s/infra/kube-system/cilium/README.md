@@ -9,7 +9,7 @@
 | Namespace | `kube-system` |
 | Runs in | all 8 environments (Flux set `minimal`); installed first by the bootstrap helmfile, then taken over by Flux |
 | Installed via | HelmRelease with the `quay.io/cilium/charts/cilium` OCI chart; values in [`base/values.yaml`](base/values.yaml); per environment the BGP cluster config and the `bgp-pool` address pool in `envs/<env>/` |
-| Flux Kustomization | `cilium`, no `dependsOn` (it is the first thing everything else `needs` at bootstrap) |
+| Flux Kustomization | `cilium`, no `dependsOn` |
 
 ## Purpose
 
@@ -18,7 +18,7 @@ Without it no pod has a network. Specifically here: pod networking and `kubeProx
 ## Where it is used
 
 - **Used by**: every workload (pod network), every `Gateway` and `LoadBalancer` Service (address from `bgp-pool`, advertised by [`bgp-advertisement.yaml`](base/bgp-advertisement.yaml)), and the [`gateway`](../../gateway-api/gateway/README.md) unit.
-- **Depends on**: the OPNsense pair as BGP peers (`10.7.8.2`, `10.7.8.3`, outside this repo) and the Gateway API CRDs from [`gateway-api-crds`](../../gateway-api/gateway-api-crds/).
+- **Depends on**: the OPNsense pair as BGP peers (`10.7.8.2`, `10.7.8.3`, outside this repo) and the Gateway API CRDs from [`gateway-api-crds`](../../gateway-api/gateway-api-crds/). It has no Flux `dependsOn` because it is the first thing everything else needs at bootstrap: the helmfile installs it before Flux reconciles anything.
 
 ## Access
 

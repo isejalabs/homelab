@@ -7,7 +7,7 @@
 | | |
 | --- | --- |
 | Namespace | `longhorn-system` |
-| Runs in | all 8 environments (Flux set `optional`; every environment includes the full infra set) |
+| Runs in | all 8 environments (Flux set `optional`); every environment includes the full infra set |
 | Installed via | HelmRelease, chart `longhorn` from the `charts.longhorn.io` Helm repository, plus an `HTTPRoute` for the UI and an `ExternalSecret` for the backup target credentials |
 | Flux Kustomization | `longhorn-core`, depends on `infra-ns` |
 
