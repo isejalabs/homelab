@@ -82,7 +82,7 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece of tooling or code, updated in the same PR as the code they describe:
   - runbooks for a whole process, e.g. [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md), [`terragrunt/README.md`](../terragrunt/README.md),
-  - narrow operational notes for one app/component, e.g. the `kubeseal` regen command in [`k8s/apps/dns/adguard/README.md`](../k8s/apps/dns/adguard/README.md).
+  - the README of every app/infra unit under `k8s/apps/` and `k8s/infra/`: purpose, where it is used, how to reach it per environment, where its versions are pinned and a command cheat sheet, written from the template in [`k8s/README.md`](../k8s/README.md#readme-of-an-appinfra-unit) ([#2098](https://github.com/isejalabs/homelab/issues/2098), rollout in progress, first examples [`keycloak`](../k8s/apps/identity/keycloak/README.md) and [`cloudnative-pg`](../k8s/infra/cnpg-system/cloudnative-pg/README.md)). What a cross-cutting doc already owns (hostname scheme, update rules, runbooks) stays there and is linked, not copied.
 
 ## Conventions
 
