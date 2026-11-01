@@ -52,22 +52,24 @@ jobs:
           exit 0
         fi
         # Every broken link becomes a task list item (lychee lists them as plain bullets), so single items can be turned into
-        # sub-issues by hand with "Convert to sub-issue". The body is rewritten by every run, so lines already converted
-        # (task items without a URL, which is what GitHub leaves behind) are carried over under "Triaged".
-        triaged=""
+        # sub-issues by hand with "Convert to sub-issue". Converting removes the line from this body, and the body is rewritten
+        # by every run, so a link that is still broken would come back as a new item. To avoid a duplicate sub-issue, an item
+        # is left out while an open sub-issue of this issue has its URL in the title. lychee prints the URL in angle brackets,
+        # which GitHub drops from a title, so they are removed to keep the URL in the sub-issue's title.
+        open_titles=""
         if [ -n "$number" ]; then
-          triaged=$(gh issue view "$number" --json body --jq .body | grep -E '^- \[[ xX]\] ' | grep -Ev 'https?://' | awk '!seen[$0]++' || true)
+          open_titles=$(gh api "repos/$GITHUB_REPOSITORY/issues/$number/sub_issues" --paginate --jq '.[] | select(.state == "open") | .title' || true)
         fi
         {
-          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. Each broken link is a task list item, so it can be converted to a sub-issue by hand. This issue is rewritten by each run and closed when all links work again."
+          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. Each broken link is a task list item, so it can be converted to a sub-issue by hand. A link with an open sub-issue is not listed again. This issue is rewritten by each run and closed when all links work again."
           echo
-          if [ -n "$triaged" ]; then
-            echo "## Triaged"
-            echo
-            echo "$triaged"
-            echo
-          fi
-          sed -E 's/^[*-] /- [ ] /' lychee-report.md
+          sed -E 's/^[*-] /- [ ] /; s/<(https?:[^>]*)>/\1/' lychee-report.md | while IFS= read -r line; do
+            url=$(printf '%s\n' "$line" | grep -oE 'https?://[^ ]+' | head -n 1 || true)
+            if [ -n "$url" ] && [ -n "$open_titles" ] && printf '%s\n' "$open_titles" | grep -qF -- "$url"; then
+              continue
+            fi
+            printf '%s\n' "$line"
+          done
         } > issue-body.md
         if [ -n "$number" ]; then
           gh issue edit "$number" --body-file issue-body.md
