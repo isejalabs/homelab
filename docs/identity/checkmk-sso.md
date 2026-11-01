@@ -79,6 +79,8 @@ Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML au
 | Roles | attribute `https://iseja.net/claims/groups`: `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` | `sec.app.checkmk.admin` → `admin` |
 | Contact groups | type "map" on the same attribute: `sec.app.checkmk.operator` → `all` | none |
 
+**Changing a connection later:** the REST API of 2.5.0p15 can create, read and delete a SAML connection but not update one, and deleting it risks the users it created. Edit it in *Setup → Users → SAML authentication*, or, as done for the group rename of 2026-11-01, change `etc/check_mk/multisite.d/wato/user_connections.mk` as the site user (keep a backup copy, check that the file still parses, then read the connection back with the REST `GET`). See [`ucs-groups.md`](ucs-groups.md#migration-of-the-first-names).
+
 The connections were accepted with the Ultimate sites in the free licence state, so the licence does not block SAML configuration. The REST body mirrors the table: `general_properties` (`id`, `name`), `connection_config` (`checkmk_server_url`, `identity_provider_metadata` of type `url`), `security` (`signing_certificate` of type `builtin`) and `users` (`id_attribute`, `full_name_attribute`, `email_attribute`, `contact_groups` and `roles` of type `map`). After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
 
 ## First login and activation
