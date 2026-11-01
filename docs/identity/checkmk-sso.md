@@ -15,36 +15,36 @@ The Ultimate sites speak SAML. Keycloak is the identity provider and Checkmk is 
 | Part | Where it lives |
 | --- | --- |
 | SAML clients and mappers in Keycloak | Code: the `saml_clients` input of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) (and `qa`), module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-realm) |
-| UCS groups `app-checkmk-*` | `udm` on a domain controller, see [below](#ucs-groups) |
+| UCS groups `sec.app.checkmk.*` | `udm` on a domain controller, see [below](#ucs-groups) |
 | SAML connections in Checkmk | By hand in the site, see [below](#checkmk-side). The provider of [ADR 0015](../decisions/0015-checkmk-configuration-as-code.md) has no SAML resource |
 
 ## Access model
 
-Realm membership (`idm-users`, `idm-admins`) only admits an account to a realm; a role in Checkmk needs an `app-checkmk-*` group.
+Realm membership (`sec.idm.users`, `sec.idm.admins`) only admits an account to a realm; a role in Checkmk needs a `sec.app.checkmk.*` group.
 
 | Account | Realm | UCS group | Checkmk role |
 | --- | --- | --- | --- |
-| `sebi-adm` | `admin` | `app-checkmk-admin` | `admin` |
-| `sebi` | `iseja` | `app-checkmk-operator` | `user`, plus contact group `all` |
-| `mary` | `iseja` | `app-checkmk-readonly` | `guest` |
+| `sebi-adm` | `admin` | `sec.app.checkmk.admin` | `admin` |
+| `sebi` | `iseja` | `sec.app.checkmk.operator` | `user`, plus contact group `all` |
+| `mary` | `iseja` | `sec.app.checkmk.readonly` | `guest` |
 
 - The built-in role `user` can acknowledge and run commands but only sees hosts of its contact groups, so `sebi` is mapped into the contact group `all`, which exists on `dev_k8s` and `qa_k8s`. `sebi-adm` stays out of `all`. No custom role is created.
 - The mail rule notifies all contacts of an object, so membership of `all` plus an e-mail address makes a user a recipient. The e-mail attribute is therefore only sent where notifications are on: the `iseja` client of `qa_k8s` (`include_email`), not `dev_k8s`. See [`monitoring-notifications.md`](../reference/monitoring-notifications.md).
-- `mary` has a UCS account but is not in `idm-users` yet. Adding her grants a second person access to the `iseja` realm, so it is a separate decision.
+- `mary` is in `sec.idm.users` (added 2026-11-02, see [Changing who has access](#changing-who-has-access)): membership of that group grants access to the `iseja` realm, so adding an account there is a decision of its own.
 
 ## UCS groups
 
-Done once for the domain, as `root` on a domain controller, like the realm groups in [`keycloak-realms.md`](keycloak-realms.md#ucs-setup). The groups can be empty; the `(cn=app-*)` filter of the realms imports them at the next sync.
+Done once for the domain, as `root` on a domain controller, like the realm groups in [`keycloak-realms.md`](keycloak-realms.md#ucs-setup); the naming scheme is in [`ucs-groups.md`](ucs-groups.md). The groups can be empty; the `(cn=sec.app.*)` filter of the realms imports them at the next sync.
 
 ```sh
 BASE="dc=dir,dc=iseja,dc=net"
 
-udm groups/group create --position "cn=groups,$BASE" --set name=app-checkmk-admin    --set description="Checkmk role admin (admin realm accounts)"
-udm groups/group create --position "cn=groups,$BASE" --set name=app-checkmk-operator --set description="Checkmk role user plus contact group all (iseja realm accounts)"
-udm groups/group create --position "cn=groups,$BASE" --set name=app-checkmk-readonly --set description="Checkmk role guest (iseja realm accounts)"
+udm groups/group create --position "cn=groups,$BASE" --set name=sec.app.checkmk.admin    --set description="Checkmk role admin (admin realm accounts)"
+udm groups/group create --position "cn=groups,$BASE" --set name=sec.app.checkmk.operator --set description="Checkmk role user plus contact group all (iseja realm accounts)"
+udm groups/group create --position "cn=groups,$BASE" --set name=sec.app.checkmk.readonly --set description="Checkmk role guest (iseja realm accounts)"
 
-udm groups/group modify --dn "cn=app-checkmk-admin,cn=groups,$BASE"    --append users="uid=sebi-adm,cn=users,$BASE"
-udm groups/group modify --dn "cn=app-checkmk-operator,cn=groups,$BASE" --append users="uid=sebi,cn=users,$BASE"
+udm groups/group modify --dn "cn=sec.app.checkmk.admin,cn=groups,$BASE"    --append users="uid=sebi-adm,cn=users,$BASE"
+udm groups/group modify --dn "cn=sec.app.checkmk.operator,cn=groups,$BASE" --append users="uid=sebi,cn=users,$BASE"
 ```
 
 ## Keycloak side
@@ -55,7 +55,7 @@ The unit creates, per site, one client in `iseja` and one in `admin`, with the e
 | --- | --- |
 | `https://iseja.net/claims/userid` | the username |
 | `https://iseja.net/claims/alias` | the username |
-| `https://iseja.net/claims/groups` | the names of the user's `app-*` groups, multi-valued |
+| `https://iseja.net/claims/groups` | the names of the user's `sec.app.*` groups, multi-valued |
 | `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` |
 
 The `https://iseja.net/claims/` prefix is only a namespace that makes the attribute names unique, like an XML namespace: nothing is ever fetched from it, it need not resolve, and it is the same in every environment (it is not replaced by `dev-auth.dev.iseja.net` or any other host). It has to be a URL because Checkmk insists on a user ID attribute name that starts with `http`. It is the default of `saml_claims` in the module and can be overridden there, but the Keycloak mappers and the Checkmk connection must use the same names.
@@ -76,8 +76,8 @@ Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML au
 | User ID attribute | `https://iseja.net/claims/userid` | same |
 | Full name attribute | `https://iseja.net/claims/alias` | same |
 | E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` only | not set |
-| Roles | attribute `https://iseja.net/claims/groups`: `app-checkmk-operator` → `user`, `app-checkmk-readonly` → `guest` | `app-checkmk-admin` → `admin` |
-| Contact groups | type "map" on the same attribute: `app-checkmk-operator` → `all` | none |
+| Roles | attribute `https://iseja.net/claims/groups`: `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` | `sec.app.checkmk.admin` → `admin` |
+| Contact groups | type "map" on the same attribute: `sec.app.checkmk.operator` → `all` | none |
 
 The connections were accepted with the Ultimate sites in the free licence state, so the licence does not block SAML configuration. The REST body mirrors the table: `general_properties` (`id`, `name`), `connection_config` (`checkmk_server_url`, `identity_provider_metadata` of type `url`), `security` (`signing_certificate` of type `builtin`) and `users` (`id_attribute`, `full_name_attribute`, `email_attribute`, `contact_groups` and `roles` of type `map`). After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
 
@@ -94,13 +94,13 @@ A user that Checkmk creates at its first SAML login is a **pending change** in t
 
 A UCS group change takes three steps to reach a Checkmk login, and the middle one is **not immediate**:
 
-1. **UCS:** add or remove the account in the `app-checkmk-*` group (and in `idm-users` or `idm-admins` for the realm), see [UCS groups](#ucs-groups). Both domain controllers show it at once (`memberOf`).
+1. **UCS:** add or remove the account in the `sec.app.checkmk.*` group (and in `sec.idm.users` or `sec.idm.admins` for the realm), see [UCS groups](#ucs-groups). Both domain controllers show it at once (`memberOf`).
 2. **Keycloak:** the federation reads the group membership of an imported user only when it syncs that user. The changed-users sync runs every **3600 s** (`ldap.changed_sync_period`) and the full sync every 86400 s, so a change takes up to an hour to arrive. The interval stays at one hour on purpose (owner decision, 2026-11-02); a shorter `changed_sync_period` in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) would apply to every environment. To skip the wait, trigger it in the admin console of the realm under *User federation → ucs → Sync changed users* (or `POST .../user-storage/<id>/sync?action=triggerChangedUsersSync`).
 3. **Checkmk:** roles and contact groups are applied at each login, so the next login after step 2 is enough. A newly created user still needs the [activation](#first-login-and-activation).
 
-Seen on 2026-11-02 in `dev_k8s`: `mary` was added to `idm-users` and `app-checkmk-readonly` and her login failed, while Keycloak still held her as an imported user without groups; one changed-users sync later `app-checkmk-readonly` appeared in Keycloak and her logins worked in `dev_k8s` and `qa_k8s`.
+Seen on 2026-11-02 in `dev_k8s`: `mary` was added to `sec.idm.users` and `sec.app.checkmk.readonly` and her login failed, while Keycloak still held her as an imported user without groups; one changed-users sync later `sec.app.checkmk.readonly` appeared in Keycloak and her logins worked in `dev_k8s` and `qa_k8s`.
 
-**A user without any `app-checkmk-*` group cannot log in.** Keycloak then sends no groups attribute at all, and Checkmk refuses the login with `Configured user attribute cannot be found in response` in `var/log/web.log` of the site (logger `cmk.web.saml2`, owner-tested on `dev_k8s`, 2026-11-02). The same message appears for a user whose group change has not reached Keycloak yet, so that log line alone does not say which of the two it is: look at the user's *Groups* in the Keycloak admin console.
+**A user without any `sec.app.checkmk.*` group cannot log in.** Keycloak then sends no groups attribute at all, and Checkmk refuses the login with `Configured user attribute cannot be found in response` in `var/log/web.log` of the site (logger `cmk.web.saml2`, owner-tested on `dev_k8s`, 2026-11-02). The same message appears for a user whose group change has not reached Keycloak yet, so that log line alone does not say which of the two it is: look at the user's *Groups* in the Keycloak admin console.
 
 ## Kerberos
 
