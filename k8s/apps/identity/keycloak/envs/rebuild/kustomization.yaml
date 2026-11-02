@@ -21,6 +21,8 @@ patches:
                 containers:
                   - name: upload
                     env:
+                      - name: AGE_RECIPIENTS
+                        value: age1lskv78f4mv8fg59vxuw6j5qknp4090g5gv7yppakd36wly6rsaas2c4vfh
                       - name: BUCKET
                         value: rebuild-keycloak-db
     target:
