@@ -1,6 +1,6 @@
 # Observability implementation plan
 
-**Date:** 2026-09-28. **Reviewed:** 2026-09-29. **Status:** Planning complete; implementation not started. **Assessment:** [September 2026 observability assessment](../audits/2026-09-observability.md). **Tracking:** [O11Y umbrella issue](https://github.com/isejalabs/homelab/issues/71).
+**Date:** 2026-09-28. **Reviewed:** 2026-09-29. **Status:** Superseded on 2026-11-02 by the [reconciled observability plan](2026-11-observability.md); kept for history. Originally: planning complete; implementation not started. **Assessment:** [September 2026 observability assessment](../audits/2026-09-observability.md). **Tracking:** [O11Y umbrella issue](https://github.com/isejalabs/homelab/issues/71).
 
 This plan preserves Checkmk metrics/history, closes capacity gaps and adds useful log collection and analysis with measured SSD overhead. Backend selection remains a pilot outcome. Recording the plan and issues does not deploy services or authorize unrelated upgrades, quota removal or Checkmk retirement.
 
