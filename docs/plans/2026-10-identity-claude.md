@@ -74,7 +74,7 @@ Points where this pass agrees with the first pass without change: UCS stays auth
    │  Keycloak (Operator, 2 replicas) ── CloudNativePG (1–2 instances)       │
    │     realm "iseja": LDAP filter = everyday users, Kerberos SPNEGO,       │
    │                    password → 2nd factor                                │
-   │     realm "admin": LDAP filter = *-adm in group idm-admins,             │
+   │     realm "admin": LDAP filter = *-adm in group sec.idm.admins,         │
    │                    password + WebAuthn (TOTP fallback), no Kerberos      │
    │  Backups: CNPG → RustFS (S3); realm config → Git (OpenTofu)              │
    └─────────────────────────────────────────────────────────────────────────┘
@@ -96,11 +96,11 @@ One stable issuer hostname per instance, for example `auth.iseja.net` (prod) and
 
 Authorization stays in UCS groups, so there is one place to grant and audit access:
 
-- `idm-users`: everyday accounts allowed into the `iseja` realm (family included).
-- `idm-admins`: `*-adm` accounts only; the `admin` realm's LDAP filter admits nothing else.
-- Per-app role groups, for example `app-immich-users`, `app-longhorn-admins`, `app-proxmox-admins`, `app-k8s-admins`, `app-k8s-viewers`. Keycloak passes them in a `groups` claim; each app maps them to its roles.
+- `sec.idm.users`: everyday accounts allowed into the `iseja` realm (family included).
+- `sec.idm.admins`: `*-adm` accounts only; the `admin` realm's LDAP filter admits nothing else.
+- Per-app role groups, for example `sec.app.immich.users`, `sec.app.longhorn.admins`, `sec.app.proxmox.admins`, `sec.app.k8s.admins`, `sec.app.k8s.viewers`. Keycloak passes them in a `groups` claim; each app maps them to its roles.
 
-`sebi` is in `idm-users`; `sebi-adm` is in `idm-admins` plus the admin app groups. Nobody is in both realms' filters with the same account.
+`sebi` is in `sec.idm.users`; `sebi-adm` is in `sec.idm.admins` plus the admin app groups. Nobody is in both realms' filters with the same account.
 
 ### Kerberos SPNEGO
 
@@ -165,7 +165,7 @@ Levels 2 and 3 require the service to authenticate through Keycloak (OIDC, SAML,
 | Kubernetes API ([#1766](https://github.com/isejalabs/homelab/issues/1766)) | Native OIDC (structured authn config) + kubelogin | admin (and iseja for read-only, optional) | `talosctl kubeconfig` | Verify Talos machine-config support for structured authn |
 | Flux Operator UI ([#1726](https://github.com/isejalabs/homelab/issues/1726)) | Native OIDC, Kubernetes impersonation | admin | `kubectl` via break-glass kubeconfig | Verified that Flux Operator documents a Keycloak SSO guide; requires ≥ 0.40.0 (impersonation bypass with empty claims fixed, GO-2026-4351) |
 | Longhorn ([#1725](https://github.com/isejalabs/homelab/issues/1725)) | oauth2-proxy + `CiliumNetworkPolicy` | admin | `kubectl port-forward` to `longhorn-frontend` | Monitoring keeps its own Basic Auth path ([#1714](https://github.com/isejalabs/homelab/issues/1714)) |
-| Zigbee2MQTT ([#1767](https://github.com/isejalabs/homelab/issues/1767)) | oauth2-proxy | iseja (group `app-z2m-users`) | port-forward | After [#1682](https://github.com/isejalabs/homelab/issues/1682) |
+| Zigbee2MQTT ([#1767](https://github.com/isejalabs/homelab/issues/1767)) | oauth2-proxy | iseja (group `sec.app.z2m.users`) | port-forward | After [#1682](https://github.com/isejalabs/homelab/issues/1682) |
 | Immich ([#1768](https://github.com/isejalabs/homelab/issues/1768)) | Native OIDC, mobile redirect | iseja | Immich local admin | After [#413](https://github.com/isejalabs/homelab/issues/413); needs a trusted certificate |
 | actualbudget (new) | Native OpenID | iseja | Server password | Phase 0: confirm deployed version supports it |
 | AdGuard (new) | oauth2-proxy, or keep local | admin | Local user | Low priority |

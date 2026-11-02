@@ -67,20 +67,22 @@ locals {
     bind_item_title = "keycloak-ldap-bind#${local.env}"
   }
 
+  # Group names: docs/identity/ucs-groups.md. `sec.idm.*` admit an account to a realm, `sec.app.*` are the application roles
+  # sent in the groups claim. Both filters read direct membership only, so those groups must hold accounts, not groups.
   realms = {
     iseja = {
       display_name  = "Iseja"
       users_dn      = "cn=users,${local.ldap_base_dn}"
-      user_filter   = "(memberOf=cn=idm-users,cn=groups,${local.ldap_base_dn})"
+      user_filter   = "(memberOf=cn=sec.idm.users,cn=groups,${local.ldap_base_dn})"
       groups_dn     = "cn=groups,${local.ldap_base_dn}"
-      groups_filter = "(cn=app-*)"
+      groups_filter = "(cn=sec.app.*)"
     }
     admin = {
       display_name  = "Admin"
       users_dn      = "cn=users,${local.ldap_base_dn}"
-      user_filter   = "(memberOf=cn=idm-admins,cn=groups,${local.ldap_base_dn})"
+      user_filter   = "(memberOf=cn=sec.idm.admins,cn=groups,${local.ldap_base_dn})"
       groups_dn     = "cn=groups,${local.ldap_base_dn}"
-      groups_filter = "(cn=app-*)"
+      groups_filter = "(cn=sec.app.*)"
     }
   }
 }
