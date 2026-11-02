@@ -102,13 +102,15 @@ The existing library is imported once into Immich's upload library (copied or mo
 
 ## Owner's input
 
-Answers of 2026-11-02 to the first round of questions:
+Answers of 2026-11-02:
 
 1. **Phone media in LrC:** not needed; Immich is enough for them. This removes the main reason to consider option 1.
 2. **Layout and creator:** folders are `YEAR/MONTH/DAY-Title`; the creator is in the IPTC creator field and in collections. The historical library therefore becomes **one external library**, owned by one account, with the creator carried as a tag.
 3. **XMP:** writing is already enabled, so ratings, keywords and captions of RAW files are in sidecars and those of JPEG/HEIC in the files. Backup of `fiona` is borgbackup, on-site and off-site.
 4. **RAW:** `.NEF` (Nikon) and `.ARW` (Sony; first given as `.CRW`, corrected by the owner the same day). RAWs stay visible; there is mostly no JPEG next to them, and Immich does not apply LrC develop settings.
 5. **Pick flags, colour labels:** not needed. **Collections** should become Immich albums, otherwise they are lost.
+6. **Renditions:** in a separate rendition tree, not next to the RAWs.
+7. **Owner of the historical library:** `sebi`.
 
 ## Decision
 
@@ -118,19 +120,19 @@ It is the only option in which quick sharing, one master per asset and the exist
 
 Rules that go with it:
 
-1. The LrC library is mounted **read-only** into every Immich environment ([#2144](https://github.com/isejalabs/homelab/issues/2144)) as one external library. Immich never deletes or rewrites a file LrC owns.
+1. The LrC library is mounted **read-only** into every Immich environment ([#2144](https://github.com/isejalabs/homelab/issues/2144)) as one external library, owned by `sebi`. Immich never deletes or rewrites a file LrC owns. Other family members see it through partner sharing (without people/faces) and through shared albums.
 2. LrC keeps writing metadata to XMP automatically, so ratings, keywords and captions reach Immich on the next rescan. Metadata for these assets is edited in LrC, not in Immich.
 3. LrC does not move or rename folders or files once Immich has indexed them; a reorganisation counts as a migration and is planned like one, because it drops Immich albums and faces for the moved assets.
 4. Phone media live only in the Immich upload library, one storage label per person. LrC does not catalog them.
 5. **Creator as keyword:** LrC assigns a keyword such as `Creator|<name>` to every photo, derived once from the IPTC creator field (and the per-person collections where the field is empty) and kept up for new imports. Immich shows it as a tag, which is searchable and works for every viewer.
 6. **Collections become albums once:** the existing LrC collections are turned into Immich albums of the external-library assets, by matching each collection's file paths to Immich assets through the API, not by publishing copies. After that, albums are made in Immich, for both kinds of media.
-7. **RAW renditions only where needed:** an unedited RAW is shown as Immich renders it. A RAW with LrC adjustments (an LrC smart collection "has adjustments") gets a rendered JPEG exported by LrC and stacked with its RAW in Immich, rendition on top. Where the renditions live and how they are kept in step with later edits is settled by the PoC.
+7. **RAW renditions only where needed, in a separate tree:** an unedited RAW is shown as Immich renders it. A RAW with LrC adjustments (an LrC smart collection "has adjustments") gets a rendered JPEG exported by LrC into a rendition tree that mirrors the library's folders (`renditions/YEAR/MONTH/DAY-Title/<name>.jpg`), so LrC's own folders stay unchanged and the RAW's sidecar is never next to a JPEG of the same name. The tree is a second read-only external library, also owned by `sebi`; each rendition is stacked with its RAW in Immich, rendition on top, matched by folder and base name. How the tree is kept in step with later edits is settled by the PoC.
 8. Deletes happen in the master: LrC for camera media, Immich for phone media.
 
 ## Open questions
 
-- RAW renditions (rule 7): next to the RAW in the same folder (simple, but adds files to LrC's folders and needs a stack per pair), or in a separate rendition tree with its own external library? And re-export by hand, or through an LrC publish service so later edits are picked up?
-- Which account owns the historical external library, and how do the other family members see it? Partner sharing does not share people/faces, so a viewer cannot browse that library by person. Notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/) are to be added to [#2150](https://github.com/isejalabs/homelab/issues/2150), where the accounts are set up.
+- Rendition tree (rule 7): how LrC keeps it mirrored and current. An export preset can write into a folder that mirrors the source folder only when run per folder; a publish service (LrC's "Hard Drive" service or a plugin) re-exports edited photos automatically but may not keep the folder structure. To be tried in the PoC.
+- How the other family members see the historical library: partner sharing does not share people/faces, so they cannot browse it by person; shared albums work. Notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/) are to be added to [#2150](https://github.com/isejalabs/homelab/issues/2150), where the accounts are set up.
 - Collection-to-album migration (rule 6): check for an existing community tool that reads the LrC catalog before writing one ("Reuse before you build").
 
 ## Proof of concept
@@ -142,7 +144,7 @@ Runs on the `qa` instance ([#2146](https://github.com/isejalabs/homelab/issues/2
 3. **XMP from LrC:** in the catalog copy, change rating, keywords, caption and GPS on a RAW, a JPEG and a HEIC; let LrC write the metadata; rescan. [Changes appear in Immich; the asset keeps its ID, albums and faces.]
 4. **Creator keyword:** assign `Creator|<name>` keywords from the IPTC creator field in the catalog copy; rescan. [Tags appear in Immich and can be searched.]
 5. **RAW rendering:** compare Immich's rendering of unedited and edited `.NEF`/`.ARW` with and without "Prefer embedded preview", against LrC. [Unedited RAWs acceptable without a rendition; edited ones need one, as expected.]
-6. **RAW renditions:** export renditions for the edited RAWs in both candidate locations; stack them with their RAWs; check which asset an `IMG_0001.xmp` sidecar applies to when a RAW and its JPEG share a base name. [One visible stack per photo; no wrong metadata.]
+6. **RAW renditions:** export renditions for the edited RAWs into the mirrored rendition tree, by an export preset and by a publish service; index the tree as a second read-only external library; stack each rendition with its RAW; change an edit in LrC and check the rendition follows. [One visible stack per photo; the rendition carries the RAW's metadata; the chosen way keeps the tree current with little effort.]
 7. **Collections to albums:** create albums for two LrC collections by matching their file paths to Immich assets. [Album contents match the collections; no copies uploaded.]
 8. **Move in LrC:** move one folder in LrC; rescan. [Confirms the documented loss of Immich-only metadata, so rule 3 is justified.]
 9. **Phone upload and sharing:** upload from two accounts with storage labels; partner sharing in both directions. [Folder layout as designed; Live Photos complete; what the partner can and cannot see is recorded.]
@@ -151,8 +153,8 @@ Runs on the `qa` instance ([#2146](https://github.com/isejalabs/homelab/issues/2
 
 ## Consequences
 
-- `fiona` needs, per environment, a writable dataset for the upload library and its cache and a read-only export of the LrC library; the upload dataset holds originals and must be in the borgbackup on-site and off-site sets like the LrC library, the cache dataset need not be ([#2144](https://github.com/isejalabs/homelab/issues/2144)).
+- `fiona` needs, per environment, a writable dataset for the upload library and its cache and read-only exports of the LrC library and the rendition tree (the rendition tree is regenerable from LrC, so its backup is optional); the upload dataset holds originals and must be in the borgbackup on-site and off-site sets like the LrC library, the cache dataset need not be ([#2144](https://github.com/isejalabs/homelab/issues/2144)).
 - The Immich database is the only place where albums, faces and shares exist, for both kinds of media. Losing it does not lose photos but does lose that organisation, which is why the database backup and restore drill ([#2145](https://github.com/isejalabs/homelab/issues/2145)) come before any real import.
 - Lightroom Mobile is replaced for uploads ([#2150](https://github.com/isejalabs/homelab/issues/2150)); the Adobe Cloud download step for phone media goes away, and LrC stops receiving phone media.
-- The existing library is indexed, not imported: the full "import" in [#2151](https://github.com/isejalabs/homelab/issues/2151) is a scan of the read-only external library, plus three one-off jobs: creator keywords in LrC, collections to albums, renditions for edited RAWs.
+- The existing library is indexed, not imported: the full "import" in [#2151](https://github.com/isejalabs/homelab/issues/2151) is a scan of the two read-only external libraries (originals and renditions), plus three one-off jobs: creator keywords in LrC, collections to albums, renditions for edited RAWs.
 - A later move to option 3 stays possible: the external library can be imported into the upload library in batches once LrC is no longer used for camera media.
