@@ -20,17 +20,40 @@ spec:
                 - /bin/sh
                 - -ec
                 - |
-                  # Keep the newest 14 dumps; the dump just uploaded is always among them.
-                  name="keycloak-$(date -u +%Y-%m-%dT%H%M%SZ).dump"
+                  # Encrypts the verified dump to the age public key(s) in AGE_RECIPIENTS, so the private key never needs
+                  # to be in the cluster, uploads it and keeps the newest 14 dumps. A plaintext dump is never uploaded.
+                  # HEARTBEAT_URL (optional) is pinged after the whole run, and on failure with /fail appended.
+                  ping() {
+                    [ -n "${HEARTBEAT_URL:-}" ] || return 0
+                    curl -fsS -m 10 --retry 3 -o /dev/null "${HEARTBEAT_URL}$1" || echo "heartbeat ping failed" >&2
+                  }
+                  trap 'rc=$?; [ "${rc}" -eq 0 ] || ping /fail' EXIT
+                  case "${AGE_RECIPIENTS}" in
+                    age1*) ;;
+                    *) echo "AGE_RECIPIENTS must hold at least one age public key (age1...), see docs/identity/keycloak-backup-restore.md" >&2; exit 1 ;;
+                  esac
+                  set --
+                  for recipient in ${AGE_RECIPIENTS}; do set -- "$@" -r "${recipient}"; done
+                  name="keycloak-$(date -u +%Y-%m-%dT%H%M%SZ).dump.age"
                   test -s /dump/keycloak.dump
-                  aws s3 cp /dump/keycloak.dump "s3://${BUCKET}/${name}" --only-show-errors
+                  /age/age "$@" -o /dump/keycloak.dump.age /dump/keycloak.dump
+                  rm /dump/keycloak.dump
+                  test -s /dump/keycloak.dump.age
+                  aws s3 cp /dump/keycloak.dump.age "s3://${BUCKET}/${name}" --only-show-errors
                   aws s3 ls "s3://${BUCKET}/${name}"
-                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
+                  # Only keycloak-* objects are candidates for pruning, and the dump just uploaded is skipped by name, so a
+                  # clock or sort problem can never delete it.
+                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix keycloak- --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
                   for key in $old; do
                     [ "$key" = "None" ] && break
+                    [ "$key" = "${name}" ] && continue
                     aws s3 rm "s3://${BUCKET}/${key}" --only-show-errors
                   done
+                  ping ""
               env:
+                - name: AGE_RECIPIENTS
+                  # space separated age public keys (not secret); the private key is kept outside the cluster
+                  value: TODO-add-the-age-public-key
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:
@@ -52,6 +75,13 @@ spec:
                 - name: BUCKET
                   # bucket name is rewritten per environment (<env>-keycloak-db)
                   value: base-keycloak-db
+                - name: HEARTBEAT_URL
+                  # healthchecks.io ping URL; only the environments that register a check deliver the Secret
+                  valueFrom:
+                    secretKeyRef:
+                      name: keycloak-db-heartbeat
+                      key: HEARTBEAT_URL
+                      optional: true
                 - name: HOME
                   value: /tmp
               resources:
@@ -66,6 +96,9 @@ spec:
                   drop:
                     - ALL
               volumeMounts:
+                - name: age
+                  mountPath: /age
+                  readOnly: true
                 - name: dump
                   mountPath: /dump
           initContainers:
@@ -74,9 +107,12 @@ spec:
               # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
               image: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce
               command:
-                - pg_dump
-                - --format=custom
-                - --file=/dump/keycloak.dump
+                - /bin/sh
+                - -ec
+                - |
+                  pg_dump --format=custom --file=/dump/keycloak.dump
+                  # pg_restore must be able to read the table of contents, else the job fails before anything is uploaded
+                  pg_restore --list /dump/keycloak.dump > /dev/null
               env:
                 - name: PGDATABASE
                   valueFrom:
@@ -112,6 +148,40 @@ spec:
               volumeMounts:
                 - name: dump
                   mountPath: /dump
+            - name: fetch-age
+              # the aws-cli image is already pulled for the upload step and has curl and python3, but no tar and no age
+              image: public.ecr.aws/aws-cli/aws-cli:2.39.3@sha256:d557b3524475d70dd3104cf44d96568ee3188897b73a6ece2b37aa50e1af362f
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  # No image we use ships age, so the pinned release is fetched and checked before it is used. Bump
+                  # version and sha256 together by hand (the GitHub release asset's digest): Renovate cannot update the hash.
+                  version=v1.3.2
+                  sha256=cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+                  test "$(uname -m)" = x86_64
+                  curl -fsSL --retry 3 -o /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/download/${version}/age-${version}-linux-amd64.tar.gz"
+                  echo "${sha256}  /tmp/age.tar.gz" | sha256sum -c -
+                  python3 -c 'import tarfile; open("/age/age", "wb").write(tarfile.open("/tmp/age.tar.gz").extractfile("age/age").read())'
+                  chmod 0755 /age/age
+                  /age/age --version
+              env:
+                - name: HOME
+                  value: /tmp
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: age
+                  mountPath: /age
           restartPolicy: Never
           securityContext:
             fsGroup: 26
@@ -121,6 +191,9 @@ spec:
             seccompProfile:
               type: RuntimeDefault
           volumes:
+            - name: age
+              emptyDir:
+                sizeLimit: 32Mi
             - name: dump
               emptyDir:
                 sizeLimit: 256Mi
