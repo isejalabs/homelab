@@ -237,6 +237,7 @@ nav:
   - "Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
   - "Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
   - "Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+  - "Media source of truth: Lightroom Classic and Immich": docs/decisions/0018-media-source-of-truth.md
 - Audits and plans (dated snapshots):
   - Audits:
     - Index: docs/audits/README.md
