@@ -11,7 +11,7 @@ planning — draft for [#2143](https://github.com/isejalabs/homelab/issues/2143)
 - 110,000+ photos and videos, growing by 4,000–10,000 per year, catalogued in Lightroom Classic (LrC) on the owner's Mac. The originals are on the NAS `fiona`, which stays the media datastore; `fiona` is backed up on-site and off-site with borgbackup.
 - The LrC library is organised by date folders, `YEAR/MONTH/DAY-Title`. The creator of a photo is recorded in the IPTC creator field and through collections, not through the folder.
 - LrC writes metadata to XMP automatically ("Automatically write changes into XMP" is enabled).
-- **Camera media** are copied to the Mac and imported by LrC. The RAW formats in the library are `.NEF` (Nikon) and `.CRW`; RAWs mostly have no JPEG next to them.
+- **Camera media** are copied to the Mac and imported by LrC. The RAW formats in the library are `.NEF` (Nikon) and `.ARW` (Sony); RAWs mostly have no JPEG next to them.
 - **Phone media** are uploaded by Lightroom Mobile to Adobe Cloud, into one destination folder per person, downloaded by LrC on the Mac, then deleted from Adobe Cloud to save space.
 - LrC syncs everything except videos back to Adobe Cloud as Smart Previews, which do not count against the 20 GB plan. Adobe Cloud is therefore no complete online archive: the videos are missing.
 - Images are mostly kept as they are. LrC is needed for RAW development and for the occasional edit.
@@ -45,7 +45,7 @@ There is no metadata flow from Immich to LrC. The LrC plugin [`bmachek/lrc-immic
 
 ### RAW files
 
-Immich renders a RAW file on its own, from the RAW data or, with "Prefer embedded preview", from the camera's embedded JPEG ([system settings](https://docs.immich.app/administration/system-settings)). LrC develop settings (exposure, white balance, crop) are stored as `crs:` fields in the XMP sidecar, which Immich does not read. So Immich shows an unedited RAW roughly as the camera would, and an edited RAW **without** its edits, including the crop. Immich has no automatic RAW + JPEG pairing; two files become two assets that can be stacked by hand, through the duplicates utility, or through the API. `.NEF` and `.CRW` are both supported ([source](https://github.com/immich-app/immich/blob/main/server/src/utils/mime-types.ts)).
+Immich renders a RAW file on its own, from the RAW data or, with "Prefer embedded preview", from the camera's embedded JPEG ([system settings](https://docs.immich.app/administration/system-settings)). LrC develop settings (exposure, white balance, crop) are stored as `crs:` fields in the XMP sidecar, which Immich does not read. So Immich shows an unedited RAW roughly as the camera would, and an edited RAW **without** its edits, including the crop. Immich has no automatic RAW + JPEG pairing; two files become two assets that can be stacked by hand, through the duplicates utility, or through the API. `.NEF` and `.ARW` are both supported ([source](https://github.com/immich-app/immich/blob/main/server/src/utils/mime-types.ts)).
 
 ### Users and sharing
 
@@ -107,7 +107,7 @@ Answers of 2026-11-02 to the first round of questions:
 1. **Phone media in LrC:** not needed; Immich is enough for them. This removes the main reason to consider option 1.
 2. **Layout and creator:** folders are `YEAR/MONTH/DAY-Title`; the creator is in the IPTC creator field and in collections. The historical library therefore becomes **one external library**, owned by one account, with the creator carried as a tag.
 3. **XMP:** writing is already enabled, so ratings, keywords and captions of RAW files are in sidecars and those of JPEG/HEIC in the files. Backup of `fiona` is borgbackup, on-site and off-site.
-4. **RAW:** `.NEF` and `.CRW`. RAWs stay visible; there is mostly no JPEG next to them, and Immich does not apply LrC develop settings.
+4. **RAW:** `.NEF` (Nikon) and `.ARW` (Sony; first given as `.CRW`, corrected by the owner the same day). RAWs stay visible; there is mostly no JPEG next to them, and Immich does not apply LrC develop settings.
 5. **Pick flags, colour labels:** not needed. **Collections** should become Immich albums, otherwise they are lost.
 
 ## Decision
@@ -129,7 +129,6 @@ Rules that go with it:
 
 ## Open questions
 
-- `.CRW` is Canon's early RAW format; Sony cameras write `.ARW`. Which one is in the library? Both are supported, so this only matters for the PoC subset.
 - RAW renditions (rule 7): next to the RAW in the same folder (simple, but adds files to LrC's folders and needs a stack per pair), or in a separate rendition tree with its own external library? And re-export by hand, or through an LrC publish service so later edits are picked up?
 - Which account owns the historical external library, and how do the other family members see it? Partner sharing does not share people/faces, so a viewer cannot browse that library by person. Notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/) are to be added to [#2150](https://github.com/isejalabs/homelab/issues/2150), where the accounts are set up.
 - Collection-to-album migration (rule 6): check for an existing community tool that reads the LrC catalog before writing one ("Reuse before you build").
@@ -138,11 +137,11 @@ Rules that go with it:
 
 Runs on the `qa` instance ([#2146](https://github.com/isejalabs/homelab/issues/2146)) against a copy of the library, never against the live data. Pass criteria are in brackets.
 
-1. **Subset:** copy one year (about 5,000 assets with `.NEF` and `.CRW`, edited and unedited RAWs, HEIC, Live Photos and videos) to a test dataset on `fiona`, together with the matching part of an LrC catalog copy.
+1. **Subset:** copy one year (about 5,000 assets with `.NEF` and `.ARW`, edited and unedited RAWs, HEIC, Live Photos and videos) to a test dataset on `fiona`, together with the matching part of an LrC catalog copy.
 2. **External library, read-only:** index the subset. [All assets appear; counts match the files on disk minus sidecars.]
 3. **XMP from LrC:** in the catalog copy, change rating, keywords, caption and GPS on a RAW, a JPEG and a HEIC; let LrC write the metadata; rescan. [Changes appear in Immich; the asset keeps its ID, albums and faces.]
 4. **Creator keyword:** assign `Creator|<name>` keywords from the IPTC creator field in the catalog copy; rescan. [Tags appear in Immich and can be searched.]
-5. **RAW rendering:** compare Immich's rendering of unedited and edited `.NEF`/`.CRW` with and without "Prefer embedded preview", against LrC. [Unedited RAWs acceptable without a rendition; edited ones need one, as expected.]
+5. **RAW rendering:** compare Immich's rendering of unedited and edited `.NEF`/`.ARW` with and without "Prefer embedded preview", against LrC. [Unedited RAWs acceptable without a rendition; edited ones need one, as expected.]
 6. **RAW renditions:** export renditions for the edited RAWs in both candidate locations; stack them with their RAWs; check which asset an `IMG_0001.xmp` sidecar applies to when a RAW and its JPEG share a base name. [One visible stack per photo; no wrong metadata.]
 7. **Collections to albums:** create albums for two LrC collections by matching their file paths to Immich assets. [Album contents match the collections; no copies uploaded.]
 8. **Move in LrC:** move one folder in LrC; rescan. [Confirms the documented loss of Immich-only metadata, so rule 3 is justified.]
