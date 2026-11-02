@@ -29,6 +29,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
 | Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](operations/checkmk-automation-user.md) |
+| Reach the homelab through the WireGuard hub on `srv3`, or move `gw4` and a client to it | [`wireguard-srv3.md`](operations/wireguard-srv3.md) |
 | Run or script Proxmox VM power and snapshot actions | [`proxmox-vm-power.md`](operations/proxmox-vm-power.md), [`proxmox-vm-snapshots.md`](operations/proxmox-vm-snapshots.md) |
 | Know what a project board status means | [`project-board.md`](operations/project-board.md) |
 
@@ -74,7 +75,7 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`). These change rarely and don't belong to any single app/infra folder.
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
-  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, project board statuses.
+  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
   - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites through it.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
