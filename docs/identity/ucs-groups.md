@@ -60,7 +60,7 @@ Not needed at the current size (a handful of accounts per group). If it is, in t
 
 ## Migration of the first names
 
-The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They keep those names in the live domain until the steps below are done (**status: not yet done**; the filters in the code already use the new names). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
+The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They were renamed in the live domain on 2026-11-01 (`dev` and `qa`, steps below; `prod` has no Keycloak yet). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
 
 ```sh
 BASE="dc=dir,dc=iseja,dc=net"
@@ -75,8 +75,8 @@ Between the rename and the `terragrunt apply` of the realm filters, the filters 
 
 1. **Merge** the pull request that changes the filters in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) (no apply happens on merge).
 2. **UCS:** rename the groups (above) and check `ldapsearch ... "(uid=sebi)" memberOf` returns `cn=sec.idm.users,...` ([`keycloak-realms.md`](keycloak-realms.md#ucs-setup)).
-3. **Keycloak:** from `main`, `terragrunt apply` the `keycloak-realm` unit of `dev` and then `qa` ([`keycloak-realms.md`](keycloak-realms.md#apply-and-verify)). In each realm, *User federation → ucs → Mappers → groups → Sync LDAP groups to Keycloak* imports the new names and drops the old ones, then *Sync changed users* (or wait up to an hour, see [`checkmk-sso.md`](checkmk-sso.md#changing-who-has-access)).
-4. **Checkmk:** in each SAML connection of `dev_k8s` and `qa_k8s` (four in all) replace the group names in the role and contact group mapping by the new ones ([`checkmk-sso.md`](checkmk-sso.md#checkmk-side)).
-5. **Verify** a login as `sebi`, `sebi-adm` and `mary` in both sites.
+3. **Keycloak:** from `main`, `terragrunt apply` the `keycloak-realm` unit of `dev` and then `qa` ([`keycloak-realms.md`](keycloak-realms.md#apply-and-verify)). In each realm, *User federation → ucs → Mappers → groups → Sync LDAP groups to Keycloak* imports the new names and drops the old ones, then *Sync changed users* (or wait up to an hour, see [`checkmk-sso.md`](checkmk-sso.md#changing-who-has-access)). The group sync is also an admin API call: `POST /admin/realms/<realm>/user-storage/<ucs-provider-id>/mappers/<groups-mapper-id>/sync?direction=fedToKeycloak` (the direction values are `fedToKeycloak` and `keycloakToFed`, not the console's wording); it answered `3 imported groups, 0 updated groups, 3 removed groups` in each of the four realms.
+4. **Checkmk:** in each SAML connection of `dev_k8s` and `qa_k8s` (four in all) replace the group names in the role and contact group mapping by the new ones ([`checkmk-sso.md`](checkmk-sso.md#checkmk-side)). Checkmk 2.5.0p15 has no REST call to change a SAML connection (only `GET`, `POST` and `DELETE`), and deleting one risks its users, which carry `connector: keycloak_iseja`. The change was therefore made in the site's `etc/check_mk/multisite.d/wato/user_connections.mk`, the file the setup page writes, as the site user with a backup copy in the site's `tmp/`; the REST `GET` then returned the new names.
+5. **Verify** a login as `sebi`, `sebi-adm` and `mary` in both sites. Checked: `ldapsearch` shows `memberOf: cn=sec.idm.users,...` for `sebi`, and the Keycloak user groups in `dev` and `qa` are `sebi` → `sec.app.checkmk.operator`, `sebi-adm` → `sec.app.checkmk.admin`, `mary` → `sec.app.checkmk.readonly`. The owner confirmed complete browser logins as `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s` on 2026-11-02.
 
 To roll back, rename the groups back and revert the pull request.
