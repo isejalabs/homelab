@@ -53,7 +53,7 @@ spec:
               env:
                 - name: AGE_RECIPIENTS
                   # space separated age public keys (not secret); the private key is kept outside the cluster
-                  value: TODO-add-the-age-public-key
+                  value: age1fzc0z67lmmd24dzrkj8s7kh9vu67tnt5stcvsnys64ygqssmw3zqp6073n
                 - name: AWS_ACCESS_KEY_ID
                   valueFrom:
                     secretKeyRef:

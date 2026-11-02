@@ -69,7 +69,7 @@ The dumps hold password hashes and MFA secrets, so each one is encrypted before 
 
 1. Generate the key pair on your workstation, offline: `age-keygen -o keycloak-db.agekey` (`brew install age`). The file holds the private key; the public key (`age1…`) is printed and can be shown again with `age-keygen -y keycloak-db.agekey`.
 2. Store the **private key** in 1Password in a vault that External Secrets and the cluster cannot read, not the `K8S` vault (for example your personal vault, item `keycloak-db age key`), and keep a second copy offline. A lost private key makes every dump unreadable.
-3. Put the **public key** into `AGE_RECIPIENTS` in [`cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/base/cronjob-dump.yaml). It is not secret and is committed. The value accepts several space separated keys, which is how a second recovery key or a rotation would be added. The base value `TODO-add-the-age-public-key` makes the job fail on purpose until this is done.
+3. Put the **public key** into `AGE_RECIPIENTS` in [`cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/base/cronjob-dump.yaml). It is not secret and is committed. The value accepts several space separated keys, which is how a second recovery key or a rotation would be added. Without a valid `age1...` value the job fails before the upload, so a missing key can never produce a plaintext dump.
 4. Delete `keycloak-db.agekey` from the workstation once both copies exist.
 
 **One key for all environments.** A dump from another environment is a documented flow ([A dump from another environment](#a-dump-from-another-environment)) and then needs only one private key. `prod` can get its own key later by overriding `AGE_RECIPIENTS` in `envs/prod/` the way the bucket name is overridden.
