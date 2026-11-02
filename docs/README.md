@@ -15,7 +15,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | See the stack diagram and reading order | [`architecture/overview.md`](architecture/overview.md), [`architecture/README.md`](architecture/README.md) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
-| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
+| Read the project history | The root README's [history](../README.md#-a-bit-of-history) |
 
 ### Build and operate a cluster
 
@@ -29,6 +29,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
 | Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](operations/checkmk-automation-user.md) |
+| Reach the homelab through the WireGuard hub on `srv3`, or move `gw4` and a client to it | [`wireguard-srv3.md`](operations/wireguard-srv3.md) |
 | Run or script Proxmox VM power and snapshot actions | [`proxmox-vm-power.md`](operations/proxmox-vm-power.md), [`proxmox-vm-snapshots.md`](operations/proxmox-vm-snapshots.md) |
 | Know what a project board status means | [`project-board.md`](operations/project-board.md) |
 
@@ -48,6 +49,8 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Configure realms and LDAP federation | [`keycloak-realms.md`](identity/keycloak-realms.md) |
 | Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](identity/keycloak-break-glass.md) |
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
+| Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
+| Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
 
 ### Troubleshoot
 
@@ -72,9 +75,9 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`). These change rarely and don't belong to any single app/infra folder.
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
-  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, project board statuses.
+  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, break-glass login, exposure, and database backup/restore.
+  - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites through it.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
@@ -155,7 +158,7 @@ Where it's signalled depends on the doc type, since each already has its own nat
   — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column of their folder's `README.md` index, since those tables are the entry point for those docs.
 - `decisions/*`: the ADR's own `## Status` section.
 - `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
-- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#folder-structure)).
+- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#-folder-structure)).
 
 ### Diagrams
 
@@ -167,7 +170,7 @@ Use a diagram where it shows something prose and lists show badly: a flow, a seq
 - **A diagram never replaces its text.** It sits next to a prose explanation that carries the same information, and every node name must match the repository (a component, folder or environment that exists today).
 - **Verify before merge.** A diagram, like any generated or drafted text, is not authoritative until it has been checked against the current repository configuration (see [Keeping this current](#keeping-this-current)). Update it in the same PR that changes what it shows.
 - **Syntax is checked in CI.** GitHub renders invalid Mermaid as an error box instead of failing anything, so [`docs-mermaid-check.yml`](../.github/workflows/docs-mermaid-check.yml) parses every fence (see [`architecture/ci.md`](architecture/ci.md)). To check locally, render a fence with the Mermaid CLI pinned in [`.mise.toml`](.mise.toml).
-- **One hand-authored image, stored in [`assets/`](assets).** The platform overview [`assets/platform-overview.svg`](assets/platform-overview.svg) is shown at the top of the root [`README.md`](../README.md). Its source of truth is [`architecture/overview.md`](architecture/overview.md); change both in the same PR. It follows the same rules as the Mermaid diagrams: colours as CSS variables with a dark-mode override, a transparent background, a system font stack, a `<title>` and `<desc>`, and animation only through SMIL (no scripts), switched off under `prefers-reduced-motion`.
+- **One hand-authored image, stored in [`assets/`](assets)** (the third-party project icons in [`assets/icons/`](assets/icons/README.md), shown in the [workload catalog](architecture/workloads.md), are not hand-authored and are kept as published; their sources are listed there). **The hand-authored one:** The platform overview [`assets/platform-overview.svg`](assets/platform-overview.svg) is shown at the top of the root [`README.md`](../README.md). Its source of truth is [`architecture/overview.md`](architecture/overview.md); change both in the same PR. It follows the same rules as the Mermaid diagrams: colours as CSS variables with a dark-mode override, a transparent background, a system font stack, a `<title>` and `<desc>`, and animation only through SMIL (no scripts), switched off under `prefers-reduced-motion`.
 
 ## Architecture and reference docs
 

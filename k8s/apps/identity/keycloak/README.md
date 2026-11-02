@@ -41,6 +41,38 @@ The subdomain is `auth`, not `keycloak`. The general scheme is in [`reference/en
 - **Reachability**: the `HTTPRoute` is attached to the `internal` Gateway only (LB address `10.8.<env-id>.80`, e.g. `10.8.3.80` in `dev`), so it answers from the LAN, not from the internet. What that exposes: [`keycloak-exposure.md`](../../../../docs/identity/keycloak-exposure.md).
 - **Login**: the `master` realm has a local bootstrap admin; username and password are in 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>`. The realms `iseja` and `admin` sign in through UCS. When UCS or a realm is down: [`keycloak-break-glass.md`](../../../../docs/identity/keycloak-break-glass.md).
 
+### Realm URLs
+
+The base URL above lands in the `master` realm. Every realm has its own address under the same host, and its own login session: signing in or out of one realm does not touch the others.
+
+| env | Realm `iseja` (everyday accounts), account console | Realm `admin` (`*-adm` accounts), account console |
+| --- | --- | --- |
+| `dev` | [https://dev-auth.dev.iseja.net/realms/iseja/account/](https://dev-auth.dev.iseja.net/realms/iseja/account/) | [https://dev-auth.dev.iseja.net/realms/admin/account/](https://dev-auth.dev.iseja.net/realms/admin/account/) |
+| `qa` | [https://qa-auth.qa.iseja.net/realms/iseja/account/](https://qa-auth.qa.iseja.net/realms/iseja/account/) | [https://qa-auth.qa.iseja.net/realms/admin/account/](https://qa-auth.qa.iseja.net/realms/admin/account/) |
+| `rebuild` | [https://rebuild-auth.rebuild.iseja.net/realms/iseja/account/](https://rebuild-auth.rebuild.iseja.net/realms/iseja/account/) | [https://rebuild-auth.rebuild.iseja.net/realms/admin/account/](https://rebuild-auth.rebuild.iseja.net/realms/admin/account/) |
+| `prod` (not deployed yet) | [https://auth.iseja.net/realms/iseja/account/](https://auth.iseja.net/realms/iseja/account/) | [https://auth.iseja.net/realms/admin/account/](https://auth.iseja.net/realms/admin/account/) |
+
+Paths below the base URL, for any realm `<realm>` (`master`, `iseja`, `admin`):
+
+| Path | What it is |
+| --- | --- |
+| `/realms/<realm>/account/` | Account console: sign in as a user of that realm, see and end own sessions ("Device activity") |
+| `/realms/<realm>/protocol/openid-connect/logout` | Ends the browser's SSO session in that realm (asks for confirmation) |
+| `/admin/master/console/#/<realm>` | Manage that realm; the console itself is signed in to `master` |
+| `/realms/<realm>/.well-known/openid-configuration` | OIDC discovery (issuer, endpoints) of that realm |
+
+### Signing out and ending sessions
+
+An application keeps its own session next to Keycloak's SSO session, so signing out of one does not sign out of the other. To sign in as a different user of an application, end both, in this order:
+
+1. **Sign out of the application** (for example Checkmk's user menu). Otherwise its own session survives and the next page load is still the old user.
+2. **End the Keycloak SSO session of the realm** the old user came from, by opening `/realms/<realm>/protocol/openid-connect/logout` of that realm and confirming. Without this the application's *Login with SSO* signs the old user straight in again, without a prompt.
+3. **Sign in again**; the login form now asks for credentials, and the new user must be in the realm the application trusts.
+
+To end sessions for a user from the server side instead of from their browser (the user is not at hand, or the browser's cookie is gone): open the admin console of `master`, switch to the realm, then *Users* → the user → *Sessions* and sign out the sessions, or *Sessions* in the realm menu to sign out all of them. The user's tokens stay valid until they expire (minutes), the application sessions as well.
+
+A private window, or a second browser profile, avoids all of this for a one-off test: it carries no cookies.
+
 ## Updates
 
 - **Keycloak version**: the `Keycloak` resource sets no `spec.image`, so the version is the one the operator ships. It follows the release of the [Keycloak operator](../../../infra/keycloak/keycloak-operator/README.md) (vendored under its `base/vendor/`).
