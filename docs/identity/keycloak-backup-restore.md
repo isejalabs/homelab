@@ -242,7 +242,16 @@ Done on 2026-11-01 for [#1939](https://github.com/isejalabs/homelab/issues/1939)
 | Retention | With 16 old dumps and an unrelated object in the bucket the three oldest dumps were pruned, the new dump and the unrelated object stayed |
 | Restore Job built by `keycloak-db-restore.sh` | `fetch-age` + `download` + `restore` for a `.age` key, only `download` + `restore` for a plain one; the download step decrypts with the mounted key and `pg_restore --exit-on-error` restores both realms. A wrong key fails with `no identity matched any of the recipients` and leaves no dump |
 
-**Not drilled**: a restore from an encrypted dump in a cluster (`qa` or `rebuild`), the temporary Secret path of the script against a live API server, the heartbeat against healthchecks.io, and the Checkmk check. The first two are the acceptance test of [#1939](https://github.com/isejalabs/homelab/issues/1939) and need the real age key and a cluster; they wait for the key and the owner's choice of environment.
+### Encrypted dump, in the `rebuild` cluster
+
+Done on 2026-11-02 for [#1939](https://github.com/isejalabs/homelab/issues/1939), with `rebuild` temporarily following the branch of the change and a throwaway age key that was discarded afterwards:
+
+| Step | Result |
+| --- | --- |
+| `kubectl create job --from=cronjob/keycloak-db-dump` | `dump`, `fetch-age` (checksum OK, v1.3.2) and `upload` completed in 14 s; `keycloak-2026-11-02T063902Z.dump.age` (239551 bytes) appeared next to the plain dumps in `rebuild-keycloak-db` |
+| `keycloak-db-restore.sh -e rebuild --identity <key>` | Selected the encrypted dump, fetched age, decrypted through the temporary Secret and restored into `keycloak_restore`: 101 tables, realm `master`, 1 user, the same as the live database. The Secret was gone afterwards |
+
+Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. **Not drilled**: the heartbeat against healthchecks.io and the Checkmk check; both wait for the check and the 1Password item.
 
 ### Observations of the manual drill
 
