@@ -1,6 +1,10 @@
-# Phase 0 inventory — Checkmk, Proxmox, loghost
+---
+date: 2026-09-29
+scope: Read-only SSH inventory for issue https://github.com/isejalabs/homelab/issues/1437 (Observability phase 0). Covers Checkmk site/RRD/backup inventory, Proxmox host capacity/SMART/backup-job inventory, and loghost syslog-ng/journald config. Does not cover RustFS/Longhorn/TrueNAS (separate pass) or the 7-day write-delta measurement (needs real elapsed time, not done here). No configuration was changed; no SMART self-tests were run; no USB backup disk was queried directly to avoid spin-up
+origin: produced by Claude (Anthropic's Claude Code), via read-only SSH commands against live infrastructure — not manually authored by the repository owner
+---
 
-**Date:** 2026-09-29. **Origin:** produced by Claude (Anthropic's Claude Code), via read-only SSH commands against live infrastructure — not manually authored by the repository owner. **Scope:** Read-only SSH inventory for [issue #1437](https://github.com/isejalabs/homelab/issues/1437) (Observability phase 0). Covers Checkmk site/RRD/backup inventory, Proxmox host capacity/SMART/backup-job inventory, and loghost syslog-ng/journald config. Does not cover RustFS/Longhorn/TrueNAS (separate pass) or the 7-day write-delta measurement (needs real elapsed time, not done here). No configuration was changed; no SMART self-tests were run; no USB backup disk was queried directly to avoid spin-up.
+# Phase 0 inventory — Checkmk, Proxmox, loghost
 
 Access used: root SSH (agent key) to `monitoring1/2`, `loghost`, `pve1/4/6`. `salt-master.home.iseja.net` was reachable as `localsebi` but `sudo` needs a password we didn't have, so `salt-key`/`salt '*' grains...`-based inventory was not available — anywhere below marked "via Salt" was NOT obtained and is a gap.
 

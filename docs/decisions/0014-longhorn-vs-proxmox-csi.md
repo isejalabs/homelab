@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Longhorn vs. proxmox-csi
-
-## Status
-
-current
 
 ## Context
 

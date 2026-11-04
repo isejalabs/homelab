@@ -1,6 +1,12 @@
-# Documentation Audit — October 2026, second pass (structure, presentation and publishing)
+---
+date: 2026-10-31
+status: Assessment complete; six follow-up issues created beneath https://github.com/isejalabs/homelab/issues/1336, one or more per finding (see Follow-up issues)
+scope: Documentation structure, navigation, readability, accuracy of entry points, diagrams, tooling and publishing, compared with the approach of https://github.com/mitchross/talos-argocd-proxmox. Explicitly not covered — the content of individual runbooks (not re-tested), public disclosure (owned by https://github.com/isejalabs/homelab/issues/1601), recovery gaps (https://github.com/isejalabs/homelab/issues/1600)
+origin: Claude Code, read-only review of the `main` checkout plus the public reference repository
+tracking: Related to the Documentation improvement journey https://github.com/isejalabs/homelab/issues/1336; complements, and deliberately does not repeat, the first October pass 2026-10-documentation.md
+---
 
-**Date:** 2026-10-31. **Status:** Assessment complete; six follow-up issues created beneath [#1336](https://github.com/isejalabs/homelab/issues/1336), one or more per finding (see [Follow-up issues](#follow-up-issues)). **Scope:** Documentation structure, navigation, readability, accuracy of entry points, diagrams, tooling and publishing, compared with the approach of [mitchross/talos-argocd-proxmox](https://github.com/mitchross/talos-argocd-proxmox). Explicitly not covered: the content of individual runbooks (not re-tested), public disclosure (owned by [#1601](https://github.com/isejalabs/homelab/issues/1601)), recovery gaps ([#1600](https://github.com/isejalabs/homelab/issues/1600)). **Origin:** Claude Code, read-only review of the `main` checkout plus the public reference repository. **Tracking:** Related to the [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); complements, and deliberately does not repeat, the [first October pass](2026-10-documentation.md).
+# Documentation Audit — October 2026, second pass (structure, presentation and publishing)
 
 ## Summary
 

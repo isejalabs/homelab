@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Flux over ArgoCD
-
-## Status
-
-current
 
 ## Context
 

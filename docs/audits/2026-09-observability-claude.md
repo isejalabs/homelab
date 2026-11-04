@@ -1,6 +1,10 @@
-# Observability assessment — independent pass (September 2026)
+---
+date: 2026-09-29
+status: Independent second assessment, produced for comparison; not a replacement
+scope: homelab metrics, capacity, logs, alerting, history and operating cost — the same brief as the owner's original request
+---
 
-**Date:** 2026-09-29. **Status:** Independent second assessment, produced for comparison; not a replacement. **Scope:** homelab metrics, capacity, logs, alerting, history and operating cost — the same brief as the owner's original request.
+# Observability assessment — independent pass (September 2026)
 
 This assessment was produced from scratch, without reading the already-merged [`2026-09-observability.md`](2026-09-observability.md) assessment, its companion [plan](../plans/2026-09-observability.md), or issue #71's recorded discovery answers, at the owner's explicit request to compare two independent analyses of the same input. It draws only on the owner's original as-is/requirements write-up, four clarifying answers gathered directly in this session (recurring budget ceiling up to ~€5/month; top candidate-selection factor is low SSD/resource write footprint; outage-resilience approach is a minimal free external heartbeat rather than a full cloud stack; authentication-log retention target is 90 days), and fresh inspection of both repositories. Where a conclusion here matches the earlier assessment, treat that as independent convergence, not reuse — this pass deliberately avoided rereading that material first.
 

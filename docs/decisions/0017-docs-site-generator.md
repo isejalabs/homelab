@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Documentation site generator: MkDocs with the Material theme
-
-## Status
-
-current
 
 ## Context
 

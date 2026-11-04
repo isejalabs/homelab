@@ -1,6 +1,11 @@
-# Observability assessment — September 2026
+---
+date: 2026-09-28
+reviewed: 2026-09-29
+status: Assessment complete for planning; live configuration and performance validation pending
+scope: Homelab metrics, capacity, logs, alerting, history and operating cost
+---
 
-**Date:** 2026-09-28. **Reviewed:** 2026-09-29. **Status:** Assessment complete for planning; live configuration and performance validation pending. **Scope:** Homelab metrics, capacity, logs, alerting, history and operating cost.
+# Observability assessment — September 2026
 
 This is a point-in-time assessment based on the owner's inventory and requirements, repository inspection and upstream documentation. It does not claim that live systems have been audited. The [implementation plan](../plans/2026-09-observability.md) records phases and acceptance criteria. Implementation has not started.
 
