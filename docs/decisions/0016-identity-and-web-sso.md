@@ -1,4 +1,5 @@
 ---
+id: ADR 0016
 status: planning
 accepted: 2026-10-21
 becomes-current: once the platform (https://github.com/isejalabs/homelab/issues/1826) runs in `prod`

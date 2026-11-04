@@ -5,6 +5,11 @@ is rewritten on disk; these hooks only adjust the rendered site:
 
 * links that leave the served pages (source files, directories, workflow files, files excluded from the
   site) are rewritten to the matching github.com blob/tree URL, since the target does not exist on the site;
+  a link to a directory whose README.md is a served page goes to that page instead (github.com shows the README
+  on the directory page, so the same relative link works on both);
+* a sidebar section title is only linked to a page when the nav calls that page `Index` (Material otherwise takes the
+  first README.md in the section, which links the title to one unit and hides that unit from the list), and a section
+  named under `extra.nav_section_links` in mkdocs.yml links to a page heading instead;
 * the relative `src` of a raw HTML `<img>` is rewritten to the image's URL relative to the page: MkDocs only
   resolves Markdown images, and a page is served one directory deeper than its source file (`docs/a/b.md` is
   `docs/a/b/`), so the path that works on github.com would be one level off on the site;
@@ -24,8 +29,12 @@ import re
 import subprocess
 from urllib.parse import unquote
 
+from mkdocs.structure.nav import Link, Section
+from mkdocs.structure.pages import Page
+
 log = logging.getLogger("mkdocs.hooks.footer")
 _footer = {"enabled": False}  # set in on_config: whether the history is deep enough to name a page's last commit
+_anchors = {}  # set in on_nav: src_uri of a page -> the heading ids that a section link into it needs, checked in on_page_content
 
 REPO_URL = "https://github.com/isejalabs/homelab"
 BRANCH = "main"
@@ -40,6 +49,9 @@ TITLE = re.compile(r"^# ")
 # a bare reference in a front matter value: an absolute URL, or a relative path to a Markdown file with an optional #anchor
 META_REF = re.compile(r"(https?://[^\s,;)]+[^\s,;).])|(?<![\w/.:#-])((?:\.{1,2}/)*(?:[\w.-]+/)*[\w-][\w.-]*\.md)(#[\w-]+)?")
 GITHUB_ITEM = re.compile(r"https://github\.com/([^/]+/[^/]+)/(?:issues|pull)/(\d+)$")
+
+# front matter keys whose label is not the capitalised key
+META_LABELS = {"id": "ID"}
 
 # status -> (admonition type, label, text)
 BANNERS = {
@@ -119,6 +131,12 @@ def _rewrite_target(target, page, files, root):
     served = files.get_file_from_path(resolved)
     if served is not None and not served.inclusion.is_excluded():
         return target
+    if os.path.isdir(os.path.join(root, *resolved.split("/"))):
+        readme = files.get_file_from_path(f"{resolved}/README.md")
+        if readme is not None and not readme.inclusion.is_excluded():
+            # a directory of the repository whose README is a page of the site: link the page, not the github.com tree
+            page_path = f"{path_part.rstrip('/')}/README.md" + hash_sep + fragment
+            return f"<{page_path}>" if wrapped else page_path
     url = _github_url(resolved, root)
     if url is None:
         return target  # leave it: MkDocs reports it and --strict fails the build
@@ -224,7 +242,7 @@ def _meta_block(meta):
             continue
         if isinstance(value, (list, tuple)):
             value = ", ".join(str(v) for v in value)
-        label = html.escape(key.replace("-", " ").capitalize())
+        label = html.escape(META_LABELS.get(key, key.replace("-", " ").capitalize()))
         rows.append(f'<dt>{label}</dt>\n<dd markdown="span">{_linkify(str(value).strip())}</dd>')
     if not rows:
         return ""
@@ -252,6 +270,7 @@ def _banner(status):
 def on_config(config):
     """Start with no footer text and note up front when the history is too short to name a page's commit."""
     config["copyright"] = ""
+    _anchors.clear()
     _footer["enabled"] = not _is_shallow(_repo_root(config))
     if not _footer["enabled"]:
         log.info("shallow git checkout: the per-page last-commit footer is left out (fetch full history to get it)")
@@ -281,6 +300,75 @@ def on_post_page(output, page, config):
     """Drop the page's footer text again so a template rendered later (404, sitemap) never shows another page's."""
     config["copyright"] = ""
     return output
+
+
+class _SectionLink(Link):
+    """A link that Material shows as the title of the section it is the first entry of (the theme's section index)."""
+
+    is_index = True
+
+
+class _PlainPage(Page):
+    """A page that is never taken as the index of its section (see `on_nav`)."""
+
+    @property
+    def is_index(self):
+        return False
+
+
+def _sections(items):
+    for item in items:
+        if isinstance(item, Section):
+            yield item
+            yield from _sections(item.children)
+
+
+def on_nav(nav, config, files):
+    """Make a sidebar section's title a link only where that is meant.
+
+    Material's `navigation.indexes` takes the first *README.md or index.md* among a section's pages as the section's
+    index, wherever it stands in the list, and shows the title as a link to it with the page itself left out of the
+    list. In a section of unit READMEs that links the title to one arbitrary unit and hides that unit (`Apps` would
+    link to Actual Budget, which then is missing from the list). Here a README only stays a section index when the
+    nav entry is called `Index` (the landing page of Architecture, Reference, Decisions, Audits, Components and apps);
+    any other README is a plain entry of its section. `extra.nav_section_links` (section title -> `page.md#heading`)
+    turns a section's title into a link to a heading of a page instead.
+    """
+    wanted = config.get("extra", {}).get("nav_section_links") or {}
+    seen = set()
+    for section in _sections(nav.items):
+        target = wanted.get(section.title)
+        if target:
+            seen.add(section.title)
+            src_uri, _, anchor = target.partition("#")
+            file = files.get_file_from_path(src_uri)
+            if file is None:
+                log.warning("extra.nav_section_links: %s: %s is not a page of the site", section.title, src_uri)
+            else:
+                section.children.insert(0, _SectionLink(section.title, file.url + (f"#{anchor}" if anchor else "")))
+                if anchor:
+                    _anchors.setdefault(src_uri, set()).add(anchor)
+        for child in section.children:
+            if isinstance(child, Page) and child.is_index and str(child.title).strip().lower() != "index":
+                child.__class__ = _PlainPage
+    for title in set(wanted) - seen:
+        log.warning("extra.nav_section_links: no sidebar section is titled %r", title)
+    return nav
+
+
+def _heading_ids(toc):
+    for item in toc:
+        yield item.id
+        yield from _heading_ids(item.children)
+
+
+def on_page_content(html_content, page, config, files):
+    """Fail the strict build when a heading that a `nav_section_links` entry points at no longer exists."""
+    wanted = _anchors.get(page.file.src_uri)
+    if wanted:
+        for anchor in sorted(wanted - set(_heading_ids(page.toc))):
+            log.warning("extra.nav_section_links: %s has no heading with the id %r", page.file.src_uri, anchor)
+    return html_content
 
 
 def on_page_markdown(markdown, page, config, files):
