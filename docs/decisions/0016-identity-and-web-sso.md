@@ -1,8 +1,12 @@
+---
+status: planning
+accepted: 2026-10-21
+becomes-current: once the platform (https://github.com/isejalabs/homelab/issues/1826) runs in `prod`
+---
+
 # Identity and web SSO architecture
 
-## Status
-
-planning — accepted by the owner on 2026-10-21; becomes `current` once the platform ([#1826](https://github.com/isejalabs/homelab/issues/1826)) runs in `prod`.
+## Amendments
 
 Amended on 2026-10-25 at the owner's request ([#1826](https://github.com/isejalabs/homelab/issues/1826)): decision point 2 gained a `dev` instance. Development happens in `dev` and `qa` stays a pure quality gate, as for every other workload; the first realm work had landed in `qa` by mistake. Nothing else in the decision changed.
 

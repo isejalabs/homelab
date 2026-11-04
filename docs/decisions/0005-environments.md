@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Multiple environments, and why production differs from the rest
-
-## Status
-
-current
 
 ## Context
 

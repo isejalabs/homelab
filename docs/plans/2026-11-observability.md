@@ -1,6 +1,13 @@
-# Observability plan (reconciled)
+---
+date: 2026-11-02
+status: Issues restructured on the owner's go on 2026-11-02, see Tracking below; decisions D3, D4, D6 and D11 come from the owner's answers, the others await confirmation; no stream started
+scope: everything under https://github.com/isejalabs/homelab/issues/71 — Checkmk notifications, load and history, capacity checks, backup freshness, searchable logs with remote querying, log-derived alerts and the daily digest
+supersedes: 2026-09-observability.md (Codex, tracked by phase issues) and 2026-09-observability-claude.md (Claude, comparison only); the September assessments in ../audits/ stay as they are
+builds-on: 2026-10-checkmk-consolidation.md (https://github.com/isejalabs/homelab/issues/1783), which is done except its phase 4
+tracking: https://github.com/isejalabs/homelab/issues/71
+---
 
-**Date:** 2026-11-02. **Status:** issues restructured on the owner's go on 2026-11-02 (see [Tracking](#tracking)); decisions D3, D4, D6 and D11 come from the owner's answers, the others await confirmation; no stream started. **Scope:** everything under [#71](https://github.com/isejalabs/homelab/issues/71): Checkmk notifications, load and history, capacity checks, backup freshness, searchable logs with remote querying, log-derived alerts and the daily digest. **Supersedes (once accepted):** the two September plans, [`2026-09-observability.md`](2026-09-observability.md) (Codex, tracked by phase issues) and [`2026-09-observability-claude.md`](2026-09-observability-claude.md) (Claude, comparison only). The September assessments in [`audits/`](../audits/) stay as they are. **Builds on:** the [Checkmk consolidation plan](2026-10-checkmk-consolidation.md) ([#1783](https://github.com/isejalabs/homelab/issues/1783)), which is done except its phase 4.
+# Observability plan (reconciled)
 
 ## Why a new plan
 

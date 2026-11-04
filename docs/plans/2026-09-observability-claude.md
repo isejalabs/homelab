@@ -1,6 +1,13 @@
+---
+date: 2026-09-29
+updated: 2026-11-02
+status: Superseded by the reconciled observability plan 2026-11-observability.md; kept for history. Originally an independent second plan, produced for comparison; not a replacement
+assessment: independent-pass assessment ../audits/2026-09-observability-claude.md
+---
+
 # Observability implementation plan — independent pass
 
-**Date:** 2026-09-29. **Status:** Superseded on 2026-11-02 by the [reconciled observability plan](2026-11-observability.md); kept for history. Originally: independent second plan, produced for comparison; not a replacement. **Assessment:** [independent-pass assessment](../audits/2026-09-observability-claude.md). This plan and its companion assessment were produced from scratch, without reading the already-merged [`2026-09-observability.md`](../audits/2026-09-observability.md) assessment or its [companion plan](2026-09-observability.md), at the owner's request to compare two independent analyses of the same brief. No tracking issue or sub-issues have been created for this pass — it exists as a documentation artifact for comparison only, per the owner's instruction for this exercise.
+This plan and its companion assessment were produced from scratch, without reading the already-merged [`2026-09-observability.md`](../audits/2026-09-observability.md) assessment or its [companion plan](2026-09-observability.md), at the owner's request to compare two independent analyses of the same brief. No tracking issue or sub-issues have been created for this pass — it exists as a documentation artifact for comparison only, per the owner's instruction for this exercise.
 
 This plan closes the Longhorn/RustFS capacity gaps, brings loghost's own configuration under version control, and adds searchable logging and remaining source coverage, all measured against a write-endurance budget on the always-on system SSDs rather than against polling frequency alone.
 

@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Proxmox + Talos as the virtualization and Kubernetes-node platform
-
-## Status
-
-current
 
 ## Context
 

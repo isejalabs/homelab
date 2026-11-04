@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Kustomize overlays for the environment-variation axis
-
-## Status
-
-current
 
 ## Context
 

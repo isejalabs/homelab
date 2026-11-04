@@ -21,11 +21,11 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 
 ```
 📁 terragrunt
-├── root.hcl                       # top-level config, see above
-├── global-secrets.sops.yaml       # secrets merged in at every level (Proxmox, RustFS, 1Password, Checkmk, ...)
-├── global.hcl                     # non-secret values shared by all environments/units (e.g. 1Password vault ID)
-├── .mise.toml                     # opentofu/terragrunt/talosctl versions
-├── 📁 _envcommon                    # one <unit>.hcl per unit type, included by every environment's copy of that unit
+├── root.hcl                   # top-level config, see above
+├── global-secrets.sops.yaml   # secrets merged in at every level (Proxmox, RustFS, 1Password, Checkmk, ...)
+├── global.hcl                 # non-secret values shared by all environments/units (e.g. 1Password vault ID)
+├── .mise.toml                 # opentofu/terragrunt/talosctl versions
+├── 📁 _envcommon              # one <unit>.hcl per unit type, included by every environment's copy of that unit
 │   ├── checkmk-longhorn-monitoring.hcl
 │   ├── checkmk-password.hcl
 │   ├── checkmk-rustfs-monitoring.hcl
@@ -34,25 +34,25 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 │   ├── rustfs-bucket-reader.hcl
 │   ├── rustfs-keycloak-db.hcl
 │   ├── rustfs-kopiur-backup.hcl
-│   ├── talos-proxmox.hcl            # poc only
+│   ├── talos-proxmox.hcl      # poc only
 │   ├── tf-state-read-role.hcl
 │   ├── vehagn-k8s.hcl
-│   ├── 📁 vehagn-k8s                # shared Talos machine-config patches
-│   └── vms.hcl                      # poc only
-├── 📁 non-prod                      # account: dbg, dev, head, poc, qa, rebuild, src environments
+│   ├── 📁 vehagn-k8s          # shared Talos machine-config patches
+│   └── vms.hcl                # poc only
+├── 📁 non-prod                # account: dbg, dev, head, poc, qa, rebuild, src environments
 │   ├── account.hcl
 │   ├── account-secrets.sops.yaml
-│   └── 📁 eu-central-1                # region
+│   └── 📁 eu-central-1        # region
 │       ├── region.hcl
-│       └── 📁 <env>                   # env, e.g. dev, qa, rebuild, ...
+│       └── 📁 <env>           # env, e.g. dev, qa, rebuild, ...
 │           ├── env.hcl
-│           ├── .envrc                   # exports TG_IAM_ASSUME_ROLE, the env's state-read/write role (direnv-loaded)
-│           ├── 📁 <unit>                # one folder per unit, see Units below
+│           ├── .envrc         # exports TG_IAM_ASSUME_ROLE, the env's state-read/write role (direnv-loaded)
+│           ├── 📁 <unit>      # one folder per unit, see Units below
 │           │   └── terragrunt.hcl
 │           └── 📁 vehagn-k8s
 │               ├── terragrunt.hcl
-│               └── 📁 assets            # generated cluster artifacts (Talos schematic, sealed-secrets cert, ...)
-└── 📁 prod                          # account: prod environment only, same account/region/env/unit shape as non-prod
+│               └── 📁 assets  # generated cluster artifacts (Talos schematic, sealed-secrets cert, ...)
+└── 📁 prod                    # account: prod environment only, same account/region/env/unit shape as non-prod
 ```
 
 ### How a unit's configuration is assembled
