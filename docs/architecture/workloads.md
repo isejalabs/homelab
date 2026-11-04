@@ -10,7 +10,9 @@ A catalog of everything actually running in the cluster — every app under [`k8
 
 Every environment gets the **minimal** apps (marked `minimal` below); only `head`, `prod`, `qa`, `rebuild` also get the **optional** ones (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)).
 
-| App | Category | What it is | Flux set |
+<!-- The runs of &nbsp; in the first two header cells set a minimum width for the App/Component and Category columns (GitHub ignores width and style on table cells), so names such as `kubelet-serving-cert-approver` and `longhorn-system` do not break across lines. Keep them when editing the header. -->
+
+| App&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Category&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | What it is | Flux set |
 | --- | --- | --- | --- |
 | <img src="../assets/icons/actual-budget.png" width="20" height="20" alt=""> [`actualbudget`](../../k8s/apps/finances/actualbudget/) | `finances` | [Actual Budget](https://github.com/actualbudget/actual) — personal finance/budgeting app | optional |
 | <img src="../assets/icons/adguard-home.svg" width="20" height="20" alt=""> [`adguard`](../../k8s/apps/dns/adguard/) | `dns` | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) — LAN DNS filtering/ad-blocking (see [`network.md`](network.md#dns-adguard--unbound)) | optional |
@@ -32,7 +34,9 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 
 Every environment gets the **full** infra set — both `minimal` and `optional` — regardless of which app set it runs (see [`environments.md`](environments.md#1-which-apps-run-there--the-flux-minimalfull-split)). A few of these are installed live by the bootstrap `helmfile` *before* Flux exists, in the dependency order shown under [Bootstrap install order](#bootstrap-install-order) (this table is alphabetical, not in install order), then handed off to Flux for ongoing management — see [`k8s/bootstrap/README.md`](../../k8s/bootstrap/README.md) for the full bootstrap walkthrough; this table only says which ones.
 
-| Component | Category | What it is | Bootstrap helmfile? | Flux set |
+<!-- The runs of &nbsp; in the first two header cells set a minimum width for the App/Component and Category columns (GitHub ignores width and style on table cells), so names such as `kubelet-serving-cert-approver` and `longhorn-system` do not break across lines. Keep them when editing the header. -->
+
+| Component&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | Category&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; | What it is | Bootstrap helmfile? | Flux set |
 | --- | --- | --- | --- | --- |
 | <img src="../assets/icons/cert-manager.svg" width="20" height="20" alt=""> [`cert-manager`](../../k8s/infra/cert-manager/cert-manager/) | `cert-manager` | [cert-manager](https://cert-manager.io/), Gateway API support enabled (see [`network.md`](network.md#gateway-api-cilium-as-the-implementation)) | yes | minimal |
 | <img src="../assets/icons/cilium.svg" width="20" height="20" alt=""> [`cilium`](../../k8s/infra/kube-system/cilium/) | `kube-system` | [Cilium](https://cilium.io/) — CNI, kube-proxy replacement, Gateway API implementation, LB-IPAM, BGP (see [`network.md`](network.md#cilium-lb-ipam-and-bgp-route-advertisement)) | yes | minimal |
@@ -79,6 +83,10 @@ For whoever edits the tables above, not for the reader of the catalog.
 ### Order and icons
 
 Both tables are sorted alphabetically by `App`/`Component` name — not by category and not by `Flux set`, so a unit stays findable without knowing where it is wired in — and the `Category` (the folder it lives in, second column) and `Flux set` columns say where a unit lives and which environments get it. Every row carries one icon in front of its name, purely decorative and ignored by the catalog check: the project's own logo where one could be found (stored in [`assets/icons/`](../assets/icons/), with its source in the [`README.md`](../assets/icons/README.md) there, as a raw `<img>` at 20 px so it renders the same on github.com and on the docs site), and a fitting emoji only for a unit with no logo of its own (`metrics-server`, `whoami`, `kubelet-serving-cert-approver`, `ns`, `snapshot-controller`). Companion units of one project share its logo (`longhorn`/`longhorn-core`, `gateway`/`gateway-api-crds`, `kopiur`/`kopiur-repository`, `keycloak`/`keycloak-operator`).
+
+### Table layout
+
+GitHub ignores `width` and `style` on table cells, so the runs of `&nbsp;` in the first two header cells of each table are what keep names such as `kubelet-serving-cert-approver` and categories such as `longhorn-system` on one line: a non-breaking run has a real minimum width, and the browser gives the rest to `What it is`. Keep them when editing a header, and widen them if a longer name is added. The docs site gets a wider content column and tighter cell padding for the same reason, in [`overrides/main.html`](../../.ci/mkdocs/overrides/main.html).
 
 ### Authoritative fields, and keeping this current
 
