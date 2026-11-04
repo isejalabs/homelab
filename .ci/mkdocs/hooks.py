@@ -10,16 +10,21 @@ is rewritten on disk; these hooks only adjust the rendered site:
   `docs/a/b/`), so the path that works on github.com would be one level off on the site;
 * a visible status banner is added below the page title, from the `status:` front matter, the ADR
   `## Status` section, or the folder (audits and plans are dated snapshots);
-* the footer shows the git commit (ID and head line) the site was built from, read from the checkout;
+* the footer of each page names the last git commit that changed that page's source file (ID, head line and
+  date), read from the checkout; it needs the full history, so a shallow clone leaves the footer out;
 * a robots.txt is written while `extra.noindex` is set in mkdocs.yml.
 """
 
 import html
+import logging
 import os
 import posixpath
 import re
 import subprocess
 from urllib.parse import unquote
+
+log = logging.getLogger("mkdocs.hooks.footer")
+_footer = {"enabled": False}  # set in on_config: whether the history is deep enough to name a page's last commit
 
 REPO_URL = "https://github.com/isejalabs/homelab"
 BRANCH = "main"
@@ -52,17 +57,36 @@ BANNERS = {
 }
 
 
-def _head_commit(root):
-    """Return (full SHA, short SHA, subject) of the checkout's HEAD, or None outside a git checkout."""
+def _is_shallow(root):
+    """Return True if the checkout has truncated history, where `git log -- <file>` names the wrong commit."""
     try:
         out = subprocess.run(
-            ["git", "-C", root, "log", "-1", "--format=%H%n%h%n%s"],
+            ["git", "-C", root, "rev-parse", "--is-shallow-repository"],
+            check=True, capture_output=True, text=True, timeout=30,
+        ).stdout
+    except (OSError, subprocess.SubprocessError):
+        return False
+    return out.strip() == "true"
+
+
+def _last_commit(root, src_uri):
+    """Return (full SHA, short SHA, subject, date) of the last commit that changed `src_uri`, or None.
+
+    None means there is nothing to show: not a git checkout, or the file has no commit yet (a new, uncommitted
+    page in a local preview).
+    """
+    try:
+        out = subprocess.run(
+            ["git", "-C", root, "log", "-1", "--format=%H%n%h%n%cs%n%s", "--", src_uri],
             check=True, capture_output=True, text=True, timeout=30,
         ).stdout
     except (OSError, subprocess.SubprocessError):
         return None
-    parts = out.rstrip("\n").split("\n", 2)
-    return tuple(parts) if len(parts) == 3 and parts[0] else None
+    parts = out.rstrip("\n").split("\n", 3)
+    if len(parts) != 4 or not parts[0]:
+        return None
+    sha, short, date, subject = parts
+    return sha, short, subject, date
 
 
 def _repo_root(config):
@@ -168,15 +192,37 @@ def _add_banner(markdown, status):
 
 
 def on_config(config):
-    """Show the built commit in the footer (the theme prints `copyright` there, as HTML)."""
-    commit = _head_commit(_repo_root(config))
-    if commit:
-        sha, short, subject = commit
-        config["copyright"] = (
-            f'Built from commit <a href="{REPO_URL}/commit/{sha}"><code>{short}</code></a>'
-            f" &ndash; {html.escape(subject)}"
-        )
+    """Start with no footer text and note up front when the history is too short to name a page's commit."""
+    config["copyright"] = ""
+    _footer["enabled"] = not _is_shallow(_repo_root(config))
+    if not _footer["enabled"]:
+        log.info("shallow git checkout: the per-page last-commit footer is left out (fetch full history to get it)")
     return config
+
+
+def on_page_context(context, page, config, nav):
+    """Name the last commit that changed this page's source file in the footer (the theme prints `copyright` there).
+
+    The footer is per page, not per build: a page that was last touched months ago must not claim the commit the
+    site happens to be built from. `copyright` is shared state, so it is set for every page and reset in
+    `on_post_page`.
+    """
+    config["copyright"] = ""
+    if _footer["enabled"]:
+        commit = _last_commit(_repo_root(config), page.file.src_uri)
+        if commit:
+            sha, short, subject, date = commit
+            config["copyright"] = (
+                f'Last changed in commit <a href="{REPO_URL}/commit/{sha}"><code>{short}</code></a>'
+                f" &ndash; {html.escape(subject)} ({date})"
+            )
+    return context
+
+
+def on_post_page(output, page, config):
+    """Drop the page's footer text again so a template rendered later (404, sitemap) never shows another page's."""
+    config["copyright"] = ""
+    return output
 
 
 def on_page_markdown(markdown, page, config, files):
