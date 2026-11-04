@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # OpenTofu over Terraform
-
-## Status
-
-current
 
 ## Context
 

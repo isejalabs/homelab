@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # TSIG over IP-ACL for AXFR and dynamic-update authorization
-
-## Status
-
-current
 
 ## Context
 

@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Terragrunt for multi-environment OpenTofu
-
-## Status
-
-current
 
 ## Context
 

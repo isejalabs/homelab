@@ -1,8 +1,8 @@
+---
+status: current
+---
+
 # Checkmk configuration as code: Terraform provider, Ansible deferred
-
-## Status
-
-current
 
 ## Context
 
