@@ -117,11 +117,17 @@ markdown_extensions:
     custom_checkbox: true
 
 extra:
+  # Sidebar sections whose title links to a heading of a page (section title: page.md#heading-id); hooks.py checks that
+  # both exist. Infrastructure and Apps have no README of their own, the catalog on the workloads page is their overview.
+  nav_section_links:
+    Infrastructure: docs/architecture/workloads.md#infra-k8sinfra
+    Apps: docs/architecture/workloads.md#apps-k8sapps
   # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
   # go-ahead while the public-disclosure decision (#1601) is still pending.
   noindex: false
   social: []
 
+# `Index` marks the page that the section's title links to (hooks.py, on_nav); any other README.md is a plain entry.
 nav:
 - Home: README.md
 - Documentation guide: docs/README.md
@@ -135,6 +141,7 @@ nav:
   - Automated dependency updates: docs/operations/update-handling.md
   - App storage variables: docs/operations/app-storage.md
   - Project board statuses: docs/operations/project-board.md
+  - WireGuard hub on srv3: docs/operations/wireguard-srv3.md
 - Runbooks:
   - Troubleshooting:
     - Flux: docs/troubleshooting/troubleshooting-flux.md
@@ -154,6 +161,8 @@ nav:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
+    - Checkmk human SSO: docs/identity/checkmk-sso.md
+    - UCS groups for single sign-on: docs/identity/ucs-groups.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
   - Overview: docs/architecture/overview.md
@@ -174,7 +183,7 @@ nav:
   - Monitoring thresholds: docs/reference/monitoring-thresholds.md
   - Monitoring notifications: docs/reference/monitoring-notifications.md
 - Components and apps:
-  - Kubernetes layout: k8s/README.md
+  - Index: k8s/README.md
   - Shared components: k8s/components/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - Storage component: k8s/components/apps/storage/README.md
@@ -225,44 +234,45 @@ nav:
   - Scripts: scripts/README.md
 - Decisions:
   - Index: docs/decisions/README.md
-  - "Proxmox + Talos as the virtualization and Kubernetes-node platform": docs/decisions/0001-proxmox-and-talos.md
-  - "OpenTofu over Terraform": docs/decisions/0002-opentofu-vs-terraform.md
-  - "Terragrunt for multi-environment OpenTofu": docs/decisions/0003-terragrunt.md
-  - "Kustomize overlays for the environment-variation axis": docs/decisions/0004-kustomize-overlays.md
-  - "Multiple environments, and why production differs from the rest": docs/decisions/0005-environments.md
-  - "Helm usage: kept independent of kustomize, moved from tool-agnostic to Flux-native values": docs/decisions/0006-helm-usage.md
-  - "Folder-based environment separation, not git branches": docs/decisions/0007-folder-based-environments-not-branches.md
-  - "Cilium as the CNI, with BGP for LoadBalancer IP advertisement": docs/decisions/0008-cilium-bgp.md
-  - "Flux over ArgoCD": docs/decisions/0009-flux-vs-argocd.md
-  - "SOPS vs. sealed-secrets vs. 1Password + External Secrets Operator": docs/decisions/0010-sops-vs-sealed-secrets-vs-1password-eso.md
-  - "PowerDNS as the in-cluster authoritative DNS server": docs/decisions/0011-powerdns-as-dns-server.md
-  - "TSIG over IP-ACL for AXFR and dynamic-update authorization": docs/decisions/0012-tsig-over-ip-acl-for-axfr.md
-  - "Repository and IaC tool boundaries": docs/decisions/0013-repository-and-tool-boundaries.md
-  - "Longhorn vs. proxmox-csi": docs/decisions/0014-longhorn-vs-proxmox-csi.md
-  - "Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
-  - "Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
-  - "Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+  - "ADR 0001 · Proxmox + Talos as the virtualization and Kubernetes-node platform": docs/decisions/0001-proxmox-and-talos.md
+  - "ADR 0002 · OpenTofu over Terraform": docs/decisions/0002-opentofu-vs-terraform.md
+  - "ADR 0003 · Terragrunt for multi-environment OpenTofu": docs/decisions/0003-terragrunt.md
+  - "ADR 0004 · Kustomize overlays for the environment-variation axis": docs/decisions/0004-kustomize-overlays.md
+  - "ADR 0005 · Multiple environments, and why production differs from the rest": docs/decisions/0005-environments.md
+  - "ADR 0006 · Helm usage: kept independent of kustomize, moved from tool-agnostic to Flux-native values": docs/decisions/0006-helm-usage.md
+  - "ADR 0007 · Folder-based environment separation, not git branches": docs/decisions/0007-folder-based-environments-not-branches.md
+  - "ADR 0008 · Cilium as the CNI, with BGP for LoadBalancer IP advertisement": docs/decisions/0008-cilium-bgp.md
+  - "ADR 0009 · Flux over ArgoCD": docs/decisions/0009-flux-vs-argocd.md
+  - "ADR 0010 · SOPS vs. sealed-secrets vs. 1Password + External Secrets Operator": docs/decisions/0010-sops-vs-sealed-secrets-vs-1password-eso.md
+  - "ADR 0011 · PowerDNS as the in-cluster authoritative DNS server": docs/decisions/0011-powerdns-as-dns-server.md
+  - "ADR 0012 · TSIG over IP-ACL for AXFR and dynamic-update authorization": docs/decisions/0012-tsig-over-ip-acl-for-axfr.md
+  - "ADR 0013 · Repository and IaC tool boundaries": docs/decisions/0013-repository-and-tool-boundaries.md
+  - "ADR 0014 · Longhorn vs. proxmox-csi": docs/decisions/0014-longhorn-vs-proxmox-csi.md
+  - "ADR 0015 · Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
+  - "ADR 0016 · Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
+  - "ADR 0017 · Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
 - Audits and plans (dated snapshots):
   - Audits:
     - Index: docs/audits/README.md
-    - "Documentation Audit — September 2026": docs/audits/2026-09-documentation.md
-    - "Observability assessment — independent pass (September 2026)": docs/audits/2026-09-observability-claude.md
-    - "Phase 0 inventory — Checkmk, Proxmox, loghost": docs/audits/2026-09-observability-phase0-checkmk-proxmox-claude.md
-    - "Observability Phase 0 — Findings": docs/audits/2026-09-observability-phase0-findings-claude.md
-    - "Observability phase 0 — baseline follow-up": docs/audits/2026-09-observability-phase0-followup.md
-    - "Phase 0 findings — TrueNAS/RustFS and Longhorn/Talos (read-only)": docs/audits/2026-09-observability-phase0-truenas-k8s-claude.md
-    - "Observability assessment — September 2026": docs/audits/2026-09-observability.md
-    - "Checkmk site `core`: result of stopping it — 2026-10-29": docs/audits/2026-10-checkmk-core-stopped-result.md
-    - "Checkmk site `free`: result of phase 1 (intervals) — 2026-10-28": docs/audits/2026-10-checkmk-free-phase1-result.md
-    - "Checkmk `prod_k8s`: result of phase 2b (ping-only hosts) — 2026-10-28": docs/audits/2026-10-checkmk-prod-k8s-ping-only-result.md
-    - "Documentation Audit — October 2026, second pass (structure, presentation and publishing)": docs/audits/2026-10-documentation-claude.md
-    - "Documentation Audit — October 2026": docs/audits/2026-10-documentation.md
-    - "Checkmk container OOMs — 2026-10-18": docs/audits/2026-10-monitoring-container-oom.md
-    - "Moving monitoring1 to pve1 instead of dev-ctrl-03 — 2026-10-28": docs/audits/2026-10-monitoring1-placement.md
-    - "Proxmox memory and CPU capacity — 2026-10-19": docs/audits/2026-10-proxmox-capacity.md
-    - "RustFS bucket capacity check — implementation decision": docs/audits/2026-10-rustfs-capacity.md
+    - "2026-09 · Documentation Audit": docs/audits/2026-09-documentation.md
+    - "2026-09 · Observability assessment — independent pass": docs/audits/2026-09-observability-claude.md
+    - "2026-09 · Phase 0 inventory — Checkmk, Proxmox, loghost": docs/audits/2026-09-observability-phase0-checkmk-proxmox-claude.md
+    - "2026-09 · Observability Phase 0 — Findings": docs/audits/2026-09-observability-phase0-findings-claude.md
+    - "2026-09 · Observability phase 0 — baseline follow-up": docs/audits/2026-09-observability-phase0-followup.md
+    - "2026-09 · Phase 0 findings — TrueNAS/RustFS and Longhorn/Talos (read-only)": docs/audits/2026-09-observability-phase0-truenas-k8s-claude.md
+    - "2026-09 · Observability assessment": docs/audits/2026-09-observability.md
+    - "2026-10 · Checkmk site `core`: result of stopping it": docs/audits/2026-10-checkmk-core-stopped-result.md
+    - "2026-10 · Checkmk site `free`: result of phase 1 (intervals)": docs/audits/2026-10-checkmk-free-phase1-result.md
+    - "2026-10 · Checkmk site `free` merged into `prod`: result of phase 3": docs/audits/2026-10-checkmk-free-merge-result.md
+    - "2026-10 · Checkmk `prod_k8s`: result of phase 2b (ping-only hosts)": docs/audits/2026-10-checkmk-prod-k8s-ping-only-result.md
+    - "2026-10 · Documentation Audit, second pass (structure, presentation and publishing)": docs/audits/2026-10-documentation-claude.md
+    - "2026-10 · Documentation Audit": docs/audits/2026-10-documentation.md
+    - "2026-10 · Checkmk container OOMs": docs/audits/2026-10-monitoring-container-oom.md
+    - "2026-10 · Moving monitoring1 to pve1 instead of dev-ctrl-03": docs/audits/2026-10-monitoring1-placement.md
+    - "2026-10 · Proxmox memory and CPU capacity": docs/audits/2026-10-proxmox-capacity.md
+    - "2026-10 · RustFS bucket capacity check — implementation decision": docs/audits/2026-10-rustfs-capacity.md
   - Plans:
-    - "Observability implementation plan — independent pass": docs/plans/2026-09-observability-claude.md
-    - "Observability implementation plan": docs/plans/2026-09-observability.md
-    - "Checkmk site consolidation plan": docs/plans/2026-10-checkmk-consolidation.md
-    - "Identity and web SSO — independent design pass": docs/plans/2026-10-identity-claude.md
+    - "2026-09 · Observability implementation plan — independent pass": docs/plans/2026-09-observability-claude.md
+    - "2026-09 · Observability implementation plan": docs/plans/2026-09-observability.md
+    - "2026-10 · Checkmk site consolidation plan": docs/plans/2026-10-checkmk-consolidation.md
+    - "2026-10 · Identity and web SSO — independent design pass": docs/plans/2026-10-identity-claude.md

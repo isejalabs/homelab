@@ -1,4 +1,5 @@
 ---
+id: ADR 0010
 status: current
 ---
 
