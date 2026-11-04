@@ -1,6 +1,10 @@
-# Observability phase 0 — baseline follow-up
+---
+date: 2026-09-30
+status: Partial; elapsed-time baseline and some access/interface checks remain outstanding
+origin: Codex read-only follow-up for [#1437](https://github.com/isejalabs/homelab/issues/1437)
+---
 
-**Date:** 2026-09-30. **Origin:** Codex read-only follow-up for [#1437](https://github.com/isejalabs/homelab/issues/1437). **Status:** Partial; elapsed-time baseline and some access/interface checks remain outstanding.
+# Observability phase 0 — baseline follow-up
 
 ## Existing work and evidence limits
 

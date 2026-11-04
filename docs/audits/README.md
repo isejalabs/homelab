@@ -1,22 +1,29 @@
 # Audits
 
-Dated, point-in-time assessments — not current-state documentation, not a task tracker. Per [`docs/README.md`](../README.md#where-a-new-doc-belongs)'s conventions: written once, never edited after the fact; a later pass is a new audit file, not a rewrite of an old one. Status is implicit from this folder — everything here is `audit`, never `current` (see [`docs/README.md`](../README.md#status-labels)).
+Dated, point-in-time assessments — not current-state documentation, not a task tracker. Per [`docs/README.md`](../README.md#where-a-new-doc-belongs)'s conventions: written once, never edited after the fact; a later pass is a new audit file, not a rewrite of an old one. The label is implicit from this folder — everything here is `audit`, never `current` (see [`docs/README.md`](../README.md#status-labels)).
 
 ## Format
 
-No rigid template — but every audit so far converges on the same lightweight header right after the title: a line or short paragraph of bold-prefixed fields before the actual content, e.g.
+No rigid template — but every audit starts with the same YAML front matter, at the very top of the file before the title, e.g.
 
 ```markdown
-# Title
+---
+date: 2026-09-22
+status: Assessment complete for planning; live validation pending
+scope: what this audit covers, and explicitly what it doesn't
+origin: who or what produced the pass
+tracking: "[#1336](https://github.com/isejalabs/homelab/issues/1336)"
+---
 
-**Date:** 2026-09-22. **Status:** Assessment complete for planning; live validation pending. **Scope:**
-what this audit covers, and explicitly what it doesn't.
+# Title
 ```
 
-- **Date** — always include; the whole point of an audit is that it's a snapshot in time.
-- **Status** — free text here, not the `current`/`planning`/`historical`/`audit` vocabulary from `docs/README.md` — that vocabulary classifies which category of truth a *doc* belongs to, and an audit is always `audit` by definition. This field instead says how complete the assessment itself is (e.g. "partial," "in progress," "superseded by \<later audit\>").
-- **Scope** — what's covered, and what explicitly isn't, so a reader doesn't assume completeness that wasn't claimed.
-- **Origin**, **Tracking**, **Reviewed** — used where relevant: who/what produced the pass (e.g. a specific AI agent, read-only SSH access), which issue it's for, or a later re-confirmation date.
+Keys are lowercase, one per line, each value on a single line (quote it when it contains `: ` or starts with a backtick, `[` or a quote; the front matter is parsed as YAML). Values are Markdown: links and code spans work on the [documentation site](../README.md#documentation-site), which shows the front matter as a block below the page title. github.com shows it as a plain key/value table, where a link is likely to appear as its Markdown source, so keep long prose and anything a reader must be able to click in the body.
+
+- `date` — always include; the whole point of an audit is that it's a snapshot in time. A plain `YYYY-MM-DD`; write extra context after it as text, e.g. `2026-10-19 (measurements), 2026-10-20 (write-up)`.
+- `status` — free text here, not the `current`/`planning`/`historical`/`audit` vocabulary from [`docs/README.md`](../README.md#status-labels) — that vocabulary classifies which category of truth a *doc* belongs to, and an audit is always `audit` by definition, which the site takes from this folder. This field instead says how complete the assessment itself is (e.g. "partial," "in progress," "superseded by \<later audit\>").
+- `scope` — what's covered, and what explicitly isn't, so a reader doesn't assume completeness that wasn't claimed.
+- `origin`, `tracking`, `reviewed` — used where relevant: who/what produced the pass (e.g. a specific AI agent, read-only SSH access), which issue it's for, or a later re-confirmation date. Any other key (`repository`, `current-state`, `preceding-record`, ...) is shown the same way; the site prints it in file order with the key as its label.
 
 Filename: `YYYY-MM-<short-topic>.md`, with an `-claude`/`-codex`-style suffix when more than one independent pass exists for the same topic (e.g. the two `2026-09-observability*.md` audits, produced independently for comparison) — see the existing files for worked examples rather than inventing a new scheme.
 

@@ -1,6 +1,12 @@
+---
+date: 2026-10-21
+status: Independent second pass; reviewed by the owner on 2026-10-21, see [Owner review](#owner-review-2026-10-21) for what is accepted and what changed
+builds-on: 'umbrella [#1715](https://github.com/isejalabs/homelab/issues/1715), its sub-issues, and the planning ADR [0016](../decisions/0016-identity-and-web-sso.md) from [PR #1724](https://github.com/isejalabs/homelab/pull/1724)'
+---
+
 # Identity and web SSO — independent design pass
 
-**Date:** 2026-10-21. **Status:** Independent second pass; reviewed by the owner on 2026-10-21, see [Owner review](#owner-review-2026-10-21) for what is accepted and what changed. **Builds on:** umbrella [#1715](https://github.com/isejalabs/homelab/issues/1715), its sub-issues, and the planning ADR [0016](../decisions/0016-identity-and-web-sso.md) from [PR #1724](https://github.com/isejalabs/homelab/pull/1724). Those were read, but not taken as given: every point where this pass reaches a different conclusion is listed in [Differences from the first pass](#differences-from-the-first-pass) with a recommendation and the decision it needs. The accepted result is recorded by rewriting [ADR 0016](../decisions/0016-identity-and-web-sso.md) in place.
+Those were read, but not taken as given: every point where this pass reaches a different conclusion is listed in [Differences from the first pass](#differences-from-the-first-pass) with a recommendation and the decision it needs. The accepted result is recorded by rewriting [ADR 0016](../decisions/0016-identity-and-web-sso.md) in place.
 
 Like the first pass, this was produced from repository evidence, issue history, and vendor documentation. Nothing was checked live; the [Phase 0](#phase-0--live-inventory) inventory is still the gate before anything is built.
 
