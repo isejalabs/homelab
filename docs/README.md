@@ -21,6 +21,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 
 | I need to… | Start here |
 | --- | --- |
+| Install the tools and get the access needed to work on the repo | [`zero-to-cluster.md`](zero-to-cluster.md#0-before-you-start) |
 | Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
@@ -185,7 +186,7 @@ What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
 - The whole checkout is the docs directory, so the per-folder READMEs and the root `README.md` appear on the site without being moved. Everything that is not documentation (`.github/`, `.agents/`, `_attic/`, `ZZ.bak/`, `AGENTS.md`) is excluded in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
 - Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
 - The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, an ADR's `## Status` section, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans).
-- The footer of every page names the git commit the site was built from (ID linked to github.com, plus its head line), read from the checkout at build time; a build outside a git checkout leaves it out.
+- The footer of every page names the last git commit that changed that page's source file (ID linked to github.com, head line and date), read from the checkout at build time with `git log -- <file>`, so an unchanged page keeps its commit across builds. It needs the full history: a shallow clone or a build outside a git checkout leaves the footer out, which is why the [`docs-build`](../.github/workflows/docs-build.yml) workflow checks out with `fetch-depth: 0`.
 - `mermaid` code fences are rendered as diagrams.
 - A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
 

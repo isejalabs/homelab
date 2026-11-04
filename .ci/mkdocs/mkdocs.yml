@@ -179,9 +179,14 @@ nav:
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - Storage component: k8s/components/apps/storage/README.md
   - Transformers:
+    - add-labels: k8s/components/transformers/add-labels/README.md
     - kopiur-secret-env: k8s/components/transformers/kopiur-secret-env/README.md
     - powerdns-tsig-env: k8s/components/transformers/powerdns-tsig-env/README.md
+    - prefix-domain: k8s/components/transformers/prefix-domain/README.md
+    - replace-domain: k8s/components/transformers/replace-domain/README.md
+    - replace-path: k8s/components/transformers/replace-path/README.md
     - reverse-zone-env: k8s/components/transformers/reverse-zone-env/README.md
+    - set-flux-defaults: k8s/components/transformers/set-flux-defaults/README.md
     - suspend-kopiur-schedule: k8s/components/transformers/suspend-kopiur-schedule/README.md
   - Infrastructure:
     - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md

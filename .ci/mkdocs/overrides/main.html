@@ -5,5 +5,11 @@
   {% if config.extra.noindex %}
   <meta name="robots" content="noindex, nofollow">
   {% endif %}
+  {#- Wider content column and tighter table cells: the workload catalog tables force a minimum width on their name columns (see docs/architecture/workloads.md), which the theme's default 61rem grid and 1.25em cell padding leave too little room for. -#}
+  <style>
+    .md-grid { max-width: 80rem; }
+    .md-typeset table:not([class]) th,
+    .md-typeset table:not([class]) td { padding: .5em .8em; }
+  </style>
   {{ super() }}
 {% endblock %}

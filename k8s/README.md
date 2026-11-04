@@ -4,37 +4,49 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 
 ```
 📁 k8s
-├── 📁 apps                     # application workloads, grouped by domain
-│   ├── 📁 diag                   # e.g. whoami
-│   ├── 📁 dns                    # e.g. adguard, unbound
-│   ├── 📁 finances                # e.g. actualbudget
-│   ├── 📁 home-automation         # e.g. zigbee2mqtt
-│   ├── 📁 identity                # e.g. keycloak
-│   ├── 📁 monitoring              # e.g. checkmk-agent, metrics-server
-│   └── 📁 network                # e.g. unifi-controller
-├── 📁 bootstrap                # second bootstrap phase: helmfile + Flux hand-off (see bootstrap/README.md)
-│   ├── 📁 cluster/flux           # Flux `sets/` (infra|apps × minimal|optional, plus minimal and soaking), composed per env under flux/envs/<env>
-│   ├── 📁 helmfile               # helmfile definitions: crds/, apps/, base/, templates/*.gotmpl
-│   └── 📁 kustomize/personal     # personal credentials injected via `op inject` during bootstrap
-├── 📁 components               # shared DRY kustomize layer (see components/README.md)
-│   ├── 📁 envs                   # per-environment Components included by every app/infra overlay
-│   └── 📁 transformers           # transformers those components apply (replace-path, replace-domain, prefix-domain, add-labels, set-flux-defaults)
-├── 📁 infra                    # infrastructure workloads, grouped by namespace
-│   ├── 📁 cert-manager
-│   ├── 📁 cnpg-system
-│   ├── 📁 common/ns              # aggregates every group's `_ns` base into one Flux Kustomization ("infra-ns")
-│   ├── 📁 csi-proxmox
-│   ├── 📁 external-dns
-│   ├── 📁 external-secrets
-│   ├── 📁 flux-system
-│   ├── 📁 gateway-api
-│   ├── 📁 keycloak
-│   ├── 📁 kopiur-system
-│   ├── 📁 kube-system
-│   ├── 📁 longhorn-system
-│   ├── 📁 o11y
-│   └── 📁 sealed-secrets
-└── 📁 test                     # throwaway manifests for manually exercising things (e.g. storage classes); not reconciled by Flux
+├── 📁 apps                  # application workloads, one folder per domain; each app is a unit (see below)
+│   ├── 📁 diag              # diagnostics: whoami
+│   ├── 📁 dns               # DNS: adguard, powerdns, unbound
+│   ├── 📁 finances          # personal finance: actualbudget
+│   ├── 📁 home-automation   # smart home: zigbee2mqtt
+│   ├── 📁 identity          # identity provider: keycloak
+│   ├── 📁 monitoring        # monitoring: checkmk-agent, metrics-server
+│   └── 📁 network           # network management: unifi-controller, unifi-mongodb
+├── 📁 bootstrap             # second bootstrap phase: helmfile, then the hand-off to Flux (see bootstrap/README.md)
+│   ├── 📁 cluster           # what Flux reconciles, composed per environment
+│   │   └── 📁 flux          # the Flux sets and the per-environment compositions
+│   │       ├── 📁 envs      # one folder per environment: picks its sets and applies components/envs/<env>
+│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal and soaking
+│   ├── 📁 helmfile          # helmfile definitions for the foundational CRDs and infra
+│   │   ├── 📁 apps          # the foundational infra releases: cilium, sealed-secrets, cert-manager, ..., flux
+│   │   ├── 📁 base          # shared defaults: environments, helm defaults, kube context, release templates
+│   │   ├── 📁 ci            # values for the throwaway kind cluster of the bootstrap CI test
+│   │   ├── 📁 crds          # CRDs extracted from charts and applied before the releases
+│   │   └── 📁 templates     # *.gotmpl templates that render the Helm values per release and environment
+│   └── 📁 kustomize         # kustomize bases applied during bootstrap
+│       └── 📁 personal      # personal credentials, injected with `op inject` during bootstrap
+├── 📁 components            # shared DRY kustomize layer (see components/README.md)
+│   ├── 📁 apps              # building blocks an app includes: kopiur secret wiring, PVC storage
+│   ├── 📁 envs              # per-environment Components included by every app/infra overlay
+│   └── 📁 transformers      # the transformers those components apply (nine, listed in components/README.md)
+├── 📁 infra                 # infrastructure workloads, one folder per namespace; each component is a unit (see below)
+│   ├── 📁 cert-manager      # certificate management: cert-manager
+│   ├── 📁 cnpg-system       # PostgreSQL operator: cloudnative-pg
+│   ├── 📁 common            # cross-namespace pieces
+│   │   └── 📁 ns            # aggregates every group's `_ns` base into one Flux Kustomization ("infra-ns")
+│   ├── 📁 csi-proxmox       # Proxmox storage driver: proxmox-csi
+│   ├── 📁 external-dns      # DNS record automation: external-dns
+│   ├── 📁 external-secrets  # secret sync from 1Password: external-secrets, onepassword-connect
+│   ├── 📁 flux-system       # Flux itself: flux-operator, flux-instance
+│   ├── 📁 gateway-api       # Gateway API: gateway, gateway-api-crds
+│   ├── 📁 keycloak          # Keycloak operator: keycloak-operator
+│   ├── 📁 kopiur-system     # backup and restore: kopiur, kopiur-repository
+│   ├── 📁 kube-system       # cluster basics: cilium, kubelet-serving-cert-approver, snapshot-controller
+│   ├── 📁 longhorn-system   # block storage: longhorn, longhorn-core
+│   ├── 📁 o11y              # CRD groundwork only, nothing deployed: grafana-operator, kube-prometheus-stack
+│   └── 📁 sealed-secrets    # encrypted secrets in Git: sealed-secrets
+└── 📁 test                  # throwaway manifests for manually exercising things; not reconciled by Flux
+    └── 📁 storage           # storage class and Longhorn volume test manifests
 ```
 
 ### Shape of an app/infra unit
@@ -43,9 +55,9 @@ Every leaf under `apps/<domain>/<app>` and `infra/<namespace>/<component>` follo
 
 ```
 📁 <app-or-component>
-├── 📁 base          # environment-agnostic manifests + kustomization.yaml (placeholder domain example.com)
-├── 📁 envs/<env>    # per-environment overlay: includes ../../../../../components/envs/<env> and patches only what differs
-└── 📁 flux          # the Flux Kustomization (ks.yaml) reconciling this unit, plus its own kustomization.yaml
+├── 📁 base        # environment-agnostic manifests + kustomization.yaml (placeholder domain example.com)
+├── 📁 envs/<env>  # per-environment overlay: includes ../../../../../components/envs/<env> and patches only what differs
+└── 📁 flux        # the Flux Kustomization (ks.yaml) reconciling this unit, plus its own kustomization.yaml
 ```
 
 `flux/ks.yaml`'s `spec.path` is written pointing at `base/` but gets rewritten to `envs/<env>/` per environment by the `replace-path` transformer (see `components/README.md`).
