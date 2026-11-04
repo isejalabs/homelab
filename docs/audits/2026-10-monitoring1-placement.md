@@ -1,9 +1,9 @@
 ---
 date: 2026-10-28
-status: Assessment complete; nothing moved or resized. Supersedes option 4 of the [Proxmox capacity audit](2026-10-proxmox-capacity.md#options-considered), which rejected the move on the numbers of 2026-10-19
+status: Assessment complete; nothing moved or resized. Supersedes option 4 of the Proxmox capacity audit 2026-10-proxmox-capacity.md#options-considered, which rejected the move on the numbers of 2026-10-19
 scope: whether `monitoring1` (CT 7002061, now on pve5) is a better candidate than `dev-ctrl-03` to move to pve1 to relieve pve5. It does not re-measure CPU or load (unchanged since the capacity audit) and does not cover disk or network
 origin: Claude (Claude Code), read-only SSH to pve5 (Proxmox API, RRD, `pct config`, the container's cgroup); pve1's guest peaks are the 7-day values of the capacity audit, not re-read
-tracking: '[#1783](https://github.com/isejalabs/homelab/issues/1783), related [#71](https://github.com/isejalabs/homelab/issues/71) and [#1845](https://github.com/isejalabs/homelab/issues/1845)'
+tracking: https://github.com/isejalabs/homelab/issues/1783, related https://github.com/isejalabs/homelab/issues/71 and https://github.com/isejalabs/homelab/issues/1845
 ---
 
 # Moving monitoring1 to pve1 instead of dev-ctrl-03 — 2026-10-28

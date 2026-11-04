@@ -1,10 +1,10 @@
 ---
 date: 2026-10-29
-status: Change applied; first-hour readings and an early-morning reading (about nine hours later) taken; one defect found afterwards, about one hour of metric history of the Proxmox hosts was missing, repaired on 2026-10-30 08:05 to 08:38 (see [24-hour reading](#24-hour-reading-early-morning-2026-10-30)), and on 2026-11-01 the 111 trend files and the history of the other 12 hosts were restored (see [second repair](#second-repair-trend-files-and-the-other-12-hosts-swapped-in-on-2026-11-01)); the one-week reading is still to be taken (see [Still to check](#still-to-check))
-scope: 'phase 3 of the [consolidation plan](../plans/2026-10-checkmk-consolidation.md#phase-3--merge-free-into-prod): the 18 hosts of the Nagios site `free` moved to `prod`, `free` stopped, the metric history of the six Proxmox hosts kept. It does not cover `prod_k8s`, `core` or the memory of CT 7002056 (phase 4)'
+status: Change applied; first-hour readings and an early-morning reading (about nine hours later) taken; one defect found afterwards, about one hour of metric history of the Proxmox hosts was missing, repaired on 2026-10-30 08:05 to 08:38 (see 24-hour reading), and on 2026-11-01 the 111 trend files and the history of the other 12 hosts were restored (see second repair); the one-week reading is still to be taken (see Still to check)
+scope: phase 3 of the consolidation plan ../plans/2026-10-checkmk-consolidation.md#phase-3--merge-free-into-prod — the 18 hosts of the Nagios site `free` moved to `prod`, `free` stopped, the metric history of the six Proxmox hosts kept. It does not cover `prod_k8s`, `core` or the memory of CT 7002056 (phase 4)
 origin: Claude (Claude Code), REST API of `prod` (folders, hosts, activation), a root shell on `monitoring2` for the file copies and `omd stop free`, `lq` (livestatus) for the readings; the pillar change, the Salt run and the deletion of the site connection were done by the owner
-tracking: '[#1783](https://github.com/isejalabs/homelab/issues/1783), umbrella [#71](https://github.com/isejalabs/homelab/issues/71)'
-current-state: '[`monitoring-sites.md`](../reference/monitoring-sites.md#change-of-2026-10-29-free-merged-into-prod)'
+tracking: https://github.com/isejalabs/homelab/issues/1783, umbrella https://github.com/isejalabs/homelab/issues/71
+current-state: ../reference/monitoring-sites.md#change-of-2026-10-29-free-merged-into-prod
 ---
 
 # Checkmk site `free` merged into `prod`: result of phase 3 — 2026-10-29

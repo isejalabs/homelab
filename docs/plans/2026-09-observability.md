@@ -2,8 +2,8 @@
 date: 2026-09-28
 reviewed: 2026-09-29
 status: Planning complete; implementation not started
-assessment: '[September 2026 observability assessment](../audits/2026-09-observability.md)'
-tracking: '[O11Y umbrella issue](https://github.com/isejalabs/homelab/issues/71)'
+assessment: September 2026 observability assessment ../audits/2026-09-observability.md
+tracking: O11Y umbrella issue https://github.com/isejalabs/homelab/issues/71
 ---
 
 # Observability implementation plan

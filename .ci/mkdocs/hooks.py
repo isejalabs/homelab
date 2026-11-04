@@ -37,6 +37,9 @@ INLINE_LINK = re.compile(r"(\]\()(<[^>]+>|[^)\s]+)((?:\s+(?:\"[^\"]*\"|'[^']*'))
 REFERENCE_DEF = re.compile(r"^(\s{0,3}\[[^\]]+\]:\s*)(\S+)")
 SCHEME = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 TITLE = re.compile(r"^# ")
+# a bare reference in a front matter value: an absolute URL, or a relative path to a Markdown file with an optional #anchor
+META_REF = re.compile(r"(https?://[^\s,;)]+[^\s,;).])|(?<![\w/.:#-])((?:\.{1,2}/)*(?:[\w.-]+/)*[\w-][\w.-]*\.md)(#[\w-]+)?")
+GITHUB_ITEM = re.compile(r"https://github\.com/([^/]+/[^/]+)/(?:issues|pull)/(\d+)$")
 
 # status -> (admonition type, label, text)
 BANNERS = {
@@ -180,12 +183,38 @@ def _status_for(page):
     return None
 
 
+def _meta_ref(match):
+    """Return a Markdown link for a bare URL or relative `.md` path of a front matter value.
+
+    github.com shows front matter as plain text, where it turns a bare URL into `#1437` but shows Markdown link syntax
+    as written, so the values hold bare references and the link is made here. An issue or pull request is labelled
+    `#N` (`owner/repo#N` outside this repository), another URL by itself, a path by its file name.
+    """
+    if match.group(1):
+        url = match.group(1)
+        item = GITHUB_ITEM.match(url)
+        if item:
+            repo = item.group(1)
+            return f"[{'' if repo == 'isejalabs/homelab' else repo}#{item.group(2)}]({url})"
+        return f"[{url.split('://', 1)[1]}]({url})"
+    path, anchor = match.group(2), match.group(3) or ""
+    return f"[`{posixpath.basename(path)}`]({path}{anchor})"
+
+
+def _linkify(value):
+    """Turn the bare references of a front matter value into links, leaving code spans alone."""
+    pieces = CODE_SPAN.split(value)
+    for i in range(0, len(pieces), 2):
+        pieces[i] = META_REF.sub(_meta_ref, pieces[i])
+    return "".join(pieces)
+
+
 def _meta_block(meta):
     """Return the front matter as a raw-HTML definition list (values are inline Markdown), or "" if nothing is left to show.
 
     `status` is skipped when it is a BANNERS label, since the banner already says it; any other key is shown in file
-    order, labelled by its name (`builds-on` -> "Builds on"). `md_in_html` renders the `markdown="span"` values, so
-    links and code spans in them work like in the body.
+    order, labelled by its name (`builds-on` -> "Builds on"). Values are plain YAML text; bare URLs and relative `.md`
+    paths become links (see `_meta_ref`), and `md_in_html` renders the `markdown="span"` values, so code spans work.
     """
     rows = []
     for key, value in meta.items():
@@ -196,7 +225,7 @@ def _meta_block(meta):
         if isinstance(value, (list, tuple)):
             value = ", ".join(str(v) for v in value)
         label = html.escape(key.replace("-", " ").capitalize())
-        rows.append(f'<dt>{label}</dt>\n<dd markdown="span">{str(value).strip()}</dd>')
+        rows.append(f'<dt>{label}</dt>\n<dd markdown="span">{_linkify(str(value).strip())}</dd>')
     if not rows:
         return ""
     return '<dl class="doc-meta" markdown="block">\n' + "\n".join(rows) + "\n</dl>"

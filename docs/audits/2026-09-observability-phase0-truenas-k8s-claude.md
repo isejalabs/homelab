@@ -1,6 +1,7 @@
 ---
+date: 2026-09-29
 origin: produced by Claude (Anthropic's Claude Code), via read-only SSH/`midclt`/`kubectl` commands against live infrastructure — not manually authored by the repository owner
-tracking: '[issue #1437](https://github.com/isejalabs/homelab/issues/1437)'
+tracking: issue https://github.com/isejalabs/homelab/issues/1437
 ---
 
 # Phase 0 findings — TrueNAS/RustFS and Longhorn/Talos (read-only)

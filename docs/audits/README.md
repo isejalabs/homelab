@@ -12,13 +12,13 @@ date: 2026-09-22
 status: Assessment complete for planning; live validation pending
 scope: what this audit covers, and explicitly what it doesn't
 origin: who or what produced the pass
-tracking: "[#1336](https://github.com/isejalabs/homelab/issues/1336)"
+tracking: https://github.com/isejalabs/homelab/issues/1336
 ---
 
 # Title
 ```
 
-Keys are lowercase, one per line, each value on a single line (quote it when it contains `: ` or starts with a backtick, `[` or a quote; the front matter is parsed as YAML). Values are Markdown: links and code spans work on the [documentation site](../README.md#documentation-site), which shows the front matter as a block below the page title. github.com shows it as a plain key/value table, where a link is likely to appear as its Markdown source, so keep long prose and anything a reader must be able to click in the body.
+Keys are lowercase, one per line, each value a plain single-line YAML scalar: no quote marks and no Markdown link syntax. github.com shows front matter as a plain key/value table that prints a Markdown link as its source but turns a bare issue or PR URL into `#1437`, so write a reference as a bare URL (an issue or PR) or as a relative path to a `.md` file, optionally with a `#anchor`; the [documentation site](../README.md#documentation-site) shows the front matter as a block below the page title and makes both clickable. Code spans in a value are fine in the middle of the text. A plain scalar cannot start with a backtick, contain `: ` or ` #`, so reword to avoid them (an em dash instead of a colon, a URL instead of `#123`). Keep long prose in the body.
 
 - `date` — always include; the whole point of an audit is that it's a snapshot in time. A plain `YYYY-MM-DD`; write extra context after it as text, e.g. `2026-10-19 (measurements), 2026-10-20 (write-up)`.
 - `status` — free text here, not the `current`/`planning`/`historical`/`audit` vocabulary from [`docs/README.md`](../README.md#status-labels) — that vocabulary classifies which category of truth a *doc* belongs to, and an audit is always `audit` by definition, which the site takes from this folder. This field instead says how complete the assessment itself is (e.g. "partial," "in progress," "superseded by \<later audit\>").

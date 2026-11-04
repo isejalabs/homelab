@@ -1,6 +1,6 @@
 ---
 date: 2026-09-29
-scope: 'Read-only SSH inventory for [issue #1437](https://github.com/isejalabs/homelab/issues/1437) (Observability phase 0). Covers Checkmk site/RRD/backup inventory, Proxmox host capacity/SMART/backup-job inventory, and loghost syslog-ng/journald config. Does not cover RustFS/Longhorn/TrueNAS (separate pass) or the 7-day write-delta measurement (needs real elapsed time, not done here). No configuration was changed; no SMART self-tests were run; no USB backup disk was queried directly to avoid spin-up'
+scope: Read-only SSH inventory for issue https://github.com/isejalabs/homelab/issues/1437 (Observability phase 0). Covers Checkmk site/RRD/backup inventory, Proxmox host capacity/SMART/backup-job inventory, and loghost syslog-ng/journald config. Does not cover RustFS/Longhorn/TrueNAS (separate pass) or the 7-day write-delta measurement (needs real elapsed time, not done here). No configuration was changed; no SMART self-tests were run; no USB backup disk was queried directly to avoid spin-up
 origin: produced by Claude (Anthropic's Claude Code), via read-only SSH commands against live infrastructure — not manually authored by the repository owner
 ---
 

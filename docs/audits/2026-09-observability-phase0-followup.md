@@ -1,7 +1,7 @@
 ---
 date: 2026-09-30
 status: Partial; elapsed-time baseline and some access/interface checks remain outstanding
-origin: Codex read-only follow-up for [#1437](https://github.com/isejalabs/homelab/issues/1437)
+origin: Codex read-only follow-up for https://github.com/isejalabs/homelab/issues/1437
 ---
 
 # Observability phase 0 — baseline follow-up

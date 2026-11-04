@@ -1,9 +1,9 @@
 ---
 date: 2026-10-28
 status: Hosts created and verified, time to DOWN measured once; the parallel run of a few days and the effect of stopping `core` are not yet measured
-scope: 'steps 1 to 3 of phase 2b in the [consolidation plan](../plans/2026-10-checkmk-consolidation.md#phase-2--make-room-in-prod_k8s-then-move-the-pings-and-retire-core): ten ping-only hosts in `prod_k8s` next to `core`. Not covered: stopping `core`, `free`, `prod`'
+scope: steps 1 to 3 of phase 2b in the consolidation plan ../plans/2026-10-checkmk-consolidation.md#phase-2--make-room-in-prod_k8s-then-move-the-pings-and-retire-core — ten ping-only hosts in `prod_k8s` next to `core`. Not covered — stopping `core`, `free`, `prod`
 origin: Claude Code session with the owner's go for each live step, read-only `lq` over SSH plus the Checkmk REST API
-tracking: '[#1783](https://github.com/isejalabs/homelab/issues/1783)'
+tracking: https://github.com/isejalabs/homelab/issues/1783
 ---
 
 # Checkmk `prod_k8s`: result of phase 2b (ping-only hosts) — 2026-10-28

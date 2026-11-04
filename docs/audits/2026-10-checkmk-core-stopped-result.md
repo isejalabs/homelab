@@ -1,10 +1,10 @@
 ---
 date: 2026-10-29
-status: '`core` stopped and verified within minutes; the effects over days (pve5 headroom over a week, CT 7002061 right-sizing) are not measured'
-scope: 'step 6 and 7 of phase 2b in the [consolidation plan](../plans/2026-10-checkmk-consolidation.md#phase-2--make-room-in-prod_k8s-then-move-the-pings-and-retire-core). Not covered: shrinking the memory of CT 7002061, cleaning up `prod`''s services for `core`, phase 3'
+status: Site `core` stopped and verified within minutes; the effects over days (pve5 headroom over a week, CT 7002061 right-sizing) are not measured
+scope: step 6 and 7 of phase 2b in the consolidation plan ../plans/2026-10-checkmk-consolidation.md#phase-2--make-room-in-prod_k8s-then-move-the-pings-and-retire-core. Not covered — shrinking the memory of CT 7002061, cleaning up `prod`'s services for `core`, phase 3
 origin: Claude Code session on the owner's explicit go ("stop and disable core already"), read-only `lq`/`ps`/`free` over SSH
-tracking: '[#1783](https://github.com/isejalabs/homelab/issues/1783)'
-preceding-record: '[`2026-10-checkmk-prod-k8s-ping-only-result.md`](2026-10-checkmk-prod-k8s-ping-only-result.md)'
+tracking: https://github.com/isejalabs/homelab/issues/1783
+preceding-record: 2026-10-checkmk-prod-k8s-ping-only-result.md
 ---
 
 # Checkmk site `core`: result of stopping it — 2026-10-29

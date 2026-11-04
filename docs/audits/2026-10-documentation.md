@@ -1,9 +1,9 @@
 ---
 date: 2026-10-12
-status: 'Assessment complete; five follow-up issues grouped beneath #1608, under #1336'
+status: Assessment complete; five follow-up issues grouped beneath https://github.com/isejalabs/homelab/issues/1608, under https://github.com/isejalabs/homelab/issues/1336
 scope: Current documentation structure, readability, operational and recovery usefulness, consistency with repository configuration, and public disclosure
 origin: Read-only review of the local `main` checkout and public repository
-tracking: Related to the open [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); this audit identifies residual findings after the September 2026 audit and its phase work
+tracking: Related to the open Documentation improvement journey https://github.com/isejalabs/homelab/issues/1336; this audit identifies residual findings after the September 2026 audit and its phase work
 ---
 
 # Documentation Audit — October 2026

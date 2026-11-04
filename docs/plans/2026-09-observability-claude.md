@@ -1,7 +1,7 @@
 ---
 date: 2026-09-29
 status: Independent second plan, produced for comparison; not a replacement
-assessment: '[independent-pass assessment](../audits/2026-09-observability-claude.md)'
+assessment: independent-pass assessment ../audits/2026-09-observability-claude.md
 ---
 
 # Observability implementation plan — independent pass

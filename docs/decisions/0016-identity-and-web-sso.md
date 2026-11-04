@@ -1,7 +1,7 @@
 ---
 status: planning
 accepted: 2026-10-21
-becomes-current: once the platform ([#1826](https://github.com/isejalabs/homelab/issues/1826)) runs in `prod`
+becomes-current: once the platform (https://github.com/isejalabs/homelab/issues/1826) runs in `prod`
 ---
 
 # Identity and web SSO architecture

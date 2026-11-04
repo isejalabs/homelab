@@ -1,6 +1,6 @@
 ---
 date: 2026-09-29
-status: 'In progress — this is a consolidated summary of a first read-only investigation pass for [issue #1437](https://github.com/isejalabs/homelab/issues/1437)'
+status: In progress — this is a consolidated summary of a first read-only investigation pass for issue https://github.com/isejalabs/homelab/issues/1437
 origin: produced by Claude (Anthropic's Claude Code), via read-only SSH/`midclt`/`kubectl` commands against live infrastructure — not manually authored by the repository owner. Corrections noted throughout came from the owner reviewing this pass's initial output
 ---
 

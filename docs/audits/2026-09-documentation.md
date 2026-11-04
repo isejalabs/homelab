@@ -2,7 +2,7 @@
 date: 2026-09-22
 status: audit
 scope: Repository documentation, information architecture, readability, maintainability, operational usefulness and homelab documentation practices
-repository: '`isejalabs/homelab`'
+repository: isejalabs/homelab
 ---
 
 # Documentation Audit — September 2026

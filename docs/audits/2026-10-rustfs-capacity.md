@@ -1,6 +1,6 @@
 ---
 date: 2026-10-01
-tracking: '[phase 1A, #1438](https://github.com/isejalabs/homelab/issues/1438)'
+tracking: phase 1A, https://github.com/isejalabs/homelab/issues/1438
 ---
 
 # RustFS bucket capacity check — implementation decision
