@@ -1,6 +1,20 @@
-Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, the Keycloak database restore, Checkmk site checks, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that.
+Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit — CI validation entry points, bulk SOPS encrypt/decrypt, Terragrunt state cleanup, kopiur backup/restore operations, the Keycloak database restore, Checkmk site checks, and Proxmox VM snapshot/power management. Each script documents its own purpose and usage in a header comment (see the linked file itself for the full explanation); this README is an index, not a duplicate of that. Every file in this folder, `just` modules and helpers included, must be linked from here — [`check-scripts-index.sh`](check-scripts-index.sh) fails CI otherwise.
 
 Shell scripts default to `#!/bin/sh` unless a feature genuinely requires bash (e.g. arrays, `[[ ]]`, `set -o pipefail`) — most here are plain POSIX `sh`. The `kopiur-*.sh`, `longhorn-snapshot-*.sh` and `proxmox-*.sh` scripts are bash (arrays) and, unlike most others here, are also wrapped by `just` recipes rather than run directly — see [`kopiur.just`](kopiur.just) and [`proxmox-snapshot.just`](proxmox-snapshot.just)/[`proxmox-vm.just`](proxmox-vm.just).
+
+## `just` modules
+
+The root [`.justfile`](../.justfile) loads `backup` and `proxmox` from here; each parent module loads the domain modules below it, so the recipe name mirrors the nesting (`just backup::kopiur::list`, `just proxmox::vm::start`). The recipes only wrap the scripts of the same domain, which are indexed in the sections further down.
+
+| Module | Recipes |
+| --- | --- |
+| [`backup.just`](backup.just) | parent of `kopiur`, `longhorn-snapshot` and `keycloak` — `just backup::<module>::<recipe>` |
+| [`kopiur.just`](kopiur.just) | `list`, `create`, `restore`, `bypass-restore`, `migrate`, `convert-storage-class` — see [kopiur backup/restore](#kopiur-backuprestore) |
+| [`longhorn-snapshot.just`](longhorn-snapshot.just) | `list`, `create`, `restore` — see [Longhorn volume snapshots](#longhorn-volume-snapshots) |
+| [`keycloak.just`](keycloak.just) | `list`, `restore` — see [Keycloak database restore](#keycloak-database-restore) |
+| [`proxmox.just`](proxmox.just) | parent of `snapshot` and `vm` — `just proxmox::<module>::<recipe>` |
+| [`proxmox-snapshot.just`](proxmox-snapshot.just) | `create`, `list`, `delete`, `rollback` — see [Proxmox VM snapshot/power management](#proxmox-vm-snapshotpower-management) |
+| [`proxmox-vm.just`](proxmox-vm.just) | `list`, `start`, `shutdown`, `stop`, `reset` — see [Proxmox VM snapshot/power management](#proxmox-vm-snapshotpower-management) |
 
 ## CI validation
 
@@ -18,6 +32,7 @@ Invoked by the matching `.github/workflows/*.yml` on every PR and push to `main`
 | [`check-unit-readmes.sh`](check-unit-readmes.sh) | every unit under `k8s/{apps,infra}/*/*` with a `flux/` folder has a `README.md` that follows the template in `k8s/README.md`: a level-1 title, the required `##` headings in order (extra sections allowed) the four rows of the `At a glance` table and no URL in a code span in `Access`, an entry in the docs navigation `.ci/mkdocs/mkdocs.yml`, and the `Namespace`, `Flux Kustomization` (name and `dependsOn`) and `Runs in` (environments and Flux set) rows against `base/kustomization.yaml`, `flux/ks.yaml`, the Flux sets and `flux/envs/*` (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
 | [`check-unit-readme-hostnames.sh`](check-unit-readme-hostnames.sh) | every hostname linked in the `Access` section of a unit README is served by that unit's rendered overlay `k8s/<unit>/envs/<env>` (environment derived from the host; renders with `kubectl kustomize`, set `KUSTOMIZE` to use another command; runs in the `docs-link-check` workflow; optional repo-root argument) |
 | [`test-readme-access.sh`](test-readme-access.sh) | unit test of the host-to-environment mapping (including the prod exception `auth.iseja.net`) and of the link extraction behind `check-unit-readme-hostnames.sh` (runs in the `docs-link-check` workflow) |
+| [`check-scripts-index.sh`](check-scripts-index.sh) | every file under `scripts/` is linked from its nearest `README.md`, and no README repeats a `##` heading (runs in the `docs-link-check` workflow; optional repo-root argument to check a copy of the tree) |
 | [`check-sorting.py`](check-sorting.py) | leading-field/`metadata` key ordering (`.agents/instructions/sorting.md`) — needs [`requirements.txt`](requirements.txt) installed first |
 | [`install-actionlint.sh`](install-actionlint.sh) | not a check itself — installs the pinned `actionlint` binary the `actionlint` workflow lints with |
 | [`renovate-config-validator-version.sh`](renovate-config-validator-version.sh) | not a check itself — sourced to pin the `renovate-config-validator` version the `renovate-config-validate` workflow uses |
@@ -44,15 +59,18 @@ Run from the relevant terragrunt unit directory (not the repo root) — see [`te
 
 ## kopiur backup/restore
 
-Wrapped by `just backup::kopiur::<list|create|restore>` — see [`kopiur.just`](kopiur.just) and [`docs/backup/kopiur-backup-restore.md`](../docs/backup/kopiur-backup-restore.md) for the day-to-day operational guide.
+Wrapped by `just backup::kopiur::<list|create|restore|bypass-restore|migrate|convert-storage-class>` — see [`kopiur.just`](kopiur.just) and [`docs/backup/kopiur-backup-restore.md`](../docs/backup/kopiur-backup-restore.md) for the day-to-day operational guide.
 
 | Script | Purpose |
 | --- | --- |
 | [`kopiur-list.sh`](kopiur-list.sh) | lists kopiur `Snapshot` CRs, for one app or every app in scope |
 | [`kopiur-create.sh`](kopiur-create.sh) | triggers a manual `Snapshot`, for one app or every app in scope (`--all`) |
 | [`kopiur-restore.sh`](kopiur-restore.sh) | restores an app's PVC from its latest snapshot (deletes and repopulates the PVC) |
+| [`kopiur-bypass-restore.sh`](kopiur-bypass-restore.sh) | gives an app a blank PVC without deleting its kopiur backups, for importing data by other means (e.g. from another environment); interactive |
+| [`kopiur-migrate-pvc.sh`](kopiur-migrate-pvc.sh) | copies an app's data from an old PVC onto its new kopiur-managed PVC ahead of a `claimName`/`existingClaim` cut-over; leaves the owning Flux object suspended and the app scaled to 0 |
+| [`kopiur-convert-storageclass.sh`](kopiur-convert-storageclass.sh) | converts a kopiur-managed PVC onto a different StorageClass in place (copies the data to a new PVC and rebinds it under the original name), e.g. ext4 to xfs |
 
-All three source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
+All six source [`lib/common.sh`](lib/common.sh) for gum-backed logging, environment validation, kubecontext construction, and unrecognized-flag handling shared across them (also sourced by several scripts above, for the same logging).
 
 ## Keycloak database restore
 
@@ -86,17 +104,6 @@ Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`lon
 
 All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/longhorn.sh) (PVC → Longhorn volume lookup).
 
-## Longhorn volume snapshots
-
-Wrapped by `just backup::longhorn-snapshot::<list|create|restore>` — see [`longhorn-snapshot.just`](longhorn-snapshot.just) and [`docs/backup/longhorn-snapshots.md`](../docs/backup/longhorn-snapshots.md). These cover Longhorn's own local snapshots (the `hourly-snapshot`/`daily-backup` `RecurringJob`s plus manual ones), e.g. in environments with no kopiur backup. Hourly snapshots are only retained for ~24 hours, so pick one by its `CREATED` timestamp rather than by day.
-
-| Script | Purpose |
-| --- | --- |
-| [`longhorn-snapshot-list.sh`](longhorn-snapshot-list.sh) | lists Longhorn `Snapshot` CRs per app (PVC), newest first, for one app or every app in scope |
-| [`longhorn-snapshot-create.sh`](longhorn-snapshot-create.sh) | triggers a manual snapshot, for one app or every Longhorn volume in scope (`--all`); manual snapshots are never auto-pruned |
-
-All three source [`lib/common.sh`](lib/common.sh) and [`lib/longhorn.sh`](lib/longhorn.sh) (PVC → Longhorn volume lookup).
-
 ## Proxmox VM snapshot/power management
 
 Wrapped by `just proxmox::snapshot::<create|list|rollback|delete>` and `just proxmox::vm::<list|start|stop|shutdown|reset>` — see [`docs/operations/proxmox-vm-snapshots.md`](../docs/operations/proxmox-vm-snapshots.md) and [`docs/operations/proxmox-vm-power.md`](../docs/operations/proxmox-vm-power.md) for the day-to-day operational guides.
@@ -121,3 +128,13 @@ Run manually (needs 1Password and network access to the RustFS, so not for CI) �
 | [`rustfs-verify-monitoring.sh`](rustfs-verify-monitoring.sh) | verifies one environment's `<env>-checkmk-monitoring` identity reads quota of its own buckets and is denied everything else (non-mutating) |
 
 Sources [`lib/common.sh`](lib/common.sh) for logging, environment validation and unrecognized-flag handling.
+
+## Agent tooling (Mink for Codex)
+
+Not a repo workflow: the adapter that [`.codex/hooks.json`](../.codex/hooks.json) runs on Codex hook events, so Codex sessions feed Mink the same file events Claude Code does. [`mink-codex-hook.md`](mink-codex-hook.md) explains what it translates and what it deliberately does not.
+
+| Script | Purpose |
+| --- | --- |
+| [`mink-codex-hook.py`](mink-codex-hook.py) | translates Codex hook events (`apply_patch`, standalone `cat`/`head`/`tail`/`sed -n` reads) into Mink's Claude-style file events; never executes shell text |
+| [`test-mink-codex-hook.py`](test-mink-codex-hook.py) | unit tests of that translation, run with `python3 scripts/test-mink-codex-hook.py` |
+| [`mink-codex-hook.md`](mink-codex-hook.md) | what the adapter does, its limits, and how to smoke-test it |
