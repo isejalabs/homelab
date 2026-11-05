@@ -114,10 +114,10 @@ A change to how users log in must not break agents registering at a site. Regist
 
 ```sh
 CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
-  scripts/checkmk-agent-registration-check.sh --server monitoring1.home.iseja.net --port 8083 --site dev_k8s
+  scripts/tools/checkmk-agent-registration-check.sh --server monitoring1.home.iseja.net --port 8083 --site dev_k8s
 ```
 
-[`checkmk-agent-registration-check.sh`](../../scripts/checkmk-agent-registration-check.sh) sends the registration request of the Agent Controller for a host name that does not exist. A wrong password must be refused with 401, and the right secret must end with 404 `Host ... does not exist`, which is the answer of the REST API call made as `agent_registration`, so the receiver reached the site and accepted the user. The secret is read from the environment, not from a flag, and the receiver certificate is not verified (it is signed by the site's own CA), so the check covers authentication, not trust.
+[`checkmk-agent-registration-check.sh`](../../scripts/tools/checkmk-agent-registration-check.sh) sends the registration request of the Agent Controller for a host name that does not exist. A wrong password must be refused with 401, and the right secret must end with 404 `Host ... does not exist`, which is the answer of the REST API call made as `agent_registration`, so the receiver reached the site and accepted the user. The secret is read from the environment, not from a flag, and the receiver certificate is not verified (it is signed by the site's own CA), so the check covers authentication, not trust.
 
 - **Result (2026-11-02):** passes on `dev_k8s` and `qa_k8s` with both SAML connections in place, and fails with exit 1 for a wrong secret. No run before the connections existed, so there is no baseline from before the change; the code paths do not overlap.
 - **`pairing` is not part of it:** `POST /pairing` answers 403 `You do not have the permission for agent pairing` for `agent_registration` on both sites. In 2.5.0p15 only the `admin` role has `general.agent_pairing` by default and the sites have no role overrides, so this is the default, not a result of SAML.

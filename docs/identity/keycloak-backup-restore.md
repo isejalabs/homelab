@@ -124,7 +124,7 @@ The ping URL is a credential of the check (anyone with it can mark it up), which
 > [!WARNING]
 > Keycloak is down from phase 2 (stop the writers) until phase 4 has finished.
 
-Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/keycloak-db-restore.sh`](../../scripts/keycloak-db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
+Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/ops/keycloak/db-restore.sh`](../../scripts/ops/keycloak/db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
 
 You need `just`, `kubectl`, `flux`, `gum` and `jq` locally and the kube context `admin@<env>-homelab`. A restore always names its environment:
 
@@ -134,7 +134,7 @@ just backup::keycloak::restore -e <env> --identity <key file>                  #
 just backup::keycloak::restore -e <env> --identity <key file> --dump <key>     # a chosen dump
 ```
 
-The recipes pass their flags to the script, so `scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>] [--identity <key file>] [-y]` does the same without `just`. `--identity` is the [age private key](#encryption-key-age) and is only needed for an encrypted (`*.age`) dump; the script refuses to start without it, before anything is changed.
+The recipes pass their flags to the script, so `scripts/ops/keycloak/db-restore.sh -e <env> [--list] [--dump <key>] [--identity <key file>] [-y]` does the same without `just`. `--identity` is the [age private key](#encryption-key-age) and is only needed for an encrypted (`*.age`) dump; the script refuses to start without it, before anything is changed.
 
 What the script does, in this order (the first change to the live database is the rename in phase 3):
 
@@ -190,7 +190,7 @@ The earlier procedure scaled the operator and the `StatefulSet` down by hand and
 
 | Part | Can it undo the scale-down? | Basis |
 | --- | --- | --- |
-| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../../scripts/kopiur-restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-keycloak-db-restoresh): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
+| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`ops/kopiur/restore.sh`](../../scripts/ops/kopiur/restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-the-restore-script): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
 | Keycloak `StatefulSet` (owned by the operator, not in Git) | Flux does not touch it, but a revived operator reconciles it back to `spec.instances: 1` | Observed in the same drill: the `StatefulSet`, scaled to 0 by the script, was recreated at 1 replica about 10 s after the operator came back |
 | `keycloak-db-dump` `CronJob` (02:00) | Nothing scales it; it simply runs if the restore is in progress at 02:00 and dumps a half-restored database | The earlier guide did not suspend it |
 
@@ -211,9 +211,9 @@ This drill predates the script: it used the earlier manual procedure (delete the
 | Start Keycloak again | Ready within about 1 min; OIDC discovery answers 200 for all three realms |
 | Login | Pending the owner's browser check, see below |
 
-### With `keycloak-db-restore.sh`
+### With the restore script
 
-Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)), a few minutes after the cluster had been booted from cold (image caches empty, Flux on `main`), restoring the same `qa` dump as the first drill (`keycloak-2026-10-26T011251Z.dump`, 282 KB) over a database that Keycloak had initialized (`scripts/keycloak-db-restore.sh -e rebuild --dump latest -y`):
+Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)), a few minutes after the cluster had been booted from cold (image caches empty, Flux on `main`), restoring the same `qa` dump as the first drill (`keycloak-2026-10-26T011251Z.dump`, 282 KB) over a database that Keycloak had initialized (`scripts/ops/keycloak/db-restore.sh -e rebuild --dump latest -y`):
 
 | Step | Result |
 | --- | --- |
@@ -241,7 +241,7 @@ Done on 2026-11-01 for [#1939](https://github.com/isejalabs/homelab/issues/1939)
 | `dump` with verification | `pg_dump` of a database with a `realm` table, then `pg_restore --list` OK; a truncated file and a text file both fail the check |
 | `upload` with a test public key | `keycloak-<timestamp>.dump.age` uploaded (1517 bytes), the plaintext removed from the volume, heartbeat pinged. With `TODO-add-the-age-public-key` the job exits 1 before any upload and pings `/fail` |
 | Retention | With 16 old dumps and an unrelated object in the bucket the three oldest dumps were pruned, the new dump and the unrelated object stayed |
-| Restore Job built by `keycloak-db-restore.sh` | `fetch-age` + `download` + `restore` for a `.age` key, only `download` + `restore` for a plain one; the download step decrypts with the mounted key and `pg_restore --exit-on-error` restores both realms. A wrong key fails with `no identity matched any of the recipients` and leaves no dump |
+| Restore Job built by `ops/keycloak/db-restore.sh` | `fetch-age` + `download` + `restore` for a `.age` key, only `download` + `restore` for a plain one; the download step decrypts with the mounted key and `pg_restore --exit-on-error` restores both realms. A wrong key fails with `no identity matched any of the recipients` and leaves no dump |
 
 ### Encrypted dump, in the `rebuild` cluster
 
@@ -250,7 +250,7 @@ Done on 2026-11-02 for [#1939](https://github.com/isejalabs/homelab/issues/1939)
 | Step | Result |
 | --- | --- |
 | `kubectl create job --from=cronjob/keycloak-db-dump` | `dump`, `fetch-age` (checksum OK, v1.3.2) and `upload` completed in 14 s; `keycloak-2026-11-02T063902Z.dump.age` (239551 bytes) appeared next to the plain dumps in `rebuild-keycloak-db` |
-| `keycloak-db-restore.sh -e rebuild --identity <key>` | Selected the encrypted dump, fetched age, decrypted through the temporary Secret and restored into `keycloak_restore`: 101 tables, realm `master`, 1 user, the same as the live database. The Secret was gone afterwards |
+| `ops/keycloak/db-restore.sh -e rebuild --identity <key>` | Selected the encrypted dump, fetched age, decrypted through the temporary Secret and restored into `keycloak_restore`: 101 tables, realm `master`, 1 user, the same as the live database. The Secret was gone afterwards |
 
 Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. **Not drilled**: the heartbeat against healthchecks.io and the Checkmk check; both wait for the check and the 1Password item.
 
