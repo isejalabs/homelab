@@ -2,13 +2,13 @@
 # Downloads and installs a pinned actionlint release (linux/amd64), verifying its checksum before install,
 # for the actionlint CI workflow to lint .github/workflows/*.yml.
 #
-# Usage: scripts/install-actionlint.sh [install_dir]
+# Usage: scripts/ci/install-actionlint.sh [install_dir]
 # install_dir defaults to /usr/local/bin. ACTIONLINT_VERSION/ACTIONLINT_SHA256 below are kept in sync by
 # Renovate (see the `# renovate:` comment) - bump the sha alongside the version if Renovate ever fails to.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 ACTIONLINT_VERSION="1.7.12" # renovate: github-releases=rhysd/actionlint

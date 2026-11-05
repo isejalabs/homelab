@@ -7,13 +7,13 @@
 # incomplete (a provider or the hashes for the CI platform missing) fails instead of being silently extended -- which is
 # how a lock file used to end up uncommitted: it was created by the manual apply after the merge, in the applying checkout.
 #
-# Usage: scripts/terragrunt-validate-all.sh [unit-dir ...]
+# Usage: scripts/ci/terragrunt-validate-all.sh [unit-dir ...]
 # Without arguments every unit under terragrunt/ is checked; with arguments only the given unit directories (for example
 # terragrunt/prod/eu-central-1/prod/checkmk-password). Run from the repo root (invoked by the terragrunt-validate CI workflow).
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # `terragrunt validate` alone always configures the real S3 backend first (and fails without cloud

@@ -2,12 +2,12 @@
 # Renders k8s/bootstrap/helmfile's "crds" and "apps" stages for every environment, to catch a broken
 # .gotmpl template or bad values before it's hit for real by `just bootstrap::cluster`.
 #
-# Usage: scripts/helmfile-template-all.sh
+# Usage: scripts/ci/helmfile-template-all.sh
 # Takes no arguments; run from the repo root (invoked by the helmfile-template CI workflow).
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 status=0

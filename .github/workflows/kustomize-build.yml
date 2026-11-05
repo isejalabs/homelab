@@ -28,8 +28,8 @@ jobs:
           - "terragrunt/**/keycloak-realm/terragrunt.hcl" # its keycloak_url is checked against the Keycloak overlay
           - ".mise.toml"
           - "mise.lock"
-          - "scripts/kustomize-build-all.sh"
-          - "scripts/vendor-manifests.sh"
+          - "scripts/ci/kustomize-build-all.sh"
+          - "scripts/ci/vendor-manifests.sh"
           - "scripts/lib/common.sh"
           - ".github/workflows/kustomize-build.yml"
 
@@ -50,5 +50,5 @@ jobs:
         # with the root one (kubectl/gum etc.), same as running it by hand.
         working_directory: k8s
         install_args: gum kubeconform kubectl
-    - run: scripts/vendor-manifests.sh check
-    - run: scripts/kustomize-build-all.sh
+    - run: scripts/ci/vendor-manifests.sh check
+    - run: scripts/ci/kustomize-build-all.sh

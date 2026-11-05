@@ -1,6 +1,6 @@
 # Mink hooks for Codex
 
-The repository's `.codex/hooks.json` calls `scripts/mink-codex-hook.py` with Python 3.9 or later. Mink must be on PATH or installed at `~/.bun/bin/mink`. Each handler's `statusMessage` supplies its label in the desktop hook review UI. Review and trust the updated definitions before use; changing the configuration requires another trust review. Start a new session to exercise `SessionStart`.
+The repository's `.codex/hooks.json` calls `scripts/agent/mink-codex-hook.py` with Python 3.9 or later. Mink must be on PATH or installed at `~/.bun/bin/mink`. Each handler's `statusMessage` supplies its label in the desktop hook review UI. Review and trust the updated definitions before use; changing the configuration requires another trust review. Start a new session to exercise `SessionStart`.
 
 The adapter translates Codex `apply_patch` events into Mink `Write`/`Edit` events, including multiple files, deletion, and rename. It recognizes standalone `cat`, `head`, `tail`, and numeric `sed -n 'start,endp'` commands with explicit project-local file paths as reads. It never executes or expands shell text. Complex commands, pipelines, redirections, glob patterns, searches, and reads outside the session directory are deliberately not inferred. Use standalone read commands for file-level tracking. Existing Claude-style file events are also accepted.
 
@@ -8,4 +8,4 @@ Mink's warnings are returned using Codex's `additionalContext` or `systemMessage
 
 The adapter serializes its invocations to avoid concurrent writes to Mink's session file. Mink still keeps one session file per project, so simultaneous Claude and Codex sessions can interfere with each other's session summaries; this adapter does not change Mink's storage model. A nonzero hook subprocess exit or timeout is surfaced as a nonblocking diagnostic. Mink itself catches some internal errors silently, so activity-log verification remains useful.
 
-Run `python3 scripts/test-mink-codex-hook.py` for translation tests. An integration smoke test can set `MINK_ROOT_OVERRIDE` to a temporary directory and run pre/post read and patch events through the adapter, then check the resulting `session.json` and `action-log.md` without changing the normal Mink database.
+Run `python3 scripts/agent/test-mink-codex-hook.py` for translation tests. An integration smoke test can set `MINK_ROOT_OVERRIDE` to a temporary directory and run pre/post read and patch events through the adapter, then check the resulting `session.json` and `action-log.md` without changing the normal Mink database.

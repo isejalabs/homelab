@@ -13,14 +13,14 @@
 # Renovate bumps the version inside that URL comment (customManagers in .github/renovate.json5 match it like they
 # matched the former remote resource), then `check` fails until `update` has fetched the matching upstream file.
 #
-# Usage: scripts/vendor-manifests.sh check|update
+# Usage: scripts/ci/vendor-manifests.sh check|update
 #   check   fail if a vendored file differs from (or is missing next to) the upstream file its comment names
 #   update  (re)download every vendored file from its comment's URL
 # Run from the repo root; `check` is invoked by the kustomize-build CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 usage() {
@@ -71,7 +71,7 @@ while IFS= read -r kustomization; do
         elif cmp -s "$tmp" "$path"; then
             log info "OK" "file" "$path"
         else
-            log error "vendored file differs from upstream, run scripts/vendor-manifests.sh update" "file" "$path" "url" "$url"
+            log error "vendored file differs from upstream, run scripts/ci/vendor-manifests.sh update" "file" "$path" "url" "$url"
             status=1
         fi
     done < "$pairs"

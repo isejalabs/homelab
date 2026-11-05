@@ -13,7 +13,7 @@
 #   1. Select and verify (non-destructive, Keycloak keeps running): pick the dump, restore it into
 #      `keycloak_restore` with a Job, print live vs. restored figures, ask for confirmation.
 #   2. Stop the writers: suspend the Flux Kustomizations `keycloak` and `keycloak-operator` (Flux would undo
-#      the scale-down: a plain-manifest Kustomization reverts manual changes, see kopiur-restore.sh), suspend
+#      the scale-down: a plain-manifest Kustomization reverts manual changes, see ops/kopiur/restore.sh), suspend
 #      the `keycloak-db-dump` CronJob, scale the operator and the Keycloak StatefulSet to 0 and wait until no
 #      client is connected.
 #   3. Swap: rename `keycloak` to `keycloak_before_<timestamp>` (kept, so the swap can be undone) and
@@ -32,7 +32,7 @@
 # that only the restore Job mounts, and the Secret is deleted again right after that Job ended (and by the exit
 # trap), so the key is in the cluster for the minutes of the restore and nowhere else.
 #
-# Usage: scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>|latest] [--identity <file>] [-y]
+# Usage: scripts/ops/keycloak/db-restore.sh -e <env> [--list] [--dump <key>|latest] [--identity <file>] [-y]
 #   -e, --environment  environment whose cluster is restored (required, a restore always names its target)
 #   --list             only list the dumps in the bucket (key, last modified, size) and exit
 #   --dump <key>       dump object to restore; default `latest` (the newest)
@@ -42,7 +42,7 @@
 # A dump from another environment must be copied into this environment's bucket first.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 NS="keycloak"

@@ -4,12 +4,12 @@
 # before Flux hits it for real. Also checks that every keycloak-realm and keycloak-automation Terragrunt unit's
 # `keycloak_url` matches the hostname its environment's Keycloak overlay serves.
 #
-# Usage: scripts/kustomize-build-all.sh
+# Usage: scripts/ci/kustomize-build-all.sh
 # Takes no arguments; run from the repo root (invoked by the kustomize-build CI workflow).
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # SealedSecret's community schema forbids `spec.template.metadata.creationTimestamp`, which every

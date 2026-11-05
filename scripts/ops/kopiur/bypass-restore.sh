@@ -23,7 +23,7 @@
 #
 # Flux must stay suspended for the whole bypass window, not just during the delete/recreate step: resuming
 # it early would reconcile the Restore object back to its git-declared (real) policy name before the empty
-# PVC has actually claimed and resolved against the bogus one. So, unlike kopiur-restore.sh, this script
+# PVC has actually claimed and resolved against the bogus one. So, unlike ops/kopiur/restore.sh, this script
 # does not resume Flux until the bogus patch has already been reverted -- the PVC is deleted and manually
 # recreated (dumped via `kubectl get -o yaml` beforehand) while Flux is still suspended, following the same
 # pattern as the doc's specific-snapshot procedure.
@@ -34,7 +34,7 @@
 # *future*, accidental PVC loss for this app restores empty instead of from its real latest backup.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 usage() {
@@ -70,7 +70,7 @@ while [ $# -gt 0 ]; do
 done
 
 # This is destructive/disruptive enough (scales the app down, temporarily blanks its volume) that the
-# target cluster should always be named explicitly, same as kopiur-restore.sh.
+# target cluster should always be named explicitly, same as ops/kopiur/restore.sh.
 validate_environment "${ENV}"
 CTX=$(kubecontext_for_environment "${ENV}")
 # Recorded for log()'s automatic "context" field (see lib/common.sh) so every log line below -- not just
@@ -108,7 +108,7 @@ fi
 # Captured up front so the app is scaled back to exactly what it was, not a hardcoded 1.
 ORIG_REPLICAS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.replicas}')
 
-# Same detection as kopiur-restore.sh: exactly one of HR/KS ends up non-empty.
+# Same detection as ops/kopiur/restore.sh: exactly one of HR/KS ends up non-empty.
 HR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.helm\.toolkit\.fluxcd\.io/name}' 2>/dev/null || true)
 KS=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.metadata.labels.kustomize\.toolkit\.fluxcd\.io/name}' 2>/dev/null || true)
 
@@ -177,7 +177,7 @@ kubectl --context "${CTX}" delete pvc "${APP}" -n "${NS}" --wait=true
 kubectl --context "${CTX}" apply -f "${TMP_PVC}"
 
 # WaitForFirstConsumer storage classes only bind once something tries to mount the PVC -- scale back up
-# before waiting for Bound, same reasoning as kopiur-restore.sh.
+# before waiting for Bound, same reasoning as ops/kopiur/restore.sh.
 log info "Scaling back up" "step" "6/9" "deployment" "${DEPLOY}" "replicas" "${ORIG_REPLICAS}"
 kubectl --context "${CTX}" scale deployment "${DEPLOY}" -n "${NS}" --replicas="${ORIG_REPLICAS}"
 

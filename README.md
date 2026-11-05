@@ -51,7 +51,7 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 - [`k8s/README.md`](k8s/README.md) — the `k8s` folder structure (`apps/`, `bootstrap/`, `components/`, `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows.
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
-- [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state cleanup, and kopiur backup/restore scripts.
+- [`scripts/README.md`](scripts/README.md) — the helper scripts by kind: `ci/` validation entry points, `ops/` backup/restore and Proxmox operations behind `just`, `tools/` (SOPS bulk ops, Terragrunt state cleanup) and `agent/`.
 - `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo. Humans: the [folder structure](#-folder-structure) below is the map.
 - [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) — an AI-generated, browsable overview of the implementation that you can ask questions. It is refreshed manually, so it can lag behind the repo; the docs above are authoritative. Its generation is steered by [`.devin/wiki.json`](.devin/wiki.json).
 
@@ -63,7 +63,7 @@ This is the one map of the top-level folders; the `k8s` tree is described once i
 📁 homelab
 ├── 📁 terragrunt  # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
 ├── 📁 k8s         # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
-├── 📁 scripts     # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
+├── 📁 scripts     # helper scripts: ci/ checks, ops/ just-wrapped procedures, tools/ run by hand (see scripts/README.md)
 ├── 📁 docs        # cross-cutting architecture docs and task-grouped runbooks: operations, backup, identity, troubleshooting (see docs/README.md)
 ├── 📁 .agents     # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
 ├── 📁 .commons    # git submodule: AI-agent conventions shared across isejalabs repos

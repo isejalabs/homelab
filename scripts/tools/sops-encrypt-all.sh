@@ -3,11 +3,11 @@
 # sibling, skipping any pair whose existing encrypted sibling already decrypts to matching content, so a
 # bulk re-encrypt only touches files that actually changed. The counterpart to sops-decrypt-all.sh.
 #
-# Usage: scripts/sops-encrypt-all.sh
+# Usage: scripts/tools/sops-encrypt-all.sh
 # Takes no arguments; run from the repo root. Always overwrites a stale *.sops.yaml (no -f/--force gate,
 # unlike sops-decrypt-all.sh) since re-encrypting can't lose local plaintext edits the way decrypting can.
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # Each path_regex from .sops.yaml is used as a find(1) regex to locate the plaintext files it covers. A rule

@@ -2,12 +2,12 @@
 # Runs `flate test all` (home-operations/flate) against every environment's top-level Flux sync target, to
 # catch a Flux Kustomization pointing at a path/name that doesn't actually exist anywhere in the tree.
 #
-# Usage: scripts/flate-test-all.sh
+# Usage: scripts/ci/flate-test-all.sh
 # Takes no arguments; run from the repo root (invoked by the flate-test-all CI workflow).
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # home-operations/flate/action sets FLATE_BASE (default: the repo's default branch) to enable its

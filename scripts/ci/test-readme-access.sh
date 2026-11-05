@@ -3,12 +3,12 @@
 # host-to-environment mapping (including the prod exception auth.iseja.net) and the extraction of link hosts from an
 # "Access" section. Needs no renderer. Fails with a non-zero status on the first wrong answer.
 #
-# Usage: scripts/test-readme-access.sh
+# Usage: scripts/ci/test-readme-access.sh
 # Invoked by the docs-link-check CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 ROOT=$(dirname -- "${SCRIPTS_DIR}")
 WORK=$(mktemp -d)
 trap 'rm -rf "${WORK}"' EXIT

@@ -20,13 +20,13 @@
 #                      first ";" is parsed: the environments are those whose flux/envs/<env> reach the unit (through
 #                      the sets or directly), the set is the one that lists the unit in sets/.
 #
-# Usage: scripts/check-unit-readmes.sh [repo-root]
+# Usage: scripts/ci/check-unit-readmes.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
 # docs-link-check CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
 NAV="${ROOT}/.ci/mkdocs/mkdocs.yml"

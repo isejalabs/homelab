@@ -3,10 +3,10 @@
 # 70081<id><n> vmid scheme, cross-checked against each VM's name prefix) and each VM's snapshots, via the
 # Proxmox REST API -- no SSH. Read-only. See docs/operations/proxmox-vm-snapshots.md.
 #
-# Usage: scripts/proxmox-snapshot-list.sh -e <env>
+# Usage: scripts/ops/proxmox/snapshot-list.sh -e <env>
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 

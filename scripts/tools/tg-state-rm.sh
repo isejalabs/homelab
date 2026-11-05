@@ -5,11 +5,11 @@
 # that depend on node connectivity). This only forgets them from state; it never deletes the real objects,
 # so it's meant for a cluster that's being torn down anyway, not a live one.
 #
-# Usage: scripts/tg-state-rm.sh
+# Usage: scripts/tools/tg-state-rm.sh
 # Run from the terragrunt unit directory whose state should be pruned (same convention as a bare
 # `terragrunt state rm`/`terragrunt destroy`) - not from the repo root.
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # module.volumes.module.persistent-volume.* covers a variable number of per-app persistent-volume submodules

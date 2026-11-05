@@ -37,7 +37,7 @@
 # which kind of object owns the Deployment.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 usage() {
@@ -74,7 +74,7 @@ while [ $# -gt 0 ]; do
 done
 
 # -e/--environment must resolve to a real "admin@<env>-homelab" kubecontext (see CTX below) - unlike
-# kopiur-list.sh/kopiur-create.sh, there's no "fall back to whatever context is current" mode here, since
+# ops/kopiur/list.sh/ops/kopiur/create.sh, there's no "fall back to whatever context is current" mode here, since
 # a restore is destructive enough that the target cluster should always be named explicitly.
 validate_environment "${ENV}"
 CTX=$(kubecontext_for_environment "${ENV}")

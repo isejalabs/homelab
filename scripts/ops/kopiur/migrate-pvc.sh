@@ -12,13 +12,13 @@
 #   writes are owned by whichever uid/gid the Job's securityContext runs as,
 #   same as the target app will run as.
 # - Suspends the Deployment's owning Flux object first, same as
-#   kopiur-restore.sh, so Flux doesn't fight the manual scale-down while the
+#   ops/kopiur/restore.sh, so Flux doesn't fight the manual scale-down while the
 #   copy is in flight. Left suspended and scaled to 0 on exit -- resuming and
 #   scaling back up is a separate step, done once the cut-over
 #   (claimName/existingClaim -> the new PVC) has actually been applied.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 usage() {

@@ -5,13 +5,13 @@
 # (minimal, optional, soaking, or "none" if no set lists it). Only the first word of the Flux set cell counts,
 # so the explanatory text after it stays free-form.
 #
-# Usage: scripts/check-workloads-catalog.sh [repo-root]
+# Usage: scripts/ci/check-workloads-catalog.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
 # docs-link-check CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
 DOC="${ROOT}/docs/architecture/workloads.md"

@@ -10,7 +10,7 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 [arg('namespace', short='n', long='namespace')]
 [arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 list app="" environment="" namespace="" all_namespaces="false":
-    "{{ justfile_directory() }}/scripts/longhorn-snapshot-list.sh" {{ app }} \
+    "{{ justfile_directory() }}/scripts/ops/longhorn/snapshot-list.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \
         {{ if namespace != "" { "-n" } else { "" } }} {{ namespace }} \
         {{ if all_namespaces == "true" { "-A" } else { "" } }}
@@ -21,7 +21,7 @@ list app="" environment="" namespace="" all_namespaces="false":
 [arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 [arg('all', long='all', value='true')]
 create app="" environment="" namespace="" all_namespaces="false" all="false":
-    "{{ justfile_directory() }}/scripts/longhorn-snapshot-create.sh" {{ app }} \
+    "{{ justfile_directory() }}/scripts/ops/longhorn/snapshot-create.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \
         {{ if namespace != "" { "-n" } else { "" } }} {{ namespace }} \
         {{ if all_namespaces == "true" { "-A" } else { "" } }} \
@@ -29,4 +29,4 @@ create app="" environment="" namespace="" all_namespaces="false" all="false":
 
 [doc('Roll an app back to a Longhorn snapshot (-e/--environment -n <ns> required; --snapshot <name> | --at <RFC3339 UTC ts>, default latest; Deployments only; scales the app down and pauses for a manual revert in the Longhorn UI; takes a pre-restore-* safety snapshot first)')]
 restore app *flags:
-    "{{ justfile_directory() }}/scripts/longhorn-snapshot-restore.sh" {{ app }} {{ flags }}
+    "{{ justfile_directory() }}/scripts/ops/longhorn/snapshot-restore.sh" {{ app }} {{ flags }}

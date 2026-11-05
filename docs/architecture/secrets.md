@@ -71,7 +71,7 @@ sops:
     version: 3.11.0
 ```
 
-**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/sops-encrypt-all.sh`](../../scripts/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/sops-decrypt-all.sh`](../../scripts/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
+**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/tools/sops-encrypt-all.sh`](../../scripts/tools/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/tools/sops-decrypt-all.sh`](../../scripts/tools/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
 
 ### How Terragrunt reads them
 

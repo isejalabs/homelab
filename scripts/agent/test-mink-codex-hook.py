@@ -1,4 +1,4 @@
-"""Run with python3 scripts/test-mink-codex-hook.py."""
+"""Run with python3 scripts/agent/test-mink-codex-hook.py."""
 
 import importlib.util
 from pathlib import Path

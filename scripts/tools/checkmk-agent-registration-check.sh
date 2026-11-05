@@ -15,7 +15,7 @@
 # only the `admin` role has by default, so it answers 403 for `agent_registration` without anything being broken.
 # A full registration of a real host is not part of this check, it changes the host (UUID, trust).
 #
-# Usage: CMK_REGISTRATION_PASSWORD=<secret> scripts/checkmk-agent-registration-check.sh \
+# Usage: CMK_REGISTRATION_PASSWORD=<secret> scripts/tools/checkmk-agent-registration-check.sh \
 #            --server <host> --port <receiver port> --site <site> [--user <name>]
 #   --server  host name of the Checkmk server, for example monitoring1.home.iseja.net
 #   --port    agent receiver port of the site (`omd config show AGENT_RECEIVER_PORT` as the site user), this is
@@ -28,7 +28,7 @@
 # Exits 0 when both checks pass and 1 otherwise. Needs `curl` and `gum`.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 SERVER=""

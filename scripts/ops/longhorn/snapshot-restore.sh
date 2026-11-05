@@ -6,18 +6,18 @@
 # Steps: pick the snapshot -> confirm -> take a `pre-restore-*` safety snapshot of the current data ->
 # suspend the owning Flux object and scale the Deployment to 0 -> wait for the volume to detach -> pause for
 # the manual revert in the Longhorn UI -> verify the volume is detached again -> resume Flux and scale back
-# up (see kopiur-restore.sh for why scaling back up is done explicitly rather than left to Flux).
+# up (see ops/kopiur/restore.sh for why scaling back up is done explicitly rather than left to Flux).
 #
 # The PVC and PV are never touched, so kopiur's dataSourceRef/Restore wiring stays intact.
 # Snapshot selection: default is the newest snapshot; --snapshot <name> picks an exact one; --at <timestamp>
 # picks the newest at or before an RFC3339 UTC time (e.g. 2026-10-17T14:00:00Z). Hourly snapshots only go
-# back ~24h (see longhorn-snapshot-list.sh).
+# back ~24h (see ops/longhorn/snapshot-list.sh).
 #
-# Usage: scripts/longhorn-snapshot-restore.sh -e <env> -n <ns> [--deploy <name>] [--snapshot <name> | --at <ts>] <app>
+# Usage: scripts/ops/longhorn/snapshot-restore.sh -e <env> -n <ns> [--deploy <name>] [--snapshot <name> | --at <ts>] <app>
 # <app> is the PVC name; the Deployment defaults to the same name. Deployments only.
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/longhorn.sh"
 
@@ -63,7 +63,7 @@ while [ $# -gt 0 ]; do
     esac
 done
 
-# Like kopiur-restore.sh: a destructive run must name its target cluster explicitly.
+# Like ops/kopiur/restore.sh: a destructive run must name its target cluster explicitly.
 validate_environment "${ENV}"
 CTX=$(kubecontext_for_environment "${ENV}")
 CTX_ARGS=(--context "${CTX}")

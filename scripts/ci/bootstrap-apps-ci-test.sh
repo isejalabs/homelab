@@ -2,7 +2,7 @@
 # Validates the k8s/bootstrap/helmfile "apps" stage (see k8s/bootstrap/mod.just's `apps` recipe) against a
 # throwaway kind cluster, standing in for `just bootstrap::cluster` without touching a real environment.
 #
-# Usage: scripts/bootstrap-apps-ci-test.sh
+# Usage: scripts/ci/bootstrap-apps-ci-test.sh
 # Takes no arguments; run from the repo root (invoked by the bootstrap-apps-ci-test CI workflow). Creates
 # and always tears down its own kind cluster, so it's also safe to run locally.
 #
@@ -21,7 +21,7 @@
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 CLUSTER_NAME=bootstrap-apps-ci

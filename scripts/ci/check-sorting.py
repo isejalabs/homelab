@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check k8s/**/*.yaml against a subset of .agents/instructions/sorting.md.
 
-Usage: scripts/check-sorting.py
+Usage: scripts/ci/check-sorting.py
 Takes no arguments; run from the repo root (invoked by the check-sorting CI workflow). Walks every
 k8s/**/*.yaml file, prints one violation per offending mapping, and exits non-zero if any are found.
 
@@ -71,7 +71,7 @@ def main():
     # `charts/` directories are vendored third-party Helm chart sources (argocd, sealed-secrets,
     # checkmk-agent, grafana-cloud, ...), not this repo's own manifests - not subject to sorting.md,
     # and not even always valid standalone YAML (Helm templates use non-YAML Go template syntax).
-    # `vendor/` directories hold upstream manifests copied verbatim (scripts/vendor-manifests.sh keeps them
+    # `vendor/` directories hold upstream manifests copied verbatim (scripts/ci/vendor-manifests.sh keeps them
     # byte-identical to upstream), so they keep upstream's key order.
     files = sorted(p for p in Path("k8s").rglob("*.yaml") if not {"charts", "vendor"} & set(p.parts))
     errors = []

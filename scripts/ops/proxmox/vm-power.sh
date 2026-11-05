@@ -7,10 +7,10 @@
 # target already has its blast radius spelled out in the command, so it skips the prompt. start never
 # prompts (starting a VM is always safe).
 #
-# Usage: scripts/proxmox-vm-power.sh --action <start|stop|shutdown|reset> -e <env> [--vmid <vmid>] [-y|--yes]
+# Usage: scripts/ops/proxmox/vm-power.sh --action <start|stop|shutdown|reset> -e <env> [--vmid <vmid>] [-y|--yes]
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 
@@ -66,7 +66,7 @@ fi
 VMS=$(printf '%s\n' "${VMS}" | proxmox_filter_vmid "${VMID}")
 
 # Only stop/shutdown/reset are gated, and only when acting on the whole environment (no --vmid) -- see the
-# file header for why. Same typed-confirmation UX as proxmox-snapshot-rollback.sh.
+# file header for why. Same typed-confirmation UX as ops/proxmox/snapshot-rollback.sh.
 case "${ACTION}" in
     stop | shutdown | reset)
         if [ -z "${VMID}" ] && [ "${YES}" -eq 0 ]; then
@@ -98,7 +98,7 @@ verb() {
 
 # Performs $ACTION on a single VM. Called once per selected VM, in parallel -- no cross-VM ordering
 # dependency for a power action (unlike rollback's per-VM stop-then-rollback-then-start sequence), so every
-# selected VM runs concurrently, same PID-array pattern as scripts/proxmox-snapshot-create.sh.
+# selected VM runs concurrently, same PID-array pattern as scripts/ops/proxmox/snapshot-create.sh.
 power_one() {
     local vmid="$1" node="$2" name="$3"
     log info "$(verb "${ACTION}") VM" "vmid" "${vmid}" "name" "${name}"

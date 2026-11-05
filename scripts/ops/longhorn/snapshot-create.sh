@@ -5,13 +5,13 @@
 # A manual snapshot carries no RecurringJob label, so none of the RecurringJobs' retain counts ever prune it:
 # it stays until deleted (`kubectl -n longhorn-system delete snapshots.longhorn.io <name>`).
 #
-# Usage: scripts/longhorn-snapshot-create.sh [-e <env>] (-n <ns> | -A) [--all] [<app>]
+# Usage: scripts/ops/longhorn/snapshot-create.sh [-e <env>] (-n <ns> | -A) [--all] [<app>]
 # <app> and --all are mutually exclusive; -n/--namespace and -A/--all-namespaces are mutually exclusive;
 # -A/--all-namespaces requires --all (a single named app can't be looked up across every namespace).
 # -e/--environment selects the kubecontext; omit it to use whatever context is already current.
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/longhorn.sh"
 

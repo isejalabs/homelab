@@ -1,13 +1,13 @@
 #!/bin/bash
 # Lists the Proxmox VMs belonging to one environment (discovered via scripts/lib/proxmox.sh's
 # 70081<id><n> vmid scheme, cross-checked against each VM's name prefix), via the Proxmox REST API -- no
-# SSH. Read-only. VM-only view, no snapshot detail -- see scripts/proxmox-snapshot-list.sh for that. See
+# SSH. Read-only. VM-only view, no snapshot detail -- see scripts/ops/proxmox/snapshot-list.sh for that. See
 # docs/operations/proxmox-vm-power.md.
 #
-# Usage: scripts/proxmox-vm-list.sh -e <env>
+# Usage: scripts/ops/proxmox/vm-list.sh -e <env>
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 

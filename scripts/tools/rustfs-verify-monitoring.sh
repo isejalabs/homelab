@@ -22,10 +22,10 @@
 # Manual only (needs 1Password and network access to the RustFS), not for CI. Exits non-zero if any check
 # deviates, printing the response body of each deviation. See terragrunt/README.md ("RustFS monitoring identity").
 #
-# Usage: scripts/rustfs-verify-monitoring.sh -e <env> [--endpoint <url>]
+# Usage: scripts/tools/rustfs-verify-monitoring.sh -e <env> [--endpoint <url>]
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 # SigV4 parameters for curl --aws-sigv4: provider:partition:region:service. RustFS signs like S3 and does not

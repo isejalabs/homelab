@@ -3,10 +3,10 @@
 # via the Proxmox REST API -- no SSH. The "Snapshot" half of #1296's one-go workflow. Non-destructive
 # (additive only) -- no confirmation prompt. See docs/operations/proxmox-vm-snapshots.md.
 #
-# Usage: scripts/proxmox-snapshot-create.sh -e <env> [--name <name>]
+# Usage: scripts/ops/proxmox/snapshot-create.sh -e <env> [--name <name>]
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 
@@ -63,7 +63,7 @@ fi
 log info "Creating snapshot on all ${ENV} VMs" "name" "${NAME}"
 
 # Creates snapshot $NAME on a single VM. Called once per discovered VM, in parallel (PID-array pattern
-# copied from scripts/kopiur-create.sh's --all path) -- a ZFS/PVE snapshot is a fast metadata-only
+# copied from scripts/ops/kopiur/create.sh's --all path) -- a ZFS/PVE snapshot is a fast metadata-only
 # operation, so concurrent VMs are low-risk here, unlike rollback's stop+rollback+start(+boot) cycle, which
 # has real per-node resource contention to worry about.
 snapshot_one() {

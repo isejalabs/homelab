@@ -116,7 +116,7 @@ git add .terraform.lock.hcl
 
 The second command adds the hashes for macOS on Apple silicon and Linux on amd64 (the platforms of the maintainer's machine and of CI) to the lock; it does not change a locked version. It needs no cloud credentials. To move to newer providers, run the first command with `-upgrade` and commit the result. To check that a lock is complete, run `init -backend=false -lockfile=readonly`: it fails instead of changing the file.
 
-CI enforces this: `scripts/terragrunt-validate-all.sh` fails for a `prod` or `qa` unit without a committed lock file and runs `init` on those units with `-lockfile=readonly`, so a lock that lacks a provider, or the hashes for CI's platform, fails the check instead of being extended on the fly. To check a unit the way CI does: `scripts/terragrunt-validate-all.sh terragrunt/prod/eu-central-1/prod/<unit>`.
+CI enforces this: `scripts/ci/terragrunt-validate-all.sh` fails for a `prod` or `qa` unit without a committed lock file and runs `init` on those units with `-lockfile=readonly`, so a lock that lacks a provider, or the hashes for CI's platform, fails the check instead of being extended on the fly. To check a unit the way CI does: `scripts/ci/terragrunt-validate-all.sh terragrunt/prod/eu-central-1/prod/<unit>`.
 
 If an apply leaves a modified or untracked `.terraform.lock.hcl` behind anyway (a provider version or hash that was not in the committed file), commit it through a pull request like any other change. A leftover untracked copy that is identical to a newly committed lock has to be deleted before pulling, as git does not overwrite untracked files.
 
@@ -190,7 +190,7 @@ Before destroying the previous cluster, its volumes' state has to be removed to 
 for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); do terragrunt state rm "$i"; done
 ```
 
-The script [`scripts/tg-state-rm.sh`](../scripts/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction.
+The script [`scripts/tools/tg-state-rm.sh`](../scripts/tools/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction.
 
 ### Cluster end of lifecycle
 
@@ -210,7 +210,7 @@ terragrunt state rm 'module.proxmox_csi_plugin.kubernetes_namespace.csi-proxmox'
 terragrunt state rm 'module.talos.talos_machine_bootstrap.this'
 ```
 
-The script [`scripts/tg-state-rm.sh`](../scripts/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction by deleting the states mentioned above.
+The script [`scripts/tools/tg-state-rm.sh`](../scripts/tools/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction by deleting the states mentioned above.
 
 #### Destroy a cluster
 
@@ -269,7 +269,7 @@ Using a created identity is a separate, manual step: copy its access key and sec
 After applying a `rustfs-bucket-reader` unit (and again after a RustFS upgrade, a module change, or when Checkmk reports UNKNOWN), check that the identity reads quota of its own buckets and nothing else:
 
 ```sh
-scripts/rustfs-verify-monitoring.sh -e <env>
+scripts/tools/rustfs-verify-monitoring.sh -e <env>
 ```
 
 It reads the endpoint from `terragrunt/global-secrets.sops.yaml` and the identity's credentials from the `checkmk-monitoring#<env>` 1Password item, then runs only non-mutating requests: quota-stats on each own bucket must return 200, while quota-stats on another environment's bucket, object listing, `GetObject`/`DeleteObject` of a random non-existent key and the admin `info`/`scanner/status` routes must all return 403. It exits non-zero and shows the response body on any deviation. Not for CI: it needs 1Password and network access to the RustFS.

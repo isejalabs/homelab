@@ -12,13 +12,13 @@
 # Each (unit, environment) overlay is rendered once. Needs `kubectl` (`kubectl kustomize`, no cluster); set KUSTOMIZE to
 # another command to render with (default "kubectl kustomize"), e.g. `kustomize build`.
 #
-# Usage: scripts/check-unit-readme-hostnames.sh [repo-root]
+# Usage: scripts/ci/check-unit-readme-hostnames.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
 # docs-link-check CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
 KUSTOMIZE="${KUSTOMIZE:-kubectl kustomize}"

@@ -125,7 +125,7 @@ A from-scratch recreate of `rebuild` (destroy, `terragrunt apply`, `initial` sna
 
 | Phase | Start (UTC) | Duration | Notes |
 | --- | --- | --- | --- |
-| Destroy (27 resources) | 2026-10-30 05:29:57 | 1 min | `scripts/tg-state-rm.sh`, then `terragrunt plan -destroy -refresh=false` and apply |
+| Destroy (27 resources) | 2026-10-30 05:29:57 | 1 min | `scripts/tools/tg-state-rm.sh`, then `terragrunt plan -destroy -refresh=false` and apply |
 | `terragrunt apply` (VMs, Talos, Cilium bootstrap) | 2026-10-30 05:32:15 | 31 min 47 s | Talos image download to three Proxmox hosts 8.5 min; three applies (locked SSH agent, then the 10 min `talos_cluster_health` timeout while the control plane images were still pulled) |
 | `initial` snapshot | 2026-10-30 06:04:35 | 1 min | |
 | `just bootstrap::cluster` | 2026-10-30 06:06:15 | about 19 min in five runs | Helm waits for Cilium and external-secrets (5 min) timed out on pulls; waiting for the 1Password CLI between runs is not counted; finished 2026-10-31 15:50:25 |

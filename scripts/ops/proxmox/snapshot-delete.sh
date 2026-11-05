@@ -4,7 +4,7 @@
 #
 # Destructive and irreversible, though lower-stakes than rollback -- this only discards the snapshot
 # itself, never any live VM state. Requires typed confirmation unless -y/--yes or --vmid is given, same
-# rule as proxmox-vm-power.sh's stop/shutdown/reset: a single --vmid target already makes the blast radius
+# rule as ops/proxmox/vm-power.sh's stop/shutdown/reset: a single --vmid target already makes the blast radius
 # explicit.
 #
 # Unlike create/rollback, this doesn't require every discovered VM to agree on snapshot presence -- some
@@ -17,10 +17,10 @@
 # the Proxmox API docs (the only documented parameter is `force`, for config/disk-state divergence, not
 # chain position) and live during this feature's own testing (see docs/operations/proxmox-vm-snapshots.md).
 #
-# Usage: scripts/proxmox-snapshot-delete.sh -e <env> [--name <name>] [--vmid <vmid>] [-y|--yes]
+# Usage: scripts/ops/proxmox/snapshot-delete.sh -e <env> [--name <name>] [--vmid <vmid>] [-y|--yes]
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 
@@ -115,7 +115,7 @@ if [ -z "${VMID}" ] && [ "${YES}" -eq 0 ]; then
 fi
 
 # Deletes snapshot $NAME from a single VM. Called once per VM in DELETE_VMID, in parallel -- no cross-VM
-# ordering dependency, same reasoning as proxmox-vm-power.sh.
+# ordering dependency, same reasoning as ops/proxmox/vm-power.sh.
 delete_one() {
     local vmid="$1" node="$2" name="$3"
     log info "deleting snapshot" "vmid" "${vmid}" "name" "${name}" "snapshot" "${NAME}"

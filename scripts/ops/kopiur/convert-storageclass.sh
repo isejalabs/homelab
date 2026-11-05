@@ -17,7 +17,7 @@
 # to reconcile.
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 
 usage() {
@@ -145,7 +145,7 @@ EOF
 JOB="${TMP_PVC}-migrate"
 # Longhorn volumes aren't node-pinned the way proxmox-csi ones are, but keep
 # the copy job on the app's own node/zone anyway -- cheap insurance against
-# any topology constraint and consistent with kopiur-migrate-pvc.sh.
+# any topology constraint and consistent with ops/kopiur/migrate-pvc.sh.
 NODE_SELECTOR=$(kubectl --context "${CTX}" get deployment "${DEPLOY}" -n "${NS}" -o jsonpath='{.spec.template.spec.nodeSelector}' 2>/dev/null || true)
 NODE_SELECTOR="${NODE_SELECTOR:-{\}}"
 

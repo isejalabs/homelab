@@ -41,7 +41,7 @@ exclude_docs: |
   # agent instructions and local tooling notes, not documentation
   /AGENTS.md
   /CLAUDE.md
-  /scripts/mink-codex-hook.md
+  /scripts/agent/mink-codex-hook.md
 
 use_directory_urls: true
 

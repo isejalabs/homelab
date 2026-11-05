@@ -1,17 +1,17 @@
 #!/bin/sh
 # Checks that the README indexes of scripts/ stay complete: every file under scripts/ (except README.md files)
 # must be linked from the nearest README.md above it (walking up to scripts/README.md), as a markdown link
-# whose target is the file's path relative to that README, e.g. "[`kopiur-list.sh`](kopiur-list.sh)" or
-# "[`lib/common.sh`](lib/common.sh)". A README must also not repeat a "##" heading, which is how a section
+# whose target is the file's path relative to that README, e.g. "[`ci/check-sorting.py`](ci/check-sorting.py)"
+# or "[`lib/common.sh`](lib/common.sh)". A README must also not repeat a "##" heading, which is how a section
 # ends up documented twice. See .agents/instructions/shell-scripts.md for the convention this enforces.
 #
-# Usage: scripts/check-scripts-index.sh [repo-root]
+# Usage: scripts/ci/check-scripts-index.sh [repo-root]
 # repo-root defaults to this script's repo; pass another directory to check a copy of the tree. Invoked by the
 # docs-link-check CI workflow.
 
 set -eu
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
 ROOT="${1:-$(dirname -- "${SCRIPTS_DIR}")}"
 ROOT="${ROOT%/}"

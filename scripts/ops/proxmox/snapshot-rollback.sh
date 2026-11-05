@@ -8,10 +8,10 @@
 # newer snapshot on top of <name>, this aborts before touching any VM (see docs/operations/proxmox-vm-snapshots.md for
 # why, and how to proceed).
 #
-# Usage: scripts/proxmox-snapshot-rollback.sh -e <env> [--name <name>] [-y|--yes] [--no-start]
+# Usage: scripts/ops/proxmox/snapshot-rollback.sh -e <env> [--name <name>] [-y|--yes] [--no-start]
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/proxmox.sh"
 

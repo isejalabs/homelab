@@ -6,12 +6,12 @@
 # 24 hours at hourly granularity (k8s/infra/longhorn-system/longhorn/base/job-snapshot.yaml) -- unlike kopiur
 # backups, which are day-based and go back weeks. Pick a snapshot by its CREATED timestamp, not by day.
 #
-# Usage: scripts/longhorn-snapshot-list.sh [-e <env>] (-n <ns> | -A) [<app>]
+# Usage: scripts/ops/longhorn/snapshot-list.sh [-e <env>] (-n <ns> | -A) [<app>]
 # -n/--namespace and -A/--all-namespaces are mutually exclusive; exactly one is required.
 # -e/--environment selects the kubecontext; omit it to use whatever context is already current.
 set -euo pipefail
 
-SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 . "${SCRIPTS_DIR}/lib/common.sh"
 . "${SCRIPTS_DIR}/lib/longhorn.sh"
 
