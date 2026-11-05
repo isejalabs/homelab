@@ -19,7 +19,7 @@ SKIP_KINDS='SealedSecret'
 
 # Kubernetes version the manifests are validated against (kubeconform schemas). Keep it at the version the
 # clusters run (bumped by Renovate, see the pin in .github/renovate/pin-versions.json5).
-K8S_VERSION="1.35.9" # renovate: github-releases=kubernetes/kubernetes
+K8S_VERSION="1.35.10" # renovate: github-releases=kubernetes/kubernetes
 
 # Prints the public hostname that a rendered Keycloak overlay (read from stdin) declares for its resource of kind $1:
 # `Keycloak` (spec.hostname.hostname) or `HTTPRoute` (first entry of spec.hostnames). Prints nothing if there is none.
