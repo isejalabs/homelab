@@ -8,9 +8,11 @@ backend = "vfox:1password-cli"
 specifiers = ["2.39.0"]
 
 [tools.1password-cli."platforms.linux-x64"]
+checksum = "sha256:6fba7f376b6c6dec49f41b06408930a43ad064cce103c6a2ce5b3d0413a86434"
 url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.39.0/op_linux_amd64_v2.39.0.zip"
 
 [tools.1password-cli."platforms.macos-arm64"]
+checksum = "sha256:05391d3388a0c0b4f602691bedc1ab368541c487b6f14d2e3399743b4682af67"
 url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.39.0/op_darwin_arm64_v2.39.0.zip"
 
 [[tools.age]]
