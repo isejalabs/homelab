@@ -41,7 +41,7 @@ exclude_docs: |
   # agent instructions and local tooling notes, not documentation
   /AGENTS.md
   /CLAUDE.md
-  /scripts/agent/mink-codex-hook.md
+  /scripts/agent/README.md
 
 use_directory_urls: true
 
@@ -231,7 +231,17 @@ nav:
     - whoami: k8s/apps/diag/whoami/README.md
     - Zigbee2MQTT: k8s/apps/home-automation/zigbee2mqtt/README.md
   - Terragrunt envcommon: terragrunt/_envcommon/README.md
-  - Scripts: scripts/README.md
+  - Scripts:
+    - Overview: scripts/README.md
+    - CI validation: scripts/ci/README.md
+    - Operations:
+      - Overview: scripts/ops/README.md
+      - kopiur: scripts/ops/kopiur/README.md
+      - Longhorn snapshots: scripts/ops/longhorn/README.md
+      - Keycloak restore: scripts/ops/keycloak/README.md
+      - Proxmox: scripts/ops/proxmox/README.md
+    - Tools: scripts/tools/README.md
+    - Shared libraries: scripts/lib/README.md
 - Decisions:
   - Index: docs/decisions/README.md
   - "ADR 0001 · Proxmox + Talos as the virtualization and Kubernetes-node platform": docs/decisions/0001-proxmox-and-talos.md

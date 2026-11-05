@@ -1,5 +1,12 @@
 # Mink hooks for Codex
 
+Not a repo workflow: the adapter that [`.codex/hooks.json`](../../.codex/hooks.json) runs on Codex hook events, so Codex sessions feed Mink the same file events Claude Code does. This folder is excluded from the documentation site.
+
+| File | Purpose |
+| --- | --- |
+| [`mink-codex-hook.py`](mink-codex-hook.py) | translates Codex hook events (`apply_patch`, standalone `cat`/`head`/`tail`/`sed -n` reads) into Mink's Claude-style file events; never executes shell text |
+| [`test-mink-codex-hook.py`](test-mink-codex-hook.py) | unit tests of that translation, run with `python3 scripts/agent/test-mink-codex-hook.py` |
+
 The repository's `.codex/hooks.json` calls `scripts/agent/mink-codex-hook.py` with Python 3.9 or later. Mink must be on PATH or installed at `~/.bun/bin/mink`. Each handler's `statusMessage` supplies its label in the desktop hook review UI. Review and trust the updated definitions before use; changing the configuration requires another trust review. Start a new session to exercise `SessionStart`.
 
 The adapter translates Codex `apply_patch` events into Mink `Write`/`Edit` events, including multiple files, deletion, and rename. It recognizes standalone `cat`, `head`, `tail`, and numeric `sed -n 'start,endp'` commands with explicit project-local file paths as reads. It never executes or expands shell text. Complex commands, pipelines, redirections, glob patterns, searches, and reads outside the session directory are deliberately not inferred. Use standalone read commands for file-level tracking. Existing Claude-style file events are also accepted.
