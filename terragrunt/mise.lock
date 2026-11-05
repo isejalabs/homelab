@@ -3,19 +3,21 @@
 lockfile_version = 2
 
 [[tools.opentofu]]
-version = "1.12.6"
+version = "1.13.9"
 backend = "aqua:opentofu/opentofu"
-specifiers = ["1.12.6"]
+specifiers = ["1.13.9"]
 
 [tools.opentofu."platforms.linux-x64"]
-checksum = "sha256:50a6106fa4de523d09c87af85f3db1dd47535fc005727fdca6852146476b88ec"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.12.6/tofu_1.12.6_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/520762723"
+checksum = "sha256:b34b327cc1ef07178207b6f2cd1f5276537d3e5b7be316500f6dac50d4c0a857"
+checksum_source = "mise-versions"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.13.9/tofu_1.13.9_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/714326349"
 
 [tools.opentofu."platforms.macos-arm64"]
-checksum = "sha256:f958ec5e511063be9feb180ca015a4cb7977566a9cf6a8550bba8c2a9b5aba74"
-url = "https://github.com/opentofu/opentofu/releases/download/v1.12.6/tofu_1.12.6_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/520762710"
+checksum = "sha256:496f4c3064b5c3bff79174b3dae4faaf65a66774eb8e2bf074f895412c5f124f"
+checksum_source = "mise-versions"
+url = "https://github.com/opentofu/opentofu/releases/download/v1.13.9/tofu_1.13.9_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/opentofu/opentofu/releases/assets/714325678"
 
 [[tools.talosctl]]
 version = "1.14.2"
@@ -35,16 +37,18 @@ url_api = "https://api.github.com/repos/siderolabs/talos/releases/assets/5990597
 provenance = "cosign"
 
 [[tools.terragrunt]]
-version = "1.1.6"
+version = "1.2.1"
 backend = "aqua:gruntwork-io/terragrunt"
-specifiers = ["1.1.6"]
+specifiers = ["1.2.1"]
 
 [tools.terragrunt."platforms.linux-x64"]
-checksum = "sha256:5dca0e3518445199ecfd8c356532e3f134bf3082b092cd2fd61f143ab9ea7a06"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v1.1.6/terragrunt_linux_amd64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/579002043"
+checksum = "sha256:08c8844cc69e4f03451ebb8f347cb57d9bd6b8db7b16e437ae5ec6f001228ef9"
+checksum_source = "mise-versions"
+url = "https://github.com/gruntwork-io/terragrunt/releases/download/v1.2.1/terragrunt_linux_amd64.tar.gz"
+url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/670001904"
 
 [tools.terragrunt."platforms.macos-arm64"]
-checksum = "sha256:c801b7c085a893ccbc5b9844522415e7bf1486d0a11341db793e76e61dc4c5f5"
-url = "https://github.com/gruntwork-io/terragrunt/releases/download/v1.1.6/terragrunt_darwin_arm64.tar.gz"
-url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/579001652"
+checksum = "sha256:0aded323f844ce6567a15feb26393b67eff1400dc1722203fa4dd4e23b3bb182"
+checksum_source = "mise-versions"
+url = "https://github.com/gruntwork-io/terragrunt/releases/download/v1.2.1/terragrunt_darwin_arm64.tar.gz"
+url_api = "https://api.github.com/repos/gruntwork-io/terragrunt/releases/assets/670001110"
