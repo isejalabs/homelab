@@ -45,7 +45,7 @@ Two details worth knowing before adding an entry:
 - `http-redirect-to-https` (`HTTPRoute`) and `internal-http` (`Gateway`) are rejected on purpose: they have no hostname by design, and a wildcard `fieldPaths` entry that matches nothing is a hard kustomize error, not a no-op.
 - `external-dns` `domainFilters.0` is index 0 specifically, not `domainFilters.*`: index 1 is the PTR zone, an `in-addr.arpa.` name that must not go through this split, see [`reverse-zone-env`](../reverse-zone-env/README.md).
 
-No `Ingress` exists in the repo today (apps use the Gateway API), so that entry has nothing to match; it is kept for completeness. The `Keycloak` hostname goes through the same pair as the `HTTPRoute`, so the two cannot drift; the one hand-typed copy is the `keycloak_url` of each `keycloak-realm` Terragrunt unit, which `scripts/kustomize-build-all.sh` checks against both.
+No `Ingress` exists in the repo today (apps use the Gateway API), so that entry has nothing to match; it is kept for completeness. The `Keycloak` hostname goes through the same pair as the `HTTPRoute`, so the two cannot drift; the one hand-typed copy is the `keycloak_url` of each `keycloak-realm` Terragrunt unit, which `scripts/ci/kustomize-build-all.sh` checks against both.
 
 ## Where it's included
 

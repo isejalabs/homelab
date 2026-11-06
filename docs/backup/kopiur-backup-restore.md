@@ -85,7 +85,7 @@ This grouping is its own axis, independent of which apps an environment runs -- 
 
 ## Daily tasks
 
-A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`/`bypass-restore`, in `scripts/kopiur.just`) wraps the commands below for the common cases. Each subsection shows both: the recipe first, then the manual equivalent it runs -- the manual form is still worth knowing, both to understand what the recipe actually does and for anything it doesn't cover (restoring a *specific older* snapshot rather than the latest, and pruning, below, are manual-only).
+A `just backup::kopiur::*` recipe set (`list`/`create`/`restore`/`bypass-restore`, in `scripts/ops/kopiur/mod.just`) wraps the commands below for the common cases. Each subsection shows both: the recipe first, then the manual equivalent it runs -- the manual form is still worth knowing, both to understand what the recipe actually does and for anything it doesn't cover (restoring a *specific older* snapshot rather than the latest, and pruning, below, are manual-only).
 
 ### List all available backups (snapshots) of an app
 
