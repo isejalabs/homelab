@@ -3,17 +3,17 @@
 lockfile_version = 2
 
 [[tools.1password-cli]]
-version = "2.39.0"
+version = "2.42.0"
 backend = "vfox:1password-cli"
-specifiers = ["2.39.0"]
+specifiers = ["2.42.0"]
 
 [tools.1password-cli."platforms.linux-x64"]
-checksum = "sha256:6fba7f376b6c6dec49f41b06408930a43ad064cce103c6a2ce5b3d0413a86434"
-url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.39.0/op_linux_amd64_v2.39.0.zip"
+checksum = "sha256:261fe3844a43e7e83a3d85e8a9f36411729436a1d3add1dc7dd46cbbceebe9e5"
+url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_linux_amd64_v2.42.0.zip"
 
 [tools.1password-cli."platforms.macos-arm64"]
-checksum = "sha256:05391d3388a0c0b4f602691bedc1ab368541c487b6f14d2e3399743b4682af67"
-url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.39.0/op_darwin_arm64_v2.39.0.zip"
+checksum = "sha256:216e86c6db491c752ccb7819b3b1851cc8456ea015a1f7c8a58dd103ef0a474e"
+url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_darwin_arm64_v2.42.0.zip"
 
 [[tools.age]]
 version = "1.3.2"
