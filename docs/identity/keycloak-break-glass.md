@@ -110,12 +110,12 @@ Checked on `qa` (2026-10-26) against the live resources unless noted otherwise:
 | `kc.sh bootstrap-admin user` needs all nodes stopped | From the Keycloak documentation, not tried |
 | Reading the item with `op item get` | Command standard, not run in this session |
 | Sign-in to `master` with the item's credential, the rotation steps, the `kcadm.sh` login | Not tried (no credential read in the writing session) |
-| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Verified in `dev` (2026-11-01): the unit, which logs in with this account (password grant), planned, applied and planned again clean after the client existed. The sign-in in the admin console was not tried |
+| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Verified in `dev` (2026-11-01): the unit, which logs in with this account (password grant), planned, applied and planned again clean after the client existed. Verified in `qa` (2026-11-07): the owner signed in to the admin console of `master` with the item's credential, with the automation client in place. The console shows the banner "You are logged in as a temporary admin user" (see [Open points](#open-points)) |
 | Facts for `prod` and `rebuild` | Not applicable yet, nothing is deployed there |
 
 ## Open points
 
 - **MFA for the bootstrap admin.** The plan asks for the local admin of each core service to have its own MFA where the product supports it. That is not configured on the `master` account here. Enabling it needs a decision first: the Terragrunt provider signs in with the password through the `admin-cli` client and probably cannot answer a one-time-code prompt, so it would need a service account of its own beforehand.
 - **A second named `master` admin** per person (instead of only the shared bootstrap account) would make cause 1 above recoverable without the `kc.sh` route. Not decided.
-- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass login and the login of the `keycloak-automation` unit; the console may keep warning about it.
+- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass login and the login of the `keycloak-automation` unit; the console keeps showing the banner "You are logged in as a temporary admin user" after the sign-in (seen in `qa`, 2026-11-07). The automation client replaces this account only for `keycloak-realm`, not as the emergency login.
 - **Rehearse the lost-admin recovery (cause 4)** in `dev`, and the sign-in itself in `prod` once it is deployed ([#1826](https://github.com/isejalabs/homelab/issues/1826)).
