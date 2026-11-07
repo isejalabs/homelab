@@ -1,8 +1,9 @@
+---
+id: ADR 0010
+status: current
+---
+
 # SOPS vs. sealed-secrets vs. 1Password + External Secrets Operator
-
-## Status
-
-current
 
 ## Context
 

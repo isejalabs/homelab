@@ -27,7 +27,7 @@ jobs:
           - "!k8s/bootstrap/helmfile/**/*.md" # none exist today, but keep this consistent with the other two
           - ".mise.toml"
           - "mise.lock"
-          - "scripts/bootstrap-apps-ci-test.sh"
+          - "scripts/ci/bootstrap-apps-ci-test.sh"
           - "scripts/lib/common.sh"
           - ".github/workflows/bootstrap-apps-test.yml"
 
@@ -44,4 +44,4 @@ jobs:
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
         install_args: kind helm helmfile kubectl yq
-    - run: scripts/bootstrap-apps-ci-test.sh
+    - run: scripts/ci/bootstrap-apps-ci-test.sh

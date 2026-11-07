@@ -1,0 +1,19 @@
+# Spell check config for .github/workflows/spell-check.yml (typos, https://github.com/crate-ci/typos).
+# Passed explicitly with --config so a local `typos` run in this repo is not affected by it.
+
+[files]
+# audits are never edited after the fact (docs/README.md "Ownership"); _attic/ZZ.bak are retired
+# material; .commons is a submodule owned by another repo; sops files hold ciphertext
+extend-exclude = [
+  "docs/audits/",
+  "_attic/",
+  "ZZ.bak/",
+  ".commons/",
+  "*.sops.*",
+  "mise.lock",
+]
+
+[default.extend-words]
+# tool and acronym names that typos would "correct"
+flate = "flate" # home-operations/flate, the Flux validation tool (flate-test.yml)
+rto = "rto" # recovery time objective

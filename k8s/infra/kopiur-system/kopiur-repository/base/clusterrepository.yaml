@@ -36,7 +36,7 @@ spec:
       # `quick` maintenance schedule runs never has anything to trim and the cache fills the volume.
       # metadataCacheSizeMb is halved vs. contentCacheSizeMb because kopia's index-blobs cache shares the
       # same budget. Ported from onedr0p/home-ops after it hit this same bug upstream (see
-      # docs/kopiur-backup-restore.md's Credits & changes from upstream).
+      # docs/backup/kopiur-backup-restore.md's Credits & changes from upstream).
       contentCacheSizeMb: 512
       metadataCacheSizeMb: 1024
   parameters:

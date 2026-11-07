@@ -5,3 +5,4 @@ metadata:
 spec:
   acme:
     email: rebuild-certmanager@iseja.net
+    server: https://acme-v02.api.letsencrypt.org./directory

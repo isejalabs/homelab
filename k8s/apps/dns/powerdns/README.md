@@ -1,3 +1,108 @@
+# PowerDNS
+
+[PowerDNS Authoritative Server](https://www.powerdns.com/) is the authoritative nameserver for each environment's own zone (`<env>.iseja.net`) and its PTR zone, filled dynamically by external-dns.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `powerdns` |
+| Runs in | all 8 environments (Flux set `minimal`) |
+| Installed via | HelmRelease with the `bjw-s-labs/app-template` OCI chart; SQLite zone database on a small PVC |
+| Flux Kustomization | `powerdns`, no `dependsOn` |
+
+## Purpose
+
+Gives each environment a zone of its own that apps and nodes can resolve without touching the physical network's DNS: external-dns writes one record per `HTTPRoute`, `LoadBalancer` Service and Gateway, so a new app is reachable by name as soon as Flux has applied it. Why PowerDNS and why dynamic updates over TSIG: [ADR 0011](../../../../docs/decisions/0011-powerdns-as-dns-server.md), [ADR 0012](../../../../docs/decisions/0012-tsig-over-ip-acl-for-axfr.md); the whole DNS picture is in [`network.md`](../../../../docs/architecture/network.md#dns-authoritative-zones-powerdns).
+
+## Where it is used
+
+- **Used by**:
+  - [`external-dns`](../../../infra/external-dns/external-dns/base/helmrelease.yaml) writes the records over RFC2136, signed with the TSIG key `dynupdate`;
+  - the secondary nameserver `ns2` (`10.7.2.12`, a BIND9 LXC outside this repo) pulls each zone by AXFR with the TSIG key `axfr-out`.
+- **Depends on**: External Secrets and 1Password for the two TSIG keys (`powerdns-tsig-dynupdate#<env>`, `powerdns-tsig-axfr-out#<env>`), and Longhorn (`longhorn-ha`, 128 Mi) for the SQLite file.
+
+## Access
+
+Plain DNS on port 53 (TCP and UDP) at a fixed load balancer address per environment, `10.8.<env-id>.10`; no web UI and no API (`webserver=no`, `api=no`). The nameserver identity is `ns1.<env>.iseja.net`, which is also the zone's NS and SOA MNAME.
+
+| env | Address | Nameserver name |
+| --- | --- | --- |
+| `dbg` | `10.8.9.10` | `ns1.dbg.iseja.net` |
+| `dev` | `10.8.3.10` | `ns1.dev.iseja.net` |
+| `head` | `10.8.1.10` | `ns1.head.iseja.net` |
+| `poc` | `10.8.6.10` | `ns1.poc.iseja.net` |
+| `prod` | `10.8.8.10` | `ns1.prod.iseja.net` |
+| `qa` | `10.8.2.10` | `ns1.qa.iseja.net` |
+| `rebuild` | `10.8.7.10` | `ns1.rebuild.iseja.net` |
+| `src` | `10.8.5.10` | `ns1.src.iseja.net` |
+
+The address pattern is the environment ID of [`reference/environments.md`](../../../../docs/reference/environments.md#environment-id). Zone transfers are refused without the TSIG key.
+
+## Updates
+
+- **Chart**: `bjw-s-labs/app-template`, tag and digest in [`base/ocirepository.yaml`](base/ocirepository.yaml).
+- **Image**: `powerdns/pdns-auth-51` with tag and digest in [`base/helmrelease.yaml`](base/helmrelease.yaml) (the `image` anchor, reused by the zone-bootstrap init container). The 5.2 line only has alpha tags so far, so 5.1 is the latest stable.
+- No special Renovate rule: the normal flow of [`update-handling.md`](../../../../docs/operations/update-handling.md) applies to every environment, `prod` included.
+
+## Operations
+
+| Task | Doc |
+| --- | --- |
+| Diagnose a missing or wrong record, or an out-of-sync secondary | [`troubleshooting-dns.md`](../../../../docs/troubleshooting/troubleshooting-dns.md) |
+| Zones, PTR zones and nameserver identity | [`network.md`](../../../../docs/architecture/network.md#dns-authoritative-zones-powerdns) |
+| Add the TSIG keys and the secondary for an environment | the setup sections at the bottom of this file |
+
+## Cheat sheet
+
+### State and a quick query
+
+```sh
+flux get ks powerdns --context admin@<env>-homelab
+kubectl get pods,svc,pvc -n powerdns --context admin@<env>-homelab
+dig @10.8.<env-id>.10 <env>.iseja.net SOA +short
+```
+
+
+Common operational commands, tested against a live environment's PowerDNS LB IP (e.g. `10.8.3.10` for `dev`) and a TSIG key already delivered by ESO -- see [`k8s/components/transformers/powerdns-tsig-env`](../../../components/transformers/powerdns-tsig-env) for how the `#<env>` 1Password item lands in one of the two Secrets below.
+
+### Retrieve a zone's full record set via AXFR (TSIG-authenticated)
+
+Pull the TSIG secret straight from the Secret ESO already wrote, then `dig +axfr` against PowerDNS's own LB IP -- not `localhost`/a port-forward, since the point is to exercise the exact same TSIG-gated path `10.7.2.12` (or external-dns's own `--rfc2136-axfr`) will use:
+
+```sh
+SECRET=$(kubectl get secret -n powerdns powerdns-tsig-dynupdate -o jsonpath='{.data.TSIG_DYNUPDATE_SECRET}' | base64 -d)
+dig @10.8.3.10 dev.iseja.net AXFR -y hmac-sha256:dynupdate:"$SECRET"
+```
+
+Swap the zone name for the PTR zone (`3.8.10.in-addr.arpa`) and the Secret/key name for `axfr-out` (`powerdns-tsig-axfr-out` / `TSIG_AXFR_OUT_SECRET`) to exercise the *other* TSIG grant the same way -- useful for confirming `10.7.2.12`'s eventual slave config will actually work before wiring it up on the LXC itself.
+
+An unauthenticated AXFR (same command, no `-y`) should be refused (`; Transfer failed.` / `REFUSED`) -- confirmed live as the expected behavior, not a bug: only key names listed in a zone's `TSIG-ALLOW-AXFR` metadata may transfer it.
+
+### Inspect a zone directly on the pod
+
+```sh
+kubectl exec -n powerdns deploy/powerdns -- pdnsutil zone list dev.iseja.net
+kubectl exec -n powerdns deploy/powerdns -- pdnsutil zone list 3.8.10.in-addr.arpa
+```
+
+Faster than a `dig` round-trip for confirming what's actually in the backend, especially when diagnosing a `REFUSED`/`SERVFAIL` from `dig` itself (see quirks below) -- rules out "is the record actually there" before suspecting the network/TSIG path.
+
+### Quirks encountered live (not obvious from the docs)
+
+- **A CNAME can never coexist with any other record type at the same owner name.** Cutting a hostname over from a direct A record to a CNAME (see the Gateway-CNAME section above) produces a transient `REFUSED` on the very first reconcile if the old A record hasn't been deleted in the same pass yet -- self-resolves on the next reconcile once it has. Not a bug, just DNS's own rule; expect a brief blip on any A-to-CNAME cutover.
+- **`TSIG-ALLOW-AXFR` is a full-replace metadata key, not additive.** A second `pdnsutil metadata set ... TSIG-ALLOW-AXFR <key>` call *replaces* the previous grant rather than adding to it -- granting both `dynupdate` and `axfr-out` needs one call listing both key names together, never two separate calls.
+- **external-dns's `--rfc2136-zone` must be one combined `flag=value` string, not two array entries.** The chart's values schema requires `extraArgs` to be a set of *unique* strings; two bare `--rfc2136-zone` entries (flag and value split across array elements) collide regardless of what value follows, since uniqueness checking only sees the repeated flag token itself.
+- **external-dns's `--create-ptr` refuses to start unless `PTR` is explicitly added to `--managed-record-types`.** The flag's own default set (`A`, `AAAA`, `CNAME`) doesn't include it -- fails config validation at startup otherwise (`--create-ptr requires PTR in --managed-record-types`).
+- **external-dns's zone-name matching is literal, not normalized.** Unlike `pdnsutil` (tolerant of a trailing dot either way), external-dns compares its own generated record names against the exact string configured in `--rfc2136-zone`/`domainFilters` -- a trailing dot present on one side and not the other silently drops every record for that zone as "out of zone", which PowerDNS then refuses at the RFC2136 layer with little indication why.
+- **PTR/CNAME record churn on every reconcile is a known upstream external-dns bug, not a local misconfiguration.** See [PR #1392](https://github.com/isejalabs/homelab/pull/1392)'s "Known upstream external-dns bug" section and [issue #1393](https://github.com/isejalabs/homelab/issues/1393) -- harmless, just wasteful; don't spend time chasing it as a config problem here.
+
+## Upstream
+
+- Homepage and documentation: <https://www.powerdns.com/>, <https://doc.powerdns.com/authoritative/>
+- Source and releases: <https://github.com/PowerDNS/pdns>
+- Chart used: <https://github.com/bjw-s-labs/helm-charts> (`app-template`)
+
 ## Per-environment TSIG key setup
 
 External-dns's dynamic updates into an environment's `<env>.iseja.net` zone are authorized by a TSIG key, delivered via `ExternalSecret`/1Password — see [`k8s/components/transformers/powerdns-tsig-env/README.md`](../../../components/transformers/powerdns-tsig-env/README.md) for how the per-env `#<env>` item-key rewriting works. Before a new environment's PowerDNS can reconcile successfully, create its 1Password item once:
@@ -96,38 +201,3 @@ Alongside the forward `<env>.iseja.net` zone, PowerDNS also hosts a PTR zone for
 Every zone's NS record and SOA MNAME point at `ns1.<env>.iseja.net` (set at `zone create` time in `bootstrap-zone.sh`), so PowerDNS's own `Service` carries an `external-dns.kubernetes.io/hostname: ns1.<env>.iseja.net` annotation -- without it, that name has no A/PTR record of its own (confirmed live: NXDOMAIN), an incomplete NS configuration even though the NS/SOA records referencing it are otherwise correct. Note this is *not* the usual per-app `dev-<app>`-style hostname: it's wired through only `replace-domain`'s TLD/BASE split, never `prefix-domain`, since it has to match `bootstrap-zone.sh`'s own `ns1.$$zone` construction exactly (an env-name prefix here would produce `dev-ns1.dev.iseja.net`, which wouldn't match).
 
 `bootstrap-zone.sh` also explicitly sets each zone's SOA via `pdnsutil rrset replace` right after `zone create` -- PowerDNS's own `default-soa-content` default seeds a deliberately-fake MNAME placeholder (`a.misconfigured.dns.server.invalid`) meant to be overridden per zone, which nothing previously did. The replacement always uses the *forward* zone's own `ns1.$$zone` as MNAME, for both the forward and reverse zone (the reverse zone's own name has no NS/A record of its own, so it can't be its own MNAME target). Serial `0` preserves PowerDNS's documented "auto-compute serial from the zone's highest record `change_date`" convention -- safe to re-run unconditionally, since that recompute only ever moves forward in time.
-
-## Cheat sheet
-
-Common operational commands, tested against a live environment's PowerDNS LB IP (e.g. `10.8.3.10` for `dev`) and a TSIG key already delivered by ESO -- see [`k8s/components/transformers/powerdns-tsig-env`](../../../components/transformers/powerdns-tsig-env) for how the `#<env>` 1Password item lands in one of the two Secrets below.
-
-### Retrieve a zone's full record set via AXFR (TSIG-authenticated)
-
-Pull the TSIG secret straight from the Secret ESO already wrote, then `dig +axfr` against PowerDNS's own LB IP -- not `localhost`/a port-forward, since the point is to exercise the exact same TSIG-gated path `10.7.2.12` (or external-dns's own `--rfc2136-axfr`) will use:
-
-```sh
-SECRET=$(kubectl get secret -n powerdns powerdns-tsig-dynupdate -o jsonpath='{.data.TSIG_DYNUPDATE_SECRET}' | base64 -d)
-dig @10.8.3.10 dev.iseja.net AXFR -y hmac-sha256:dynupdate:"$SECRET"
-```
-
-Swap the zone name for the PTR zone (`3.8.10.in-addr.arpa`) and the Secret/key name for `axfr-out` (`powerdns-tsig-axfr-out` / `TSIG_AXFR_OUT_SECRET`) to exercise the *other* TSIG grant the same way -- useful for confirming `10.7.2.12`'s eventual slave config will actually work before wiring it up on the LXC itself.
-
-An unauthenticated AXFR (same command, no `-y`) should be refused (`; Transfer failed.` / `REFUSED`) -- confirmed live as the expected behavior, not a bug: only key names listed in a zone's `TSIG-ALLOW-AXFR` metadata may transfer it.
-
-### Inspect a zone directly on the pod
-
-```sh
-kubectl exec -n powerdns deploy/powerdns -- pdnsutil zone list dev.iseja.net
-kubectl exec -n powerdns deploy/powerdns -- pdnsutil zone list 3.8.10.in-addr.arpa
-```
-
-Faster than a `dig` round-trip for confirming what's actually in the backend, especially when diagnosing a `REFUSED`/`SERVFAIL` from `dig` itself (see quirks below) -- rules out "is the record actually there" before suspecting the network/TSIG path.
-
-### Quirks encountered live (not obvious from the docs)
-
-- **A CNAME can never coexist with any other record type at the same owner name.** Cutting a hostname over from a direct A record to a CNAME (see the Gateway-CNAME section above) produces a transient `REFUSED` on the very first reconcile if the old A record hasn't been deleted in the same pass yet -- self-resolves on the next reconcile once it has. Not a bug, just DNS's own rule; expect a brief blip on any A-to-CNAME cutover.
-- **`TSIG-ALLOW-AXFR` is a full-replace metadata key, not additive.** A second `pdnsutil metadata set ... TSIG-ALLOW-AXFR <key>` call *replaces* the previous grant rather than adding to it -- granting both `dynupdate` and `axfr-out` needs one call listing both key names together, never two separate calls.
-- **external-dns's `--rfc2136-zone` must be one combined `flag=value` string, not two array entries.** The chart's values schema requires `extraArgs` to be a set of *unique* strings; two bare `--rfc2136-zone` entries (flag and value split across array elements) collide regardless of what value follows, since uniqueness checking only sees the repeated flag token itself.
-- **external-dns's `--create-ptr` refuses to start unless `PTR` is explicitly added to `--managed-record-types`.** The flag's own default set (`A`, `AAAA`, `CNAME`) doesn't include it -- fails config validation at startup otherwise (`--create-ptr requires PTR in --managed-record-types`).
-- **external-dns's zone-name matching is literal, not normalized.** Unlike `pdnsutil` (tolerant of a trailing dot either way), external-dns compares its own generated record names against the exact string configured in `--rfc2136-zone`/`domainFilters` -- a trailing dot present on one side and not the other silently drops every record for that zone as "out of zone", which PowerDNS then refuses at the RFC2136 layer with little indication why.
-- **PTR/CNAME record churn on every reconcile is a known upstream external-dns bug, not a local misconfiguration.** See [PR #1392](https://github.com/isejalabs/homelab/pull/1392)'s "Known upstream external-dns bug" section and [issue #1393](https://github.com/isejalabs/homelab/issues/1393) -- harmless, just wasteful; don't spend time chasing it as a config problem here.

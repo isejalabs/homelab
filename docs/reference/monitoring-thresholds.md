@@ -21,7 +21,7 @@ Thresholds that were tuned because the alert did not match a real fault, the rea
 
 For a rule of this ruleset the "Services" condition matches the **item** (`/`), not the service description (`Filesystem /`): the first version of the node rule used `^Filesystem /$` and silently matched nothing.
 
-## Proxmox VM memory above 100 %
+## Proxmox VM memory above 100%
 
 `Proxmox VE Memory Usage` showed 101 – 102 % (for example 6.08 of 6.00 GiB) on the Talos VMs. Cause: the VMs have **`balloon: 0`** (checked with `qm config` on `pve4`/`pve5`; `agent: enabled=1` is set, but the guest agent does not feed this value). Without a balloon device Proxmox cannot look into the guest and reports the resident set size (RSS) of the VM's `kvm` process, which includes the guest's page cache and about 50 – 90 MB of QEMU overhead. A guest that has touched all of its RAM therefore reads about 101 %, independent of real pressure.
 

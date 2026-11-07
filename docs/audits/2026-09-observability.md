@@ -1,6 +1,11 @@
-# Observability assessment — September 2026
+---
+date: 2026-09-28
+reviewed: 2026-09-29
+status: Assessment complete for planning; live configuration and performance validation pending
+scope: Homelab metrics, capacity, logs, alerting, history and operating cost
+---
 
-**Date:** 2026-09-28. **Reviewed:** 2026-09-29. **Status:** Assessment complete for planning; live configuration and performance validation pending. **Scope:** Homelab metrics, capacity, logs, alerting, history and operating cost.
+# Observability assessment — September 2026
 
 This is a point-in-time assessment based on the owner's inventory and requirements, repository inspection and upstream documentation. It does not claim that live systems have been audited. The [implementation plan](../plans/2026-09-observability.md) records phases and acceptance criteria. Implementation has not started.
 
@@ -37,7 +42,7 @@ The current standard Checkmk polling interval is five minutes for services gener
 
 Prod has three control-plane and three worker nodes, approximately 100 pods, and is still being built out before additional applications such as Immich. See [environments](../architecture/environments.md). Other environments have different availability and backup schedules; intentionally inactive environments must not generate routine outage alerts.
 
-At assessment time, TrueNAS runs version 25.10 and RustFS runs 1.0.0-beta.12. These are inventory observations, not fixed design constraints: both may be upgraded separately from this plan. Before selecting collection interfaces, check newer releases for useful features and compatibility, then validate against the actual deployment version. Any required upgrade belongs in separately tracked work. RustFS has eight environment-specific kopiur backup buckets, four actively used, quotas enabled and no object versioning. Existing Checkmk monitoring covers physical usage of `natascha1/gamma/srv/rustfs`. See [storage architecture](../architecture/storage.md) and [kopiur backup/restore](../kopiur-backup-restore.md).
+At assessment time, TrueNAS runs version 25.10 and RustFS runs 1.0.0-beta.12. These are inventory observations, not fixed design constraints: both may be upgraded separately from this plan. Before selecting collection interfaces, check newer releases for useful features and compatibility, then validate against the actual deployment version. Any required upgrade belongs in separately tracked work. RustFS has eight environment-specific kopiur backup buckets, four actively used, quotas enabled and no object versioning. Existing Checkmk monitoring covers physical usage of `natascha1/gamma/srv/rustfs`. See [storage architecture](../architecture/storage.md) and [kopiur backup/restore](../backup/kopiur-backup-restore.md).
 
 The additional Talos data disks are used solely by Longhorn: these are one coverage gap, not separate filesystem projects. Shared Terragrunt disk tiers are 10/20/30 GB, with prod selecting the largest. Longhorn uses `/var/mnt/longhorn`; physical usage, scheduling headroom and PVC filesystem fullness are different measurements.
 

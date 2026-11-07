@@ -1,0 +1,23 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  // Pinned Python packages of the documentation site build (.ci/mkdocs/requirements.txt, picked up by Renovate's
+  // pip_requirements manager). See docs/decisions/0017-docs-site-generator.md.
+  packageRules: [
+    {
+      description: 'keep the documentation site toolchain together and reviewed by hand: a theme or extension bump can change rendering or make the strict build fail',
+      groupName: 'Docs site',
+      groupSlug: 'docs-site',
+      matchFileNames: [
+        '.ci/mkdocs/requirements.txt',
+      ],
+      automerge: false,
+    },
+    {
+      description: 'mkdocs-material requires mkdocs<2; MkDocs 2 is a rewrite that breaks the plugin and hook API used here',
+      allowedVersions: '<2',
+      matchPackageNames: [
+        'mkdocs',
+      ],
+    },
+  ],
+}

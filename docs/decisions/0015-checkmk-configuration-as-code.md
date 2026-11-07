@@ -1,8 +1,9 @@
+---
+id: ADR 0015
+status: current
+---
+
 # Checkmk configuration as code: Terraform provider, Ansible deferred
-
-## Status
-
-current
 
 ## Context
 
