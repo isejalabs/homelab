@@ -1,6 +1,7 @@
 ---
 date: 2026-09-29
-status: Independent second plan, produced for comparison; not a replacement
+updated: 2026-11-02
+status: Superseded by the reconciled observability plan 2026-11-observability.md; kept for history. Originally an independent second plan, produced for comparison; not a replacement
 assessment: independent-pass assessment ../audits/2026-09-observability-claude.md
 ---
 
