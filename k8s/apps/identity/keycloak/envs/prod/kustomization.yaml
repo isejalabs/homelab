@@ -8,6 +8,8 @@ resources:
   - ../../base
 
 patches:
+  - path: cluster.yaml
+  - path: cronjob-dump.yaml
   - patch: |-
       - op: replace
         path: /spec/hostname/hostname
