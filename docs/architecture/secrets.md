@@ -71,7 +71,7 @@ sops:
     version: 3.11.0
 ```
 
-**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/sops-encrypt-all.sh`](../../scripts/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/sops-decrypt-all.sh`](../../scripts/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
+**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/tools/sops-encrypt-all.sh`](../../scripts/tools/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/tools/sops-decrypt-all.sh`](../../scripts/tools/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
 
 ### How Terragrunt reads them
 
@@ -204,7 +204,7 @@ If the cluster's sealed-secrets controller is ever lost without this key having 
 
 ### 1Password + External Secrets Operator — for secrets sourced live from a vault
 
-[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/README.md) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
+[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/) ([`external-secrets`](../../k8s/infra/external-secrets/external-secrets/README.md) and [`onepassword-connect`](../../k8s/infra/external-secrets/onepassword-connect/README.md)) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
 
 ```yaml
 apiVersion: external-secrets.io/v1

@@ -17,10 +17,12 @@ An architecture/reference doc whose content depends on a decision links to that 
 Each ADR is `NNNN-short-title.md`, numbered sequentially, with:
 
 ```markdown
-# Title
+---
+id: ADR NNNN
+status: current | planning | superseded
+---
 
-## Status
-current | planning | superseded
+# Title
 
 ## Context
 
@@ -30,6 +32,8 @@ current | planning | superseded
 
 ## Consequences
 ```
+
+`id:` repeats the number of the file name as `ADR NNNN`; the documentation site shows it in the metadata block below the title and the sidebar entry starts with it (`ADR 0001 · Title`, see [`docs/README.md`](../README.md#documentation-site)). The `status:` label is shown as a banner on the documentation site (see [`docs/README.md`](../README.md#status-labels)). A decision whose status needs more than the label adds a front matter key for it (ADR 0016 has `accepted:` and `becomes-current:`), and later changes to the decision go in an `## Amendments` section.
 
 ## Index
 

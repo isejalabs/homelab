@@ -6,15 +6,15 @@ A personal, [IaC](https://en.wikipedia.org/wiki/Infrastructure_as_code)-driven h
 
 The diagram is hand-drawn; its source of truth is the [architecture overview](docs/architecture/overview.md), and it is updated in the same PR as any change to the architecture it shows.
 
-## At a glance
+## 🔭 At a glance
 
 - **Stack**: Proxmox → Talos Linux → Kubernetes, provisioned by OpenTofu/Terragrunt, reconciled by Flux CD.
 - **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see [`environments.md`](docs/architecture/environments.md) for what each one is for.
-- **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#a-bit-of-history) below.
+- **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#-a-bit-of-history) below.
 - **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, or [`docs/README.md`](docs/README.md) for the documentation index.
 - **Documentation site**: the same Markdown is built into a searchable site (see [how it is built](docs/README.md#documentation-site)); it is not published yet, pending the public-disclosure decision.
 
-## I need to…
+## 🧭 I need to…
 
 | Task | Start here |
 | --- | --- |
@@ -23,34 +23,16 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 | Upgrade Talos/Kubernetes or replace a node | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 | Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
+| Install the tools and get the access needed to work on the repo | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start) |
 | Look up a term (`kopiur`, `soaking`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
 
-## Prerequisites
-
-Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](.mise.toml), [`terragrunt/.mise.toml`](terragrunt/.mise.toml) and [`k8s/.mise.toml`](k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them.
-
-| Tool | What it is for | Pinned in |
-| --- | --- | --- |
-| `opentofu`, `terragrunt` | Provision Proxmox VMs and the Talos install ([`terragrunt/README.md`](terragrunt/README.md)) | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
-| `talosctl` | Talos cluster access and config import | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
-| `sops`, `age` | Encrypt and decrypt the `*.sops.yaml` secrets ([`docs/architecture/secrets.md`](docs/architecture/secrets.md)) | [`.mise.toml`](.mise.toml) |
-| `op` (1Password CLI) | Resolve `op://` references during bootstrap | [`.mise.toml`](.mise.toml) |
-| `just`, `gum` | Command runner and its prompts and logging for `just bootstrap::cluster` | [`.mise.toml`](.mise.toml) |
-| `helm`, `helmfile` | Install foundational CRDs and infra before Flux ([`k8s/bootstrap/README.md`](k8s/bootstrap/README.md)) | [`.mise.toml`](.mise.toml) |
-| `kubectl`, `jq`, `yq`, `minijinja` | Cluster access and the templating and JSON/YAML processing the bootstrap and scripts use | [`.mise.toml`](.mise.toml) |
-| `kustomize`, `kubeconform` | Render and validate the manifests locally, as CI does | [`k8s/.mise.toml`](k8s/.mise.toml) |
-| `flate`, `pre-commit`, `lychee`, `kind` | Run CI checks locally: Flux validation, hooks, docs link check, bootstrap test cluster ([`docs/architecture/ci.md`](docs/architecture/ci.md)) | [`.mise.toml`](.mise.toml) |
-| [`direnv`](https://direnv.net/) | Load each environment's `.envrc` (state role) when entering its folder | not pinned, see [`terragrunt/README.md`](terragrunt/README.md#prerequisites) |
-
-Besides tools you need the SOPS age key, AWS credentials for the state role and a signed-in 1Password CLI; the per-step access is listed in [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start).
-
-## Principles
+## 🎯 Principles
 
 - **IaC and [GitOps](https://opengitops.dev/) for the cluster, no [snowflakes](https://martinfowler.com/bliki/SnowflakeServer.html).** Cluster VMs are provisioned with OpenTofu/Terragrunt, and Flux reconciles the apps and their configuration from Git. The `rebuild` environment exercises cluster reconstruction periodically, while kopiur backs up configured app data (see [`environments.md`](docs/architecture/environments.md#what-each-environment-is-for) and the [disaster recovery guide](docs/backup/disaster-recovery.md)). This does not yet establish recovery of the whole homelab: some out-of-cluster components and 1Password-held secrets lack complete recovery documentation or periodic backup. `git log` is the change history.
 - **Multi-environment, not just prod.** [8 environments](docs/architecture/environments.md) (`dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src`) exist so infrastructure-level changes — DNS, firewall rules, CNI config, anything that could take the network down — get proven out somewhere else first, before they can take out the home network (and, more importantly, the household's tolerance for it). That's a step beyond what's typical in home-ops, where a single cluster usually doubles as the test bed.
 - **DRY wherever possible.** One `base/` per app/infra unit, thin per-environment overlays, and a shared `components` layer (see [`k8s/components/README.md`](k8s/components/README.md)) that every environment composes from — see [DRY](https://en.wikipedia.org/wiki/Don%27t_repeat_yourself). The tradeoff is real: this keeps the repo consistent but adds a layer of kustomize indirection — see [`docs/architecture/kustomize.md`](docs/architecture/kustomize.md) for how it fits together.
 
-## How it's built
+## 🧱 How it's built
 
 See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the full stack diagram; summary:
 
@@ -58,43 +40,43 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 - **Bootstrap** ([`k8s/bootstrap/README.md`](k8s/bootstrap/README.md)) — `helmfile` installs foundational CRDs and infra (Cilium, sealed-secrets, cert-manager, external-secrets, 1Password Connect, the Flux operator/instance), then hands reconciliation off to Flux.
 - **Workloads** ([`k8s/infra/`](k8s/infra), [`k8s/apps/`](k8s/apps)) — everything Flux reconciles from here on: cluster infra (storage, networking, observability, secrets) and applications (DNS, finances, monitoring, network management, …), each following the same `base/` + `envs/<env>/` + `flux/` shape. See [`docs/architecture/workloads.md`](docs/architecture/workloads.md) for the full catalog of what's actually deployed.
 
-## Staying current
+## 🔄 Staying current
 
 [Renovate](https://docs.renovatebot.com/) opens PRs for dependency/version updates, and [Mergify](https://mergify.com/) auto-merges digest, patch, and minor updates by default — major updates always wait for review, and so do the exceptions: packages/paths pinned or flagged `updateStrategy:manual`, and prod-specific version promotions (prod can pin its own version separately from `qa`/`base`, so a change gets validated in `qa` first and merged into prod deliberately, not automatically). GitHub Actions CI validates infrastructure and configuration changes, mostly through static checks plus a bootstrap test against a throwaway cluster; local `pre-commit` and Flux reconciliation provide additional feedback. See the [CI guide](docs/architecture/ci.md) for workflow coverage, required checks, and PR-label automation, and [`docs/operations/update-handling.md`](docs/operations/update-handling.md) for the update policy. Left to its own preferences this would rather be a boring, patch-only Debian box than chase every minor release — the environment split above is what makes that patience compatible with also wanting to catch breakage early.
 
-## Documentation
+## 📚 Documentation
 
 - [`docs/README.md`](docs/README.md) — cross-cutting architecture docs vs. per-folder usage READMEs, and an index of what's written up so far.
 - [`terragrunt/README.md`](terragrunt/README.md) — provisioning VMs in Proxmox, installing Talos, and deploying core cluster infrastructure.
 - [`k8s/README.md`](k8s/README.md) — the `k8s` folder structure (`apps/`, `bootstrap/`, `components/`, `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows.
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
-- [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state cleanup, and kopiur backup/restore scripts.
-- `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo. Humans: the [folder structure](#folder-structure) below is the map.
+- [`scripts/README.md`](scripts/README.md) — the helper scripts by kind: `ci/` validation entry points, `ops/` backup/restore and Proxmox operations behind `just`, `tools/` (SOPS bulk ops, Terragrunt state cleanup) and `agent/`.
+- `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo. Humans: the [folder structure](#-folder-structure) below is the map.
 - [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) — an AI-generated, browsable overview of the implementation that you can ask questions. It is refreshed manually, so it can lag behind the repo; the docs above are authoritative. Its generation is steered by [`.devin/wiki.json`](.devin/wiki.json).
 
-### Folder structure
+### 📁 Folder structure
 
 This is the one map of the top-level folders; the `k8s` tree is described once in [`k8s/README.md`](k8s/README.md) and the documentation index in [`docs/README.md`](docs/README.md).
 
 ```
 📁 homelab
-├── 📁 terragrunt      # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
-├── 📁 k8s             # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
-├── 📁 scripts         # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
-├── 📁 docs            # cross-cutting architecture docs and task-grouped runbooks: operations, backup, identity, troubleshooting (see docs/README.md)
-├── 📁 .agents         # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
-├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
-├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
-├── 📁 .claude         # Claude Code project skills
-├── 📁 .devin          # DeepWiki generation config (wiki.json)
-├── 📁 .ci             # CI tooling config (prettier, typos)
-└── 📁 _attic          # retired/old material, not part of the active implementation
+├── 📁 terragrunt  # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
+├── 📁 k8s         # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
+├── 📁 scripts     # helper scripts: ci/ checks, ops/ just-wrapped procedures, tools/ run by hand (see scripts/README.md)
+├── 📁 docs        # cross-cutting architecture docs and task-grouped runbooks: operations, backup, identity, troubleshooting (see docs/README.md)
+├── 📁 .agents     # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
+├── 📁 .commons    # git submodule: AI-agent conventions shared across isejalabs repos
+├── 📁 .github     # issue/PR automation config (labeler, Renovate, Mergify)
+├── 📁 .claude     # Claude Code project skills
+├── 📁 .devin      # DeepWiki generation config (wiki.json)
+├── 📁 .ci         # CI tooling config (prettier, typos)
+└── 📁 _attic      # retired/old material, not part of the active implementation
 ```
 
 Root-level config files (`.sops.yaml`, `.pre-commit-config.yaml`, `.justfile`, `.minijinja.toml`, `.gitmodules`) wire up SOPS, pre-commit hooks, the `just` command runner and templating.
 
-## A bit of history
+## 📜 A bit of history
 
 - **9/2024** — start of the journey: getting to know IaC, GitOps, Terraform, Kubernetes and Talos. Learning `git rebase` well enough to digest [vehagn/homelab](https://github.com/vehagn/homelab) counted as a milestone.
 - **9/2025** — prod cluster go-live, after turning vehagn's (deliberately non-modular) homelab into a reusable Terraform module, and building out the multi-environment cluster with kustomize overlays and Terragrunt for DRY module handling.
@@ -104,7 +86,7 @@ Root-level config files (`.sops.yaml`, `.pre-commit-config.yaml`, `.justfile`, `
 
 **Fun fact:** the whole thing started out of sheer frustration with deploying the Unifi controller — previously stuck in a Debian/Ubuntu LXC container to satisfy its Java + MongoDB compatibility requirements. Plain Docker containers were the obvious lighter alternative, but didn't fit the networking needs either — so a Kubernetes cluster it was.
 
-## Credits
+## 🙏 Credits
 
 - [**@vehagn**](https://github.com/vehagn) — where I learned my first IaC/GitOps steps, and the conceptual author of [terraform-proxmox-talos](https://github.com/isejalabs/terraform-proxmox-talos) (derived from his non-modular [vehagn/homelab](https://github.com/vehagn/homelab); see also his [write-up](https://blog.stonegarden.dev/articles/2024/08/talos-proxmox-tofu/)). Only the Terraform module in this repo traces back to his work directly — the rest (helmfile bootstrapping, backup, storage provisioning, and everything since) has grown from there.
 - [**@mirceanton**](https://github.com/mirceanton) — for the excellent YouTube walkthroughs.

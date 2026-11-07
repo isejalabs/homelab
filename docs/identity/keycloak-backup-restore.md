@@ -4,24 +4,24 @@ status: current
 
 # Keycloak Database Backup & Restore
 
-**Choose a task:** check or trigger a backup under [Daily tasks](#daily-tasks); recover the database under [Restore](#restore); restore a dump taken in another environment under [A dump from another environment](#a-dump-from-another-environment).
+**Choose a task:** check or trigger a backup under [Daily tasks](#daily-tasks); set up the encryption key under [Encryption key](#encryption-key-age); set up the alert under [Alerting](#alerting); recover the database under [Restore](#restore); restore a dump taken in another environment under [A dump from another environment](#a-dump-from-another-environment).
 
-**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Restore](#restore) · [Restore drill](#restore-drill) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
+**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Encryption key](#encryption-key-age) · [Alerting](#alerting) · [Restore](#restore) · [Restore drill](#restore-drill) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
 
 ## At a glance
 
 | | |
 | --- | --- |
 | When to use | The Keycloak database is lost, broken or holds wrong content, or a dump from another environment has to be loaded. To check or trigger a backup see [Daily tasks](#daily-tasks). For signing in while Keycloak or UCS is down see [`keycloak-break-glass.md`](keycloak-break-glass.md) |
-| Prerequisites | `just`, `kubectl`, `flux`, `gum` and `jq` locally, the kube context `admin@<env>-homelab`, and a dump in the `<env>-keycloak-db` bucket ([list them](#restore)) |
-| Steps | [Restore](#restore): `just backup::keycloak::restore -e <env>`, four phases (select and verify, stop the writers, swap, start again). Expected output is recorded for the drills: [Restore drill](#restore-drill) |
+| Prerequisites | `just`, `kubectl`, `flux`, `gum` and `jq` locally, the kube context `admin@<env>-homelab`, a dump in the `<env>-keycloak-db` bucket ([list them](#restore)) and, for an encrypted dump (`*.dump.age`), the age private key ([where it lives](#encryption-key-age)) |
+| Steps | [Restore](#restore): `just backup::keycloak::restore -e <env> --identity <key file>`, four phases (select and verify, stop the writers, swap, start again). Expected output is recorded for the drills: [Restore drill](#restore-drill) |
 | Verify | [After the script](#restore): sign in (`master` realm) and check the realms and a user |
 | Rollback | [Roll back](#roll-back): possible until the old database `keycloak_before_<timestamp>` is dropped |
 | Last exercised | The script on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)); the manual procedure on 2026-10-26 in `rebuild` ([#1920](https://github.com/isejalabs/homelab/issues/1920)). The login check is pending the owner's browser check, and the roll back and a dump with a failing `pg_restore` are not drilled |
 
 ## Overview
 
-Keycloak (see [#1826](https://github.com/isejalabs/homelab/issues/1826)) keeps its state in a single-instance [CloudNativePG](https://cloudnative-pg.io/) cluster, `keycloak-db` in the `keycloak` namespace ([`k8s/apps/identity/keycloak/`](../../k8s/apps/identity/keycloak/)). It is backed up with a **daily logical dump** (`pg_dump`), uploaded to a per-environment bucket on `fiona`, the S3-compatible NAS (`<env>-keycloak-db`).
+Keycloak (see [#1826](https://github.com/isejalabs/homelab/issues/1826)) keeps its state in a single-instance [CloudNativePG](https://cloudnative-pg.io/) cluster, `keycloak-db` in the `keycloak` namespace ([`k8s/apps/identity/keycloak/`](../../k8s/apps/identity/keycloak/)). It is backed up with a **daily logical dump** (`pg_dump`), encrypted with [age](https://github.com/FiloSottile/age) and uploaded to a per-environment bucket on `fiona`, the S3-compatible NAS (`<env>-keycloak-db`).
 
 What is in the database, and what a restore from the latest dump loses:
 
@@ -34,17 +34,19 @@ What is in the database, and what a restore from the latest dump loses:
 
 The accepted target is a recovery point of 24 h (the design plan, [`docs/plans/2026-10-identity-claude.md`](../plans/2026-10-identity-claude.md)): a database loss is a break-glass situation anyway, so the last day of sessions and new enrollments may be lost.
 
+**`prod` accepts the same target.** Daily dumps and a 24 h recovery point (no point-in-time recovery) meet the requirement for `prod`: the owner confirmed on 2026-11-01 that even the loss of all dumps is recoverable, because the realm configuration is code and the few users re-enroll their MFA. This holds while the user base stays this small; revisit it before Keycloak serves other people.
+
 ## How it works
 
 - **Schedule**: the `keycloak-db-dump` `CronJob` runs every day at 02:00 (`Europe/Berlin`), see [`cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/base/cronjob-dump.yaml).
-- **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. The main container uploads the file as `keycloak-<UTC timestamp>.dump` with the AWS CLI and then deletes everything but the newest 14 dumps. A failed dump leaves nothing to upload, so a broken dump never replaces a good one.
+- **Two steps in one pod**: an init container runs `pg_dump --format=custom` against the read-write service `keycloak-db-rw` with the application credentials from the `keycloak-db-app` secret (created by CloudNativePG), writing to an `emptyDir`. A third step, `fetch-age`, puts the pinned `age` binary next to it ([why it is downloaded](#why-age-is-downloaded)). The main container encrypts the file to the age public key(s) in `AGE_RECIPIENTS`, uploads it as `keycloak-<UTC timestamp>.dump.age` with the AWS CLI, deletes everything but the newest 14 dumps and finally pings the [heartbeat](#alerting) where one is configured. A plaintext dump is never uploaded: without a valid public key the job fails before the upload. A failed dump leaves nothing to upload, so a broken dump never replaces a good one. The init container also runs `pg_restore --list` on the finished file, so a dump whose table of contents cannot be read fails the job before the upload (this proves the archive is readable, not that a restore succeeds; that is what the [restore drill](#restore-drill) is for).
 - **Credentials and bucket**: the access key comes from the `keycloak-db-backup` secret, delivered by External Secrets from the 1Password item `keycloak-db#<env>`. The bucket `<env>-keycloak-db`, its scoped RustFS user and that item are created by the Terragrunt unit `rustfs-keycloak-db` (see [`terragrunt/README.md`](../../terragrunt/README.md)). **Apply that unit before the Flux units are registered in an environment.**
 - **Client version**: `pg_dump` must be at least as new as the server. The server image is pinned explicitly (`spec.imageName` in [`cluster.yaml`](../../k8s/apps/identity/keycloak/base/cluster.yaml), tag and digest) and a kustomize replacement in [`kustomization.yaml`](../../k8s/apps/identity/keycloak/base/kustomization.yaml) copies that value into the dump job, so the two cannot drift apart. The restore script builds its Job from the dump CronJob, so it restores with the same image. How the image is bumped: [Upgrading PostgreSQL](#upgrading-postgresql).
 - **Where it runs**: only in the environments that register the units (currently `dev`, `qa` and `rebuild`; see [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml)).
 
 ## Daily tasks
 
-Check the last runs (a failed job is not alerted yet, look here):
+Check the last runs (an alert is described under [Alerting](#alerting); this is the manual check):
 
 ```sh
 kubectl get cronjob,job -n keycloak --context admin@<env>-homelab
@@ -57,24 +59,92 @@ kubectl create job --from=cronjob/keycloak-db-dump manual-$(date +%Y%m%d-%H%M) -
 kubectl logs job/manual-<...> -c upload -n keycloak --context admin@<env>-homelab
 ```
 
-List the dumps in the bucket with the credentials of the `keycloak-db#<env>` 1Password item (`aws --endpoint-url https://fiona.home.iseja.net:9000 s3 ls s3://<env>-keycloak-db`, with `AWS_DEFAULT_REGION=default`).
+List the dumps in the bucket with `just backup::keycloak::list -e <env>`, or by hand with the credentials of the `keycloak-db#<env>` 1Password item (`aws --endpoint-url https://fiona.home.iseja.net:9000 s3 ls s3://<env>-keycloak-db`, with `AWS_DEFAULT_REGION=default`).
+
+## Encryption key (age)
+
+The dumps hold password hashes and MFA secrets, so each one is encrypted before it leaves the cluster. The scheme is asymmetric on purpose: the job only knows the **public** key, so a leaked job, Secret or bucket credential cannot decrypt anything, and the private key is needed only on the day a dump is restored.
+
+**Setup, once** (a dedicated key, not the SOPS key of this repository):
+
+1. Generate the key pair on your workstation, offline: `age-keygen -o keycloak-db.agekey` (`brew install age`). The file holds the private key; the public key (`age1…`) is printed and can be shown again with `age-keygen -y keycloak-db.agekey`.
+2. Store the **private key** in 1Password in a vault that External Secrets and the cluster cannot read, not the `K8S` vault (for example your personal vault, item `keycloak-db age key`), and keep a second copy offline. A lost private key makes every dump unreadable.
+3. Put the **public key** into `AGE_RECIPIENTS` in [`cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/base/cronjob-dump.yaml). It is not secret and is committed. The value accepts several space separated keys, which is how a second recovery key or a rotation would be added. Without a valid `age1...` value the job fails before the upload, so a missing key can never produce a plaintext dump.
+4. Delete `keycloak-db.agekey` from the workstation once both copies exist.
+
+**One key for all environments.** A dump from another environment is a documented flow ([A dump from another environment](#a-dump-from-another-environment)) and then needs only one private key. `prod` can get its own key later by overriding `AGE_RECIPIENTS` in `envs/prod/` the way the bucket name is overridden.
+
+**Check it works**: trigger a backup ([Daily tasks](#daily-tasks)), then `just backup::keycloak::list -e <env>` shows a `keycloak-….dump.age` object. To read it without a restore: download it and run `age -d -i keycloak-db.agekey keycloak-….dump.age | pg_restore --list`.
+
+**Rotation.** Add the new public key to `AGE_RECIPIENTS` (and drop the old one in a later change). Dumps already in the bucket stay readable only with the key they were encrypted to, so keep the old private key until the last dump encrypted to it has been pruned (14 days at the daily schedule).
+
+**Plain dumps.** Dumps taken before the encryption (`keycloak-….dump`) restore without `--identity`; they age out with the retention.
+
+**Restore.** Pass the private key to the restore script, for example straight from 1Password without writing it to disk:
+
+```sh
+just backup::keycloak::restore -e <env> --identity <(op read 'op://IT Infrastructure/keycloak-db age key/password')
+```
+
+The script puts the key into a temporary Secret `keycloak-db-restore-identity-<timestamp>` that only the restore Job mounts, and deletes it right after that Job ended (also if the run is aborted). So the private key is in the cluster, and in etcd, for the minutes of the scratch restore and nowhere else. If you do not want that, decrypt on the workstation instead: download the object, `age -d` it, and load the plain dump yourself.
+
+### Why age is downloaded
+
+No image this job uses ships `age`: the PostgreSQL image has `openssl` and `gpg`, the aws-cli image has `gpg` and `curl`, neither has `age`. Instead of a third-party image (the encrypting step sees the plaintext dump, so its image has to be trusted) or an image built here (a new pipeline for one binary), the `fetch-age` init container downloads the pinned release from GitHub, checks its sha256 and unpacks it into an `emptyDir`. Consequences:
+
+- The job needs `github.com` at 02:00 as well as RustFS. If it is unreachable the job fails, nothing is uploaded and the next day tries again; the [alert](#alerting) catches it.
+- Only `linux/amd64` is supported (the clusters are amd64); the step fails on another architecture.
+- **Bump `age` by hand**: Renovate cannot update the hash. Change `version` and `sha256` together in `fetch-age`, taking the digest of the `age-<version>-linux-amd64.tar.gz` asset from `gh api repos/FiloSottile/age/releases/tags/<version> --jq '.assets[] | select(.name | endswith("linux-amd64.tar.gz")) | .digest'`. The restore script reuses the same step, so it follows.
+
+## Alerting
+
+A dump that fails, or never runs (the CronJob suspended, a controller problem), must not go unnoticed. Two layers:
+
+| Layer | Catches | Covers |
+| --- | --- | --- |
+| **Heartbeat** ([healthchecks.io](https://healthchecks.io/)) | A dump that did not complete and upload by the time the check expects it, including a job that never started | Every environment that has a check |
+| **Checkmk** `kube_cronjob_status` | A CronJob whose latest job failed | Only the environments feeding a `*_k8s` CMC site, see below |
+
+**Heartbeat.** After the upload and the prune the job pings the URL in the Secret `keycloak-db-heartbeat`; if the run fails inside the upload container it pings `<URL>/fail`. A failure in the earlier init containers (dump, verification, `fetch-age`) sends no `/fail`, because the upload container never starts; it is caught by the missing success ping once the grace time is over. Setup per environment:
+
+1. In healthchecks.io create a check with `period` 1 day and `grace time` 2 hours, with the notification channel you read. The job starts at 02:00 and takes one to two minutes, and the check expects the next ping 24 h after the last one, so a normal run never comes near the limit. The grace time must be long compared with the job's duration and with a late start: a grace of a few minutes makes the check go DOWN right after every successful run (see the test below).
+2. Create the 1Password item `keycloak-db-heartbeat#<env>` in the `K8S` vault with the field `HEARTBEAT_URL` set to the check's ping URL (no trailing slash).
+3. Register the Secret in the environment: copy [`externalsecret-heartbeat.yaml`](../../k8s/apps/identity/keycloak/envs/qa/externalsecret-heartbeat.yaml) into `envs/<env>/`, change the key to `keycloak-db-heartbeat#<env>` and list it under `resources:`. `qa` has it; `dev` and `rebuild` have none on purpose (the Secret reference is optional, no URL means no ping), `rebuild` is torn down too often for a dead man's switch. Add it to `prod` when Keycloak goes there.
+4. Check the first run in the healthchecks.io log. A ping to a URL with a wrong UUID is answered `200 OK` as well ("not found" is a 200 for UUID endpoints), so a typo does not show as an error in the job log; the check staying grey in the UI does.
+5. **Test the alert**, either by suspending the CronJob and waiting for period plus grace (more than a day), or faster by setting grace time (and period) of the check to a few minutes and waiting for the next run. Suspend with `kubectl patch cronjob keycloak-db-dump -n keycloak --context admin@<env>-homelab -p '{"spec":{"suspend":true}}'`, expect the notification, then set `suspend` back to `false` (Flux does not undo a manual suspend, see [Why Flux is suspended](#why-flux-is-suspended)). **Always restore period 1 day and grace time 2 hours afterwards**; a check left at test values alerts after every run. `qa` was exercised, see [Heartbeat test in `qa`](#heartbeat-test-in-qa).
+
+The ping URL is a credential of the check (anyone with it can mark it up), which is why it lives in 1Password and not in Git. The free "Hobbyist" plan allows 20 checks.
+
+**Checkmk.** The Kubernetes agent already collects CronJobs ([`checkmk-agent` README](../../k8s/apps/monitoring/checkmk-agent/README.md)). The Checkmk check [`kube_cronjob_status`](https://checkmk.com/integrations/kube_cronjob_status) reports the status of a CronJob's latest job (completed, running, pending, failed) and the time since its last successful schedule and completion; its only documented threshold is for a job that stays pending, so it flags a **failed** job but, as documented, not a job that never ran. It runs only where the Kubernetes data arrives: the sites `qa_k8s` (notifications on) and `prod_k8s` (notifications off, [#1901](https://github.com/isejalabs/homelab/issues/1901)), both CMC, see [`monitoring-sites.md`](../reference/monitoring-sites.md). `dev` and `rebuild` have no active site, and `mk-job` does not apply (it wraps cron jobs on a host). Not verified on the live sites: that the CronJob host and the service exist for `keycloak-db-dump` and that a failed dump notifies.
+
+**Network.** The job reaches RustFS on `fiona`, `github.com` (`fetch-age`) and `hc-ping.com`. A future egress policy for the `keycloak` namespace ([#1945](https://github.com/isejalabs/homelab/issues/1945)) has to allow all three.
+
+### Heartbeat test in `qa`
+
+| Date | What | Result |
+| --- | --- | --- |
+| 2026-11-02 | Job created from the CronJob | Completed, wrote an encrypted dump, success ping arrived |
+| 2026-11-02 | One-off job with an invalid `AGE_RECIPIENTS` | Exited 1 before any upload, pinged `/fail`; the owner confirmed the alert |
+| 2026-11-04 to 2026-11-07 | Nightly runs with the check's grace time set to 2 minutes for the test | Every night an `UP` mail at about 02:01 (the ping) and a `DOWN` mail at about 02:04 (period and grace elapsed without the next ping) |
+
+The nightly pairs show that an expired check does produce the `DOWN` notification on the owner's channel, which is the missing-ping case: from the check's point of view a CronJob that never runs is the same as a ping that does not arrive in time. The CronJob itself was not suspended for this; the short grace time stood in for it, as the owner decided. The `DOWN` 3 minutes after each `UP` also shows why period and grace time must not be left at test values: the check was then `DOWN` for most of every day. The values to keep are period 1 day and grace time 2 hours ([Alerting](#alerting), step 1).
 
 ## Restore
 
 > [!WARNING]
 > Keycloak is down from phase 2 (stop the writers) until phase 4 has finished.
 
-Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/keycloak-db-restore.sh`](../../scripts/keycloak-db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
+Restoring takes the newest (or a chosen) dump and swaps it in for the live `keycloak` database with [`scripts/ops/keycloak/db-restore.sh`](../../scripts/ops/keycloak/db-restore.sh). Nothing is deleted: the dump is restored into a scratch database next to the live one, checked, and the two are swapped by renaming once everything that writes has been stopped. The previous database stays in the cluster until you drop it.
 
 You need `just`, `kubectl`, `flux`, `gum` and `jq` locally and the kube context `admin@<env>-homelab`. A restore always names its environment:
 
 ```sh
 just backup::keycloak::list -e <env>                       # dumps in the bucket: key, last modified, size
-just backup::keycloak::restore -e <env>                    # newest dump
-just backup::keycloak::restore -e <env> --dump <key>       # a chosen dump
+just backup::keycloak::restore -e <env> --identity <key file>                  # newest dump
+just backup::keycloak::restore -e <env> --identity <key file> --dump <key>     # a chosen dump
 ```
 
-The recipes pass their flags to the script, so `scripts/keycloak-db-restore.sh -e <env> [--list] [--dump <key>] [-y]` does the same without `just`.
+The recipes pass their flags to the script, so `scripts/ops/keycloak/db-restore.sh -e <env> [--list] [--dump <key>] [--identity <key file>] [-y]` does the same without `just`. `--identity` is the [age private key](#encryption-key-age) and is only needed for an encrypted (`*.age`) dump; the script refuses to start without it, before anything is changed.
 
 What the script does, in this order (the first change to the live database is the rename in phase 3):
 
@@ -116,8 +186,9 @@ Only needed when the PostgreSQL instance itself is gone or cannot start; a datab
 Copy the dump into the target's `<env>-keycloak-db` bucket first (each environment's user only reaches its own bucket), then restore it as above. What comes with the dump, which is the source environment's state and not the target's:
 
 - **Master admin password.** The `master` realm, including its admin account and password, comes from the dump. The target's `keycloak-bootstrap-admin#<env>` item is not used: Keycloak applies the bootstrap variables only on the first start against an empty database. After the restore the 1Password item of the *source* environment holds the password that works ([break-glass access](keycloak-break-glass.md#where-the-credential-lives)); update the target's item or rotate the password.
+- **Automation client.** The Terragrunt client `terragrunt` in the `master` realm and its secret are database content too. After a restore from another environment (or an older dump), the secret in the target's `keycloak-terragrunt#<env>` item need not match the restored one: sign in with the break-glass administrator of the restored data and re-apply `keycloak-automation`, which writes the restored secret into the item; a changed `secret_rotation` is not needed ([automation client](keycloak-realms.md#automation-client)). Verified in `dev` (2026-11-07) for a dump of the same environment taken before a rotation, see [Automation client after a restore](#automation-client-after-a-restore); a dump from another environment needs more, see [the same section](#automation-client-after-a-restore).
 - **Realms and clients.** Realm settings, clients and their secrets, and the realm signing keys are database content and come with the dump. The hostname and certificate do not: they come from the target's `Keycloak` resource.
-- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. Whether the next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is clean after a restore from another environment has not been tried.
+- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. The next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is **not** clean after a restore from another environment: the objects in the dump have other ids than the ones in the target's state, so the plan wants to create all of them and the apply stops with `409 Conflict` (tried in `dev` with a `qa` dump, 2026-11-07, see [Automation client after a restore](#automation-client-after-a-restore)). Importing the objects is the way out, or restoring the target's own dump.
 - **MFA enrollments.** WebAuthn keys and TOTP secrets in the dump belong to users of the source environment. A WebAuthn key is registered for a relying-party ID that normally follows the hostname, so keys enrolled in another environment are not expected to work in the target; not tried, see [#1943](https://github.com/isejalabs/homelab/issues/1943).
 
 > [!WARNING]
@@ -129,7 +200,7 @@ The earlier procedure scaled the operator and the `StatefulSet` down by hand and
 
 | Part | Can it undo the scale-down? | Basis |
 | --- | --- | --- |
-| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`kopiur-restore.sh`](../../scripts/kopiur-restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-keycloak-db-restoresh): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
+| Operator `Deployment` (in Git, `keycloak-operator` `Kustomization`, interval 1 h, 10 min in `rebuild`) | **Yes**, at the next reconcile of that `Kustomization` | A plain-manifest `Kustomization` does real drift correction; observed live for other apps in `dev` and `rebuild`, see the header of [`ops/kopiur/restore.sh`](../../scripts/ops/kopiur/restore.sh). Observed for this `Deployment` too in the [drill with the script](#with-the-restore-script): a manual scale to 0 was back at 1 right after `flux reconcile kustomization keycloak-operator`. |
 | Keycloak `StatefulSet` (owned by the operator, not in Git) | Flux does not touch it, but a revived operator reconciles it back to `spec.instances: 1` | Observed in the same drill: the `StatefulSet`, scaled to 0 by the script, was recreated at 1 replica about 10 s after the operator came back |
 | `keycloak-db-dump` `CronJob` (02:00) | Nothing scales it; it simply runs if the restore is in progress at 02:00 and dumps a half-restored database | The earlier guide did not suspend it |
 
@@ -150,9 +221,9 @@ This drill predates the script: it used the earlier manual procedure (delete the
 | Start Keycloak again | Ready within about 1 min; OIDC discovery answers 200 for all three realms |
 | Login | Pending the owner's browser check, see below |
 
-### With `keycloak-db-restore.sh`
+### With the restore script
 
-Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)), a few minutes after the cluster had been booted from cold (image caches empty, Flux on `main`), restoring the same `qa` dump as the first drill (`keycloak-2026-10-26T011251Z.dump`, 282 KB) over a database that Keycloak had initialized (`scripts/keycloak-db-restore.sh -e rebuild --dump latest -y`):
+Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/issues/1938)), a few minutes after the cluster had been booted from cold (image caches empty, Flux on `main`), restoring the same `qa` dump as the first drill (`keycloak-2026-10-26T011251Z.dump`, 282 KB) over a database that Keycloak had initialized (`scripts/ops/keycloak/db-restore.sh -e rebuild --dump latest -y`):
 
 | Step | Result |
 | --- | --- |
@@ -169,6 +240,59 @@ Done on 2026-10-28 in `rebuild` ([#1938](https://github.com/isejalabs/homelab/is
 | Not drilled | The [roll back](#roll-back) and a dump with a failing `pg_restore`; both are only covered by the offline checks of the script |
 
 What the drill confirmed about the unverified parts of the script: `psql` as `postgres` over the local socket in the `postgres` container of the primary works, both renames succeed in one transaction once the `StatefulSet` is gone, the operator and `StatefulSet` names are right, and `kubectl wait keycloak/keycloak --for=condition=Ready` works.
+
+### Encrypted dump, on a workstation
+
+Done on 2026-11-01 for [#1939](https://github.com/isejalabs/homelab/issues/1939) with Docker, the real images of the CronJob (platform `linux/amd64`, user 26) and a local S3 mock (moto) instead of RustFS. The commands in the manifests were extracted and run unchanged:
+
+| Step | Result |
+| --- | --- |
+| `fetch-age` | Downloaded `age` v1.3.2, `sha256sum -c` OK, `age --version` runs as a non-root user; the digest matches the one published for the release asset and one computed independently |
+| `dump` with verification | `pg_dump` of a database with a `realm` table, then `pg_restore --list` OK; a truncated file and a text file both fail the check |
+| `upload` with a test public key | `keycloak-<timestamp>.dump.age` uploaded (1517 bytes), the plaintext removed from the volume, heartbeat pinged. With `TODO-add-the-age-public-key` the job exits 1 before any upload and pings `/fail` |
+| Retention | With 16 old dumps and an unrelated object in the bucket the three oldest dumps were pruned, the new dump and the unrelated object stayed |
+| Restore Job built by `ops/keycloak/db-restore.sh` | `fetch-age` + `download` + `restore` for a `.age` key, only `download` + `restore` for a plain one; the download step decrypts with the mounted key and `pg_restore --exit-on-error` restores both realms. A wrong key fails with `no identity matched any of the recipients` and leaves no dump |
+
+### Encrypted dump, in the `rebuild` cluster
+
+Done on 2026-11-02 for [#1939](https://github.com/isejalabs/homelab/issues/1939), with `rebuild` temporarily following the branch of the change and a throwaway age key that was discarded afterwards:
+
+| Step | Result |
+| --- | --- |
+| `kubectl create job --from=cronjob/keycloak-db-dump` | `dump`, `fetch-age` (checksum OK, v1.3.2) and `upload` completed in 14 s; `keycloak-2026-11-02T063902Z.dump.age` (239551 bytes) appeared next to the plain dumps in `rebuild-keycloak-db` |
+| `ops/keycloak/db-restore.sh -e rebuild --identity <key>` | Selected the encrypted dump, fetched age, decrypted through the temporary Secret and restored into `keycloak_restore`: 101 tables, realm `master`, 1 user, the same as the live database. The Secret was gone afterwards |
+
+Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. The heartbeat was exercised against healthchecks.io afterwards, see [Heartbeat test in `qa`](#heartbeat-test-in-qa). **Not drilled**: the Checkmk check.
+
+### Automation client after a restore
+
+Done on 2026-11-07 in `dev` ([#2201](https://github.com/isejalabs/homelab/issues/2201)): the question was whether the Terragrunt automation client survives a restore and how its secret gets back in sync.
+
+| Step | Result |
+| --- | --- |
+| Manual dump from the CronJob (encrypted, 288 KB), then `secret_rotation` changed and `keycloak-automation` applied | Keycloak and the item `keycloak-terragrunt#dev` hold secret 2, the dump holds secret 1; `keycloak-realm` plans clean |
+| `just backup::keycloak::restore -e dev --dump <that dump> --identity <key> -y` | Done in 213 s; live and restored database both had 101 tables, 3 realms, 7 users |
+| `terragrunt plan` in `keycloak-realm` | Fails at the provider login: `401 Unauthorized` from the token endpoint of `master` |
+| `terragrunt plan` in `keycloak-automation` (logs in with the break-glass administrator) | Works; one change, the password of the item (it reads the restored secret from Keycloak) |
+| Plain `terragrunt apply` in `keycloak-automation` (no changed `secret_rotation`) | One changed; both units plan with no changes afterwards |
+| Rotation value set back to the committed default and applied | Both units plan clean; the kept `keycloak_before_*` database was dropped |
+
+Not covered: a dump older than the client (the apply should recreate it).
+
+#### A `qa` dump in `dev`
+
+The same day the newest `qa` dump was copied into the `dev` bucket (S3 client with the access keys of the two `keycloak-db-backup` Secrets) and restored into `dev` with `--dump`. `dev` then carries the `qa` break-glass password and the `qa` realm content. Findings:
+
+| Step | Result |
+| --- | --- |
+| `keycloak-realm` | `401 Unauthorized` at the login (the item holds the `dev` secret) |
+| `keycloak-automation` as it is | Its login fails as well: the break-glass password in `keycloak-bootstrap-admin#dev` is not the one in the restored `master` realm. For the rehearsal the unit was pointed at `keycloak-bootstrap-admin#qa` (`admin_item_title`, local change, not committed) |
+| `keycloak-automation` with the right administrator | Plan: the `terragrunt` client "has been deleted" and 42 resources are added. The apply stops with `409 Conflict`, `Client terragrunt already exists`: the restored realm has a client of that name with another id than the one in the state |
+| Way out | Read the client's id from the console or the admin API, `terragrunt import keycloak_openid_client.this master/<id>`, then apply: 41 resources added (the role mappings of the service account, idempotent), the item gets the restored secret; the plan is clean afterwards |
+| `keycloak-realm` after that | The login works. Plan: 28 to add, all objects below the realms (client scopes, LDAP federations and mappers, SAML clients and mappers), because their ids differ. The apply creates the federations and the SAML clients anew and stops with `409 Conflict`, `Client Scope groups already exists`: do not apply, import instead |
+| Back to the `dev` state | The `dev` dump was restored again. State repair of `keycloak-realm`: `apply -refresh-only` to drop the stale entries, `terragrunt import` of the 28 objects (ids from the admin API), and the two federations needed `delete_default_mappers = true` in the state (the import cannot know that provider-side flag; without it the plan replaces the federations); then one apply of the two federations (the bind credential) and both units plan clean |
+
+So after a restore from another environment, the Terragrunt state of the target is stale for both units. The cheapest recovery is to restore the target's own dump again; staying on the other environment's data needs the imports above. Not tried: importing the `qa` objects into the `dev` state.
 
 ### Observations of the manual drill
 
@@ -207,11 +331,12 @@ The first design archived WAL and took base backups with the Barman Cloud plugin
 - The database holds only a few MB (a fresh one is 13 MB), so a full dump is cheap and the 24 h recovery point is the daily schedule itself. There is no point-in-time recovery.
 - The remaining WAL is kept small on purpose: `wal_keep_size 64MB` (CloudNativePG defaults to 512MB, half of this volume), `max_wal_size 256MB`, `min_wal_size 64MB`, `wal_compression on`, `wal_level replica`. The volume stays at 1Gi.
 
-This differs from point 6 of [ADR 0016](../decisions/0016-identity-and-web-sso.md) (CloudNativePG base backups and WAL archiving to RustFS); the ADR is a historical record and is not rewritten; it carries a dated [amendment](../decisions/0016-identity-and-web-sso.md#status) that records the deployed backup method, instance counts and recovery point. The reasoning above is the current state.
+This differs from point 6 of [ADR 0016](../decisions/0016-identity-and-web-sso.md) (CloudNativePG base backups and WAL archiving to RustFS); the ADR is a historical record and is not rewritten; it carries a dated [amendment](../decisions/0016-identity-and-web-sso.md#amendments) that records the deployed backup method, instance counts and recovery point. The reasoning above is the current state.
 
 ## Known caveats
 
-- **No alert on failed dumps yet.** Check the CronJob after changes and during the soak in `qa`. Alerting is tracked with the observability work.
-- **Dumps are not encrypted.** They contain password hashes and MFA secrets and sit unencrypted in a bucket that only the scoped `<env>-keycloak-db` user can access. Encrypting them (for example with `age`) is a possible follow-up.
+- **A lost age private key makes the dumps unreadable.** Keep two copies ([Encryption key](#encryption-key-age)); the realm configuration is code, so the worst case is the same as losing the dumps (see below).
+- **The heartbeat covers `qa` only so far**; it was exercised there (see [Heartbeat test in `qa`](#heartbeat-test-in-qa)). The restore from an encrypted dump was drilled in `rebuild` (see [Restore drill](#restore-drill)).
+- **The job's credential can delete every dump.** Retention runs in the upload container with the job's own credential (`aws s3 rm`), so the scoped `<env>-keycloak-db` user needs delete rights on its bucket, and a leaked key or a bug could remove all recovery points. Accepted by the owner on 2026-11-01: the job has to prune old dumps, and the worst case is bounded, because the realm configuration is code and the users re-enroll their MFA (see [Overview](#overview)). What limits the damage: the user reaches only its own bucket, and the prune loop only considers `keycloak-*` objects, always keeps the newest 14 and skips the object it just uploaded by name. Tested against a local S3 server (S3-compatible mock) with 16 old dumps and an unrelated object: the three oldest dumps were removed, the new dump and the unrelated object stayed. Not investigated: RustFS bucket lifecycle expiration and an upload-only policy, which would move the delete right away from the job; the policy lives in the shared Terraform module `rustfs-bucket-user`, so it would be a change there.
 - **RustFS must be reachable at 02:00.** A failed run keeps the previous dumps; the next day's run tries again.
 - **Kept databases fill the volume.** Every restore keeps the previous database as `keycloak_before_<timestamp>` on the 1Gi volume until you drop it; drop it once the restore is verified.

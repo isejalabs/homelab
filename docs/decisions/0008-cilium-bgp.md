@@ -1,8 +1,9 @@
+---
+id: ADR 0008
+status: current
+---
+
 # Cilium as the CNI, with BGP for LoadBalancer IP advertisement
-
-## Status
-
-current
 
 ## Context
 

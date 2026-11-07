@@ -1,8 +1,9 @@
+---
+id: ADR 0017
+status: current
+---
+
 # Documentation site generator: MkDocs with the Material theme
-
-## Status
-
-current
 
 ## Context
 

@@ -50,7 +50,8 @@ Some docs don't sit next to any single piece of code — they're the top-level `
 | `.github/labeler.yml`, `.github/mergify.yml` | `ci.md`'s "PR labeling and Mergify" section |
 | `.github/renovate.json5` | [`docs/operations/update-handling.md`](../../../docs/operations/update-handling.md) |
 | New or removed `terragrunt/**/terragrunt.hcl` unit | [`terragrunt/README.md`](../../../terragrunt/README.md), [`docs/reference/environments.md`](../../../docs/reference/environments.md), [`docs/architecture/environments.md`](../../../docs/architecture/environments.md) |
-| New top-level component dir under `k8s/infra/` or `k8s/apps/` | [`docs/architecture/workloads.md`](../../../docs/architecture/workloads.md) |
+| New top-level component dir under `k8s/infra/` or `k8s/apps/` | [`docs/architecture/workloads.md`](../../../docs/architecture/workloads.md), and the unit's own `README.md` from the [template](../../../k8s/README.md#readme-of-an-appinfra-unit) (a unit without one is a gap, even though step 2 finds no README to flag) |
+| Change to a unit's hostname, `dependsOn`, version pin or Flux set | that unit's `README.md` (`At a glance`, `Access`, `Updates`) |
 | `k8s/apps/storage/pvc*/base/` | [`docs/operations/app-storage.md`](../../../docs/operations/app-storage.md) |
 | `k8s/infra/gateway-api/**`, `k8s/infra/kube-system/cilium/**`, `k8s/apps/dns/**` | [`docs/architecture/network.md`](../../../docs/architecture/network.md) |
 | `k8s/infra/sealed-secrets/**`, `k8s/infra/external-secrets/**` | [`docs/architecture/secrets.md`](../../../docs/architecture/secrets.md) |

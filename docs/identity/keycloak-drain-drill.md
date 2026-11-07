@@ -14,7 +14,7 @@ status: current
 | --- | --- |
 | When to use | Before relying on a single Keycloak replica and a single database instance: it measures how long logins fail when the node that runs them is drained, or when another disturbance is caused by hand. For restoring data see [`keycloak-backup-restore.md`](keycloak-backup-restore.md) |
 | Prerequisites | A non-`prod` environment with Keycloak, `kubectl` with the context `admin@<env>-homelab`, `curl`, `jq` and `gum`, network access to the Keycloak hostname, and the [checklist](#before-the-drill) decided |
-| Steps | [Run the drill](#run-the-drill): `scripts/keycloak-drain-drill.sh -e <env> --target 300`, or `--observe` for a disturbance caused by hand |
+| Steps | [Run the drill](#run-the-drill): `scripts/tools/keycloak-drain-drill.sh -e <env> --target 300`, or `--observe` for a disturbance caused by hand |
 | Verify | [Read the result](#read-the-result): the verdict against the [target](#target) and the timeline phases, with the [pull time](#separate-the-pull-time) kept apart |
 | Rollback | The script uncordons the node when it ends (also on error and interrupt); there is no data to roll back, and a drain that was stopped half way is reported as not valid |
 | Last exercised | 2026-11-01 in `qa`, drain of `qa-work-02`: login down 1021 s against the 300 s target, see [Results](#results) |
@@ -23,7 +23,7 @@ status: current
 
 Keycloak runs with one replica and one CloudNativePG instance ([`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml), [`cluster.yaml`](../../k8s/apps/identity/keycloak/base/cluster.yaml): `instances: 1`, `enablePDB: false`), so draining the node that runs them stops both and logins fail until they are back on another node ([ADR 0016](../decisions/0016-identity-and-web-sso.md), consequences). The first drill, as reported in the reviews collected in [#1937](https://github.com/isejalabs/homelab/issues/1937), measured a login outage of roughly 10.5 minutes, distorted by worker disk pressure and slow image pulls, so it says little about the design itself. This page is the procedure for repeating the drill under controlled conditions and comparing it with an agreed target, tracked in [#1944](https://github.com/isejalabs/homelab/issues/1944).
 
-The measurement is done by [`scripts/keycloak-drain-drill.sh`](../../scripts/keycloak-drain-drill.sh). It probes Keycloak from outside while the node is disturbed and prints the outage windows plus a timeline of the pod events (eviction, image pull, database ready, Keycloak ready), so the result shows where the time went, not only how long it was.
+The measurement is done by [`scripts/tools/keycloak-drain-drill.sh`](../../scripts/tools/keycloak-drain-drill.sh). It probes Keycloak from outside while the node is disturbed and prints the outage windows plus a timeline of the pod events (eviction, image pull, database ready, Keycloak ready), so the result shows where the time went, not only how long it was.
 
 ## Target
 
@@ -53,7 +53,7 @@ Use a non-`prod` environment where Keycloak is registered (`dev`, `qa`, `rebuild
 Drain the node of the database primary, with the proposed planned-drain target:
 
 ```sh
-scripts/keycloak-drain-drill.sh -e qa --target 300
+scripts/tools/keycloak-drain-drill.sh -e qa --target 300
 ```
 
 It checks the control plane, prints where the pods and images are, asks for confirmation, records a short healthy baseline and drains the node (`--node <node>` picks another one, for example the node of `keycloak-0` when the two run apart). The drain runs in the background with its own `--drain-timeout` (default 900 seconds) while the probes keep measuring, so a drain that stalls or fails does not end the measurement: the script waits until the drain has ended and both probes have been healthy again for five consecutive samples, uncordons the node (retrying for up to five minutes if the API server is unreachable) and prints the report. Press Ctrl-C to abort: a running drain is stopped and the node is uncordoned again on exit.
@@ -61,7 +61,7 @@ It checks the control plane, prints where the pods and images are, asks for conf
 For an unplanned failure or another kind of disturbance, only measure and cause the disturbance yourself (for example a hard stop of the worker VM with [`proxmox-vm-power.md`](../operations/proxmox-vm-power.md), after [`node-lifecycle.md`](../operations/node-lifecycle.md) made sure that is acceptable in that environment):
 
 ```sh
-scripts/keycloak-drain-drill.sh -e qa --observe --target 900
+scripts/tools/keycloak-drain-drill.sh -e qa --observe --target 900
 ```
 
 It changes nothing, still checks the control plane first, starts measuring and ends once it has seen an outage and the probes are healthy again (or after `--timeout`, default 1800 seconds). The data goes to a directory under `$TMPDIR` (`--out <dir>` to choose one): probe logs, `events.json`, `pods.json`, `drain.txt`, `preflight.txt` and `report.txt`. Attach `report.txt` and `preflight.txt` to the issue.

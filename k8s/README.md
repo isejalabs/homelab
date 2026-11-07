@@ -4,37 +4,49 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 
 ```
 📁 k8s
-├── 📁 apps                     # application workloads, grouped by domain
-│   ├── 📁 diag                   # e.g. whoami
-│   ├── 📁 dns                    # e.g. adguard, unbound
-│   ├── 📁 finances                # e.g. actualbudget
-│   ├── 📁 home-automation         # e.g. zigbee2mqtt
-│   ├── 📁 identity                # e.g. keycloak
-│   ├── 📁 monitoring              # e.g. checkmk-agent, metrics-server
-│   └── 📁 network                # e.g. unifi-controller
-├── 📁 bootstrap                # second bootstrap phase: helmfile + Flux hand-off (see bootstrap/README.md)
-│   ├── 📁 cluster/flux           # Flux `sets/` (infra|apps × minimal|optional, plus minimal and soaking), composed per env under flux/envs/<env>
-│   ├── 📁 helmfile               # helmfile definitions: crds/, apps/, base/, templates/*.gotmpl
-│   └── 📁 kustomize/personal     # personal credentials injected via `op inject` during bootstrap
-├── 📁 components               # shared DRY kustomize layer (see components/README.md)
-│   ├── 📁 envs                   # per-environment Components included by every app/infra overlay
-│   └── 📁 transformers           # transformers those components apply (replace-path, replace-domain, prefix-domain, add-labels, set-flux-defaults)
-├── 📁 infra                    # infrastructure workloads, grouped by namespace
-│   ├── 📁 cert-manager
-│   ├── 📁 cnpg-system
-│   ├── 📁 common/ns              # aggregates every group's `_ns` base into one Flux Kustomization ("infra-ns")
-│   ├── 📁 csi-proxmox
-│   ├── 📁 external-dns
-│   ├── 📁 external-secrets
-│   ├── 📁 flux-system
-│   ├── 📁 gateway-api
-│   ├── 📁 keycloak
-│   ├── 📁 kopiur-system
-│   ├── 📁 kube-system
-│   ├── 📁 longhorn-system
-│   ├── 📁 o11y
-│   └── 📁 sealed-secrets
-└── 📁 test                     # throwaway manifests for manually exercising things (e.g. storage classes); not reconciled by Flux
+├── 📁 apps                  # application workloads, one folder per domain; each app is a unit (see below)
+│   ├── 📁 diag              # diagnostics: whoami
+│   ├── 📁 dns               # DNS: adguard, powerdns, unbound
+│   ├── 📁 finances          # personal finance: actualbudget
+│   ├── 📁 home-automation   # smart home: zigbee2mqtt
+│   ├── 📁 identity          # identity provider: keycloak
+│   ├── 📁 monitoring        # monitoring: checkmk-agent, metrics-server
+│   └── 📁 network           # network management: unifi-controller, unifi-mongodb
+├── 📁 bootstrap             # second bootstrap phase: helmfile, then the hand-off to Flux (see bootstrap/README.md)
+│   ├── 📁 cluster           # what Flux reconciles, composed per environment
+│   │   └── 📁 flux          # the Flux sets and the per-environment compositions
+│   │       ├── 📁 envs      # one folder per environment: picks its sets and applies components/envs/<env>
+│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal and soaking
+│   ├── 📁 helmfile          # helmfile definitions for the foundational CRDs and infra
+│   │   ├── 📁 apps          # the foundational infra releases: cilium, sealed-secrets, cert-manager, ..., flux
+│   │   ├── 📁 base          # shared defaults: environments, helm defaults, kube context, release templates
+│   │   ├── 📁 ci            # values for the throwaway kind cluster of the bootstrap CI test
+│   │   ├── 📁 crds          # CRDs extracted from charts and applied before the releases
+│   │   └── 📁 templates     # *.gotmpl templates that render the Helm values per release and environment
+│   └── 📁 kustomize         # kustomize bases applied during bootstrap
+│       └── 📁 personal      # personal credentials, injected with `op inject` during bootstrap
+├── 📁 components            # shared DRY kustomize layer (see components/README.md)
+│   ├── 📁 apps              # building blocks an app includes: kopiur secret wiring, PVC storage
+│   ├── 📁 envs              # per-environment Components included by every app/infra overlay
+│   └── 📁 transformers      # the transformers those components apply (nine, listed in components/README.md)
+├── 📁 infra                 # infrastructure workloads, one folder per namespace; each component is a unit (see below)
+│   ├── 📁 cert-manager      # certificate management: cert-manager
+│   ├── 📁 cnpg-system       # PostgreSQL operator: cloudnative-pg
+│   ├── 📁 common            # cross-namespace pieces
+│   │   └── 📁 ns            # aggregates every group's `_ns` base into one Flux Kustomization ("infra-ns")
+│   ├── 📁 csi-proxmox       # Proxmox storage driver: proxmox-csi
+│   ├── 📁 external-dns      # DNS record automation: external-dns
+│   ├── 📁 external-secrets  # secret sync from 1Password: external-secrets, onepassword-connect
+│   ├── 📁 flux-system       # Flux itself: flux-operator, flux-instance
+│   ├── 📁 gateway-api       # Gateway API: gateway, gateway-api-crds
+│   ├── 📁 keycloak          # Keycloak operator: keycloak-operator
+│   ├── 📁 kopiur-system     # backup and restore: kopiur, kopiur-repository
+│   ├── 📁 kube-system       # cluster basics: cilium, kubelet-serving-cert-approver, snapshot-controller
+│   ├── 📁 longhorn-system   # block storage: longhorn, longhorn-core
+│   ├── 📁 o11y              # CRD groundwork only, nothing deployed: grafana-operator, kube-prometheus-stack
+│   └── 📁 sealed-secrets    # encrypted secrets in Git: sealed-secrets
+└── 📁 test                  # throwaway manifests for manually exercising things; not reconciled by Flux
+    └── 📁 storage           # storage class and Longhorn volume test manifests
 ```
 
 ### Shape of an app/infra unit
@@ -43,14 +55,92 @@ Every leaf under `apps/<domain>/<app>` and `infra/<namespace>/<component>` follo
 
 ```
 📁 <app-or-component>
-├── 📁 base          # environment-agnostic manifests + kustomization.yaml (placeholder domain example.com)
-├── 📁 envs/<env>    # per-environment overlay: includes ../../../../../components/envs/<env> and patches only what differs
-└── 📁 flux          # the Flux Kustomization (ks.yaml) reconciling this unit, plus its own kustomization.yaml
+├── 📁 base        # environment-agnostic manifests + kustomization.yaml (placeholder domain example.com)
+├── 📁 envs/<env>  # per-environment overlay: includes ../../../../../components/envs/<env> and patches only what differs
+└── 📁 flux        # the Flux Kustomization (ks.yaml) reconciling this unit, plus its own kustomization.yaml
 ```
 
 `flux/ks.yaml`'s `spec.path` is written pointing at `base/` but gets rewritten to `envs/<env>/` per environment by the `replace-path` transformer (see `components/README.md`).
 
 A `_ns` folder (e.g. `infra/cert-manager/_ns`) is the exception: it only has a `base/` with the namespace manifest, no `envs/`/`flux/` of its own. Every group's `_ns/base` is pulled in as a resource by `infra/common/ns`, which is the one Flux Kustomization (`infra-ns`) that actually creates all infra namespaces.
+
+### README of an app/infra unit
+
+Every unit has a `README.md` next to its `base/` (so GitHub shows it when the folder link in [`workloads.md`](../docs/architecture/workloads.md) is opened). It is the front door for one workload: what it is, where to reach it, what to run. It does not repeat what a cross-cutting doc owns; it links there (see [Central or in the README](#central-or-in-the-readme)). Tracked in [#2098](https://github.com/isejalabs/homelab/issues/2098).
+
+Headings are fixed and enforced: [`scripts/ci/check-unit-readmes.sh`](../scripts/ci/check-unit-readmes.sh) (run by the `docs-link-check` workflow) fails for a unit without a README, without one of the eight `##` headings below, with the headings out of order, without the four rows of the `At a glance` table, with a URL in a code span in `Access`, or whose README is not listed in the docs navigation. Three of the rows and the hostnames in `Access` are also checked against the manifests, see [Facts checked against the manifests](#facts-checked-against-the-manifests). Change the template and the script's two lists together. A section that does not apply says so in one line (`Not exposed.`) instead of being dropped. A new unit's README also gets an entry under `Components and apps` in [`.ci/mkdocs/mkdocs.yml`](../.ci/mkdocs/mkdocs.yml), otherwise the docs site builds the page but does not show it in the sidebar, and the check fails. Extra sections (`Secrets and storage`, `Known quirks`, install notes) go after `Cheat sheet`.
+
+````markdown
+# <name>
+
+One sentence: what it is and what the cluster uses it for.
+
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `<namespace>` |
+| Runs in | `<env>`, `<env>` (Flux set `<set>`) |
+| Installed via | HelmRelease `<chart>` / raw manifests / operator custom resources / vendored release |
+| Flux Kustomization | `<name>`, depends on `<a>`, `<b>` |
+
+## Purpose
+
+What problem it solves here and why this product (link the ADR if there is one). 2-5 sentences.
+
+## Where it is used
+
+- **Used by**: the workloads and environments that rely on it (databases, resolvers, operators, gateways).
+- **Depends on**: what it needs at runtime, beyond the Flux `dependsOn`.
+
+## Access
+
+| env | URL or address | Notes |
+| --- | --- | --- |
+| `dev` | `https://dev-<sub>.dev.iseja.net` | |
+| `prod` | `https://<sub>.prod.iseja.net` | |
+
+Only environments that run it. Write every URL as a Markdown link (`[https://dev-<sub>.dev.iseja.net](https://dev-<sub>.dev.iseja.net)`), never as a code span, so it can be clicked (the host must be one the unit's overlay for that environment serves, see [Facts checked against the manifests](#facts-checked-against-the-manifests)); addresses and ports without a scheme stay code. State the subdomain when it differs from the folder name, the gateway it is attached to, and where the login lives (1Password item, no values). The general hostname scheme is in [`reference/environments.md`](../docs/reference/environments.md#domain-and-naming). Not exposed units say `Not exposed.` and name the in-cluster Service.
+
+## Updates
+
+Where each version is pinned (file and field), and only what deviates from the default flow in [`update-handling.md`](../docs/operations/update-handling.md): pinned minor, manual merge, staged in `prod`, vendored release.
+
+## Operations
+
+Links to the runbooks (backup and restore, break-glass, troubleshooting) that already exist in `docs/`. No procedure is copied here.
+
+## Cheat sheet
+
+Commands that were useful for this unit, with the `--context admin@<env>-homelab` form.
+
+## Upstream
+
+Homepage, documentation, source repository, chart or release feed.
+````
+
+#### Central or in the README
+
+| Information | Where | Why |
+| --- | --- | --- |
+| Hostname scheme (`<env>-<sub>.<env>.iseja.net`, `prod` without prefix) | [`reference/environments.md`](../docs/reference/environments.md#domain-and-naming) only | Uniform across apps; a README names its own subdomain and any exception |
+| Renovate, automerge and staged-rollout rules | [`update-handling.md`](../docs/operations/update-handling.md) only | One rule set for all units; a README says which file holds the pin and links the row |
+| What each environment is for, which apps run where | [`environments.md`](../docs/architecture/environments.md) and [`workloads.md`](../docs/architecture/workloads.md) | A README only lists the environments that run its unit |
+| Backup, restore, break-glass and troubleshooting procedures | `docs/backup/`, `docs/identity/`, `docs/troubleshooting/` | Procedures span several units; a README links them |
+| Why a product was chosen | [`docs/decisions/`](../docs/decisions) | An ADR is not rewritten; a README links it |
+| Purpose, consumers, access, pins, commands, quirks of one unit | The unit's README | Changes with the unit and is updated in the same PR |
+
+#### Facts checked against the manifests
+
+The READMEs are hand-written and CI keeps three rows of `At a glance` honest ([#2111](https://github.com/isejalabs/homelab/issues/2111)); generating them was rejected, because a generated block goes stale with every Renovate bump. [`scripts/ci/check-unit-readmes.sh`](../scripts/ci/check-unit-readmes.sh) compares each row with the manifest that owns the fact, so a cell must follow this grammar and put any prose elsewhere (`Purpose`, `Where it is used`, `Updates`):
+
+| Row | Grammar | Compared with |
+| --- | --- | --- |
+| `Namespace` | the first code span is the namespace; prose may follow (`` `unifi` (created by ...) ``). A unit without one starts with `none` (only [`common/ns`](infra/common/ns/README.md)) | `namespace:` in `base/kustomization.yaml` |
+| `Flux Kustomization` | `` `<name>`, depends on `<a>`, `<b>` `` or `` `<name>`, no `dependsOn` `` and nothing else; the order of the names does not matter | `metadata.name` and `spec.dependsOn[].name` of the first `Kustomization` in `flux/ks.yaml`. The name differs from the folder for `gateway` (`gateway-api`), `kubelet-serving-cert-approver` (`k-serving-cert-approver`) and `checkmk-agent` (`checkmk-kube-agent`) |
+| `Runs in` | `all N environments` or a comma-separated list of environment code spans, then `` (Flux set `<set>`) `` or `(no Flux set, registered in ...)`, then optionally `; free prose` (bootstrap remarks, exceptions). Only the part before the first `;` is parsed, so keep a `;` out of the parentheses | the environments whose `flux/envs/<env>/kustomization.yaml` reach the unit, directly or through the sets (so `zigbee2mqtt`, registered in `prod` only, is `prod`), and the set in `flux/sets/` that lists the unit |
+
+The row check reads the files, not a rendered overlay, so it needs plain `sh` and `awk` only. Which Flux set and which environments a unit has is derived with the same helpers as [`scripts/ci/check-workloads-catalog.sh`](../scripts/ci/check-workloads-catalog.sh) ([`scripts/lib/flux-sets.sh`](../scripts/lib/flux-sets.sh)).
 
 ## Kustomize overlay approach
 

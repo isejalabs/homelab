@@ -1,56 +1,74 @@
-See [`docs/architecture/secrets.md`](../../../../docs/architecture/secrets.md) for how this fits into the repo's overall secrets-management story (SOPS vs. sealed-secrets vs. 1Password/ESO).
+# Sealed Secrets
 
-## Usage
+The [Bitnami Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) controller decrypts `SealedSecret` objects into ordinary `Secret`s, so an encrypted secret can live in Git and only the cluster can read it.
 
-Check whether Sealed Secrets Controller is working (you need to have `kubeseal` CLI installed on the workstation as well):
+## At a glance
+
+| | |
+| --- | --- |
+| Namespace | `sealed-secrets` |
+| Runs in | all 8 environments (Flux set `minimal`); installed by the bootstrap helmfile right after `cilium`, then taken over by Flux |
+| Installed via | HelmRelease with the Bitnami OCI chart `oci://registry-1.docker.io/bitnamicharts/sealed-secrets` |
+| Flux Kustomization | `sealed-secrets`, depends on `infra-ns` |
+
+## Purpose
+
+The first secrets mechanism of the cluster: it works before External Secrets and 1Password exist, so the secrets needed to get those running (and a few that stay, such as the AdGuard users, the UniFi MongoDB credentials and the Cloudflare API token) are sealed. Everything else comes from 1Password through External Secrets. Which mechanism is for what, and why: [`secrets.md`](../../../../docs/architecture/secrets.md), [ADR 0010](../../../../docs/decisions/0010-sops-vs-sealed-secrets-vs-1password-eso.md).
+
+## Where it is used
+
+- **Used by**: units with a `SealedSecret`: `adguard` (`users`), `unifi-mongodb` (`db-secret-sealed`), `cert-manager` (`cloudflare-api-token`), and every unit that `dependsOn` `sealed-secrets` for this reason.
+- **Depends on**: its key pair. Terragrunt provisions it (module `bootstrap/sealed-secrets`) as the TLS secret `sealed-secrets-bootstrap-key` from `assets/sealed-secrets/certificate/sealed-secrets.{cert,key}` next to each environment's `vehagn-k8s` unit. Those two files are gitignored and exist only in the checkout that generated them. Never generate a new pair: a different key breaks every existing `SealedSecret` ([`terragrunt/README.md`](../../../../terragrunt/README.md#sealed-secrets-key-files-in-a-fresh-checkout)).
+
+## Access
+
+Not exposed. `kubeseal` talks to the controller `sealed-secrets` in the namespace `sealed-secrets` (`--controller-name`/`--controller-namespace`), or works offline with the environment's public certificate `terragrunt/<tier>/eu-central-1/<env>/vehagn-k8s/assets/sealed-secrets/certificate/sealed-secrets.cert` (gitignored, so it is only in the checkout that generated it).
+
+## Updates
+
+- **Chart**: tag in [`base/ocirepository.yaml`](base/ocirepository.yaml). No special Renovate rule: the default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md) applies. Because the chart is installed by the bootstrap helmfile first, the same version is used there.
+
+## Operations
+
+| Task | Doc |
+| --- | --- |
+| Plan or apply in a fresh checkout without the key files | [`terragrunt/README.md`](../../../../terragrunt/README.md#sealed-secrets-key-files-in-a-fresh-checkout), [`k8s-minor-upgrade.md`](../../../../docs/operations/k8s-minor-upgrade.md) |
+| Overall secrets story | [`secrets.md`](../../../../docs/architecture/secrets.md) |
+
+## Cheat sheet
+
+You need the `kubeseal` CLI. Replace `<env>` with the environment. Leading blank spaces in the commands below keep them out of the shell history.
 
 ```sh
+flux get ks sealed-secrets --context admin@<env>-homelab
+kubectl get sealedsecrets.bitnami.com -A --context admin@<env>-homelab
+
+# check that the controller works: seal a throwaway value
 echo -n mytestsecret | kubectl create secret generic mysecretname --dry-run=client --from-file=mykey=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n mynamespace
+
+# seal a value into an existing SealedSecret file (adguard's users, as an example)
+cat users.yaml | kubectl create secret generic users --dry-run=client --from-file=users.yaml=/dev/stdin -o yaml | kubeseal --cert terragrunt/non-prod/eu-central-1/dev/vehagn-k8s/assets/sealed-secrets/certificate/sealed-secrets.cert -o yaml -n adguard --merge-into k8s/apps/dns/adguard/base/secret-users.yaml
 ```
 
-```yaml
----
-apiVersion: bitnami.com/v1alpha1
-kind: SealedSecret
-metadata:
-  creationTimestamp: null
-  name: mysecretname
-  namespace: mynamespace
-spec:
-  encryptedData:
-    mykey: AgB/MAdkSJEnRDIlxxQ8cfcRNKqf1fFVzNLigAuv4L91tWDF4qaUHVtkZANyqBJEI4iVOt9Luk2o90dY7dZVyK3X3VBh1v9FZScUl/9jxnlGp0VMT4PIMf4HPEPRGHYcEcDovN1kaw5Y/a64hPORneIBRl6vuiT2OeuuI2ik4PlNNUaX4F1cbKz1ltbnZ+r2Lcwvwwfp0mVA6Ust5WBNCD76ZozGH19p7xAV4FEdjeTpmZ9wVl9lj1AWIVdxVEluoRK5zi2Q2fVYBG0+sXGa1erayP5egw3muFT6sW1degGEAtYosH4L2zhKa+VL7rdX5iGAgXrDWkas3MtgTe0ZmP5oCiCg4cq0kLXQ7x5dXpCVql3to7tvNcy5Pd1IncBInqw7YLvTzM2uIk673/gRvcfokSL6pvDEc+nROz5HX3OAXc1zjykxgO3FTRCOi++E283XtmalPP4sj8R0RgHqbt9qG3UhvyhX2MXFyONHV3V88b8kTi5a44bmZ4mwZ/7paMRyPnYt+Hg94kyRvCk2CUzLBZJrNlzJOGV+zAy4Kr0yE0jueNkjSeQZUj30aw4bn78Pnqc1BhgN/wtKMPT/VipMf3OwcV+1s9SrbuSNJpvIs/RWHg9MSb9gT5A9eLnOP36dD4ksP/Vo0l/uP6aobNBxhG7V3Ss2oPXpmhAD3nBJsJecd3ECnd7bmsRdCweGhY9cuYmQCkLsYWgRC8I=
-  template:
-    metadata:
-      creationTimestamp: null
-      name: mysecretname
-      namespace: mynamespace
-```
+A `SealedSecret` is bound to name and namespace: seal it for the namespace the `Secret` ends up in.
 
-Show existing sealed secrets:
+## Upstream
+
+- Source and releases: <https://github.com/bitnami-labs/sealed-secrets>
+- Documentation: <https://github.com/bitnami-labs/sealed-secrets#readme>
+
+## Decrypt and recovery (kept from the earlier README)
+
+Back up the sealing key (it decrypts every sealed secret of the cluster, so store it like a password):
 
 ```sh
-k get sealedsecrets.bitnami.com -A
+kubectl get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
 ```
 
-Encrypt and decrypt secrets per:
-
-> Note the preceding blank space before some of the commands in order to prevent the command from being recorded in the shell's history.
+Test a sealed secret against that key without a cluster. The file names and paths are the ones of the earlier repository layout (`infra/controllers/...`); use the path of the `SealedSecret` you want to check:
 
 ```sh
-echo -n bar | kubectl create secret generic mysecret --dry-run=client --from-file=foo=/dev/stdin -o yaml >mysecret.yaml
-
- echo -n test2 | kubectl create secret generic cloudflare-api-token --dry-run=client --from-file=api-token=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n cert-manager --merge-into infra/controllers/cert-manager/cloudflare-api-token.yaml
- echo -n my-tunnel-secret | kubectl create secret generic tunnel-credentials --dry-run=client --from-file=credentials.json=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n cloudflared --merge-into infra/network/cloudflared/tunnel-credentials.yaml
- cat ~/.cloudflared/da8acdd7-2646-4d2b-bec5-c147b03c05fa.json | kubectl create secret generic tunnel-credentials --dry-run=client --from-file=credentials.json=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n cloudflared --merge-into ~/src/vehagn-homelab/k8s/infra/network/cloudflared/tunnel-credentials.yaml
-
-cat users.yaml | kubectl create secret generic users --dry-run=client --from-file=users.yaml=/dev/stdin -o yaml | kubeseal --controller-namespace sealed-secrets -o yaml -n dns --merge-into infra/network/dns/adguard/secret-users.yaml
-
-# test
-kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets < infra/controllers/cert-manager/cloudflare-api-token.yaml --recovery-unseal --recovery-private-key sealed-secrets-key.yaml -o json | jq -r ' .data."api-token" | @base64d'
+kubeseal --controller-name=sealed-secrets --controller-namespace=sealed-secrets < <path-to-sealedsecret.yaml> --recovery-unseal --recovery-private-key sealed-secrets-key.yaml -o json | jq -r '.data."<key>" | @base64d'
 ```
 
-## Decrypt
-
-```sh
-k get secrets -n sealed-secrets -o yaml > sealed-secrets-key.yaml
-```
+Seal into a file with `--merge-into`: the same command as in the cheat sheet, with the target file's namespace for `-n`. The earlier README also listed commands for secrets that no longer exist in this repository (`cloudflared`'s tunnel credentials, with `infra/network/...` paths); they were removed because their paths do not exist any more.

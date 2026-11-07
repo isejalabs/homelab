@@ -1,6 +1,12 @@
-# Documentation Audit — October 2026
+---
+date: 2026-10-12
+status: Assessment complete; five follow-up issues grouped beneath https://github.com/isejalabs/homelab/issues/1608, under https://github.com/isejalabs/homelab/issues/1336
+scope: Current documentation structure, readability, operational and recovery usefulness, consistency with repository configuration, and public disclosure
+origin: Read-only review of the local `main` checkout and public repository
+tracking: Related to the open Documentation improvement journey https://github.com/isejalabs/homelab/issues/1336; this audit identifies residual findings after the September 2026 audit and its phase work
+---
 
-**Date:** 2026-10-12. **Status:** Assessment complete; five follow-up issues grouped beneath #1608, under #1336. **Scope:** Current documentation structure, readability, operational and recovery usefulness, consistency with repository configuration, and public disclosure. **Origin:** Read-only review of the local `main` checkout and public repository. **Tracking:** Related to the open [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); this audit identifies residual findings after the September 2026 audit and its phase work.
+# Documentation Audit — October 2026
 
 ## Summary
 
@@ -12,7 +18,7 @@ The main remaining concerns are accuracy across entry points, the boundary betwe
 
 ### F1 — CI descriptions disagree across documentation
 
-**Priority:** High. The root [README](../../README.md#staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
+**Priority:** High. The root [README](../../README.md#-staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
 
 **Recommendation:** Make the root README, CI guide, and contributor instructions agree on which workflows validate changes, which are required checks, and which are automation. Link to the CI guide rather than duplicating a workflow count unless that count is maintained from an authoritative source.
 

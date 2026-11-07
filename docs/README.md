@@ -15,12 +15,13 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | See the stack diagram and reading order | [`architecture/overview.md`](architecture/overview.md), [`architecture/README.md`](architecture/README.md) |
 | See what is deployed today | [`architecture/workloads.md`](architecture/workloads.md) and [`reference/`](reference) |
 | Understand why it is designed this way | [`architecture/`](architecture) and [`decisions/`](decisions) |
-| Read the project history | The root README's [history](../README.md#a-bit-of-history) |
+| Read the project history | The root README's [history](../README.md#-a-bit-of-history) |
 
 ### Build and operate a cluster
 
 | I need to… | Start here |
 | --- | --- |
+| Install the tools and get the access needed to work on the repo | [`zero-to-cluster.md`](zero-to-cluster.md#0-before-you-start) |
 | Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
@@ -29,6 +30,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
 | Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](operations/checkmk-automation-user.md) |
+| Reach the homelab through the WireGuard hub on `srv3`, or move `gw4` and a client to it | [`wireguard-srv3.md`](operations/wireguard-srv3.md) |
 | Run or script Proxmox VM power and snapshot actions | [`proxmox-vm-power.md`](operations/proxmox-vm-power.md), [`proxmox-vm-snapshots.md`](operations/proxmox-vm-snapshots.md) |
 | Know what a project board status means | [`project-board.md`](operations/project-board.md) |
 
@@ -48,6 +50,8 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Configure realms and LDAP federation | [`keycloak-realms.md`](identity/keycloak-realms.md) |
 | Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](identity/keycloak-break-glass.md) |
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
+| Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
+| Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
 | Measure how long logins are interrupted when a node is drained | [`keycloak-drain-drill.md`](identity/keycloak-drain-drill.md) |
 
 ### Troubleshoot
@@ -73,17 +77,17 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`). These change rarely and don't belong to any single app/infra folder.
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
-  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, project board statuses.
+  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, break-glass login, exposure, the node-drain availability drill, and database backup/restore.
+  - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites through it.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
-- **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.
+- **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries the same front matter as an audit (see [`audits/README.md`](audits/README.md#format)), plus `updated` where its `status` changes; unlike an audit, its `status` is updated as phases land.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece of tooling or code, updated in the same PR as the code they describe:
   - runbooks for a whole process, e.g. [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md), [`terragrunt/README.md`](../terragrunt/README.md),
-  - narrow operational notes for one app/component, e.g. the `kubeseal` regen command in [`k8s/apps/dns/adguard/README.md`](../k8s/apps/dns/adguard/README.md).
+  - the README of every app/infra unit under `k8s/apps/` and `k8s/infra/`: purpose, where it is used, how to reach it per environment, where its versions are pinned and a command cheat sheet, written from the template in [`k8s/README.md`](../k8s/README.md#readme-of-an-appinfra-unit) ([#2098](https://github.com/isejalabs/homelab/issues/2098), rollout in progress, first examples [`keycloak`](../k8s/apps/identity/keycloak/README.md) and [`cloudnative-pg`](../k8s/infra/cnpg-system/cloudnative-pg/README.md)). What a cross-cutting doc already owns (hostname scheme, update rules, runbooks) stays there and is linked, not copied.
 
 ## Conventions
 
@@ -134,7 +138,7 @@ Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-
 
 ### Status labels
 
-Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information), and already in use in `decisions/*`'s `## Status` section:
+Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information), and already in use in `decisions/*`'s `status:` front matter:
 
 | Status | Meaning |
 | --- | --- |
@@ -145,7 +149,7 @@ Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits
 
 Where it's signalled depends on the doc type, since each already has its own natural home for it:
 
-- `architecture/*`, `reference/*`, and the procedural docs in `operations/`, `backup/`, `identity/` and `troubleshooting/`: a YAML frontmatter block at the very top of the file, before the title —
+- `architecture/*`, `reference/*`, `decisions/*`, and the procedural docs in `operations/`, `backup/`, `identity/` and `troubleshooting/`: a YAML frontmatter block at the very top of the file, before the title —
 
   ```yaml
   ---
@@ -154,9 +158,9 @@ Where it's signalled depends on the doc type, since each already has its own nat
   ```
 
   — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column of their folder's `README.md` index, since those tables are the entry point for those docs.
-- `decisions/*`: the ADR's own `## Status` section.
-- `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
-- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#folder-structure)).
+- `decisions/*`: the same front matter, with the ADR's number as `id: ADR NNNN` ahead of `status:` (the file name carries it too, the front matter makes it visible on the site) and `status: current`, `planning` or `superseded`. An ADR whose status needs more than the label (a date of acceptance, a condition for becoming `current`) adds a key for it, e.g. `accepted:` or `becomes-current:`; later changes to the decision go in an `## Amendments` section.
+- `plans/*` and `audits/*`: the label is implicit from the folder — everything in `audits/` is `audit`, never `current`, and everything in `plans/` is a dated plan. Their front matter carries a *free-text* `status:` instead, which says how complete the assessment or plan is (e.g. "partial" vs. "complete") and is not one of the labels above. The site shows the folder's banner and, below it, that front matter as a metadata block; the keys are listed in [`audits/README.md`](audits/README.md#format).
+- `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#-folder-structure)).
 
 ### Diagrams
 
@@ -168,7 +172,7 @@ Use a diagram where it shows something prose and lists show badly: a flow, a seq
 - **A diagram never replaces its text.** It sits next to a prose explanation that carries the same information, and every node name must match the repository (a component, folder or environment that exists today).
 - **Verify before merge.** A diagram, like any generated or drafted text, is not authoritative until it has been checked against the current repository configuration (see [Keeping this current](#keeping-this-current)). Update it in the same PR that changes what it shows.
 - **Syntax is checked in CI.** GitHub renders invalid Mermaid as an error box instead of failing anything, so [`docs-mermaid-check.yml`](../.github/workflows/docs-mermaid-check.yml) parses every fence (see [`architecture/ci.md`](architecture/ci.md)). To check locally, render a fence with the Mermaid CLI pinned in [`.mise.toml`](.mise.toml).
-- **One hand-authored image, stored in [`assets/`](assets).** The platform overview [`assets/platform-overview.svg`](assets/platform-overview.svg) is shown at the top of the root [`README.md`](../README.md). Its source of truth is [`architecture/overview.md`](architecture/overview.md); change both in the same PR. It follows the same rules as the Mermaid diagrams: colours as CSS variables with a dark-mode override, a transparent background, a system font stack, a `<title>` and `<desc>`, and animation only through SMIL (no scripts), switched off under `prefers-reduced-motion`.
+- **One hand-authored image, stored in [`assets/`](assets)** (the third-party project icons in [`assets/icons/`](assets/icons/README.md), shown in the [workload catalog](architecture/workloads.md), are not hand-authored and are kept as published; their sources are listed there). **The hand-authored one:** The platform overview [`assets/platform-overview.svg`](assets/platform-overview.svg) is shown at the top of the root [`README.md`](../README.md). Its source of truth is [`architecture/overview.md`](architecture/overview.md); change both in the same PR. It follows the same rules as the Mermaid diagrams: colours as CSS variables with a dark-mode override, a transparent background, a system font stack, a `<title>` and `<desc>`, and animation only through SMIL (no scripts), switched off under `prefers-reduced-motion`.
 
 ## Architecture and reference docs
 
@@ -181,10 +185,12 @@ The Markdown in this repo is also built into a searchable, navigable site with [
 What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
 
 - The whole checkout is the docs directory, so the per-folder READMEs and the root `README.md` appear on the site without being moved. Everything that is not documentation (`.github/`, `.agents/`, `_attic/`, `ZZ.bak/`, `AGENTS.md`) is excluded in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
-- Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
-- The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, an ADR's `## Status` section, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans).
+- Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. A link to a directory whose `README.md` is a page of the site (a unit folder in the [workload catalog](architecture/workloads.md), say) goes to that page instead, since github.com shows the README on the directory page anyway. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
+- The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans). The rest of a page's front matter (date, scope, origin, tracking, ...) is shown as a metadata block below it, in file order.
+- The footer of every page names the last git commit that changed that page's source file (ID linked to github.com, head line and date), read from the checkout at build time with `git log -- <file>`, so an unchanged page keeps its commit across builds. It needs the full history: a shallow clone or a build outside a git checkout leaves the footer out, which is why the [`docs-build`](../.github/workflows/docs-build.yml) workflow checks out with `fetch-depth: 0`.
 - `mermaid` code fences are rendered as diagrams.
-- A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
+- A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml). The sidebar text of an ADR starts with its ID (`ADR 0001 · Title`) and that of an audit or plan with the month from its file name (`2026-10 · Title`), so repeated audits of one subject can be told apart; leave a date the title repeats out of it.
+- A section title in the sidebar is a link only where the nav entry of its landing page is called `Index` (Material would otherwise take the first `README.md` of the section, link the title to that one unit and drop the unit from the list). `extra.nav_section_links` in `mkdocs.yml` links a section title to a heading of a page instead; `Infrastructure` and `Apps` use it to point at their catalog on [`workloads.md`](architecture/workloads.md). The build fails when that section or heading no longer exists.
 
 Preview locally (Python 3.11 or newer, with the virtual environment outside the checkout so MkDocs does not scan it; the versions are pinned in [`requirements.txt`](../.ci/mkdocs/requirements.txt)), from the repository root:
 
