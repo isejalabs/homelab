@@ -138,11 +138,28 @@ Without waits for the 1Password CLI the active time was about 2 h 10 min. **Imag
 
 **What did not converge by itself** (follow-ups, all under [#1937](https://github.com/isejalabs/homelab/issues/1937)):
 
-- HelmReleases stay `Stalled` after one install that ran into the Helm timeout, which blocked `keycloak` through `cloudnative-pg` until `flux reconcile hr --reset --force`: [#2045](https://github.com/isejalabs/homelab/issues/2045). Addressed by enabling helm-controller's `DefaultToRetryOnFailure` feature gate in [`flux-instance`](../../k8s/infra/flux-system/flux-instance/base/helmrelease.yaml), see [`troubleshooting-flux.md`](../troubleshooting/troubleshooting-flux.md#4-helmrelease-specific-gotcha-readytrue-doesnt-always-mean-live-state-matches-git); not yet confirmed by a repeat of the cold start.
-- `powerdns` and `actualbudget` failed their dry-run on a kopiur webhook until the `ClusterRepository` existed: [#2046](https://github.com/isejalabs/homelab/issues/2046).
+- HelmReleases stay `Stalled` after one install that ran into the Helm timeout, which blocked `keycloak` through `cloudnative-pg` until `flux reconcile hr --reset --force`: [#2045](https://github.com/isejalabs/homelab/issues/2045). Addressed by enabling helm-controller's `DefaultToRetryOnFailure` feature gate in [`flux-instance`](../../k8s/infra/flux-system/flux-instance/base/helmrelease.yaml), see [`troubleshooting-flux.md`](../troubleshooting/troubleshooting-flux.md#4-helmrelease-specific-gotcha-readytrue-doesnt-always-mean-live-state-matches-git); confirmed by the [repeat on 2026-11-07](#2026-11-07-rebuild-snapshot-based-repeat-of-the-cold-start-2012): five timed-out installs recovered by themselves.
+- `powerdns` and `actualbudget` failed their dry-run on a kopiur webhook until the `ClusterRepository` existed: [#2046](https://github.com/isejalabs/homelab/issues/2046). Mitigated by a 1 min `retryInterval` ([#2050](https://github.com/isejalabs/homelab/pull/2050)), not by a `dependsOn`.
 - Cilium is installed twice (module 1.18, base 1.19), so every node pulls both generations of images: [#2044](https://github.com/isejalabs/homelab/issues/2044).
 
-A repeat with a normal internet link is still open.
+A repeat with a normal internet link is the next section.
+
+### 2026-11-07, `rebuild`: snapshot-based repeat of the cold start ([#2012](https://github.com/isejalabs/homelab/issues/2012))
+
+The four `rebuild` VMs were rolled back to the `initial` snapshot (`just proxmox::snapshot::rollback -e rebuild --name initial`, [`proxmox-vm-snapshots.md`](../operations/proxmox-vm-snapshots.md)), taken after `terragrunt apply` and before the helmfile phase, then `just bootstrap::cluster --env rebuild` and Flux from `main`. Terraform, the Talos image download and the Cilium 1.18 module install are therefore **not** part of the times. **Link state:** a 50 MB test download ran at 6.1 MB/s from the build Mac and 7.0 MB/s from a node before, and at 3.8 and 5.3 MB/s after the bring-up (the first run: about 32 KB/s), so the link was not degraded but still the limit.
+
+| Phase | Start (UTC) | Duration | Notes |
+| --- | --- | --- | --- |
+| Rollback of the four VMs | 2026-11-07 07:04:35 | 40 s | all nodes `Ready` about 1 min later |
+| `just bootstrap::cluster` | 07:06:50 | 12 min 45 s | one run, no Helm wait timed out |
+| Flux hand-off until every `Kustomization` is `Ready` | 07:19:27 | 32 min 14 s | no manual intervention |
+| `keycloak`: first apply until `Ready` | 07:35:16 | 13 min 35 s | `Kustomization` waited 15 min 49 s in `DependencyNotReady` for `cloudnative-pg` |
+
+From the start of the rollback until everything was `Ready`: 47 min 6 s. **Image pulls:** 103 pulls (9.3 GB reported image size, four nodes each pulling their own copy) took 181 node-minutes, and at least one pull was in flight for 38.3 of the 44.9 minutes from the start of the bootstrap (85 %), at an aggregate of about 4 MB/s, so the bring-up is link-bound. On the critical path of `keycloak` the PostgreSQL image took 5 min 34 s of the 13 min 35 s.
+
+**Result for the Keycloak unit:** the events of the `keycloak` `Kustomization` again contain only `DependencyNotReady`, `Progressing` and `ReconciliationSucceeded`; no event of the bring-up reported a missing CRD, StorageClass or Gateway. `keycloak-0` reached `Ready` without a startup probe kill (one container restart because the database did not exist yet), and is then replaced once by the StatefulSet because the operator renders it twice within a second ([#2193](https://github.com/isejalabs/homelab/issues/2193)). Details and numbers: [#2010](https://github.com/isejalabs/homelab/issues/2010#issuecomment-6704216119).
+
+**Effect of the fixes of the first run:** five HelmReleases hit a timed-out install while their images were pulled and each retried by itself 4 min 50 s to 5 min 22 s later ([#2045](https://github.com/isejalabs/homelab/issues/2045) works); `powerdns` failed its kopiur dry-run twice and applied 16 min after the hand-off ([#2046](https://github.com/isejalabs/homelab/issues/2046), cheap with the 1 min retry); Cilium was still upgraded from 1.18 to 1.19 by the helmfile ([#2044](https://github.com/isejalabs/homelab/issues/2044)). A from-scratch create on a normal link (with the Terraform step) is not measured by this run.
 
 ## What this doesn't cover yet
 
