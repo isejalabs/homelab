@@ -107,17 +107,27 @@ A dump that fails, or never runs (the CronJob suspended, a controller problem), 
 
 **Heartbeat.** After the upload and the prune the job pings the URL in the Secret `keycloak-db-heartbeat`; if the run fails inside the upload container it pings `<URL>/fail`. A failure in the earlier init containers (dump, verification, `fetch-age`) sends no `/fail`, because the upload container never starts; it is caught by the missing success ping once the grace time is over. Setup per environment:
 
-1. In healthchecks.io create a check, schedule `period` 1 day and `grace time` a few hours (the job starts at 02:00 and takes minutes), with the notification channel you read.
+1. In healthchecks.io create a check with `period` 1 day and `grace time` 2 hours, with the notification channel you read. The job starts at 02:00 and takes one to two minutes, and the check expects the next ping 24 h after the last one, so a normal run never comes near the limit. The grace time must be long compared with the job's duration and with a late start: a grace of a few minutes makes the check go DOWN right after every successful run (see the test below).
 2. Create the 1Password item `keycloak-db-heartbeat#<env>` in the `K8S` vault with the field `HEARTBEAT_URL` set to the check's ping URL (no trailing slash).
 3. Register the Secret in the environment: copy [`externalsecret-heartbeat.yaml`](../../k8s/apps/identity/keycloak/envs/qa/externalsecret-heartbeat.yaml) into `envs/<env>/`, change the key to `keycloak-db-heartbeat#<env>` and list it under `resources:`. `qa` has it; `dev` and `rebuild` have none on purpose (the Secret reference is optional, no URL means no ping), `rebuild` is torn down too often for a dead man's switch. Add it to `prod` when Keycloak goes there.
 4. Check the first run in the healthchecks.io log. A ping to a URL with a wrong UUID is answered `200 OK` as well ("not found" is a 200 for UUID endpoints), so a typo does not show as an error in the job log; the check staying grey in the UI does.
-5. **Test the alert**: `kubectl patch cronjob keycloak-db-dump -n keycloak --context admin@<env>-homelab -p '{"spec":{"suspend":true}}'`, wait for period plus grace, expect the notification, then set `suspend` back to `false` (Flux does not undo a manual suspend, see [Why Flux is suspended](#why-flux-is-suspended)).
+5. **Test the alert**, either by suspending the CronJob and waiting for period plus grace (more than a day), or faster by setting grace time (and period) of the check to a few minutes and waiting for the next run. Suspend with `kubectl patch cronjob keycloak-db-dump -n keycloak --context admin@<env>-homelab -p '{"spec":{"suspend":true}}'`, expect the notification, then set `suspend` back to `false` (Flux does not undo a manual suspend, see [Why Flux is suspended](#why-flux-is-suspended)). **Always restore period 1 day and grace time 2 hours afterwards**; a check left at test values alerts after every run. `qa` was exercised, see [Heartbeat test in `qa`](#heartbeat-test-in-qa).
 
 The ping URL is a credential of the check (anyone with it can mark it up), which is why it lives in 1Password and not in Git. The free "Hobbyist" plan allows 20 checks.
 
 **Checkmk.** The Kubernetes agent already collects CronJobs ([`checkmk-agent` README](../../k8s/apps/monitoring/checkmk-agent/README.md)). The Checkmk check [`kube_cronjob_status`](https://checkmk.com/integrations/kube_cronjob_status) reports the status of a CronJob's latest job (completed, running, pending, failed) and the time since its last successful schedule and completion; its only documented threshold is for a job that stays pending, so it flags a **failed** job but, as documented, not a job that never ran. It runs only where the Kubernetes data arrives: the sites `qa_k8s` (notifications on) and `prod_k8s` (notifications off, [#1901](https://github.com/isejalabs/homelab/issues/1901)), both CMC, see [`monitoring-sites.md`](../reference/monitoring-sites.md). `dev` and `rebuild` have no active site, and `mk-job` does not apply (it wraps cron jobs on a host). Not verified on the live sites: that the CronJob host and the service exist for `keycloak-db-dump` and that a failed dump notifies.
 
 **Network.** The job reaches RustFS on `fiona`, `github.com` (`fetch-age`) and `hc-ping.com`. A future egress policy for the `keycloak` namespace ([#1945](https://github.com/isejalabs/homelab/issues/1945)) has to allow all three.
+
+### Heartbeat test in `qa`
+
+| Date | What | Result |
+| --- | --- | --- |
+| 2026-11-02 | Job created from the CronJob | Completed, wrote an encrypted dump, success ping arrived |
+| 2026-11-02 | One-off job with an invalid `AGE_RECIPIENTS` | Exited 1 before any upload, pinged `/fail`; the owner confirmed the alert |
+| 2026-11-04 to 2026-11-07 | Nightly runs with the check's grace time set to 2 minutes for the test | Every night an `UP` mail at about 02:01 (the ping) and a `DOWN` mail at about 02:04 (period and grace elapsed without the next ping) |
+
+The nightly pairs show that an expired check does produce the `DOWN` notification on the owner's channel, which is the missing-ping case: from the check's point of view a CronJob that never runs is the same as a ping that does not arrive in time. The CronJob itself was not suspended for this; the short grace time stood in for it, as the owner decided. The `DOWN` 3 minutes after each `UP` also shows why period and grace time must not be left at test values: the check was then `DOWN` for most of every day. The values to keep are period 1 day and grace time 2 hours ([Alerting](#alerting), step 1).
 
 ## Restore
 
@@ -252,7 +262,7 @@ Done on 2026-11-02 for [#1939](https://github.com/isejalabs/homelab/issues/1939)
 | `kubectl create job --from=cronjob/keycloak-db-dump` | `dump`, `fetch-age` (checksum OK, v1.3.2) and `upload` completed in 14 s; `keycloak-2026-11-02T063902Z.dump.age` (239551 bytes) appeared next to the plain dumps in `rebuild-keycloak-db` |
 | `ops/keycloak/db-restore.sh -e rebuild --identity <key>` | Selected the encrypted dump, fetched age, decrypted through the temporary Secret and restored into `keycloak_restore`: 101 tables, realm `master`, 1 user, the same as the live database. The Secret was gone afterwards |
 
-Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. **Not drilled**: the heartbeat against healthchecks.io and the Checkmk check; both wait for the check and the 1Password item.
+Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. The heartbeat was exercised against healthchecks.io afterwards, see [Heartbeat test in `qa`](#heartbeat-test-in-qa). **Not drilled**: the Checkmk check.
 
 ### Observations of the manual drill
 
@@ -296,7 +306,7 @@ This differs from point 6 of [ADR 0016](../decisions/0016-identity-and-web-sso.m
 ## Known caveats
 
 - **A lost age private key makes the dumps unreadable.** Keep two copies ([Encryption key](#encryption-key-age)); the realm configuration is code, so the worst case is the same as losing the dumps (see below).
-- **The heartbeat covers `qa` only so far**, and it has not been run against healthchecks.io yet. The restore from an encrypted dump was drilled in `rebuild` (see [Restore drill](#restore-drill)).
+- **The heartbeat covers `qa` only so far**; it was exercised there (see [Heartbeat test in `qa`](#heartbeat-test-in-qa)). The restore from an encrypted dump was drilled in `rebuild` (see [Restore drill](#restore-drill)).
 - **The job's credential can delete every dump.** Retention runs in the upload container with the job's own credential (`aws s3 rm`), so the scoped `<env>-keycloak-db` user needs delete rights on its bucket, and a leaked key or a bug could remove all recovery points. Accepted by the owner on 2026-11-01: the job has to prune old dumps, and the worst case is bounded, because the realm configuration is code and the users re-enroll their MFA (see [Overview](#overview)). What limits the damage: the user reaches only its own bucket, and the prune loop only considers `keycloak-*` objects, always keeps the newest 14 and skips the object it just uploaded by name. Tested against a local S3 server (S3-compatible mock) with 16 old dumps and an unrelated object: the three oldest dumps were removed, the new dump and the unrelated object stayed. Not investigated: RustFS bucket lifecycle expiration and an upload-only policy, which would move the delete right away from the job; the policy lives in the shared Terraform module `rustfs-bucket-user`, so it would be a change there.
 - **RustFS must be reachable at 02:00.** A failed run keeps the previous dumps; the next day's run tries again.
 - **Kept databases fill the volume.** Every restore keeps the previous database as `keycloak_before_<timestamp>` on the 1Gi volume until you drop it; drop it once the restore is verified.
