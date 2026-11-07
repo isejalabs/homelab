@@ -186,9 +186,9 @@ Only needed when the PostgreSQL instance itself is gone or cannot start; a datab
 Copy the dump into the target's `<env>-keycloak-db` bucket first (each environment's user only reaches its own bucket), then restore it as above. What comes with the dump, which is the source environment's state and not the target's:
 
 - **Master admin password.** The `master` realm, including its admin account and password, comes from the dump. The target's `keycloak-bootstrap-admin#<env>` item is not used: Keycloak applies the bootstrap variables only on the first start against an empty database. After the restore the 1Password item of the *source* environment holds the password that works ([break-glass access](keycloak-break-glass.md#where-the-credential-lives)); update the target's item or rotate the password.
-- **Automation client.** The Terragrunt client `terragrunt` in the `master` realm and its secret are database content too. After a restore from another environment (or an older dump), the secret in the target's `keycloak-terragrunt#<env>` item need not match the restored one: sign in with the break-glass administrator of the restored data and re-apply `keycloak-automation`, which writes the restored secret into the item; a changed `secret_rotation` is not needed ([automation client](keycloak-realms.md#automation-client)). Verified in `dev` (2026-11-07) for a dump of the same environment taken before a rotation, see [Automation client after a restore](#automation-client-after-a-restore); a dump from another environment has not been tried.
+- **Automation client.** The Terragrunt client `terragrunt` in the `master` realm and its secret are database content too. After a restore from another environment (or an older dump), the secret in the target's `keycloak-terragrunt#<env>` item need not match the restored one: sign in with the break-glass administrator of the restored data and re-apply `keycloak-automation`, which writes the restored secret into the item; a changed `secret_rotation` is not needed ([automation client](keycloak-realms.md#automation-client)). Verified in `dev` (2026-11-07) for a dump of the same environment taken before a rotation, see [Automation client after a restore](#automation-client-after-a-restore); a dump from another environment needs more, see [the same section](#automation-client-after-a-restore).
 - **Realms and clients.** Realm settings, clients and their secrets, and the realm signing keys are database content and come with the dump. The hostname and certificate do not: they come from the target's `Keycloak` resource.
-- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. Whether the next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is clean after a restore from another environment has not been tried.
+- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. The next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is **not** clean after a restore from another environment: the objects in the dump have other ids than the ones in the target's state, so the plan wants to create all of them and the apply stops with `409 Conflict` (tried in `dev` with a `qa` dump, 2026-11-07, see [Automation client after a restore](#automation-client-after-a-restore)). Importing the objects is the way out, or restoring the target's own dump.
 - **MFA enrollments.** WebAuthn keys and TOTP secrets in the dump belong to users of the source environment. A WebAuthn key is registered for a relying-party ID that normally follows the hostname, so keys enrolled in another environment are not expected to work in the target; not tried, see [#1943](https://github.com/isejalabs/homelab/issues/1943).
 
 > [!WARNING]
@@ -277,7 +277,22 @@ Done on 2026-11-07 in `dev` ([#2201](https://github.com/isejalabs/homelab/issues
 | Plain `terragrunt apply` in `keycloak-automation` (no changed `secret_rotation`) | One changed; both units plan with no changes afterwards |
 | Rotation value set back to the committed default and applied | Both units plan clean; the kept `keycloak_before_*` database was dropped |
 
-Not covered: a restore from another environment (other break-glass password, other realm content), and a dump older than the client (the apply should recreate it).
+Not covered: a dump older than the client (the apply should recreate it).
+
+#### A `qa` dump in `dev`
+
+The same day the newest `qa` dump was copied into the `dev` bucket (S3 client with the access keys of the two `keycloak-db-backup` Secrets) and restored into `dev` with `--dump`. `dev` then carries the `qa` break-glass password and the `qa` realm content. Findings:
+
+| Step | Result |
+| --- | --- |
+| `keycloak-realm` | `401 Unauthorized` at the login (the item holds the `dev` secret) |
+| `keycloak-automation` as it is | Its login fails as well: the break-glass password in `keycloak-bootstrap-admin#dev` is not the one in the restored `master` realm. For the rehearsal the unit was pointed at `keycloak-bootstrap-admin#qa` (`admin_item_title`, local change, not committed) |
+| `keycloak-automation` with the right administrator | Plan: the `terragrunt` client "has been deleted" and 42 resources are added. The apply stops with `409 Conflict`, `Client terragrunt already exists`: the restored realm has a client of that name with another id than the one in the state |
+| Way out | Read the client's id from the console or the admin API, `terragrunt import keycloak_openid_client.this master/<id>`, then apply: 41 resources added (the role mappings of the service account, idempotent), the item gets the restored secret; the plan is clean afterwards |
+| `keycloak-realm` after that | The login works. Plan: 28 to add, all objects below the realms (client scopes, LDAP federations and mappers, SAML clients and mappers), because their ids differ. The apply creates the federations and the SAML clients anew and stops with `409 Conflict`, `Client Scope groups already exists`: do not apply, import instead |
+| Back to the `dev` state | The `dev` dump was restored again. State repair of `keycloak-realm`: `apply -refresh-only` to drop the stale entries, `terragrunt import` of the 28 objects (ids from the admin API), and the two federations needed `delete_default_mappers = true` in the state (the import cannot know that provider-side flag; without it the plan replaces the federations); then one apply of the two federations (the bind credential) and both units plan clean |
+
+So after a restore from another environment, the Terragrunt state of the target is stale for both units. The cheapest recovery is to restore the target's own dump again; staying on the other environment's data needs the imports above. Not tried: importing the `qa` objects into the `dev` state.
 
 ### Observations of the manual drill
 
