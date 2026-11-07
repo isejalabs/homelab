@@ -6,7 +6,7 @@ status: current
 
 **Choose a task:** check or trigger a backup under [Daily tasks](#daily-tasks); set up the encryption key under [Encryption key](#encryption-key-age); set up the alert under [Alerting](#alerting); recover the database under [Restore](#restore); restore a dump taken in another environment under [A dump from another environment](#a-dump-from-another-environment).
 
-**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Encryption key](#encryption-key-age) · [Alerting](#alerting) · [Restore](#restore) · [Restore drill](#restore-drill) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
+**On this page:** [Overview](#overview) · [How it works](#how-it-works) · [Daily tasks](#daily-tasks) · [Encryption key](#encryption-key-age) · [Alerting](#alerting) · [Restore](#restore) · [Restore drill](#restore-drill) · [WebAuthn after a restore](#webauthn-after-a-restore) · [Upgrading PostgreSQL](#upgrading-postgresql) · [Why a dump and no WAL archiving](#why-a-dump-and-no-wal-archiving) · [Known caveats](#known-caveats)
 
 ## At a glance
 
@@ -83,7 +83,7 @@ The dumps hold password hashes and MFA secrets, so each one is encrypted before 
 **Restore.** Pass the private key to the restore script, for example straight from 1Password without writing it to disk:
 
 ```sh
-just backup::keycloak::restore -e <env> --identity <(op read 'op://Private/keycloak-db age key/private key')
+just backup::keycloak::restore -e <env> --identity <(op read 'op://IT Infrastructure/keycloak-db age key/password')
 ```
 
 The script puts the key into a temporary Secret `keycloak-db-restore-identity-<timestamp>` that only the restore Job mounts, and deletes it right after that Job ended (also if the run is aborted). So the private key is in the cluster, and in etcd, for the minutes of the scratch restore and nowhere else. If you do not want that, decrypt on the workstation instead: download the object, `age -d` it, and load the plain dump yourself.
@@ -186,10 +186,10 @@ Only needed when the PostgreSQL instance itself is gone or cannot start; a datab
 Copy the dump into the target's `<env>-keycloak-db` bucket first (each environment's user only reaches its own bucket), then restore it as above. What comes with the dump, which is the source environment's state and not the target's:
 
 - **Master admin password.** The `master` realm, including its admin account and password, comes from the dump. The target's `keycloak-bootstrap-admin#<env>` item is not used: Keycloak applies the bootstrap variables only on the first start against an empty database. After the restore the 1Password item of the *source* environment holds the password that works ([break-glass access](keycloak-break-glass.md#where-the-credential-lives)); update the target's item or rotate the password.
-- **Automation client.** The Terragrunt client `terragrunt` in the `master` realm and its secret are database content too. After a restore from another environment (or an older dump), the secret in the target's `keycloak-terragrunt#<env>` item need not match the restored one: sign in with the break-glass administrator of the restored data and re-apply `keycloak-automation` with a changed `secret_rotation` ([automation client](keycloak-realms.md#automation-client)). Not tried.
+- **Automation client.** The Terragrunt client `terragrunt` in the `master` realm and its secret are database content too. After a restore from another environment (or an older dump), the secret in the target's `keycloak-terragrunt#<env>` item need not match the restored one: sign in with the break-glass administrator of the restored data and re-apply `keycloak-automation`, which writes the restored secret into the item; a changed `secret_rotation` is not needed ([automation client](keycloak-realms.md#automation-client)). Verified in `dev` (2026-11-07) for a dump of the same environment taken before a rotation, see [Automation client after a restore](#automation-client-after-a-restore); a dump from another environment needs more, see [the same section](#automation-client-after-a-restore).
 - **Realms and clients.** Realm settings, clients and their secrets, and the realm signing keys are database content and come with the dump. The hostname and certificate do not: they come from the target's `Keycloak` resource.
-- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. Whether the next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is clean after a restore from another environment has not been tried.
-- **MFA enrollments.** WebAuthn keys and TOTP secrets in the dump belong to users of the source environment. A WebAuthn key is registered for a relying-party ID that normally follows the hostname, so keys enrolled in another environment are not expected to work in the target; not tried, see [#1943](https://github.com/isejalabs/homelab/issues/1943).
+- **UCS federation.** The federation settings of the realms `iseja` and `admin` (connection, bind credential) come from the dump too. The next apply of the Terragrunt unit [`keycloak-realm`](keycloak-realms.md) of the target is **not** clean after a restore from another environment: the objects in the dump have other ids than the ones in the target's state, so the plan wants to create all of them and the apply stops with `409 Conflict` (tried in `dev` with a `qa` dump, 2026-11-07, see [Automation client after a restore](#automation-client-after-a-restore)). Importing the objects is the way out, or restoring the target's own dump.
+- **MFA enrollments.** WebAuthn keys and TOTP secrets in the dump belong to users of the source environment. A WebAuthn key is registered for a relying-party ID that normally follows the hostname, so keys enrolled in another environment are not expected to work in the target; not tried, see [WebAuthn after a restore](#webauthn-after-a-restore) ([#1943](https://github.com/isejalabs/homelab/issues/1943)).
 
 > [!WARNING]
 > A dump holds password hashes, MFA secrets, client secrets and realm keys, so treat it as a secret of its source environment: a `prod` dump restored into `dev` hands `dev` the `prod` realm keys and client secrets.
@@ -264,12 +264,96 @@ Done on 2026-11-02 for [#1939](https://github.com/isejalabs/homelab/issues/1939)
 
 Not run: the swap (phases 2 to 4, unchanged from the plain-dump drill above), so the live database was never replaced. The scratch database, the drill dump and the drill Jobs were removed. The heartbeat was exercised against healthchecks.io afterwards, see [Heartbeat test in `qa`](#heartbeat-test-in-qa). **Not drilled**: the Checkmk check.
 
+### Automation client after a restore
+
+Done on 2026-11-07 in `dev` ([#2201](https://github.com/isejalabs/homelab/issues/2201)): the question was whether the Terragrunt automation client survives a restore and how its secret gets back in sync.
+
+| Step | Result |
+| --- | --- |
+| Manual dump from the CronJob (encrypted, 288 KB), then `secret_rotation` changed and `keycloak-automation` applied | Keycloak and the item `keycloak-terragrunt#dev` hold secret 2, the dump holds secret 1; `keycloak-realm` plans clean |
+| `just backup::keycloak::restore -e dev --dump <that dump> --identity <key> -y` | Done in 213 s; live and restored database both had 101 tables, 3 realms, 7 users |
+| `terragrunt plan` in `keycloak-realm` | Fails at the provider login: `401 Unauthorized` from the token endpoint of `master` |
+| `terragrunt plan` in `keycloak-automation` (logs in with the break-glass administrator) | Works; one change, the password of the item (it reads the restored secret from Keycloak) |
+| Plain `terragrunt apply` in `keycloak-automation` (no changed `secret_rotation`) | One changed; both units plan with no changes afterwards |
+| Rotation value set back to the committed default and applied | Both units plan clean; the kept `keycloak_before_*` database was dropped |
+
+Not covered: a dump older than the client (the apply should recreate it).
+
+#### A `qa` dump in `dev`
+
+The same day the newest `qa` dump was copied into the `dev` bucket (S3 client with the access keys of the two `keycloak-db-backup` Secrets) and restored into `dev` with `--dump`. `dev` then carries the `qa` break-glass password and the `qa` realm content. Findings:
+
+| Step | Result |
+| --- | --- |
+| `keycloak-realm` | `401 Unauthorized` at the login (the item holds the `dev` secret) |
+| `keycloak-automation` as it is | Its login fails as well: the break-glass password in `keycloak-bootstrap-admin#dev` is not the one in the restored `master` realm. For the rehearsal the unit was pointed at `keycloak-bootstrap-admin#qa` (`admin_item_title`, local change, not committed) |
+| `keycloak-automation` with the right administrator | Plan: the `terragrunt` client "has been deleted" and 42 resources are added. The apply stops with `409 Conflict`, `Client terragrunt already exists`: the restored realm has a client of that name with another id than the one in the state |
+| Way out | Read the client's id from the console or the admin API, `terragrunt import keycloak_openid_client.this master/<id>`, then apply: 41 resources added (the role mappings of the service account, idempotent), the item gets the restored secret; the plan is clean afterwards |
+| `keycloak-realm` after that | The login works. Plan: 28 to add, all objects below the realms (client scopes, LDAP federations and mappers, SAML clients and mappers), because their ids differ. The apply creates the federations and the SAML clients anew and stops with `409 Conflict`, `Client Scope groups already exists`: do not apply, import instead |
+| Back to the `dev` state | The `dev` dump was restored again. State repair of `keycloak-realm`: `apply -refresh-only` to drop the stale entries, `terragrunt import` of the 28 objects (ids from the admin API), and the two federations needed `delete_default_mappers = true` in the state (the import cannot know that provider-side flag; without it the plan replaces the federations); then one apply of the two federations (the bind credential) and both units plan clean |
+
+So after a restore from another environment, the Terragrunt state of the target is stale for both units. The cheapest recovery is to restore the target's own dump again; staying on the other environment's data needs the imports above. Not tried: importing the `qa` objects into the `dev` state.
+
 ### Observations of the manual drill
 
 - **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#2206](https://github.com/isejalabs/homelab/issues/2206)). The only credential row in the dump is the master admin password.
-- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until [#2206](https://github.com/isejalabs/homelab/issues/2206) enrolls one (rehearsal: [#1943](https://github.com/isejalabs/homelab/issues/1943)); repeat the login step of this drill then.
+- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until [#2206](https://github.com/isejalabs/homelab/issues/2206) enrolls one; see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal ([#1943](https://github.com/isejalabs/homelab/issues/1943)) to repeat.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
+
+## WebAuthn after a restore
+
+A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill) and cannot be shown before MFA is rolled out ([#1827](https://github.com/isejalabs/homelab/issues/1827)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
+
+### What is known
+
+- **The relying-party ID is not set by the realm module.** The module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/keycloak-realm-v0.4.0/modules/keycloak-realm) (version pinned in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)) creates the `web_authn_policy` of every realm with `relying_party_entity_name`, the signature algorithms and the user-verification requirement only, and no `relying_party_id`. The Keycloak documentation for the policy says: if the Relying Party ID is blank, Keycloak uses the host part of its base URL. The RP ID is therefore the Keycloak hostname of the environment:
+
+| Environment | Keycloak hostname (= effective RP ID) |
+| --- | --- |
+| `dev` | `dev-auth.dev.iseja.net` |
+| `qa` | `qa-auth.qa.iseja.net` |
+| `rebuild` | `rebuild-auth.rebuild.iseja.net` |
+| `prod` | `auth.iseja.net` (not deployed yet) |
+
+- **A credential is bound to its RP ID.** A WebAuthn credential registered for one RP ID is not valid for another (W3C WebAuthn). Both realms, `iseja` and `admin`, are served from the same hostname, so they share the RP ID of their environment.
+- **Not yet confirmed on a live instance:** that the RP ID field of the WebAuthn policy is blank in the admin console of each realm after `keycloak-realm` was applied (step 1 of the [rehearsal](#rehearsal)), and that the dump carries the WebAuthn credential rows of LDAP-federated users (the table under [Overview](#overview) assumes it).
+
+### What a restore under a different hostname cannot prove
+
+- A dump restored into another environment (the `qa` dump into `rebuild`, as in the drill) carries credentials registered for `qa-auth.qa.iseja.net`. A browser will not offer them on `rebuild-auth.rebuild.iseja.net`, so a failed login there says nothing about the restore, and a successful one is impossible. Such a restore proves tables, realms, users and discovery, and nothing about credential portability.
+- The same holds for the issuer: it contains the hostname, so tokens and client registrations of the source do not carry over to a target with another hostname.
+- A credential enrolled in `rebuild` after the restore proves only that enrolment works there.
+
+### Drill setup
+
+To keep the RP ID (and the issuer) the drill has to answer on the hostname the credential was registered for. Options:
+
+| Option | What it is | Assessment |
+| --- | --- | --- |
+| A. Restore in place, same environment | Enroll the test credential in an environment, take a dump, restore it with the restore script ([Restore](#restore)) and log in on the unchanged hostname | Needs nothing new and keeps RP ID and issuer. Keycloak is down for the restore, and the previous database is kept as `keycloak_before_<timestamp>` until dropped, so the swap can be undone ([Roll back](#roll-back)). **Chosen by the owner for `dev` (2026-11-07)** |
+| B. Isolated recovery instance on the real hostname | A second Keycloak and database restored from the dump, answering on the production hostname for one test client only (split DNS or a hosts-file entry on that client, plus a certificate for the name) | Needed for a prod rehearsal that must not touch the running instance. Not tried; the certificate and secure-context behaviour with a staging or private certificate are open questions. Revisit when `prod` exists |
+| C. Explicit, environment-independent RP ID | Set `relying_party_id` in the module to a shared parent domain so a credential works in every environment | Not adopted: it is a design change that makes credentials portable between `dev` and `prod`, and it has not been checked that Keycloak accepts a parent domain of the host. Belongs with the hostname work in [#1946](https://github.com/isejalabs/homelab/issues/1946) if wanted at all |
+
+### Rehearsal
+
+Run it once [#1827](https://github.com/isejalabs/homelab/issues/1827) has rolled out the WebAuthn flows. Setup A in `dev` is decided (see above); the owner holds the authenticator.
+
+1. **Before enrolling:** open *Authentication* → *Policies* → *WebAuthn Policy* in each realm and note whether *Relying Party ID* is blank. Enroll a test credential for a federated test user. Keycloak builds the WebAuthn user handle from the internal user ID, which for users of an external federation is a storage ID that can exceed the 64-byte limit of the specification (see the WebAuthn chapter of the Keycloak server administration guide); if enrolment fails for a federated user, that is a finding for [#1827](https://github.com/isejalabs/homelab/issues/1827) and not for the restore.
+2. **Enroll** one credential in each realm: `admin` (the `sebi-adm` account, or a test account in `idm-admins`) and `iseja` (a test account in `idm-users`). Log in once with each to prove they work before the restore.
+3. **Dump:** trigger a manual dump ([Daily tasks](#daily-tasks)) after the enrolments and note the key (`just backup::keycloak::list -e dev`). Optionally delete the test credential of one realm afterwards in the admin console, so that only the restored data can satisfy the later login.
+4. **Restore** that dump in `dev` with `just backup::keycloak::restore -e dev --identity <key file> --dump <key>` ([Restore](#restore); the dump is age-encrypted, so the [age key](#encryption-key-age) is needed). The hostname does not change.
+5. **Log in** in each realm with password and the enrolled credential. Expected: success.
+6. **Also check:** the user and group claims (client scope evaluation for a test client, or the first real client), that federation to UCS still answers, and that the emergency administrator of `master` can sign in with the password of the dump ([break-glass](keycloak-break-glass.md)).
+7. **Optional negative control:** restore the same dump into another environment ([A dump from another environment](#a-dump-from-another-environment)) and note that the credential is not offered there. This documents the limit above instead of discovering it during an incident.
+8. **Record** the result in the table below and in the issue, including the Keycloak version and the environment.
+
+| Realm | Result | Date | Environment |
+| --- | --- | --- | --- |
+| `iseja` | Pending, blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) | | |
+| `admin` | Pending, blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) | | |
+
+If the rehearsal fails, or the owner decides not to run it, the consequence stays as stated under [Overview](#overview): users enrolled since the last dump, or all of them when the credential does not survive, enroll again, and for the `admin` realm that needs [break-glass access](keycloak-break-glass.md). That consequence has to be accepted explicitly for each realm; it is not accepted yet.
 
 ## Upgrading PostgreSQL
 
