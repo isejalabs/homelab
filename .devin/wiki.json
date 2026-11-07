@@ -1,0 +1,22 @@
+{
+  "repo_notes": [
+    {
+      "content": "This is a personal, IaC-driven homelab: Proxmox VMs, Talos Linux, Kubernetes. VMs are provisioned with OpenTofu/Terragrunt (terragrunt/), foundational services are installed by a helmfile bootstrap (k8s/bootstrap/), and everything else is reconciled from Git by Flux CD (k8s/infra/, k8s/apps/)."
+    },
+    {
+      "content": "There are 8 environments: dbg, dev, head, poc, prod, qa, rebuild, src. They are used consistently across terragrunt/, k8s/*/envs/ and k8s/components/envs/. docs/architecture/environments.md explains what each one is for. prod is the only production cluster; the others exist to prove changes out first."
+    },
+    {
+      "content": "Every app or infra unit under k8s/infra/ and k8s/apps/ has the same shape: base/ (environment-agnostic manifests using the placeholder domain example.com), envs/<env>/ (a thin per-environment overlay that includes a shared component and patches only what differs), and flux/ (the Flux Kustomization in ks.yaml). The spec.path in ks.yaml points at base/ and is rewritten per environment by the shared components in k8s/components/. Describe this DRY base/envs/flux layering explicitly rather than documenting each environment's copy separately."
+    },
+    {
+      "content": "Secrets are never stored in plaintext in Git. Terragrunt secrets use SOPS (age-encrypted *.sops.yaml); in-cluster secrets come from 1Password via External Secrets Operator."
+    },
+    {
+      "content": "The authoritative hand-written documentation is in docs/ (start at docs/README.md; architecture in docs/architecture/, runbooks and troubleshooting guides alongside) and in the per-folder README.md files. AGENTS.md describes the repository conventions and commands. Prefer these over inferring behaviour from individual manifests."
+    },
+    {
+      "content": "Ignore _attic/ and ZZ.bak/: they hold retired or old material that is not part of the active implementation. Also ignore .commons/, a git submodule with AI-agent conventions shared across repositories."
+    }
+  ]
+}

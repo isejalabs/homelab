@@ -4,5 +4,7 @@ kind: Kustomization
 namespace: gateway-api
 
 resources:
-  - https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
-  - https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.4.1/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
+  # https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.4.1/standard-install.yaml
+  - vendor/standard-install.yaml
+  # https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/v1.4.1/config/crd/experimental/gateway.networking.k8s.io_tlsroutes.yaml
+  - vendor/gateway.networking.k8s.io_tlsroutes.yaml

@@ -1,6 +1,12 @@
-# Documentation Audit — October 2026
+---
+date: 2026-10-12
+status: Assessment complete; five follow-up issues grouped beneath https://github.com/isejalabs/homelab/issues/1608, under https://github.com/isejalabs/homelab/issues/1336
+scope: Current documentation structure, readability, operational and recovery usefulness, consistency with repository configuration, and public disclosure
+origin: Read-only review of the local `main` checkout and public repository
+tracking: Related to the open Documentation improvement journey https://github.com/isejalabs/homelab/issues/1336; this audit identifies residual findings after the September 2026 audit and its phase work
+---
 
-**Date:** 2026-10-12. **Status:** Assessment complete; five follow-up issues grouped beneath #1608, under #1336. **Scope:** Current documentation structure, readability, operational and recovery usefulness, consistency with repository configuration, and public disclosure. **Origin:** Read-only review of the local `main` checkout and public repository. **Tracking:** Related to the open [Documentation improvement journey](https://github.com/isejalabs/homelab/issues/1336); this audit identifies residual findings after the September 2026 audit and its phase work.
+# Documentation Audit — October 2026
 
 ## Summary
 
@@ -12,13 +18,13 @@ The main remaining concerns are accuracy across entry points, the boundary betwe
 
 ### F1 — CI descriptions disagree across documentation
 
-**Priority:** High. The root [README](../../README.md#staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
+**Priority:** High. The root [README](../../README.md#-staying-current) says there is no GitHub Actions CI. The repository contains eleven workflow files. The [CI guide](../architecture/ci.md) and [AGENTS.md](../../AGENTS.md) describe CI, but their counts and wording should also be reconciled: the CI guide says nine workflows/checks while its inventory contains ten validation workflows plus the labeler workflow, and AGENTS.md gives both eleven and nine in different sections. These differences make it hard to know which checks gate changes.
 
 **Recommendation:** Make the root README, CI guide, and contributor instructions agree on which workflows validate changes, which are required checks, and which are automation. Link to the CI guide rather than duplicating a workflow count unless that count is maintained from an authoritative source.
 
 ### F2 — Recovery boundaries qualify the broad rebuild claim
 
-**Priority:** High. The root README says the whole stack can be rebuilt from the repository. The [disaster recovery guide](../disaster-recovery.md) identifies root-zone DNS recovery as outside the repository and says its documented sequence has not been run as one timed rehearsal. The owner clarifies that the **cluster itself is recoverable** because apps and configuration live in Git, application data is backed up by kopiur, and cluster rebuilds are exercised in the `rebuild` environment on an irregular, roughly monthly cadence. The gap is broader homelab recovery: some components outside the cluster are incompletely documented, some are not fully backed up or recoverable, and secrets held in 1Password have no periodic backup. The guide's “not rehearsed end to end” statement should be reconciled with the recurring rebuild exercises so it describes precisely what has and has not been exercised.
+**Priority:** High. The root README says the whole stack can be rebuilt from the repository. The [disaster recovery guide](../backup/disaster-recovery.md) identifies root-zone DNS recovery as outside the repository and says its documented sequence has not been run as one timed rehearsal. The owner clarifies that the **cluster itself is recoverable** because apps and configuration live in Git, application data is backed up by kopiur, and cluster rebuilds are exercised in the `rebuild` environment on an irregular, roughly monthly cadence. The gap is broader homelab recovery: some components outside the cluster are incompletely documented, some are not fully backed up or recoverable, and secrets held in 1Password have no periodic backup. The guide's “not rehearsed end to end” statement should be reconciled with the recurring rebuild exercises so it describes precisely what has and has not been exercised.
 
 **Recommendation:** Preserve the distinction between cluster recovery and whole-homelab recovery. Document the existing `rebuild` exercise cadence and validation, then identify external components, required records/access, backup coverage, and restore procedures that remain incomplete. Explicitly assess recovery of 1Password-held secrets and establish a periodic backup or document the accepted recovery gap. Align the README and disaster recovery guide with the verified cluster recovery capability and the remaining out-of-cluster limitations.
 

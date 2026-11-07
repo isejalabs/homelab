@@ -1,6 +1,12 @@
-# Moving monitoring1 to pve1 instead of dev-ctrl-03 — 2026-10-28
+---
+date: 2026-10-28
+status: Assessment complete; nothing moved or resized. Supersedes option 4 of the Proxmox capacity audit 2026-10-proxmox-capacity.md#options-considered, which rejected the move on the numbers of 2026-10-19
+scope: whether `monitoring1` (CT 7002061, now on pve5) is a better candidate than `dev-ctrl-03` to move to pve1 to relieve pve5. It does not re-measure CPU or load (unchanged since the capacity audit) and does not cover disk or network
+origin: Claude (Claude Code), read-only SSH to pve5 (Proxmox API, RRD, `pct config`, the container's cgroup); pve1's guest peaks are the 7-day values of the capacity audit, not re-read
+tracking: https://github.com/isejalabs/homelab/issues/1783, related https://github.com/isejalabs/homelab/issues/71 and https://github.com/isejalabs/homelab/issues/1845
+---
 
-**Date:** 2026-10-28. **Status:** Assessment complete; nothing moved or resized. Supersedes option 4 of the [Proxmox capacity audit](2026-10-proxmox-capacity.md#options-considered), which rejected the move on the numbers of 2026-10-19. **Scope:** whether `monitoring1` (CT 7002061, now on pve5) is a better candidate than `dev-ctrl-03` to move to pve1 to relieve pve5. It does not re-measure CPU or load (unchanged since the capacity audit) and does not cover disk or network. **Origin:** Claude (Claude Code), read-only SSH to pve5 (Proxmox API, RRD, `pct config`, the container's cgroup); pve1's guest peaks are the 7-day values of the capacity audit, not re-read. **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), related [#71](https://github.com/isejalabs/homelab/issues/71) and [#1845](https://github.com/isejalabs/homelab/issues/1845).
+# Moving monitoring1 to pve1 instead of dev-ctrl-03 — 2026-10-28
 
 ## Result
 
@@ -42,7 +48,7 @@ The only purpose of `dev_k8s` is to anticipate the load of new apps for prod, to
 
 - **The live usage understates the pressure while `rebuild` is down.** The `rebuild-*` workers are not running, so pve5 shows 37.6 of 46.8 GiB used (9 running guests, 39.0 GiB allocated) and pve1 37.7 of 46.8 GiB (15 guests, 37.5 GiB allocated). The headroom figures above count `rebuild-work-01` on pve1 and `rebuild-work-02` on pve5, which is the right basis because `rebuild` comes up from time to time: a plan that leaves pve1 with about 2 GiB is thin in exactly those periods. Without `rebuild-work-01` the third row would leave about 7 GiB on pve1, but that room is not available to a permanent guest.
 - **The failure-domain objection weakens once `core` is retired.** The capacity audit rejected the move partly because a pve1 failure would take out the monitor of the gateway, directory, Home Assistant and PBS. With `core` (Smart Ping of the gateways) gone, `monitoring1` only watches `qa_k8s` and `dev_k8s`, and the sites that watch pve1's services (`prod`, `free`, `prod_k8s`) are on `monitoring2` (pve4). `monitoring1` already shares pve5 with the gateway `gw3` today.
-- **The move is cheap in operations.** As an LXC on local ZFS it cannot be live-migrated, but `pct migrate 7002061 pve1 --restart` should cost a few minutes of downtime for the QA and dev Checkmk sites, against the interim-control-plane procedure in [`node-lifecycle.md`](../node-lifecycle.md#5-moving-a-node-to-another-proxmox-host) for `dev-ctrl-03`. The command was not run and the migration time was not measured.
+- **The move is cheap in operations.** As an LXC on local ZFS it cannot be live-migrated, but `pct migrate 7002061 pve1 --restart` should cost a few minutes of downtime for the QA and dev Checkmk sites, against the interim-control-plane procedure in [`node-lifecycle.md`](../operations/node-lifecycle.md#5-moving-a-node-to-another-proxmox-host) for `dev-ctrl-03`. The command was not run and the migration time was not measured.
 - **CPU is not a factor:** pve1 averages 25 to 29% host CPU and `monitoring1` adds 0.14 cores, less than `dev-ctrl-03` (0.22 to 0.33).
 
 ## Recommended order

@@ -12,7 +12,7 @@ configMapGenerator:
     literals:
       - TZ="Europe/Berlin"
       - EXTENDED_HEALTHCHECK="true"
-      - EXTENDED_HEALTHCHECK_DOMAIN="k.root-servers.net"
+      - EXTENDED_HEALTHCHECK_DOMAIN="localhost"
   - name: unbound-conf
     files:
       - config/conf.d/access-control.conf

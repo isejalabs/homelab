@@ -1,8 +1,9 @@
+---
+id: ADR 0012
+status: current
+---
+
 # TSIG over IP-ACL for AXFR and dynamic-update authorization
-
-## Status
-
-current
 
 ## Context
 

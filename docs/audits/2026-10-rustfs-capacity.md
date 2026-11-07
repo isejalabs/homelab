@@ -1,6 +1,11 @@
+---
+date: 2026-10-01
+tracking: phase 1A, https://github.com/isejalabs/homelab/issues/1438
+---
+
 # RustFS bucket capacity check — implementation decision
 
-**Date:** 2026-10-01. **Tracking:** [phase 1A, #1438](https://github.com/isejalabs/homelab/issues/1438). This is an implementation design based on read-only access; no RustFS or Checkmk configuration has been changed.
+This is an implementation design based on read-only access; no RustFS or Checkmk configuration has been changed.
 
 ## Collection contract
 

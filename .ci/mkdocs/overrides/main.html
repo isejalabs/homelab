@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+
+{% block extrahead %}
+  {#- Keep the site out of search engines until the public-disclosure decision (#1601) is made; flip extra.noindex in mkdocs.yml. -#}
+  {% if config.extra.noindex %}
+  <meta name="robots" content="noindex, nofollow">
+  {% endif %}
+  {#- Wider content column and tighter table cells: the workload catalog tables force a minimum width on their name columns (see docs/architecture/workloads.md), which the theme's default 61rem grid and 1.25em cell padding leave too little room for. -#}
+  <style>
+    .md-grid { max-width: 80rem; }
+    .md-typeset table:not([class]) th,
+    .md-typeset table:not([class]) td { padding: .5em .8em; }
+    /* Front matter of audits, plans and ADRs, added by hooks.py below the status banner: a label column and a value column. */
+    .md-typeset dl.doc-meta { display: grid; grid-template-columns: max-content 1fr; gap: .2rem 1.2rem; margin: 1em 0; padding: .6em .9em; font-size: .8rem; border-left: .2rem solid var(--md-default-fg-color--lighter); }
+    .md-typeset dl.doc-meta dt { margin: 0; font-weight: 700; color: var(--md-default-fg-color--light); }
+    .md-typeset dl.doc-meta dd { margin: 0; }
+    @media (max-width: 44.9375em) { .md-typeset dl.doc-meta { grid-template-columns: 1fr; } .md-typeset dl.doc-meta dd { margin-bottom: .4rem; } }
+  </style>
+  {{ super() }}
+{% endblock %}

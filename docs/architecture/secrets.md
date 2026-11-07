@@ -6,9 +6,27 @@ status: current
 
 Secrets never live in Git in plaintext. This repo uses two mechanisms, and the split between them is mechanical, not stylistic: **SOPS** for anything that has to exist *before* a Kubernetes cluster and Flux are running, and **sealed-secrets** / **1Password + External Secrets Operator (ESO)** for anything a running cluster reconciles from Git afterwards. A one-time bridge (`op inject`) connects the two during bootstrap.
 
-```
-provisioning (SOPS)  --->  bootstrap bridge (op inject)  --->  in-cluster (sealed-secrets / ESO+1Password)
-   no cluster yet         cluster exists, Flux doesn't yet        Flux reconciling from Git
+```mermaid
+flowchart LR
+    accTitle: Where each kind of secret comes from
+    accDescr: Three stages in order. Before a cluster exists, Terragrunt decrypts SOPS-encrypted files in Git with an age key. Once Talos and Kubernetes are up but Flux is not, the operator's signed-in op CLI injects two 1Password Connect credential Secrets with op inject. After that, Flux reconciles Git: SealedSecrets are decrypted by the sealed-secrets controller, and ExternalSecrets are resolved by External Secrets Operator through 1Password Connect and its ClusterSecretStore into ordinary Secrets.
+
+    subgraph stage1["1 - Provisioning, no cluster yet"]
+        sops["*-secrets.sops.yaml in Git<br/>age-encrypted"] -->|"sops_decrypt_file in root.hcl"| tg["Terragrunt<br/>Proxmox, state passphrase"]
+    end
+
+    subgraph stage2["2 - Bootstrap bridge, cluster but no Flux"]
+        s3cr3t["s3cr3t.yaml in Git<br/>op:// references only"] -->|"op inject, using the operator's op session"| seed["two Secrets<br/>onepassword-connect-credentials-secret<br/>onepassword-connect-vault-secret"]
+    end
+
+    subgraph stage3["3 - In-cluster, Flux reconciling Git"]
+        sealed["SealedSecret in Git<br/>ciphertext"] -->|"sealed-secrets controller decrypts"| secret1["Secret"]
+        extsec["ExternalSecret in Git"] -->|"External Secrets Operator"| store["ClusterSecretStore<br/>onepassword-connect"]
+        store --> connect["1Password Connect"]
+        connect -->|"reads vault K8S"| secret2["Secret"]
+    end
+
+    seed -->|"lets Connect start"| connect
 ```
 
 ## SOPS: provisioning secrets
@@ -53,7 +71,7 @@ sops:
     version: 3.11.0
 ```
 
-**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/sops-encrypt-all.sh`](../../scripts/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/sops-decrypt-all.sh`](../../scripts/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
+**Never hand-edit an already-encrypted `*.sops.yaml` file.** Use the two helper scripts instead: [`scripts/tools/sops-encrypt-all.sh`](../../scripts/tools/sops-encrypt-all.sh) parses the `path_regex:` lines straight out of `.sops.yaml`, finds every matching plaintext file, diffs it against its already-encrypted counterpart, and re-encrypts only what changed; [`scripts/tools/sops-decrypt-all.sh`](../../scripts/tools/sops-decrypt-all.sh) does the reverse (decrypt every `*.sops.yaml` to a sibling plaintext file, only overwriting a stale copy with `-f`).
 
 ### How Terragrunt reads them
 
@@ -186,7 +204,7 @@ If the cluster's sealed-secrets controller is ever lost without this key having 
 
 ### 1Password + External Secrets Operator — for secrets sourced live from a vault
 
-[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/README.md) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
+[`k8s/infra/external-secrets/`](../../k8s/infra/external-secrets/) ([`external-secrets`](../../k8s/infra/external-secrets/external-secrets/README.md) and [`onepassword-connect`](../../k8s/infra/external-secrets/onepassword-connect/README.md)) runs [External Secrets Operator](https://external-secrets.io/) plus a [1Password Connect](https://developer.1password.com/docs/connect/) server, so a secret's source of truth can stay in a 1Password vault instead of being committed to Git at all — ESO polls the vault and materializes a normal `Secret` in-cluster. The `ClusterSecretStore` wires ESO to Connect ([`k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/clustersecretstore.yaml)):
 
 ```yaml
 apiVersion: external-secrets.io/v1
@@ -207,7 +225,7 @@ spec:
             key: OP_CONNECT_TOKEN
 ```
 
-Today this is used to bootstrap Connect's own credentials (the `ExternalSecret`s in [`k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml) pull the `1password` item out of the `K8S` vault) — there's a bit of a bootstrapping loop here too: Connect needs a `Secret` to start, and ESO needs Connect running to produce that `Secret`, which is exactly what the `op inject` bridge above breaks by seeding it once from outside the cluster. The first real app-level use of this pattern is `kopiur-secret`'s `ExternalSecret` ([`k8s/components/apps/kopiur/secret/externalsecret.yaml`](../../k8s/components/apps/kopiur/secret/externalsecret.yaml)): pulled into every namespace that uses `apps/storage/pvc`/`pvc-no-backup` (see [`storage.md`](storage.md) and [`docs/kopiur-backup-restore.md`](../kopiur-backup-restore.md)), and rewritten per-environment by the `kopiur-secret-env` transformer rather than hardcoded per app.
+Today this is used to bootstrap Connect's own credentials (the `ExternalSecret`s in [`k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml`](../../k8s/infra/external-secrets/onepassword-connect/base/externalsecret.yaml) pull the `1password` item out of the `K8S` vault) — there's a bit of a bootstrapping loop here too: Connect needs a `Secret` to start, and ESO needs Connect running to produce that `Secret`, which is exactly what the `op inject` bridge above breaks by seeding it once from outside the cluster. The first real app-level use of this pattern is `kopiur-secret`'s `ExternalSecret` ([`k8s/components/apps/kopiur/secret/externalsecret.yaml`](../../k8s/components/apps/kopiur/secret/externalsecret.yaml)): pulled into every namespace that uses `apps/storage/pvc`/`pvc-no-backup` (see [`storage.md`](storage.md) and [`docs/backup/kopiur-backup-restore.md`](../backup/kopiur-backup-restore.md)), and rewritten per-environment by the `kopiur-secret-env` transformer rather than hardcoded per app.
 
 ### Choosing between them
 

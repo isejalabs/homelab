@@ -25,9 +25,28 @@ terraform {
 }
 
 # ---------------------------------------------------------------------------------------------------------------------
-# Only the Keycloak URL is specific to this environment (the hostname is prefixed per environment, see
-# k8s/apps/identity/keycloak/envs/qa).
+# Only the Keycloak URL is specific to this environment. The hostname is derived per environment by the
+# replace-domain/prefix-domain components (k8s/apps/identity/keycloak/envs/qa); scripts/ci/kustomize-build-all.sh fails
+# when this URL differs from the rendered Keycloak and HTTPRoute hostnames, so change them together.
 # ---------------------------------------------------------------------------------------------------------------------
 inputs = {
   keycloak_url = "https://qa-auth.qa.iseja.net"
+
+  # The Checkmk site qa_k8s (Ultimate, on monitoring1) signs in humans through SAML, one client per realm because a
+  # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
+  saml_clients = {
+    "qa_k8s-iseja" = {
+      realm         = "iseja"
+      client_id     = "https://monitoring1.home.iseja.net/qa_k8s/check_mk/saml_metadata.py"
+      acs_url       = "https://monitoring1.home.iseja.net/qa_k8s/check_mk/saml_acs.py?acs"
+      name          = "Checkmk qa_k8s (iseja)"
+      include_email = true
+    }
+    "qa_k8s-admin" = {
+      realm     = "admin"
+      client_id = "https://monitoring1.home.iseja.net/qa_k8s/check_mk/saml_metadata.py"
+      acs_url   = "https://monitoring1.home.iseja.net/qa_k8s/check_mk/saml_acs.py?acs"
+      name      = "Checkmk qa_k8s (admin)"
+    }
+  }
 }

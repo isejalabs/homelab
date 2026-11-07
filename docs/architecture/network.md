@@ -4,30 +4,52 @@ status: current
 
 # Networking
 
-A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster: **Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium) terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely: an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, a redundant pair of **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes), identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is documented as one story anywhere else in the repo — most in-cluster apps' own READMEs are either a bare `kubectl` cheatsheet or nonexistent (a few, like PowerDNS's and Cilium's, have grown real operational depth — linked from the relevant section below rather than repeated here), and the physical-network side isn't in Git at all.
+A request from a LAN client to a pod crosses pieces this repo manages and pieces it doesn't. In-cluster: **Cilium** hands out and BGP-advertises Service/Gateway IPs, **Gateway API** (implemented by Cilium) terminates TLS and routes by hostname, **AdGuard + Unbound** resolve DNS, and **unifi-controller** is only the management UI for the WiFi access points and switches. Outside the cluster and outside this repo entirely: an **OPNsense** HA firewall/router pair is what Cilium's BGP sessions actually peer with, a redundant pair of **UCS (Univention Corporate Server)** machines provide DHCP (reached via DHCP relay on the OPNsense boxes), identity services (Kerberos, LDAP, Active Directory), and DNS for a couple of subdomains, and a separate pair of small Debian LXCs are the actual root nameservers for the whole `iseja.net` zone. None of this is documented as one story anywhere else in the repo — each unit's own README states its addresses, ports and commands (those with real operational depth, like PowerDNS's and Cilium's, are linked from the relevant section below rather than repeated here), and the physical-network side isn't in Git at all.
 
 ## End-to-end flow
 
+The flow has three strands that meet at the Gateway's LoadBalancer IP: the DNS lookup that turns a hostname into that IP, the control-plane work that makes the IP reachable, and the request itself. The addresses are the `prod` examples used throughout this page.
+
+```mermaid
+flowchart TD
+    accTitle: DNS and traffic path from a LAN client to a pod
+    accDescr: A LAN client asks AdGuard for a name. AdGuard forwards the internal domain and reverse lookups to Unbound, and in parallel to the OPNsense resolver, and everything else to Quad9 over DoH. Unbound resolves the internal domain through a stub zone to the root nameservers and the answer is the Gateway's LoadBalancer IP. Separately, Cilium LB-IPAM assigns that IP and the Cilium BGP control plane advertises it as a host route from the worker nodes to the OPNsense pair. The client then sends its HTTPS request to the IP; OPNsense routes it to a worker node, the Cilium-implemented Gateway terminates TLS with a cert-manager certificate and matches the HTTPRoute hostname, and the Kubernetes Service forwards to a pod.
+
+    client["LAN client"]
+
+    subgraph dns["1 - DNS: name to Gateway IP"]
+        adguard["AdGuard<br/>LoadBalancer 10.8.8.53<br/>filtering, then forward by domain"]
+        unbound["Unbound<br/>LoadBalancer 10.8.8.8 and 10.8.8.11<br/>validating recursive resolver"]
+        opnresolver["OPNsense resolver<br/>VIP 10.9.9.9<br/>asked in parallel for the same domains"]
+        quad9["Quad9<br/>public DoH"]
+        roots["root nameservers<br/>10.7.2.10 and 10.7.2.12"]
+        adguard -->|"iseja.net and 10.in-addr.arpa"| unbound
+        adguard -->|"same queries, in parallel"| opnresolver
+        adguard -->|"everything else"| quad9
+        unbound -->|"stub zone iseja.net"| roots
+    end
+
+    subgraph control["2 - Control plane: make the IP reachable"]
+        ipam["Cilium LB-IPAM<br/>bgp-pool assigns the Gateway IP"]
+        bgp["Cilium BGP control plane<br/>worker nodes advertise the /32"]
+        opnsense["OPNsense HA pair<br/>10.7.8.2 and 10.7.8.3"]
+        ipam --> bgp -->|"BGP session"| opnsense
+    end
+
+    subgraph request["3 - The request"]
+        gateway["Cilium Gateway API Gateway<br/>internal 10.8.8.80 or external 10.8.8.83<br/>TLS terminated, HTTPRoute hostname match"]
+        service["Kubernetes Service"]
+        pod["Pod"]
+        gateway --> service --> pod
+    end
+
+    client -->|"1. DNS query, e.g. adguard.prod.iseja.net"| adguard
+    roots -->|"answer: the Gateway LB IP, passed back via Unbound and AdGuard"| client
+    client -->|"2. HTTPS to the Gateway IP"| opnsense
+    opnsense -->|"routes to a worker node"| gateway
 ```
-LAN client
-   │  DNS query, e.g. adguard.prod.iseja.net
-   ▼
-AdGuard  (LoadBalancer Service, e.g. 10.8.8.53)
-   │  filtering/ad-block, then forwards by domain:
-   │    - "iseja.net" / reverse-DNS → Unbound
-   │    - everything else           → Quad9 (public DoH)
-   ▼
-Unbound  (LoadBalancer Service, e.g. 10.8.8.8 + 10.8.8.11)
-   │  recursive/validating resolution for the internal domain
-   ▼
-AdGuard returns the resolved IP — the Gateway's LB IP (e.g. 10.8.8.80 internal / 10.8.8.83 external)
-   ▼
-Cilium's BGP control plane has advertised that /32 from the worker nodes to the OPNsense HA pair
-   ▼
-Cilium-implemented Gateway API Gateway — TLS terminated (cert-manager-issued cert), HTTPRoute hostname match
-   ▼
-Kubernetes Service → Pod
-```
+
+How to read it: the three numbered strands are explained in the sections below. [Cilium: LB IPAM and BGP route advertisement](#cilium-lb-ipam-and-bgp-route-advertisement) covers strand 2, [Gateway API](#gateway-api-cilium-as-the-implementation) the Gateway and its TLS certificate, and [DNS: AdGuard + Unbound](#dns-adguard--unbound) strand 1, including why the OPNsense resolver is only a fallback. The resolver and root-nameserver hops are physical infrastructure outside this repo, see [Physical network](#physical-network-opnsense-ucs-and-the-root-nameservers).
 
 ## Cilium: LB IPAM and BGP route advertisement
 
@@ -146,7 +168,7 @@ upstream_dns:
   - "[/10.in-addr.arpa/]10.8.8.8 10.9.9.9"
 ```
 
-`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of these two `upstream_dns` entries lists Unbound first, then that OPNsense-hosted resolver as a fallback if Unbound is unreachable. AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for the real domain ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
+`10.8.8.8` is Unbound's own prod LB IP; `10.9.9.9` is a virtual IP (VIP) for a DNS resolver running on the OPNsense boxes themselves (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)) — so each of these two `upstream_dns` entries names two equivalent resolvers for the same domains, and `upstream_mode: parallel` sends every such query to both at once and takes the first answer. That keeps internal names resolving, without a stall, when Unbound is down or silently dropping packets (the default `load_balance` mode tries one resolver at a time and waits up to 20 s on a dropping one, see [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#6-adguard-stalls-or-logs-operation-not-permitted-while-unbound-is-down)). AdGuard forwards `iseja.net` (and reverse-DNS) queries to that pair, and everything else to Quad9 over DoH. Unbound itself is configured as a validating recursive resolver with a stub-zone for the real domain ([`k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf`](../../k8s/apps/dns/unbound/base/config/zones.d/unbound-iseja.conf)):
 
 ```
 stub-zone:
@@ -158,6 +180,10 @@ stub-zone:
 `10.7.2.10`/`.12` aren't defined anywhere in `k8s/` — they're a pair of small Debian LXC containers acting as the root/authoritative nameservers for the `iseja.net` zone (see [below](#physical-network-opnsense-ucs-and-the-root-nameservers)), not UCS: UCS's own DNS role is scoped to the `dir.iseja.net`/`home.iseja.net` subdomains, not the root zone.
 
 Both Services are `type: LoadBalancer` with `externalTrafficPolicy: Local` (preserves the client source IP — relevant for AdGuard's per-client filtering rules) and a fixed `io.cilium/lb-ipam-ips` annotation per environment. AdGuard's admin UI is a **separate** `ClusterIP` Service, reached only through the Gateway (`adguard.<domain>` → `internal`), never through the DNS-serving LoadBalancer IP. [`AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml) has `dhcp.enabled: false` — AdGuard doesn't hand out DHCP leases itself; that's UCS's job (below). Whether DHCP actually advertises AdGuard's LB IP as clients' DNS server is a UCS-side config question, outside this repo either way.
+
+Unbound's probes are deliberately independent of the internet: the liveness/startup probe runs the image's extended healthcheck against `localhost` (a name unbound answers from its built-in local zone), so a line outage never makes kubelet restart the pod, and `serve-expired`/`prefetch` keep external names answering from stale cache meanwhile. Background and troubleshooting: [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#4-unbound-restarts-crashloopbackoff-while-the-internet-is-down) ([#2043](https://github.com/isejalabs/homelab/issues/2043)).
+
+DNSSEC validation is active: the mounted [`unbound.conf`](../../k8s/apps/dns/unbound/base/config/unbound.conf) points `auto-trust-anchor-file` at the root key the image ships (`/usr/local/unbound/iana.d/root.key`, refreshed by `unbound-anchor` at container start), so bogus signed answers fail with `SERVFAIL` and validated ones carry the `ad` flag. `iseja.net` is exempt via `domain-insecure` in the stub-zone file, so the internal zone is never validated. The cluster network has no IPv6 (Cilium `enable-ipv6: false`), so `do-ip6: no` keeps unbound from trying unreachable IPv6 servers. See [`troubleshooting-dns.md`](../troubleshooting/troubleshooting-dns.md#5-external-names-return-servfail-through-unbound-dnssec) for diagnosing validation failures.
 
 ## DNS: authoritative zones (PowerDNS)
 
@@ -194,7 +220,9 @@ Everything in this section is physical infrastructure with no representation in 
 
 **The `iseja.net` root nameservers** (`10.7.2.10`/`.12`, referenced by Unbound's stub-zone above) are a *separate* pair of machines from UCS — small Debian LXC containers, authoritative for the `iseja.net` zone itself, distinct from UCS's subdomain-scoped DNS role. `10.7.2.10` (today's master) is planned to be superseded by the in-cluster PowerDNS instance described [above](#dns-authoritative-zones-powerdns); `10.7.2.12` keeps its existing slave-only role unchanged, just re-pointed at the new master once that cutover happens.
 
-**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows through, and not a BGP peer, DHCP/identity provider, or nameserver. Its [README](../../k8s/apps/network/unifi-controller/README.md) is only a `kubectl` cheatsheet.
+**WireGuard VPN** — remote clients reach the homelab over the network `10.7.19.0/24`. Its server is the VPS `srv3.iseja.net` (hub address `10.7.19.229`), to which the OPNsense gateway `gw4` connects as a client, so no port has to be forwarded on the home uplink; see [`wireguard-srv3.md`](../operations/wireguard-srv3.md).
+
+**unifi-controller** ([`k8s/apps/network/unifi-controller/`](../../k8s/apps/network/unifi-controller/), its own MongoDB via proxmox-csi — see [`storage.md`](storage.md)) is unrelated to any of the above: it's only the management/adoption UI for the physical WiFi access points and switches, not something k8s traffic flows through, and not a BGP peer, DHCP/identity provider, or nameserver. Its [README](../../k8s/apps/network/unifi-controller/README.md) lists the per-environment address and ports.
 
 ## What's not here
 

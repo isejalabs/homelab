@@ -1,0 +1,30 @@
+name: "Spell check"
+# Advisory: not a required check on main (see docs/architecture/ci.md), so a hit shows up red on the PR but never blocks the merge.
+on:
+  pull_request:
+    paths:
+    - '**/*.md'
+    - '.ci/typos/**'
+    - '.github/workflows/spell-check.yml'
+  push:
+    branches:
+    - main
+    paths:
+    - '**/*.md'
+    - '.ci/typos/**'
+    - '.github/workflows/spell-check.yml'
+  workflow_dispatch:
+
+jobs:
+  spell-check:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    # typos (https://github.com/crate-ci/typos) from its PyPI wheel through pipx, which the runner image ships. Pinned by
+    # version here rather than in .mise.toml: a new mise tool needs mise.lock checksums and would be installed by every
+    # workflow that runs mise-action without install_args.
+    # Markdown only (the docs prose); --force-exclude makes the extend-exclude list in the config apply to the explicitly
+    # passed files too. The project dictionary (allowed words) is in .ci/typos/typos.toml.
+    - run: git ls-files -z '*.md' | xargs -0 pipx run --spec typos==1.51.1 typos --config .ci/typos/typos.toml --force-exclude --format brief

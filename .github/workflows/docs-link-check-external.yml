@@ -1,0 +1,78 @@
+name: "Docs external link check"
+# Scheduled, online counterpart of docs-link-check.yml (which runs lychee --offline and blocks PRs). It never runs on a pull
+# request, so a dead external URL cannot block a merge: it opens, updates or closes ONE tracking issue instead. See
+# docs/architecture/ci.md.
+on:
+  schedule:
+  - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+jobs:
+  external-link-check:
+    permissions:
+      contents: read
+      issues: write
+    runs-on: ubuntu-latest
+    env:
+      ISSUE_TITLE: "docs: external links in the documentation are dead"
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
+      with:
+        install_args: lychee
+    # Only http(s) URLs: local file and anchor targets are the job of the offline check. 429 counts as alive, because a rate
+    # limit says nothing about the link. Hosts that only resolve inside the homelab or are placeholders are excluded, and so is
+    # the private repo sebiklamar/salt-iseja.net (the token can't see it, so every link to it would read as dead). docs/audits is
+    # skipped because audits are never edited after the fact (docs/audits/README.md): a link that rotted there can't be fixed.
+    # lychee exits 0 for no broken link, 2 for at least one; anything else is a failure of the check itself and fails the job.
+    - id: lychee
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        set +e
+        lychee --scheme http --scheme https --no-progress --max-retries 3 --timeout 30 --accept 200,204,429 \
+          --exclude '^https?://([^/]+\.)?iseja\.net' --exclude '^https?://(localhost|127\.0\.0\.1)' --exclude '^https?://([^/]+\.)?example\.(com|org)' \
+          --exclude '^https://github\.com/sebiklamar/salt-iseja\.net' \
+          --exclude-path _attic --exclude-path ZZ.bak --exclude-path docs/audits --format markdown --output lychee-report.md '**/*.md'
+        code=$?
+        echo "code=$code" >> "$GITHUB_OUTPUT"
+        if [ "$code" -ne 0 ] && [ "$code" -ne 2 ]; then exit "$code"; fi
+    # The one tracking issue is found by its title among the open issues. Broken links: update it, or open it if there is
+    # none. All links fine: close it with a comment.
+    - env:
+        GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        CODE: ${{ steps.lychee.outputs.code }}
+      run: |
+        run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+        number=$(gh issue list --state open --search "\"$ISSUE_TITLE\" in:title" --json number,title --jq "map(select(.title == \"$ISSUE_TITLE\"))[0].number // empty")
+        if [ "$CODE" = "0" ]; then
+          if [ -n "$number" ]; then
+            gh issue close "$number" --comment "All external links answered in [the latest scheduled run]($run_url)."
+          fi
+          exit 0
+        fi
+        # Every broken link becomes a task list item (lychee lists them as plain bullets), so single items can be turned into
+        # sub-issues by hand with "Convert to sub-issue". Converting removes the line from this body, and the body is rewritten
+        # by every run, so a link that is still broken would come back as a new item. To avoid a duplicate sub-issue, an item
+        # is left out while an open sub-issue of this issue has its URL in the title. lychee prints the URL in angle brackets,
+        # which GitHub drops from a title, so they are removed to keep the URL in the sub-issue's title.
+        open_titles=""
+        if [ -n "$number" ]; then
+          open_titles=$(gh api "repos/$GITHUB_REPOSITORY/issues/$number/sub_issues" --paginate --jq '.[] | select(.state == "open") | .title' || true)
+        fi
+        {
+          echo "The scheduled check of external links ([run]($run_url)) found links that do not answer. The check never blocks a pull request. Each broken link is a task list item, so it can be converted to a sub-issue by hand. A link with an open sub-issue is not listed again. This issue is rewritten by each run and closed when all links work again."
+          echo
+          sed -E 's/^[*-] /- [ ] /; s/<(https?:[^>]*)>/\1/' lychee-report.md | while IFS= read -r line; do
+            url=$(printf '%s\n' "$line" | grep -oE 'https?://[^ ]+' | head -n 1 || true)
+            if [ -n "$url" ] && [ -n "$open_titles" ] && printf '%s\n' "$open_titles" | grep -qF -- "$url"; then
+              continue
+            fi
+            printf '%s\n' "$line"
+          done
+        } > issue-body.md
+        if [ -n "$number" ]; then
+          gh issue edit "$number" --body-file issue-body.md
+        else
+          gh issue create --title "$ISSUE_TITLE" --label documentation --body-file issue-body.md
+        fi

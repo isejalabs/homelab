@@ -1,6 +1,12 @@
-# Checkmk container OOMs — 2026-10-18
+---
+date: 2026-10-18
+status: Mechanism established; trigger not identified; fixes proposed, none applied
+scope: cgroup OOM kills in the two Checkmk containers (`monitoring1` on pve5, `monitoring2` on pve4) on 2026-10-18, and corrections to the September 2026 observability audits
+origin: Claude (Claude Code), read-only SSH to pve4 and pve5, plus the owner's `grep` of the central syslog and the shell history of `monitoring2`. Nothing was changed on any host
+tracking: https://github.com/isejalabs/homelab/issues/1780
+---
 
-**Date:** 2026-10-18. **Status:** Mechanism established; trigger not identified; fixes proposed, none applied. **Scope:** cgroup OOM kills in the two Checkmk containers (`monitoring1` on pve5, `monitoring2` on pve4) on 2026-10-18, and corrections to the September 2026 observability audits. **Origin:** Claude (Claude Code), read-only SSH to pve4 and pve5, plus the owner's `grep` of the central syslog and the shell history of `monitoring2`. Nothing was changed on any host. **Tracking:** [#1780](https://github.com/isejalabs/homelab/issues/1780).
+# Checkmk container OOMs — 2026-10-18
 
 ## Result
 

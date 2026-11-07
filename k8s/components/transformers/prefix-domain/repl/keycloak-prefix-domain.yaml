@@ -1,0 +1,14 @@
+# Same mechanism as httproute-prefix-domain.yaml, applied to the Keycloak resource's public hostname instead of an
+# HTTPRoute's spec.hostnames -- see replace-domain/repl/keycloak-replace-domain.yaml for why.
+- source:
+    kind: ConfigMap
+    name: cluster-param
+    fieldPath: data.CLUSTER_ENVIRONMENT
+  targets:
+    - select:
+        kind: Keycloak
+      fieldPaths:
+        - spec.hostname.hostname
+      options:
+        delimiter: "-"
+        index: -1

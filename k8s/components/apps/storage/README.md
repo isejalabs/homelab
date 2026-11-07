@@ -7,7 +7,7 @@ Shared kustomize `Component`s for provisioning an app's PVC. An app needing stor
 
 Both depend on [`apps/kopiur/secret`](../kopiur/secret) automatically — no separate reference needed. In environments where kopiur backup isn't actively scheduled (`dbg`/`head`/`poc`/`src` as of this writing), any `SnapshotSchedule` an app creates via `pvc/` is force-suspended by the [`suspend-kopiur-schedule`](../../transformers/suspend-kopiur-schedule) transformer, registered per-env — this overrides whichever component an app picked, as a guardrail.
 
-Per-env credentials (`kopiur-secret`'s `dataFrom.extract.key`) are rewritten automatically by the `kopiur-secret-env` transformer — no per-app patching needed. See [docs/app-storage.md](../../../../docs/app-storage.md) for the full `STORAGE_*`/`PUID`/`PGID` variable reference and the storage-class/filesystem pairing rules, and [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md) for how the backup/restore mechanism itself works.
+Per-env credentials (`kopiur-secret`'s `dataFrom.extract.key`) are rewritten automatically by the `kopiur-secret-env` transformer — no per-app patching needed. See [docs/operations/app-storage.md](../../../../docs/operations/app-storage.md) for the full `STORAGE_*`/`PUID`/`PGID` variable reference and the storage-class/filesystem pairing rules, and [docs/backup/kopiur-backup-restore.md](../../../../docs/backup/kopiur-backup-restore.md) for how the backup/restore mechanism itself works.
 
 ## Wiring up an app
 
@@ -31,7 +31,7 @@ resources:
 
 (Path depth depends on where your app lives — `../../../../components/apps/storage/pvc` is correct for the common `k8s/apps/<domain>/<app>/base/` layout; adjust the `../` count if your app sits elsewhere.)
 
-**2. `flux/ks.yaml`** — set `APP` via `postBuild.substitute`, plus any `STORAGE_*`/`PUID`/`PGID` override your app needs (see [docs/app-storage.md](../../../../docs/app-storage.md) for the full list and defaults — most apps only need `APP`, everything else has a sensible default):
+**2. `flux/ks.yaml`** — set `APP` via `postBuild.substitute`, plus any `STORAGE_*`/`PUID`/`PGID` override your app needs (see [docs/operations/app-storage.md](../../../../docs/operations/app-storage.md) for the full list and defaults — most apps only need `APP`, everything else has a sensible default):
 
 ```yaml
 apiVersion: kustomize.toolkit.fluxcd.io/v1
@@ -57,4 +57,4 @@ spec:
       # PGID: "1001"
 ```
 
-That's it — no per-env patching, no separate secret wiring. The app's PVC binds empty on first deploy (`onMissingSnapshot: Continue`), and from then on (if using `pvc`, not `pvc-no-backup`) is backed up daily per [docs/kopiur-backup-restore.md](../../../../docs/kopiur-backup-restore.md).
+That's it — no per-env patching, no separate secret wiring. The app's PVC binds empty on first deploy (`onMissingSnapshot: Continue`), and from then on (if using `pvc`, not `pvc-no-backup`) is backed up daily per [docs/backup/kopiur-backup-restore.md](../../../../docs/backup/kopiur-backup-restore.md).

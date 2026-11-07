@@ -34,6 +34,6 @@ spec:
     # the default) on longhorn-scratch-xfs
     # -- fails outright at mount time ("wrong fs type, bad superblock").
     # Override STORAGE_STAGING_CLASS to longhorn-scratch-xfs for any app
-    # whose STORAGE_CLASS is xfs-backed. See docs/app-storage.md.
+    # whose STORAGE_CLASS is xfs-backed. See docs/operations/app-storage.md.
     storageClassName: ${STORAGE_STAGING_CLASS:=longhorn-scratch-ext4}
   volumeSnapshotClassName: ${STORAGE_SNAPSHOTCLASS:=longhorn-snapshot}

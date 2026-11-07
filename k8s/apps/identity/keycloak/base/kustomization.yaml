@@ -11,3 +11,16 @@ resources:
   - externalsecret.yaml
   - http-route.yaml
   - keycloak.yaml
+
+replacements:
+  # the dump job runs pg_dump from the very image the server runs (cluster.yaml is the one place that states it)
+  - source:
+      kind: Cluster
+      name: keycloak-db
+      fieldPath: spec.imageName
+    targets:
+      - select:
+          kind: CronJob
+          name: keycloak-db-dump
+        fieldPaths:
+          - spec.jobTemplate.spec.template.spec.initContainers.[name=dump].image

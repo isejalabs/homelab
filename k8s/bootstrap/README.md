@@ -1,6 +1,6 @@
 # Bootstrapping the cluster
 
-**Common tasks:** [provision VMs and install Talos](../../terragrunt/README.md#directory-handling) → [bootstrap or re-sync foundational services](#cluster-deployment-with-just-and-flux-cd) → [check Flux reconciliation](#flux-cd). For a full rebuild, use the [disaster-recovery sequence](../../docs/disaster-recovery.md#full-cluster-rebuild).
+**Common tasks:** [provision VMs and install Talos](../../terragrunt/README.md#plan-and-apply-a-unit) → [bootstrap or re-sync foundational services](#cluster-deployment-with-just-and-flux-cd) → [check Flux reconciliation](#flux-cd). For a full rebuild, use the [disaster-recovery sequence](../../docs/backup/disaster-recovery.md#full-cluster-rebuild).
 
 **On this page:** [Bootstrap stages](#stages-of-bootstrapping) · [Provision VMs and install Talos](#provision-vms-and-install-talos-os-kubernetes-distribution-by-using-terragrunt) · [Prerequisites and checks](#deploying-infrastructure-and-applications) · [Deploy with `just`](#cluster-deployment-with-just-and-flux-cd) · [Flux CD](#flux-cd)
 
@@ -72,7 +72,7 @@ Check for failed pods:
 kubectl get pods -A --field-selector=status.phase=Failed
 
 # alternatively, check for non-running pods (e.g. pending, crashloopbackoff, etc.)
-# this will also reveal "completed" pods whigh are not running anymore but have completed successfully
+# this will also reveal "completed" pods which are not running anymore but have completed successfully
 # "completed" pods can be expected for some workloads, e.g. jobs for cilium installation, cert-manager jobs)
 kubectl get pods -A --field-selector=status.phase!=Running
 ```
