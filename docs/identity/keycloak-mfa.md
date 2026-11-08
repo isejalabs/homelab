@@ -67,14 +67,14 @@ Needs the owner's hands: the authenticators are physical or in the owner's 1Pass
 1. Open the account console of the realm: `https://<keycloak host>/realms/admin/account` (dev: `https://dev-auth.dev.iseja.net/realms/admin/account`), sign in as `sebi-adm` with the UCS password.
 2. Keycloak asks to register a security key or passkey. Choose the **1Password passkey** first (the browser offers to save it in 1Password), name it `1password`.
 3. Sign out, sign in again: UCS password, then the passkey prompt. This is the first criterion.
-4. Under *Account security* → *Signing in* add the **YubiKey** as a second security key (*Set up a security key*). With user verification required, the key needs a PIN; Chrome and Safari offer to set one on first use. Name it `yubikey`, sign out and in with it.
+4. Under *Account security* → *Signing in* → *Two-factor authentication* choose **Set up Passkey** again (Keycloak 26 labels every WebAuthn credential *Passkey*, there is no separate *security key* button). In the browser dialog pick the security key instead of 1Password (*Use a different device* / *Security key*; if 1Password keeps answering, dismiss its prompt or disable its passkey prompt for the page), touch the YubiKey. With user verification required, the key needs a PIN; Chrome and Safari offer to set one on first use. Name it `yubikey`, sign out and in with it.
 5. Add **TOTP** (*Authenticator application*), scan the QR code with an authenticator app other than 1Password if the aim is to keep one factor outside the vault, and sign in once with *Try another way* → *Authenticator application*.
 
 ### An everyday account in the `iseja` realm
 
 1. Sign in to any application that uses Keycloak, or open `https://<keycloak host>/realms/iseja/account`.
 2. After the UCS password Keycloak asks to register a passkey or security key. A phone offers its own passkey; a computer offers 1Password, the browser's store or a key.
-3. Under *Account security* → *Signing in* add a second authenticator and, if wanted, TOTP, so one lost device does not lock the account.
+3. Under *Account security* → *Signing in* → *Two-factor authentication* add a second authenticator (*Set up Passkey*, then choose the key or device in the browser dialog) and, if wanted, TOTP (*Set up Authenticator application*), so one lost device does not lock the account.
 
 ## Lost authenticator
 
