@@ -1,0 +1,55 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &name oauth2-proxy
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: *name
+  interval: 1h
+  values:
+    config:
+      # ExternalSecret of the same name: client-id, client-secret, cookie-secret
+      existingSecret: *name
+      # The application behind the proxy, as an in-cluster Service URL
+      upstreams:
+        - ${OAUTH2_PROXY_UPSTREAM}
+
+    extraArgs:
+      # Authorization is by group alone: only members of this group (claim `groups`) get in
+      allowed-group: ${OAUTH2_PROXY_ALLOWED_GROUP}
+      # S256 needs "PKCE: S256" on the Keycloak client
+      code-challenge-method: S256
+      cookie-expire: 8h
+      # LDAP accounts need not have an e-mail address: the login name is what the session carries
+      insecure-oidc-allow-unverified-email: "true"
+      oidc-email-claim: preferred_username
+      # Per environment (Keycloak hostname) and per realm: patched in the consumer's envs/<env>/ overlay
+      oidc-issuer-url: https://auth.example.com/realms/admin
+      provider: keycloak-oidc
+      # Behind the Gateway: trust X-Forwarded-Host/-Proto to build the callback URL
+      reverse-proxy: "true"
+      scope: openid profile groups
+      # One identity provider only: go straight to the login page instead of a "Sign in with" button
+      skip-provider-button: "true"
+
+    initContainers:
+      # only needed with a Redis session store, the sessions here live in the cookie
+      waitForRedis:
+        enabled: false
+
+    metrics:
+      enabled: false
+
+    # One replica: a PodDisruptionBudget with minAvailable 1 would block draining its node
+    podDisruptionBudget:
+      enabled: false
+
+    resources:
+      limits:
+        memory: 128Mi
+      requests:
+        cpu: 10m
+        memory: 32Mi
