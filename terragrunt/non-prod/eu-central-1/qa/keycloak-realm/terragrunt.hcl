@@ -48,23 +48,5 @@ inputs = {
       acs_url   = "https://monitoring1.home.iseja.net/qa_k8s/check_mk/saml_acs.py?acs"
       name      = "Checkmk qa_k8s (admin)"
     }
-
-    # TEMPORARY test wiring for #2108 (stage 1): the Checkmk site prod_k8s (Ultimate, on monitoring2) is connected to
-    # this qa IdP because the prod Keycloak does not exist yet. Remove both clients, and move prod_k8s to the prod
-    # IdP, when the SAML clients for prod_k8s are created in the prod keycloak-realm unit (stage 2 of #2108).
-    # include_email stays off for the iseja client: notifications on prod_k8s are not enabled yet (#1901), and the
-    # e-mail attribute plus membership of the contact group "all" would make the user a mail recipient.
-    "prod_k8s-iseja" = {
-      realm     = "iseja"
-      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk prod_k8s (iseja)"
-    }
-    "prod_k8s-admin" = {
-      realm     = "admin"
-      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk prod_k8s (admin)"
-    }
   }
 }
