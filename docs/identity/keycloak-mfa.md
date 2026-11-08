@@ -30,7 +30,7 @@ A WebAuthn credential is bound to a **relying-party ID** (RP ID), a domain the b
 | --- | --- |
 | `dev` | `dev-auth.dev.iseja.net` |
 | `qa` | `qa-auth.qa.iseja.net` |
-| `prod` | `auth.iseja.net` (at the go-live, [#2196](https://github.com/isejalabs/homelab/issues/2196)) |
+| `prod` | `auth.iseja.net` |
 
 The module takes it from `keycloak_url`, so the value cannot drift from the hostname the users reach Keycloak on, and it can be overridden for the whole module (`web_authn.relying_party_id`) or per realm.
 
@@ -112,7 +112,9 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | Lost-authenticator recovery for `sebi-adm`, first row of the table (another factor still works): the passkey was deleted in the account console, the next sign-in asked for TOTP, and a new passkey was registered | Verified 2026-11-08 (owner) |
 | Lost-authenticator recovery, rows two and three (owner deletes the credentials in the `master` console) | Not exercised. The users of the LDAP-backed realms are listed in the `master` console only after a search (`*` lists all), confirmed by the owner 2026-11-08; deleting a credential there is left for the follow-up |
 | Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
-| `qa` plan with the released module | Plan 2026-11-08: 26 to add, 2 to change (RP ID, `admin` user verification), 0 to destroy, provider lock file unchanged; applied from `main` after the merge, then a following plan must show no changes: not verified yet |
+| `qa` and `prod` realm configuration with the released module `keycloak-realm-v0.5.0` | Applied from `main` (`eb1b1a2c`) 2026-11-08 in both: 26 added, 2 changed (RP ID, `admin` user verification), 0 destroyed; the following plan shows `No changes`; RP ID `qa-auth.qa.iseja.net` and `auth.iseja.net` |
+| A sign-in with a second factor in `qa` | Verified 2026-11-08 (owner) |
+| A sign-in with a second factor in `prod` | Not verified yet (owner) |
 
 ## Open points
 
