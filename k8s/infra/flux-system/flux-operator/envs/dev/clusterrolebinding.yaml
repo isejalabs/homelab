@@ -5,11 +5,11 @@ kind: ClusterRoleBinding
 metadata:
   name: flux-operator-web-admin
 roleRef:
-  apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   # predefined by the flux-operator chart (web.rbac.createRoles): read access to everything plus the Flux actions
   name: flux-web-admin
+  apiGroup: rbac.authorization.k8s.io
 subjects:
-  - apiGroup: rbac.authorization.k8s.io
-    kind: Group
+  - kind: Group
     name: sec.app.flux-operator.admin
+    apiGroup: rbac.authorization.k8s.io

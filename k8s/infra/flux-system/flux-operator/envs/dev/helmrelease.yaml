@@ -32,14 +32,14 @@ spec:
                 message: the token has no preferred_username
             variables:
               # Keycloak may send the groups with a leading slash (full group path); the prefix filter drops everything else
-              - expression: >-
+              - name: groups
+                expression: >-
                   has(claims.groups) ? claims.groups.map(g, g.startsWith('/') ? g.substring(1) : g).filter(g,
                   g.startsWith('sec.app.flux-operator.')) : []
-                name: groups
-              - expression: >-
+              - name: username
+                expression: >-
                   has(claims.preferred_username) && claims.preferred_username != ''
                   ? 'oidc:' + claims.preferred_username : ''
-                name: username
           sessionDuration: 8h
           type: OAuth2
         baseURL: https://flux.example.com
