@@ -52,6 +52,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
 | Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
 | Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
+| Measure how long logins are interrupted when a node is drained | [`keycloak-drain-drill.md`](identity/keycloak-drain-drill.md) |
 
 ### Troubleshoot
 
@@ -78,7 +79,7 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
   - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites through it.
+  - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites through it.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
