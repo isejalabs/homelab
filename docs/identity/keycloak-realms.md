@@ -82,13 +82,17 @@ Each application that signs humans in with OpenID Connect gets its client as cod
    ```hcl
    oidc_clients = {
      "longhorn-admin" = {
-       realm         = "admin"                                       # iseja (everyday accounts) or admin (*-adm accounts)
-       redirect_uris = ["https://longhorn.dev.iseja.net/oauth2/callback"] # https only; oauth2-proxy: /oauth2/callback
-       # optional: client_id (default: the key), name, post_logout_redirect_uris, web_origins,
+       realm         = "admin" # iseja (everyday accounts) or admin (*-adm accounts)
+       client_id     = "longhorn"
+       # https only; the hostname comes from the environment, see below. oauth2-proxy: /oauth2/callback
+       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
+       # optional: name, post_logout_redirect_uris, web_origins,
        #           public (default false), pkce (default: on for public clients only), groups_scope (default true)
      }
    }
    ```
+
+   Do not type the hostname per environment: `app_url_format` in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) is the URL scheme of the k8s overlays (`https://dev-longhorn.dev.iseja.net` in every non-prod environment, `https://longhorn.prod.iseja.net` in prod; [naming](../reference/environments.md#domain-and-naming)), and `format(..., "<hostname label>")` fills in the application. The same entry is therefore valid in every unit; only an application whose overlay uses another hostname (as prod does for Keycloak itself) states its URL in full.
 
 2. Plan and apply the unit as in [Apply and verify](#apply-and-verify) (`qa`/`prod` from `main` only). Check that the plan only adds `keycloak_openid_client`, `keycloak_openid_client_default_scopes` and `onepassword_item` for the new key.
 3. The application learns from Keycloak: issuer `https://<keycloak host>/realms/<realm>` (also the output `oidc_issuer_urls`; discovery at `<issuer>/.well-known/openid-configuration`), client ID (the entry's `client_id` or key), and the secret from the 1Password item (below). Request the scopes `openid profile email groups`; the ID token, the access token and the userinfo response then carry the claim `groups` with the `sec.app.<app>.<role>` names of the account ([`ucs-groups.md`](ucs-groups.md)).

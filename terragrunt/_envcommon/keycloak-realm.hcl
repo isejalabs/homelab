@@ -49,6 +49,13 @@ locals {
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
 
+  # Public URL of an application, with the application's hostname label in place of %s (format(local.app_url_format,
+  # "longhorn")), by the same scheme as the k8s overlays (prefix-domain/replace-domain, docs/reference/environments.md#domain-and-naming):
+  # dev-longhorn.dev.iseja.net everywhere but prod, longhorn.prod.iseja.net in prod. For OIDC redirect URIs in the
+  # units' `oidc_clients`, so the hostname is not typed per environment. An application that an overlay moves to
+  # another hostname (as prod does for Keycloak) states its URL in full instead.
+  app_url_format = "https://${local.env == "prod" ? "" : "${local.env}-"}%s.${local.env}.iseja.net"
+
   # 1Password "K8S" vault, shared with other components -- see global.hcl.
   onepassword_vault_id = local.global_vars.locals.onepassword_vault_id
 
