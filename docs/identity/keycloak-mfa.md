@@ -110,7 +110,8 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | `sebi-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key |
 | A password login in `iseja` asks for a passkey or TOTP, no path skips it | Not verified yet |
 | Lost-authenticator recovery exercised once for `sebi-adm` | Not verified yet |
-| Realm configuration plans without changes in `dev` and `qa` | Not verified yet |
+| Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
+| `qa` plan with the released module | Plan 2026-11-08: 26 to add, 2 to change (RP ID, `admin` user verification), 0 to destroy, provider lock file unchanged; applied from `main` after the merge, then a following plan must show no changes: not verified yet |
 
 ## Open points
 
