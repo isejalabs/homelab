@@ -296,14 +296,14 @@ So after a restore from another environment, the Terragrunt state of the target 
 
 ### Observations of the manual drill
 
-- **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#1827](https://github.com/isejalabs/homelab/issues/1827)). The only credential row in the dump is the master admin password.
-- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until [#1827](https://github.com/isejalabs/homelab/issues/1827); see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal to repeat.
+- **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#2206](https://github.com/isejalabs/homelab/issues/2206)). The only credential row in the dump is the master admin password.
+- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until [#2206](https://github.com/isejalabs/homelab/issues/2206) enrolls one; see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal ([#1943](https://github.com/isejalabs/homelab/issues/1943)) to repeat.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
 
 ## WebAuthn after a restore
 
-A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill) and cannot be shown before MFA is rolled out ([#1827](https://github.com/isejalabs/homelab/issues/1827)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
+A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill) and cannot be shown before MFA is rolled out ([#2206](https://github.com/isejalabs/homelab/issues/2206)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by [#2206](https://github.com/isejalabs/homelab/issues/2206) for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
 
 ### What is known
 
@@ -337,9 +337,9 @@ To keep the RP ID (and the issuer) the drill has to answer on the hostname the c
 
 ### Rehearsal
 
-Run it once [#1827](https://github.com/isejalabs/homelab/issues/1827) has rolled out the WebAuthn flows. Setup A in `dev` is decided (see above); the owner holds the authenticator.
+Run it once [#2206](https://github.com/isejalabs/homelab/issues/2206) has rolled out the WebAuthn flows. Setup A in `dev` is decided (see above); the owner holds the authenticator.
 
-1. **Before enrolling:** open *Authentication* → *Policies* → *WebAuthn Policy* in each realm and note whether *Relying Party ID* is blank. Enroll a test credential for a federated test user. Keycloak builds the WebAuthn user handle from the internal user ID, which for users of an external federation is a storage ID that can exceed the 64-byte limit of the specification (see the WebAuthn chapter of the Keycloak server administration guide); if enrolment fails for a federated user, that is a finding for [#1827](https://github.com/isejalabs/homelab/issues/1827) and not for the restore.
+1. **Before enrolling:** open *Authentication* → *Policies* → *WebAuthn Policy* in each realm and note whether *Relying Party ID* is blank. Enroll a test credential for a federated test user. Keycloak builds the WebAuthn user handle from the internal user ID, which for users of an external federation is a storage ID that can exceed the 64-byte limit of the specification (see the WebAuthn chapter of the Keycloak server administration guide); if enrolment fails for a federated user, that is a finding for [#2206](https://github.com/isejalabs/homelab/issues/2206) and not for the restore.
 2. **Enroll** one credential in each realm: `admin` (the `sebi-adm` account, or a test account in `idm-admins`) and `iseja` (a test account in `idm-users`). Log in once with each to prove they work before the restore.
 3. **Dump:** trigger a manual dump ([Daily tasks](#daily-tasks)) after the enrolments and note the key (`just backup::keycloak::list -e dev`). Optionally delete the test credential of one realm afterwards in the admin console, so that only the restored data can satisfy the later login.
 4. **Restore** that dump in `dev` with `just backup::keycloak::restore -e dev --identity <key file> --dump <key>` ([Restore](#restore); the dump is age-encrypted, so the [age key](#encryption-key-age) is needed). The hostname does not change.
@@ -350,8 +350,8 @@ Run it once [#1827](https://github.com/isejalabs/homelab/issues/1827) has rolled
 
 | Realm | Result | Date | Environment |
 | --- | --- | --- | --- |
-| `iseja` | Pending, blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) | | |
-| `admin` | Pending, blocked by [#1827](https://github.com/isejalabs/homelab/issues/1827) | | |
+| `iseja` | Pending, blocked by [#2206](https://github.com/isejalabs/homelab/issues/2206) | | |
+| `admin` | Pending, blocked by [#2206](https://github.com/isejalabs/homelab/issues/2206) | | |
 
 If the rehearsal fails, or the owner decides not to run it, the consequence stays as stated under [Overview](#overview): users enrolled since the last dump, or all of them when the credential does not survive, enroll again, and for the `admin` realm that needs [break-glass access](keycloak-break-glass.md). That consequence has to be accepted explicitly for each realm; it is not accepted yet.
 
