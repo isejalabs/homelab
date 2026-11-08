@@ -6,7 +6,7 @@ status: current
 
 The Longhorn dashboard sits behind a login from the Keycloak realm `admin`: an [OAuth2 Proxy](oauth2-proxy.md) in front of the UI, and a network policy that lets nothing reach the UI around it. Tracking: [#1725](https://github.com/isejalabs/homelab/issues/1725) (parent), [#2228](https://github.com/isejalabs/homelab/issues/2228) (`sebi-adm`), [#2229](https://github.com/isejalabs/homelab/issues/2229) (`sebi` and `mary`). Rules of the rollout: [#2198](https://github.com/isejalabs/homelab/issues/2198). The unit is [`longhorn-auth`](../../k8s/infra/longhorn-system/longhorn-auth/README.md).
 
-**Status (2026-11-08):** the manifests are written and build for all environments; **not yet running anywhere**. The Keycloak OIDC client needs the `oidc_clients` support of the `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)), which is not merged, and the UCS group `sec.app.longhorn.admin` does not exist yet. The open points are in [Rollout](#rollout).
+**Status (2026-11-08):** the manifests are written and build for all environments; **not yet running anywhere**. The Keycloak OIDC client needs the `oidc_clients` support of the `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)), which is not merged, and the UCS group `sec.app.longhorn.admin` was created on 2026-11-09 (see [Rollout](#rollout)). The open points are in [Rollout](#rollout).
 
 ## Before: how Longhorn was exposed
 
@@ -69,15 +69,15 @@ Question of [#2229](https://github.com/isejalabs/homelab/issues/2229): can the d
 - **The realms.** `sebi` and `mary` are in `iseja`, `sebi-adm` in `admin`, and a proxy runs one provider ([`oauth2-proxy.md`](oauth2-proxy.md#limits-and-things-to-know)). Their access therefore needs a second proxy instance, a second hostname and a second Keycloak client, with its own allow-list layer behind it.
 - **The list would age.** It must be kept in step with every Longhorn release (new actions, a new read-only `POST`); a missing entry is a harmless broken page, but a wrongly added one is a hole nobody notices.
 
-**Proposed decision (waiting for the owner's confirmation):** `sebi` and `mary` get **no access** to the Longhorn dashboard; `sebi-adm` is the only account. Reasons: no role separation exists in Longhorn, a reliable one would be a second proxy plus an own request filter with a per-release maintenance cost, and the protected asset (the storage layer of the cluster) is operated by the administrator anyway. Revisit if a real need appears; the sketch above is the starting point, and the UCS groups `sec.app.longhorn.operator` and `sec.app.longhorn.readonly` of [#2229](https://github.com/isejalabs/homelab/issues/2229) are then not created.
+**Decision (owner, 2026-11-09):** `sebi` and `mary` get **no access** to the Longhorn dashboard; `sebi-adm` is the only account. Reasons: no role separation exists in Longhorn, a reliable one would be a second proxy plus an own request filter with a per-release maintenance cost, and the protected asset (the storage layer of the cluster) is operated by the administrator anyway. Revisit if a real need appears; the sketch above is the starting point, and the UCS groups `sec.app.longhorn.operator` and `sec.app.longhorn.readonly` of [#2229](https://github.com/isejalabs/homelab/issues/2229) are then created. They do not exist now.
 
 ## Rollout
 
 | Step | State |
 | --- | --- |
 | Manifests: component, `longhorn-auth`, policy, route patch for `dev` | written, builds for all 8 environments (`kubectl kustomize`) and `flate test` for `dev` passes; not applied |
-| OIDC client in `dev` (#2227) | open |
-| UCS group `sec.app.longhorn.admin` and `sebi-adm` as member | not done, owner's go needed |
+| OIDC client in `dev` | `oidc_clients` entry `longhorn-admin` in the `dev` unit (module `keycloak-realm-v0.6.0`, merged by #2227); plan shows 3 to add, but also 6 to destroy: the leftover test clients `checkmk-prod-test-admin` and `-iseja` (client, default scopes, 1Password item) that are in the `dev` state and not in the configuration. Not applied yet; a targeted apply of the three new resources is needed |
+| UCS group `sec.app.longhorn.admin` and `sebi-adm` as member | done 2026-11-09 on the master `adelheid` with the owner's go (`udm groups/group create`, then `--append users=uid=sebi-adm,...`; `udm` lists `sebi-adm` as the only member). Not yet checked in Keycloak after the group sync |
 | Live test in `dev` (login, 403 for another account, bypass check from a pod in another namespace, the monitoring path, probes, port-forward) | not done |
 | `qa`, then `prod` | after `dev`; per environment: Terragrunt client (from `main`), 1Password item, `issuer.yaml`, registration in `flux/envs/<env>`, route patch |
 
