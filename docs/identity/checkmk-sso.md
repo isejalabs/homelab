@@ -4,9 +4,11 @@ status: current
 
 # Checkmk human SSO
 
-Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). Only the Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered so far; `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) and the Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) are added when they are built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
+Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). The Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered, and `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) is wired to the **qa** identity provider as an interim test, see [below](#prod_k8s-interim-wiring-to-the-qa-identity-provider). The Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) is added when it is built. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
-**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address), `sebi-adm` (role `admin`, no contact group) and `mary` (role `guest`). The page describes these two sites; `prod_k8s` and `prod` are not set up and are added when they are.
+**Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address), `sebi-adm` (role `admin`, no contact group) and `mary` (role `guest`). The page describes these two sites; `prod` is not set up and is added when it is.
+
+**Status of `prod_k8s` (2026-11-08):** both SAML connections exist and point at the **qa** Keycloak, not at a production identity provider. The owner verified `sebi` (role `user`, contact group `all`), `sebi-adm` (role `admin`), `mary` (role `guest`), the refusal of a user without a `sec.app.checkmk.*` group, and the local `cmkadmin` form login. The switch to the prod identity provider (`auth.iseja.net`) is stage 2 of [#2108](https://github.com/isejalabs/homelab/issues/2108) and is not done.
 
 ## How it works
 
@@ -14,7 +16,7 @@ The Ultimate sites speak SAML. Keycloak is the identity provider and Checkmk is 
 
 | Part | Where it lives |
 | --- | --- |
-| SAML clients and mappers in Keycloak | Code: the `saml_clients` input of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) (and `qa`), module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-realm) |
+| SAML clients and mappers in Keycloak | Code: the `saml_clients` input of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) (and `qa`, which also holds the interim clients of `prod_k8s`), module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-realm) |
 | UCS groups `sec.app.checkmk.*` | `udm` on a domain controller, see [below](#ucs-groups) |
 | SAML connections in Checkmk | By hand in the site, see [below](#checkmk-side). The provider of [ADR 0015](../decisions/0015-checkmk-configuration-as-code.md) has no SAML resource |
 
@@ -28,8 +30,8 @@ Realm membership (`sec.idm.users`, `sec.idm.admins`) only admits an account to a
 | `sebi` | `iseja` | `sec.app.checkmk.operator` | `user`, plus contact group `all` |
 | `mary` | `iseja` | `sec.app.checkmk.readonly` | `guest` |
 
-- The built-in role `user` can acknowledge and run commands but only sees hosts of its contact groups, so `sebi` is mapped into the contact group `all`, which exists on `dev_k8s` and `qa_k8s`. `sebi-adm` stays out of `all`. No custom role is created.
-- The mail rule notifies all contacts of an object, so membership of `all` plus an e-mail address makes a user a recipient. The e-mail attribute is therefore only sent where notifications are on: the `iseja` client of `qa_k8s` (`include_email`), not `dev_k8s`. See [`monitoring-notifications.md`](../reference/monitoring-notifications.md).
+- The built-in role `user` can acknowledge and run commands but only sees hosts of its contact groups, so `sebi` is mapped into the contact group `all`, which exists on `dev_k8s`, `qa_k8s` and `prod_k8s`. `sebi-adm` stays out of `all`. No custom role is created.
+- The mail rule notifies all contacts of an object, so membership of `all` plus an e-mail address makes a user a recipient. The e-mail attribute is therefore only sent where notifications are on: the `iseja` client of `qa_k8s` (`include_email`), not `dev_k8s` and not `prod_k8s` (notifications there are not enabled yet, [#1901](https://github.com/isejalabs/homelab/issues/1901)). See [`monitoring-notifications.md`](../reference/monitoring-notifications.md).
 - `mary` is in `sec.idm.users` (added 2026-11-02, see [Changing who has access](#changing-who-has-access)): membership of that group grants access to the `iseja` realm, so adding an account there is a decision of its own.
 
 ## UCS groups
@@ -64,24 +66,41 @@ The identity provider metadata URLs are an output of the unit (`terragrunt outpu
 
 ## Checkmk side
 
-Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML authentication → Add connection* or through the REST API (`POST /domain-types/saml_connection/collections/all`, available in 2.5.0p15). Checkmk requires HTTPS, and the user ID attribute must be the full attribute name. The REST API was used on 2026-11-01 and 2026-11-02 from `monitoring1` against the site's own Apache port (`http://127.0.0.1:<port>/<site>/check_mk/api/1.0`, `dev_k8s` 5083, `qa_k8s` 5082): `dev_k8s` as its `automation` user with the secret read from the site, `qa_k8s` (which has no automation user) as `cmkadmin` with the password from 1Password, neither ever printed. The connections are saved at once, they are not a pending change to activate.
+Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML authentication → Add connection* or through the REST API (`POST /domain-types/saml_connection/collections/all`, available in 2.5.0p15). Checkmk requires HTTPS, and the user ID attribute must be the full attribute name. The REST API was used on 2026-11-01 and 2026-11-02 from `monitoring1` against the site's own Apache port (`http://127.0.0.1:<port>/<site>/check_mk/api/1.0`, `dev_k8s` 5083, `qa_k8s` 5082): `dev_k8s` as its `automation` user with the secret read from the site, `qa_k8s` (which has no automation user) as `cmkadmin` with the password from 1Password, neither ever printed. On 2026-11-08 `prod_k8s` (port 5088 on `monitoring2`) got its connections the same way as its `terraform` automation user, with the secret read from the site into a shell variable; the site's audit log therefore shows `terraform` as the author. The connections are saved at once, they are not a pending change to activate.
 
 | Field | `iseja` connection | `admin` connection |
 | --- | --- | --- |
 | Connection ID | `keycloak_iseja` | `keycloak_admin` |
 | Name (login button label) | `Iseja` | `Admin` |
 | Identity provider metadata (URL) | `.../realms/iseja/protocol/saml/descriptor` | `.../realms/admin/protocol/saml/descriptor` |
-| Checkmk server URL | `https://monitoring1.home.iseja.net`, the host only without the site name (Checkmk adds `/<site>/check_mk`) | same |
+| Checkmk server URL | `https://monitoring1.home.iseja.net` (`monitoring2` for `prod_k8s`), the host only without the site name (Checkmk adds `/<site>/check_mk`) | same |
 | Signing certificate | built-in | built-in |
 | User ID attribute | `https://iseja.net/claims/userid` | same |
 | Full name attribute | `https://iseja.net/claims/alias` | same |
-| E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` only | not set |
+| E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` only (not `prod_k8s`) | not set |
 | Roles | attribute `https://iseja.net/claims/groups`: `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` | `sec.app.checkmk.admin` → `admin` |
 | Contact groups | type "map" on the same attribute: `sec.app.checkmk.operator` → `all` | none |
 
-**Changing a connection later:** the REST API of 2.5.0p15 can create, read and delete a SAML connection but not update one, and deleting it risks the users it created. Edit it in *Setup → Users → SAML authentication*, or, as done for the group rename of 2026-11-01, change `etc/check_mk/multisite.d/wato/user_connections.mk` as the site user (keep a backup copy, check that the file still parses, then read the connection back with the REST `GET`). See [`ucs-groups.md`](ucs-groups.md#migration-of-the-first-names).
+**Changing a connection later:** on `dev_k8s` and `qa_k8s` the REST API of 2.5.0p15 was used to create, read and delete a SAML connection, not to update one, and deleting it risks the users it created. The response for `prod_k8s` lists an update (`PUT`) link as well; that was not tried. Edit it in *Setup → Users → SAML authentication*, or, as done for the group rename of 2026-11-01, change `etc/check_mk/multisite.d/wato/user_connections.mk` as the site user (keep a backup copy, check that the file still parses, then read the connection back with the REST `GET`). See [`ucs-groups.md`](ucs-groups.md#migration-of-the-first-names).
 
 The connections were accepted with the Ultimate sites in the free licence state, so the licence does not block SAML configuration. The REST body mirrors the table: `general_properties` (`id`, `name`), `connection_config` (`checkmk_server_url`, `identity_provider_metadata` of type `url`), `security` (`signing_certificate` of type `builtin`) and `users` (`id_attribute`, `full_name_attribute`, `email_attribute`, `contact_groups` and `roles` of type `map`). After the first login of each connection, Checkmk's request-signing certificate can be added to the Keycloak client as `signing_certificate`, which makes Keycloak require signed requests; this is not done yet.
+
+## `prod_k8s`: interim wiring to the qa identity provider
+
+Done on 2026-11-08 ([#2108](https://github.com/isejalabs/homelab/issues/2108), stage 1) because the Keycloak of `prod` did not exist yet. The Ultimate site `prod_k8s` (on `monitoring2`, 2.5.0p15, Apache port 5088, agent receiver port 8088) is connected to the **qa** Keycloak, as a rehearsal of the production setup.
+
+- **Keycloak:** the clients `prod_k8s-iseja` and `prod_k8s-admin` are in the `saml_clients` of the **qa** unit ([`qa/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/qa/keycloak-realm/terragrunt.hcl)), marked there as temporary. Entity ID `https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py`, no e-mail attribute.
+- **Checkmk:** `keycloak_iseja` and `keycloak_admin` as in the [table above](#checkmk-side), with the metadata URLs `https://qa-auth.qa.iseja.net/realms/<realm>/protocol/saml/descriptor`, server URL `https://monitoring2.home.iseja.net`, and the same mapping as `qa_k8s` (without e-mail). Before creating them, `monitoring2` was checked to reach the URLs and the site's Python to trust the certificate. The connection comment says that it is the interim test.
+- **Accounts:** the realms of qa are federated to the same UCS, so the same accounts and groups apply. The users the site created are `sebi` (`user`, contact group `all`), `sebi-adm` (`admin`, no contact group) and `mary` (`guest`).
+- **Consequence:** `prod_k8s`, a production site, trusts the identity provider of a test environment until stage 2 is done. Anyone who can administer the qa realms could sign in to `prod_k8s` with the mapped roles. This is accepted for the test period.
+
+**Stage 2, switch to the prod identity provider** (after the prod Keycloak is applied and has settled, and on the owner's go):
+
+1. Add `prod_k8s-iseja` and `prod_k8s-admin` to the `saml_clients` of the **prod** unit ([`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)), same entity ID and ACS URL, and apply it from `main`.
+2. Change the metadata URL of both connections in `prod_k8s` to `https://auth.iseja.net/realms/<realm>/protocol/saml/descriptor` (*Setup → Users → SAML authentication*, see [Changing a connection later](#checkmk-side)). The users stay the same as long as their user IDs (usernames) are the same in both identity providers.
+3. Remove the two clients from the qa unit and apply it, then repeat the login tests below and the `cmkadmin` check with the IdP unreachable.
+
+Login tests of the interim wiring (owner, 2026-11-08): `sebi` through *Iseja*, `sebi-adm` through *Admin*, `mary` through *Iseja*, a user without a `sec.app.checkmk.*` group refused, `cmkadmin` through the local form.
 
 ## First login and activation
 
@@ -110,7 +129,7 @@ Kerberos SPNEGO (silent sign-in from a workstation ticket) is not part of this s
 
 ## Regression check: agent registration
 
-A change to how users log in must not break agents registering at a site. Registration goes to the site's own **agent receiver port**, not to 443 (`omd config show AGENT_RECEIVER_PORT` as the site user: `dev_k8s` 8083, `qa_k8s` 8082 on `monitoring1`, `prod` 8001 on `monitoring2`), authenticated as the htpasswd user `agent_registration` with its automation secret. SAML and LDAP connections do not touch that path, and the check proves it without registering a host:
+A change to how users log in must not break agents registering at a site. Registration goes to the site's own **agent receiver port**, not to 443 (`omd config show AGENT_RECEIVER_PORT` as the site user: `dev_k8s` 8083, `qa_k8s` 8082 on `monitoring1`, `prod` 8001 and `prod_k8s` 8088 on `monitoring2`), authenticated as the htpasswd user `agent_registration` with its automation secret. SAML and LDAP connections do not touch that path, and the check proves it without registering a host:
 
 ```sh
 CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
@@ -120,13 +139,15 @@ CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
 [`checkmk-agent-registration-check.sh`](../../scripts/tools/checkmk-agent-registration-check.sh) sends the registration request of the Agent Controller for a host name that does not exist. A wrong password must be refused with 401, and the right secret must end with 404 `Host ... does not exist`, which is the answer of the REST API call made as `agent_registration`, so the receiver reached the site and accepted the user. The secret is read from the environment, not from a flag, and the receiver certificate is not verified (it is signed by the site's own CA), so the check covers authentication, not trust.
 
 - **Result (2026-11-02):** passes on `dev_k8s` and `qa_k8s` with both SAML connections in place, and fails with exit 1 for a wrong secret. No run before the connections existed, so there is no baseline from before the change; the code paths do not overlap.
+- **Result for `prod_k8s` (2026-11-08):** passes with both connections in place (401 for a wrong secret, 404 for the right one). Port 8088 is not reachable from the workstation, so the script ran against `127.0.0.1` through an SSH tunnel (`ssh -L 18088:127.0.0.1:8088 root@monitoring2.home.iseja.net`).
 - **`pairing` is not part of it:** `POST /pairing` answers 403 `You do not have the permission for agent pairing` for `agent_registration` on both sites. In 2.5.0p15 only the `admin` role has `general.agent_pairing` by default and the sites have no role overrides, so this is the default, not a result of SAML.
 - **Not covered:** the registration of a real host (it changes the host's UUID and trust) and the pull/TLS connection after it.
 
 ## Break-glass
 
-`cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Verified on `dev_k8s` on 2026-11-02 with the `dev` Keycloak stopped (its Flux `Kustomization` suspended and `spec.instances` of the `Keycloak` resource set to 0, restored after about five minutes): the metadata URL answered 503, the login page still loaded with the local form, `cmkadmin` logged in with it and reached the Checkmk index, and the REST API accepted `cmkadmin`. The same check was not repeated on `qa_k8s`.
+`cmkadmin` is the local administrator of every `*_k8s` site (password in 1Password) and works without Keycloak, UCS or Kubernetes, because the login form stays next to the SAML buttons. The automation users are unaffected. Verified on `dev_k8s` on 2026-11-02 with the `dev` Keycloak stopped (its Flux `Kustomization` suspended and `spec.instances` of the `Keycloak` resource set to 0, restored after about five minutes): the metadata URL answered 503, the login page still loaded with the local form, `cmkadmin` logged in with it and reached the Checkmk index, and the REST API accepted `cmkadmin`. The same check was not repeated on `qa_k8s`. On `prod_k8s` the local form login of `cmkadmin` was verified by the owner on 2026-11-08 with the identity provider reachable; the check with the identity provider down was not repeated there.
 
 ## Not verified yet
 
 - Registering a real host end to end (only the non-destructive [regression check](#regression-check-agent-registration) was run).
+- `prod_k8s` against the prod identity provider (stage 2 of [#2108](https://github.com/isejalabs/homelab/issues/2108)), and the `cmkadmin` login there with the identity provider unreachable.

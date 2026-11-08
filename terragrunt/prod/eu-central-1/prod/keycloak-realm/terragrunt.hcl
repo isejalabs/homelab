@@ -32,6 +32,7 @@ terraform {
 inputs = {
   keycloak_url = "https://auth.iseja.net"
 
-  # No SAML clients yet: the Checkmk sites prod_k8s and prod are not set up for web SSO (docs/identity/checkmk-sso.md).
-  # Add a `saml_clients` entry per site and realm when they are, as in the dev and qa units.
+  # No SAML clients yet. The Checkmk site prod_k8s signs in through temporary clients in the qa unit until stage 2 of
+  # #2108 moves it here, and the Community site prod is not set up (docs/identity/checkmk-sso.md). Add a `saml_clients`
+  # entry per site and realm when they are, as in the dev and qa units.
 }
