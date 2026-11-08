@@ -44,7 +44,7 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.4.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.5.0"
 
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
@@ -76,6 +76,10 @@ locals {
       user_filter   = "(memberOf=cn=sec.idm.users,cn=groups,${local.ldap_base_dn})"
       groups_dn     = "cn=groups,${local.ldap_base_dn}"
       groups_filter = "(cn=sec.app.*)"
+
+      # Any password login asks for a passkey, a security key or a TOTP code; a user with none is made to register a
+      # passkey or key first. docs/identity/keycloak-mfa.md
+      second_factor = { enroll = "webauthn" }
     }
     admin = {
       display_name  = "Admin"
@@ -83,6 +87,11 @@ locals {
       user_filter   = "(memberOf=cn=sec.idm.admins,cn=groups,${local.ldap_base_dn})"
       groups_dn     = "cn=groups,${local.ldap_base_dn}"
       groups_filter = "(cn=sec.app.*)"
+
+      # UCS password, then a WebAuthn key (TOTP as fallback). The authenticator must verify the person (PIN or
+      # biometric), so a stolen security key alone is not enough. docs/identity/keycloak-mfa.md
+      second_factor = { enroll = "webauthn" }
+      web_authn     = { user_verification_requirement = "required" }
     }
   }
 }
