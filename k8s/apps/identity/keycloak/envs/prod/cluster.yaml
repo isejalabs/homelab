@@ -1,0 +1,11 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: keycloak-db
+spec:
+  # prod's own pin of the PostgreSQL image, bumped in its own PR after qa has run the version (docs/operations/update-handling.md,
+  # "Staged rollout: Keycloak and CloudNativePG"). cronjob-dump.yaml in this folder has to carry the same value: the replacement
+  # in base/kustomization.yaml that keeps the two equal runs before this overlay, so it does not reach the dump job here.
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce

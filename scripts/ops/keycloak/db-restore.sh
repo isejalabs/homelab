@@ -37,7 +37,7 @@
 #   --list             only list the dumps in the bucket (key, last modified, size) and exit
 #   --dump <key>       dump object to restore; default `latest` (the newest)
 #   --identity <file>  age private key to decrypt a `*.age` dump; a process substitution works, for example
-#                      `--identity <(op read 'op://Private/keycloak-db age key/private key')`
+#                      `--identity <(op read 'op://IT Infrastructure/keycloak-db age key/password')`
 #   -y, --yes          do not ask for confirmation (the safety checks still apply)
 # A dump from another environment must be copied into this environment's bucket first.
 set -eu

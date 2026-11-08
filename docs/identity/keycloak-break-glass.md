@@ -27,7 +27,7 @@ The identity provider never protects its own recovery path ([ADR 0016](../decisi
 
 | Where | What |
 | --- | --- |
-| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev` and `qa`; the `prod` and `rebuild` items are created when those environments register Keycloak. |
+| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev`, `qa` and `prod`; the `rebuild` item is created by hand before that environment registers Keycloak, see [Installation](../../k8s/apps/identity/keycloak/README.md#2-bootstrap-admin). |
 | `ExternalSecret` `keycloak-bootstrap-admin` in namespace `keycloak` | Extracts the whole item (key `keycloak-bootstrap-admin#<env>`, set per environment in `k8s/apps/identity/keycloak/envs/<env>/`), refresh interval 1 h. |
 | `Secret` `keycloak-bootstrap-admin` in namespace `keycloak` | Created by the ExternalSecret. Carries `username`, `password` and `notesPlain` (the item's notes field). |
 | Keycloak pod `keycloak-0` | The Keycloak Operator maps the Secret (`spec.bootstrapAdmin.user.secret` in [`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml)) to the environment variables `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD`. |
@@ -54,7 +54,7 @@ The `master` realm answers on the same hostname as the other realms; only the re
 | --- | --- |
 | `dev` | `https://dev-auth.dev.iseja.net/admin/master/console/` |
 | `qa` | `https://qa-auth.qa.iseja.net/admin/master/console/` |
-| `prod` | `https://auth.iseja.net/admin/master/console/` (not deployed yet) |
+| `prod` | `https://auth.iseja.net/admin/master/console/` |
 
 Sign in with the `username` and `password` of the item. Do not pick the realm selector `iseja` or `admin`: those delegate the password check to UCS.
 
