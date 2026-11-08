@@ -104,14 +104,17 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | The module sets the RP ID, the flow and the binding, and rejects bad input | Verified offline (`tofu test` of the module) |
 | The flow, its condition and the `browser-mfa` binding exist in the `dev` realms `iseja` and `admin`, RP ID `dev-auth.dev.iseja.net`, `admin` with user verification `required`; the following plan shows no changes | Verified 2026-11-07 (applied from the unreleased module branch, 28 added, 2 changed) |
 | The flow against a throwaway Keycloak 26.8.1: a user without a factor gets the passkey registration after the password, a user with TOTP is asked for the code and signed in with it | Verified 2026-11-08 (scripted login; the first `dev` version failed every login and was fixed) |
-| The same in the `dev` Keycloak with `sebi-adm` (UCS) | Not verified yet (needs the owner) |
-| `sebi-adm` signs in with password + 1Password passkey, + YubiKey, + TOTP | Not verified yet |
+| The same in the `dev` Keycloak with `sebi-adm` (UCS): no factor yet leads to the passkey registration | Verified 2026-11-08 (owner; the first two attempts failed on the flow bugs fixed in the module before) |
+| `sebi-adm` signs in to `admin` with UCS password + 1Password passkey | Verified 2026-11-08 (owner; the passkey is stored in 1Password, one `webauthn` credential in the database, no login error in the Keycloak log) |
+| `sebi-adm` signs in to `admin` with UCS password + TOTP, also in a fresh sign-in | Verified 2026-11-08 (owner) |
+| `sebi-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key |
 | A password login in `iseja` asks for a passkey or TOTP, no path skips it | Not verified yet |
 | Lost-authenticator recovery exercised once for `sebi-adm` | Not verified yet |
 | Realm configuration plans without changes in `dev` and `qa` | Not verified yet |
 
 ## Open points
 
+- **Hardware key must be FIDO2.** `admin` requires user verification, so a security key needs a PIN, which only FIDO2 keys (YubiKey 5 series, Security Key series and newer) support. Older U2F-only keys such as the YubiKey NEO cannot be enrolled in `admin`; Microsoft accounts reject them for the same reason. The key test of `sebi-adm` waits for such a key.
 - **TOTP as the enrollment choice for everyday accounts.** The first login registers a passkey or key; TOTP is added by the user in the account console. The unit can require TOTP instead (`second_factor = { enroll = "totp" }`), for example for accounts on devices without passkey support. Keycloak offers no per-login choice between the two registrations.
 - **Step-up for sensitive `iseja` apps** and Kerberos in the same flow: [#1827](https://github.com/isejalabs/homelab/issues/1827), sub-issue [#2211](https://github.com/isejalabs/homelab/issues/2211).
 - **Recovery codes** (Keycloak's *Recovery Authentication Codes*) are not enabled. The owner's break-glass access is the recovery path.
