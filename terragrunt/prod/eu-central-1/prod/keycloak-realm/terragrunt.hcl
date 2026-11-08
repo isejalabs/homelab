@@ -32,7 +32,22 @@ terraform {
 inputs = {
   keycloak_url = "https://auth.iseja.net"
 
-  # No SAML clients yet. The Checkmk site prod_k8s signs in through temporary clients in the qa unit until stage 2 of
-  # #2108 moves it here, and the Community site prod is not set up (docs/identity/checkmk-sso.md). Add a `saml_clients`
-  # entry per site and realm when they are, as in the dev and qa units.
+  # The Checkmk site prod_k8s (Ultimate, on monitoring2) signs in humans through SAML, one client per realm because a
+  # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
+  # include_email stays off: notifications on prod_k8s are not enabled yet (#1901), and the e-mail attribute plus the
+  # contact group "all" would make the user a mail recipient. The Community site prod is not set up.
+  saml_clients = {
+    "prod_k8s-iseja" = {
+      realm     = "iseja"
+      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
+      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
+      name      = "Checkmk prod_k8s (iseja)"
+    }
+    "prod_k8s-admin" = {
+      realm     = "admin"
+      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
+      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
+      name      = "Checkmk prod_k8s (admin)"
+    }
+  }
 }
