@@ -61,7 +61,7 @@ Sign in with the `username` and `password` of the item. Do not pick the realm se
 Once in, the realms `iseja` and `admin` appear in the realm selector. What usually helps:
 
 - *User federation* → `ucs`: test connection and authentication, or fix the connection URL or bind credential for the moment (the Terragrunt unit overwrites a manual change at its next apply, so mirror the fix in the unit afterwards).
-- *Users* → the person → *Credentials*: delete a lost WebAuthn key or TOTP so the person can enroll again (the whole procedure: [lost authenticator](keycloak-mfa.md#lost-authenticator)). This is the break-glass step the [restore documentation](keycloak-backup-restore.md) refers to for the `admin` realm.
+- *Users* → search `*` (the list of an LDAP-backed realm stays empty until a search runs) → the person → *Credentials*: delete a lost WebAuthn key or TOTP so the person can enroll again (the whole procedure: [lost authenticator](keycloak-mfa.md#lost-authenticator)). This is the break-glass step the [restore documentation](keycloak-backup-restore.md) refers to for the `admin` realm.
 
 ### When the Gateway or the certificate is down
 

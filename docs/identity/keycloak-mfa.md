@@ -83,7 +83,7 @@ Which case applies depends on whether the user still has another factor.
 | Situation | Who | Steps |
 | --- | --- | --- |
 | Another factor still works | The user | Sign in with it, then account console → *Signing in*: delete the lost authenticator, add a new one. |
-| No factor works (`iseja`) | The owner | Sign in to the [`master` console](keycloak-break-glass.md#sign-in-to-the-admin-console), choose the realm, *Users* → the person → *Credentials*: delete the lost credential(s). At the next login the person is asked to register a new factor. |
+| No factor works (`iseja`) | The owner | Sign in to the [`master` console](keycloak-break-glass.md#sign-in-to-the-admin-console), choose the realm, *Users* → search `*` (the list stays empty until a search runs) → the person → *Credentials*: delete the lost credential(s). At the next login the person is asked to register a new factor. |
 | No factor works (`admin`, `sebi-adm`) | The owner, with the break-glass login | Same, in realm `admin`. The login of the `master` realm needs neither UCS nor any factor of the `admin` realm. |
 
 Deleting a credential never touches the UCS password. If the lost authenticator may be in somebody else's hands, also change the UCS password and disable the account in UCS meanwhile; Keycloak does not need to be touched for that.
@@ -110,7 +110,7 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | `sebi-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key |
 | A password login in `iseja` asks for a factor, no path skips it: user `sebi` without a factor got the passkey registration straight after the password, then signed in with password + passkey | Verified 2026-11-08 (owner; one `webauthn` credential in the database; a user who already has a TOTP is asked for the code, see the throwaway-Keycloak row) |
 | Lost-authenticator recovery for `sebi-adm`, first row of the table (another factor still works): the passkey was deleted in the account console, the next sign-in asked for TOTP, and a new passkey was registered | Verified 2026-11-08 (owner) |
-| Lost-authenticator recovery, rows two and three (owner deletes the credentials in the `master` console) | **Not verified**: the `master` console lists no users in `iseja` or `admin` (the realms are LDAP-backed); whether a search finds them is open |
+| Lost-authenticator recovery, rows two and three (owner deletes the credentials in the `master` console) | Not exercised. The users of the LDAP-backed realms are listed in the `master` console only after a search (`*` lists all), confirmed by the owner 2026-11-08; deleting a credential there is left for the follow-up |
 | Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
 | `qa` plan with the released module | Plan 2026-11-08: 26 to add, 2 to change (RP ID, `admin` user verification), 0 to destroy, provider lock file unchanged; applied from `main` after the merge, then a following plan must show no changes: not verified yet |
 
