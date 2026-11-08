@@ -114,7 +114,7 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
 | `qa` and `prod` realm configuration with the released module `keycloak-realm-v0.5.0` | Applied from `main` (`eb1b1a2c`) 2026-11-08 in both: 26 added, 2 changed (RP ID, `admin` user verification), 0 destroyed; the following plan shows `No changes`; RP ID `qa-auth.qa.iseja.net` and `auth.iseja.net` |
 | A sign-in with a second factor in `qa` | Verified 2026-11-08 (owner) |
-| A sign-in with a second factor in `prod` | Not verified yet (owner) |
+| A sign-in with a second factor in `prod` | Verified 2026-11-08 (owner) |
 
 ## Open points
 
