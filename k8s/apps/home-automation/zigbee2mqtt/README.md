@@ -26,7 +26,7 @@ Zigbee2MQTT talks to a ConBee II coordinator that is passed through to one Kuber
 | --- | --- |
 | `prod` | [https://zigbee2mqtt.prod.iseja.net](https://zigbee2mqtt.prod.iseja.net) (internal Gateway, port 8080 of the Service) |
 
-Other environments do not run it. The hostname is set in [`envs/prod/helmrelease.yaml`](envs/prod/helmrelease.yaml) because the domain replacement does not reach HelmRelease values; the `example.com` name in `base/` stays unrewritten.
+The frontend has no login today; the decided protection (oauth2-proxy against the `admin` realm plus a `CiliumNetworkPolicy`, Zigbee2MQTT's own `auth_token` stays unset) and the reasons are in [`docs/identity/zigbee2mqtt-sso.md`](../../../../docs/identity/zigbee2mqtt-sso.md). Other environments do not run it. The hostname is set in [`envs/prod/helmrelease.yaml`](envs/prod/helmrelease.yaml) because the domain replacement does not reach HelmRelease values; the `example.com` name in `base/` stays unrewritten.
 
 ## Updates
 
