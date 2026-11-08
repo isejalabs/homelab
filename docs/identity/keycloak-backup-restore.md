@@ -297,17 +297,17 @@ So after a restore from another environment, the Terragrunt state of the target 
 ### Observations of the manual drill
 
 - **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#2206](https://github.com/isejalabs/homelab/issues/2206)). The only credential row in the dump is the master admin password.
-- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until [#2206](https://github.com/isejalabs/homelab/issues/2206) enrolls one; see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal ([#1943](https://github.com/isejalabs/homelab/issues/1943)) to repeat.
+- **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until the rehearsal below runs ([#2206](https://github.com/isejalabs/homelab/issues/2206) enrolled credentials in `dev` on 2026-11-08, see [`keycloak-mfa.md`](keycloak-mfa.md)); see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal ([#1943](https://github.com/isejalabs/homelab/issues/1943)) to repeat.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
 
 ## WebAuthn after a restore
 
-A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill) and cannot be shown before MFA is rolled out ([#2206](https://github.com/isejalabs/homelab/issues/2206)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by [#2206](https://github.com/isejalabs/homelab/issues/2206) for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
+A restore must bring back more than tables, realms and OIDC discovery: a user who enrolled a WebAuthn key (passkey, YubiKey) has to be able to log in with it afterwards. That is not shown by the [restore drill](#restore-drill), which ran before MFA existed; the second factor is in place in `dev` since [#2206](https://github.com/isejalabs/homelab/issues/2206) ([`keycloak-mfa.md`](keycloak-mfa.md)). It is tracked in [#1943](https://github.com/isejalabs/homelab/issues/1943), which is blocked by [#2206](https://github.com/isejalabs/homelab/issues/2206) for the credential part. This section records what is already known, the proposed drill setup and the rehearsal to run once a credential exists.
 
 ### What is known
 
-- **The relying-party ID is not set by the realm module.** The module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/keycloak-realm-v0.4.0/modules/keycloak-realm) (version pinned in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)) creates the `web_authn_policy` of every realm with `relying_party_entity_name`, the signature algorithms and the user-verification requirement only, and no `relying_party_id`. The Keycloak documentation for the policy says: if the Relying Party ID is blank, Keycloak uses the host part of its base URL. The RP ID is therefore the Keycloak hostname of the environment:
+- **The relying-party ID is the Keycloak hostname, set explicitly.** The module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/keycloak-realm-v0.5.0/modules/keycloak-realm) (version pinned in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)) sets `relying_party_id` in the `web_authn_policy` of every realm to the hostname of `keycloak_url`, see [Relying-party ID](keycloak-mfa.md#relying-party-id). Before `keycloak-realm-v0.5.0` the field was blank and Keycloak used the host part of its base URL, which is the same value. The RP ID is therefore the Keycloak hostname of the environment:
 
 | Environment | Keycloak hostname (= effective RP ID) |
 | --- | --- |
@@ -317,7 +317,7 @@ A restore must bring back more than tables, realms and OIDC discovery: a user wh
 | `prod` | `auth.iseja.net` |
 
 - **A credential is bound to its RP ID.** A WebAuthn credential registered for one RP ID is not valid for another (W3C WebAuthn). Both realms, `iseja` and `admin`, are served from the same hostname, so they share the RP ID of their environment.
-- **Not yet confirmed on a live instance:** that the RP ID field of the WebAuthn policy is blank in the admin console of each realm after `keycloak-realm` was applied (step 1 of the [rehearsal](#rehearsal)), and that the dump carries the WebAuthn credential rows of LDAP-federated users (the table under [Overview](#overview) assumes it).
+- **Confirmed in `dev` on 2026-11-08:** the `credential` table holds the WebAuthn and TOTP credentials of the LDAP-federated users `sebi` and `sebi-adm`, so a dump carries them (the table under [Overview](#overview) assumed it), and enrolling a passkey for a federated user works (no problem with the user handle). Not yet confirmed: that they survive a restore (the [rehearsal](#rehearsal)).
 
 ### What a restore under a different hostname cannot prove
 
