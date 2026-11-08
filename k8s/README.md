@@ -16,7 +16,7 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 cluster           # what Flux reconciles, composed per environment
 │   │   └── 📁 flux          # the Flux sets and the per-environment compositions
 │   │       ├── 📁 envs      # one folder per environment: picks its sets and applies components/envs/<env>
-│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal and soaking
+│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal and standing
 │   ├── 📁 helmfile          # helmfile definitions for the foundational CRDs and infra
 │   │   ├── 📁 apps          # the foundational infra releases: cilium, sealed-secrets, cert-manager, ..., flux
 │   │   ├── 📁 base          # shared defaults: environments, helm defaults, kube context, release templates

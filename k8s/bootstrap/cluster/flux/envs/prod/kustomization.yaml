@@ -6,4 +6,5 @@ components:
 
 resources:
   - ../../sets
+  - ../../sets/standing
   - ../../../../../apps/home-automation/zigbee2mqtt/flux

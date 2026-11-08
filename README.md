@@ -24,7 +24,7 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 | Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
 | Install the tools and get the access needed to work on the repo | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start) |
-| Look up a term (`kopiur`, `soaking`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
+| Look up a term (`kopiur`, `standing`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
 
 ## 🎯 Principles
 

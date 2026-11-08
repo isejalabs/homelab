@@ -1,0 +1,15 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flux-system
+
+# Units that only the standing (permanent) environments run: dev, qa, prod and rebuild. Deliberately not part of
+# ../kustomization.yaml (which head also includes via ../../sets) and not part of ../minimal (dbg, poc and src): only
+# the envs that name this set get these units. dbg, head, poc and src are on-demand and register in prod's instance
+# instead (docs/decisions/0016-identity-and-web-sso.md, decision point 2).
+# Currently: Keycloak and its database (#1826).
+resources:
+  - ../../../../../infra/cnpg-system/cloudnative-pg/flux
+  - ../../../../../infra/keycloak/keycloak-operator/flux
+  - ../../../../../apps/identity/keycloak/flux

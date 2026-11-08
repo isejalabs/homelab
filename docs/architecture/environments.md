@@ -21,7 +21,17 @@ For resource sizing, reconciliation intervals, domain/naming, and the ID/ASN/LB-
 | `sets/minimal` | `dbg`, `dev`, `poc`, `src` | [`apps/diag/whoami`](../../k8s/apps/diag/whoami/), [`apps/dns/powerdns`](../../k8s/apps/dns/powerdns/), [`apps/monitoring/checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/), [`apps/monitoring/metrics-server`](../../k8s/apps/monitoring/metrics-server/) only |
 | `sets` (full: minimal + optional) | `head`, `prod`, `qa`, `rebuild` | + [`adguard`](../../k8s/apps/dns/adguard/), [`unbound`](../../k8s/apps/dns/unbound/), [`actualbudget`](../../k8s/apps/finances/actualbudget/), [`unifi-controller`](../../k8s/apps/network/unifi-controller/), [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) |
 
-The Keycloak identity provider and its database are in neither set either: they are registered through [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml), which only `dev` (where it is developed), `qa` (the gate before `prod`) and `rebuild` (to rehearse the database restore) include, see [ADR 0016](../decisions/0016-identity-and-web-sso.md). The set only decides which environments run these units, not which versions: once a unit is promoted to `prod`, `prod` pins its own versions and takes an update only after `qa` has run it, see [Staged rollout: Keycloak and CloudNativePG](../operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
+The Keycloak identity provider and its database are in neither set either: they are registered through [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml), which only the standing (permanent) environments `dev`, `qa`, `prod` and `rebuild` include, see [ADR 0016](../decisions/0016-identity-and-web-sso.md). The on-demand environments `dbg`, `head`, `poc` and `src` do not run them; they register in `prod`'s instance. The set only decides which environments run these units, not which versions: `prod` pins its own versions and takes an update only after `qa` has run it, see [Staged rollout: Keycloak and CloudNativePG](../operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
+
+Set membership per environment:
+
+| Environment | Sets included |
+| --- | --- |
+| `dbg`, `poc`, `src` | `sets/minimal` |
+| `head` | `sets` (full) |
+| `dev` | `sets/minimal`, `sets/standing` |
+| `prod` | `sets` (full), `sets/standing` |
+| `qa`, `rebuild` | `sets` (full), `sets/standing` |
 
 [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) is not part of either set: it needs the one physical ConBee II coordinator, so it is registered in `prod` only (dev was the test stage and no longer registers it), see its [README](../../k8s/apps/home-automation/zigbee2mqtt/README.md).
 
@@ -50,7 +60,7 @@ There is no per-environment branch, so a change does not "move" by being merged 
 ```mermaid
 flowchart LR
     accTitle: How changes move through the environments
-    accDescr: A Terragrunt module source change is proven in src against a local checkout, then released as a tag and applied to dev, qa and prod in that order, with qa and prod applied from main only. A merged Flux config change is reconciled from main by every environment, and a dev or other non-prod environment can temporarily track a feature branch first. For staged units, base takes new releases first and prod gets its own pinned version only after an age gate: 3 days for unbound, and 7 days with a manual merge for the soaking-set units once they are promoted to prod.
+    accDescr: A Terragrunt module source change is proven in src against a local checkout, then released as a tag and applied to dev, qa and prod in that order, with qa and prod applied from main only. A merged Flux config change is reconciled from main by every environment, and a dev or other non-prod environment can temporarily track a feature branch first. For staged units, base takes new releases first and prod gets its own pinned version only after an age gate: 3 days for unbound, and 7 days with a manual merge for the standing-set units (Keycloak and CloudNativePG) in prod.
 
     subgraph module["Terragrunt module source change"]
         direction LR
@@ -64,7 +74,7 @@ flowchart LR
         pr --> all["every environment<br/>reconciles main"]
     end
 
-    subgraph soak["Staged units (unbound; soaking set once promoted)"]
+    subgraph soak["Staged units (unbound; standing-set units in prod)"]
         direction LR
         base["base/ takes releases<br/>every env except prod runs them first"] --> gate["prod pin PR<br/>opens only after an age gate"]
         gate --> prodpin["prod runs its own pinned version"]
@@ -73,7 +83,7 @@ flowchart LR
 
 - **Module source change** — [`src` is where it is exercised first](#what-each-environment-is-for), then `dev`, `qa` and `prod` move to the released tag in that order; `qa` and `prod` are only ever applied from `main` ([How updates land](#2-how-updates-land)).
 - **Flux configuration** — all 8 environments reconcile `main`; the only exception is the temporary [`track-branch`](../../.agents/skills/track-branch/SKILL.md) override, never on `prod`.
-- **Staged units** — which environments run a unit is decided by the [Flux set](#1-which-apps-run-there--the-flux-minimalfull-split), which versions they run by [`update-handling.md`](../operations/update-handling.md#staged-rollout-unbound): `prod` pins its own copy and trails the other environments. For the Keycloak and CloudNativePG units the [pins only exist once they are promoted](../operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg), because `prod` does not run them yet.
+- **Staged units** — which environments run a unit is decided by the [Flux set](#1-which-apps-run-there--the-flux-minimalfull-split), which versions they run by [`update-handling.md`](../operations/update-handling.md#staged-rollout-unbound): `prod` pins its own copy and trails the other environments. For the Keycloak and CloudNativePG units `prod` carries [its own pins](../operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg) from the moment it registers them.
 
 ## What each environment is for
 
