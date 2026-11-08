@@ -71,7 +71,7 @@ The 1Password item `ucs-ca` (vault `K8S`, property `ca.pem`) holds the public ce
 
 ### 4. DNS for `prod`
 
-`external-dns` in `prod` manages only `prod.iseja.net`, but Keycloak's stable hostname is `auth.iseja.net` ([`envs/prod`](envs/prod/kustomization.yaml)). Create the record by hand in the `iseja.net` zone: an **A record** `auth.iseja.net` with the address of the `internal` Gateway of `prod` (`10.8.8.80`, the same address `gw-internal.prod.iseja.net` resolves to). **Not a CNAME**: Kerberos clients canonicalize names, and a CNAME makes browsers ask for a ticket for the wrong service principal ([identity plan](../../../../docs/plans/2026-10-identity-claude.md)). Check with `dig +short auth.iseja.net`: it must print the address, and no other name.
+`external-dns` in `prod` manages only `prod.iseja.net`, but Keycloak's stable hostname is `auth.iseja.net` ([`envs/prod`](envs/prod/kustomization.yaml)). Create the record by hand in the `iseja.net` zone, pointing at the address of the `internal` Gateway of `prod` (`10.8.8.80`). Today it is a CNAME `auth.iseja.net` → `gw-internal.prod.iseja.net.` (note the trailing dot: without it the target is read as a top-level domain and the name answers NXDOMAIN), the same approach as `dev` and `qa`. That is enough until Kerberos browser SSO: Kerberos clients canonicalize names, and a CNAME makes browsers ask for a ticket for the wrong service principal ([identity plan](../../../../docs/plans/2026-10-identity-claude.md)), so the name has to become an A record for the SPN in [#1827](https://github.com/isejalabs/homelab/issues/1827). Check with `dig +short auth.iseja.net`: it must end in `10.8.8.80`.
 
 ### After the units are reconciled
 
