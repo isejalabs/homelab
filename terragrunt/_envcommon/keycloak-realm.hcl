@@ -44,10 +44,17 @@ locals {
 
   # Pinned to a tagged release rather than tracking main, so this module only picks up a new version
   # deliberately (bump the ref) instead of silently on every terraform-modules main commit.
-  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.5.0"
+  base_source_url = "git::https://github.com/isejalabs/terraform-modules.git//modules/keycloak-realm?ref=keycloak-realm-v0.6.0"
 
   # Only the env differs per environment.
   env = local.environment_vars.locals.env
+
+  # Public URL of an application, with the application's hostname label in place of %s (format(local.app_url_format,
+  # "longhorn")), by the same scheme as the k8s overlays (prefix-domain/replace-domain, docs/reference/environments.md#domain-and-naming):
+  # dev-longhorn.dev.iseja.net everywhere but prod, longhorn.prod.iseja.net in prod. For OIDC redirect URIs in the
+  # units' `oidc_clients`, so the hostname is not typed per environment. An application that an overlay moves to
+  # another hostname (as prod does for Keycloak) states its URL in full instead.
+  app_url_format = "https://${local.env == "prod" ? "" : "${local.env}-"}%s.${local.env}.iseja.net"
 
   # 1Password "K8S" vault, shared with other components -- see global.hcl.
   onepassword_vault_id = local.global_vars.locals.onepassword_vault_id
@@ -110,4 +117,9 @@ inputs = {
   ldap                 = local.ldap
   onepassword_vault_id = local.onepassword_vault_id
   realms               = local.realms
+
+  # The generated secret of every confidential OIDC client (`oidc_clients` in the unit of the environment) goes into the
+  # 1Password item of this title, %s being the key of the client. An ExternalSecret or another tool reads it from there;
+  # it is never in Git. docs/identity/keycloak-realms.md#oidc-clients
+  oidc_secret_item_title_format = "keycloak-oidc-%s#${local.env}"
 }
