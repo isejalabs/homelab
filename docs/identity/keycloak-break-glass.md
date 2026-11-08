@@ -27,7 +27,7 @@ The identity provider never protects its own recovery path ([ADR 0016](../decisi
 
 | Where | What |
 | --- | --- |
-| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev` and `qa`; the `prod` and `rebuild` items are created when those environments register Keycloak. |
+| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev` and `qa`; the `prod` and `rebuild` items are created by hand before those environments register Keycloak, see [Installation](../../k8s/apps/identity/keycloak/README.md#2-bootstrap-admin). |
 | `ExternalSecret` `keycloak-bootstrap-admin` in namespace `keycloak` | Extracts the whole item (key `keycloak-bootstrap-admin#<env>`, set per environment in `k8s/apps/identity/keycloak/envs/<env>/`), refresh interval 1 h. |
 | `Secret` `keycloak-bootstrap-admin` in namespace `keycloak` | Created by the ExternalSecret. Carries `username`, `password` and `notesPlain` (the item's notes field). |
 | Keycloak pod `keycloak-0` | The Keycloak Operator maps the Secret (`spec.bootstrapAdmin.user.secret` in [`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml)) to the environment variables `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD`. |
