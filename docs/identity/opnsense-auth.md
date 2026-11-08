@@ -1,0 +1,101 @@
+---
+status: planning
+---
+
+# OPNsense administrator login
+
+OPNsense does not use the Keycloak identity provider. The gateways `gw2` and `gw3` are not managed from this repository (see [`network.md`](../architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)), so this page records the decision and the procedure for a login that is configured by hand in the web interface. Tracking: [#1730](https://github.com/isejalabs/homelab/issues/1730) (evaluation), [#2237](https://github.com/isejalabs/homelab/issues/2237) (this investigation), [#2238](https://github.com/isejalabs/homelab/issues/2238) (`sebi-adm`), [#2239](https://github.com/isejalabs/homelab/issues/2239) (operator and read-only). The decision is [ADR 0016](../decisions/0016-identity-and-web-sso.md), point 8 and 9: level 1, LDAP to UCS, `root` as break-glass.
+
+**On this page:** [Decision](#decision) · [What OPNsense can do](#what-opnsense-can-do) · [Configuration](#configuration) · [Outage behaviour](#outage-behaviour) · [Test procedure without lock-out](#test-procedure-without-lock-out) · [Operator and read-only access](#operator-and-read-only-access) · [Not verified](#not-verified)
+
+## Decision
+
+Proposed, to be confirmed against the installed version and edition (see [Not verified](#not-verified)):
+
+- **Server type "LDAP + Timebased One Time Password"** (`ldap-totp`) against the UCS domain controllers, for the web interface and the console/SSH password login. The directory supplies the password and the group membership; the second factor is a TOTP seed stored in the local OPNsense user. Nothing about the second factor depends on UCS, Keycloak or the cluster.
+- **`root` stays a local account** with the "Local Database" server as the last entry of the server list. It is the break-glass login and is not touched.
+- **No OIDC/SAML.** The Community Edition has no such login (see below), so Keycloak is not involved and the realm `admin` is not used for OPNsense.
+- **Users are pre-created locally** (with a scrambled password and an OTP seed); group membership comes from UCS at every login.
+
+## What OPNsense can do
+
+Source read: [`opnsense/core`](https://github.com/opnsense/core) tag `26.7.8` (the newest release at the time of writing, 2026-11-08), directory `src/opnsense/mvc/app/library/OPNsense/Auth/`. The installed version is not yet known; the behaviour below is old, stable code, but the privilege list differs between releases.
+
+| Question | Answer | Evidence |
+| --- | --- | --- |
+| Server types | Local database, local password + TOTP (`LocalTOTP`), `ldap`, `ldap-totp`, `radius`, `voucher` (captive portal) and the local API; there is no RADIUS + TOTP combination | `Auth/*.php`, `AuthenticationFactory::listConnectors()` |
+| OIDC / SAML login | Core defines an interface for SSO providers (`SSOProviders/ISSOContainer.php`) but has no implementation, and no plugin in [`opnsense/plugins`](https://github.com/opnsense/plugins) implements it. OIDC login (`System ‣ Access ‣ OpenID Connect`, for the web interface, captive portal and WAF) is a feature of the **Business Edition** only ([Deciso docs](https://docs.opnsense.org/vendor/deciso/oidc.html)). | source search; vendor documentation |
+| LDAP + TOTP | Yes. `LDAPTOTP extends LDAP` with the `TOTP` trait. The token is typed **in front of** the password in the one password field (`123456<password>`); "Reverse token order" puts it after. Token length 6 or 8, time window default 30 s, grace period default 10 s. | `Auth/LDAPTOTP.php`, `Auth/TOTP.php` |
+| Where the OTP seed lives | In the **local user** (`otp_seed`). The authenticator looks the user up locally, so a user without a local record and a seed cannot log in with `ldap-totp`; "automatic user creation" creates users without a seed and is therefore not usable here. | `TOTP::_authenticate()` uses `getUser()`; `Base::setGroupMembership()` |
+| User and group filters | `User attribute name` (`uid` for UCS), `Extended Query` (appended as `(&(uid=<name>)(<query>))`), authentication containers (search bases), scope. The extended query can admit only members of a group: `memberOf=cn=sec.app.opnsense.admin,cn=groups,dc=dir,dc=iseja,dc=net`. | `LDAP::searchUsers()` |
+| Group mapping | "Read properties" + "Synchronize groups" read `memberOf` after the user bound and map the **first `cn=`** of each value to a **local group of the same name**; only existing local groups are touched, "Limit groups" restricts it to a list. Local group names allow `[a-zA-Z0-9.\-_]{1,32}`, so `sec.app.opnsense.admin` (22 characters) is valid. Privileges are attached to the local group. Membership is re-synchronised at every successful login (added and removed). | `LDAP::_authenticate()`, `Base::setGroupMembership()`, `Auth/Group.xml` |
+| TLS | `SSL` (LDAPS) or `StartTLS`, with `LDAP_OPT_X_TLS_REQUIRE_CERT = HARD` and the CA file `/usr/local/etc/ssl/cert.pem`, so the UCS CA has to be imported under `System ‣ Trust ‣ Authorities` and the certificate name has to match the host name configured. The port is a free field, so 7636 works. | `LDAP::connect()` |
+| Several domain controllers | One host per server entry (the URL is built as `ldaps://<host>:<port>`). Two entries, one per DC, go into the server list, which is tried in order. | `LDAP::setProperties()`, `AuthenticationFactory::authenticate()` |
+| Bind account | Always required: the user's DN is found by a search with the bind account, then the password is verified by a bind as that user. An empty bind DN means an anonymous bind, which UCS refuses here (`ldap/acl/read/anonymous: no`, see [`keycloak-realms.md`](keycloak-realms.md#ucs-setup)). So a dedicated read-only account is needed (see [Configuration](#configuration)). | `LDAP::_authenticate()` |
+| Several servers as fallback | The list under `System ‣ Settings ‣ Administration ‣ Authentication` is ordered; the first server that accepts the credentials wins, and the help text names it as the fallback during connectivity issues. A failed server is skipped. | `AuthenticationFactory::authenticate()`, `system_advanced_admin.php` |
+| What the list covers | **Both** the web interface (`Services/WebGui`) **and** the system login (`Services/System`: console, `sshd`, `su`, `sudo`) read the same list. SSH keys are not affected. | `Auth/Services/*.php` |
+| High availability | Users and groups, and authentication servers, are synchronised by the HA sync only if they are ticked as items in `System ‣ High Availability ‣ Settings` (`core.inc`, sections `system.user,system.group` and `system.authserver`). Certificates and authorities are a third item. | `core_xmlrpc_sync()` |
+
+## Configuration
+
+Planned content of [#2238](https://github.com/isejalabs/homelab/issues/2238); nothing of this is applied. UCS changes need the owner's explicit go, and no OPNsense setting is changed before the [test procedure](#test-procedure-without-lock-out) has been followed.
+
+**UCS** (as `root` on a domain controller, like the groups in [`keycloak-realms.md`](keycloak-realms.md#ucs-setup); names follow [`ucs-groups.md`](ucs-groups.md)):
+
+- Groups `sec.app.opnsense.admin` (members: `sebi-adm`), later `sec.app.opnsense.operator` and `sec.app.opnsense.readonly` ([#2239](https://github.com/isejalabs/homelab/issues/2239)). Accounts only, no nested groups (LDAP `memberOf` is direct only).
+- A read-only bind account **`opnsense-ro`**, an ordinary user in no group, separate from `keycloak-ro` so each can be rotated and revoked alone. Its password is stored in 1Password and, because OPNsense keeps the bind password in `config.xml`, it also lives in the OPNsense configuration and in its backups. The account can read directory entries and nothing else.
+
+**OPNsense** (on `gw2`, then `gw3` unless the HA sync item "Authentication Servers" is enabled):
+
+1. `System ‣ Trust ‣ Authorities`: import the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, the same certificate as in the 1Password item `ucs-ca`). Tick "Certificates and Authorities" in the HA sync if both boxes should get it.
+2. Name resolution of the DCs without UCS DNS: `Services ‣ Unbound DNS ‣ Overrides` with `baerbel.dir.iseja.net` (10.7.1.102) and `adelheid.dir.iseja.net` (10.7.1.101). The certificate check needs the name, and the name must resolve while UCS DNS is down, which is exactly the outage case (the DNS and LDAP dependency is otherwise circular for the login).
+3. `System ‣ Access ‣ Servers`: two servers of type "LDAP + Timebased One Time Password", one per DC. Hostname as above, port 7636, transport SSL, protocol 3, bind DN `uid=opnsense-ro,cn=users,dc=dir,dc=iseja,dc=net`, search scope subtree, base DN `dc=dir,dc=iseja,dc=net`, user attribute `uid`, extended query `|(memberOf=cn=sec.app.opnsense.admin,cn=groups,dc=dir,dc=iseja,dc=net)(memberOf=cn=sec.app.opnsense.operator,...)(memberOf=cn=sec.app.opnsense.readonly,...)` (one clause per group that exists), "Read properties" and "Synchronize groups" on, "Limit groups" `sec.app.opnsense.admin,sec.app.opnsense.operator,sec.app.opnsense.readonly`, automatic user creation **off**, token length 6.
+4. `System ‣ Access ‣ Groups`: create the local groups with exactly these names; `sec.app.opnsense.admin` gets the privilege "All pages".
+5. `System ‣ Access ‣ Users`: create `sebi-adm` (login shell `nologin`, "Scrambled Password" on, a generated OTP seed enrolled in the authenticator app). No group is set by hand: the first login attaches `sec.app.opnsense.admin`.
+6. Only after steps 1 to 5 tested with `System ‣ Access ‣ Tester` (it shows `memberOf` in the returned properties), set `System ‣ Settings ‣ Administration ‣ Authentication ‣ Server` to the two LDAP servers followed by "Local Database".
+
+**Second factor in practice.** `123456` + password in one field is awkward with a password manager. The "Reverse token order" option (password, then token) lets 1Password fill the password and the token be typed after it. If the seed, the UCS password and the passkey all live in one vault the factors collapse into "access to the vault", as noted for the Keycloak realm `admin` in the [design plan](../plans/2026-10-identity-claude.md); a hardware TOTP token avoids it.
+
+**Accounts that bypass the second factor.** "Local Database" is in the list for everyone, so any local user with a usable password logs in with that password alone. Directory users therefore get scrambled passwords; `root` is the only local password account. A local user that is "disabled" in OPNsense is not refused by the LDAP authenticator, which does not look at that flag (source above); remove the group in UCS instead.
+
+## Outage behaviour
+
+| Situation | Result |
+| --- | --- |
+| One DC down | The failing server entry is skipped, the next one answers. Each unreachable DC costs a connect timeout of up to 30 s (`LDAP_OPT_NETWORK_TIMEOUT`); the Keycloak failover measured about 41 s per login, so expect something comparable here. |
+| Both DCs or the UCS VLAN down | Both LDAP entries fail, "Local Database" answers: `root` logs in (after the timeouts, up to about a minute). If that is too slow, move "Local Database" to the first place: then `root` is immediate and a directory login costs one failed local check (the 2 s minimum of a failed attempt, `Base::authenticate()`). Decide with the measurement in the test procedure. |
+| UCS DNS down | No effect for the login, because of the Unbound overrides above. Without them the name resolution fails and the login takes the timeout path. |
+| Cluster or Keycloak down | No effect. OPNsense never talks to Keycloak. |
+| Console and SSH | Same list as the web interface; `root` with its password or key, as before. |
+
+Circular dependency: UCS depends on OPNsense (the gateway of its VLAN and the DHCP relay of every client network), and the OPNsense administrators depend on UCS. `root` breaks the loop, and the firewall's own routing, BGP and DHCP relay do not use LDAP at all.
+
+Firewall rules: the LDAPS connection starts on the firewall itself, from the address of the interface towards the DC VLAN (the individual address of each box, not the CARP virtual address, unless an outbound NAT rule says otherwise). Locally originated traffic is passed by default; what has to be checked is the UCS side (packet filter on the DCs admits 7636 from both boxes).
+
+## Test procedure without lock-out
+
+For [#2238](https://github.com/isejalabs/homelab/issues/2238). Do it on one box first (ask the owner which one is the backup), with the HA sync of the changed items paused so a mistake does not copy over.
+
+1. **Before anything:** open two browser sessions as `root` on the box (one stays open throughout, a private window is enough); confirm the console route (Proxmox VM console of the gateway) and that the `root` password from the vault works in a **third** fresh login. Export the configuration (`System ‣ Configuration ‣ Backups`) and keep it off the box.
+2. Create CA, DNS overrides, servers, groups and the user as in [Configuration](#configuration), **without** touching the `Authentication ‣ Server` setting. Use `System ‣ Access ‣ Tester` for `sebi-adm` (password + token): it must authenticate, show the `memberOf` of `sec.app.opnsense.admin`, and an account outside the group (`mary`, or `sebi`) must fail with "User DN not found".
+3. Set the server list to `LDAP, LDAP, Local Database` in the open `root` session and save. Do not log out of the other sessions.
+4. In a new private window log in as `sebi-adm` with token + password; check the privileges (all pages) and that the group is attached to the user. Log in as `mary` and as a user with the wrong token: both must fail. Check that a fresh `root` login still works.
+5. **Outage test:** block the DC addresses for the box (a temporary floating rule on the box, removed afterwards, or unplug the DC VLAN link of a lab box), time a fresh `root` login and a `sebi-adm` login (the latter must fail), and note the delay. Remove the block and confirm the directory login works again. Do not power off a DC for this ([#1821](https://github.com/isejalabs/homelab/issues/1821)).
+6. If anything fails, in the open `root` session set the server back to "Local Database" only. If every session is lost, use the console menu option 3 "Reset the root password" or restore the exported configuration.
+7. Repeat on the second box (or let the HA sync do it and repeat steps 4 and 5).
+
+## Operator and read-only access
+
+Decision for [#2239](https://github.com/isejalabs/homelab/issues/2239), to be confirmed once step 4 above works with the real account:
+
+- **OPNsense has no read-only or read/write separation.** A privilege grants URL patterns (`ACL.xml` in the 26.7.8 source), and a page that reads can usually also write. Evidence from the same source: "Status: Services" is `api/core/service/*` (start, stop, restart), "Diagnostics: Show States" includes `del_state`, `kill_states`, `flush_states`, the dashboard saves widgets into the user's configuration (`saveWidgetsAction`), and "Lobby: Password" would let a directory user set a local password and so bypass the second factor.
+- **`sebi` (operator): possible.** Candidate set of pages that only read or run a diagnostic that leaves no configuration behind: Lobby: Dashboard, Status: Interfaces, Diagnostics: Logs: System, Logs: Gateways, Firewall statistics, Routing tables, ARP and NDP tables, Netstat, System Health, Ping, Traceroute, Test Port (the ping job writes a temporary file, not the configuration). Not granted: Status: Services, Show States, Firewall sessions (pftop), Packet Capture, Lobby: Password, anything under Firewall, Interfaces, System: Access or Configuration. The firewall log views show every client's connections; for the owner's own account that is acceptable.
+- **`mary` (read-only): not granted.** There is no read-only privilege, and the pages that would be harmless to her show network internals (logs, routing, connections) of every family member without a use for her. This is the outcome the rollout rules allow ("no access if no safe role"); the group `sec.app.opnsense.readonly` is not created.
+- The group `sec.app.opnsense.operator` is created when `sebi` is enabled, with the page list above as privileges of the local group; the list is checked against the privilege names of the installed version first.
+
+## Not verified
+
+- **Installed version and edition** of `gw2` and `gw3` (the static asset hashes of their login pages differ, which suggests different builds), whether the Business Edition (with OIDC) is in use, and whether HA sync of users, groups and authentication servers is enabled. Asked of the owner; no access to the boxes was used.
+- Exact menu names and the privilege list of the installed version, which may differ from 26.7.8.
+- The UCS side: the certificate's subject alternative names (the host name must match), whether the DCs admit 7636 from the gateways' addresses, whether the user itself may read `memberOf` of its own entry (needed for "Synchronize groups"; the bind account reads it for Keycloak).
+- The login delay during an outage (timeouts) and the order of the server list.
