@@ -18,7 +18,7 @@ The Longhorn dashboard and its API have no authentication, and the `HTTPRoute` p
 ## Where it is used
 
 - **Used by**: the Longhorn dashboard route in [`longhorn-core`](../longhorn-core/README.md); in the environments that run this unit, the route's `backendRef` points at the Service `oauth2-proxy` instead of `longhorn-frontend` (`envs/<env>/http-route-oauth2-proxy.yaml` of `longhorn-core`).
-- **Depends on**: `longhorn-core` (the UI), the Keycloak of the environment and its client, and the 1Password item `oauth2-proxy-longhorn#<env>` (External Secrets).
+- **Depends on**: `longhorn-core` (the UI), the Keycloak of the environment and its client, and the 1Password items `keycloak-oidc-longhorn-admin#<env>` and `oauth2-proxy-longhorn#<env>` (External Secrets).
 
 ## Access
 

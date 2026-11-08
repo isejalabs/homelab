@@ -37,7 +37,7 @@ Searched in the repository for `longhorn-frontend`, `longhorn-backend` and port 
 | `CiliumNetworkPolicy` `longhorn-ui-only-from-oauth2-proxy`: UI pods accept TCP 8000 from the proxy pods only | [`longhorn-auth/base/networkpolicy.yaml`](../../k8s/infra/longhorn-system/longhorn-auth/base/networkpolicy.yaml) |
 | Route: `backendRef` `longhorn-frontend` → `oauth2-proxy` | `envs/<env>/http-route-oauth2-proxy.yaml` in [`longhorn-core`](../../k8s/infra/longhorn-system/longhorn-core/envs/dev/http-route-oauth2-proxy.yaml), per environment that runs the proxy |
 | Keycloak client `longhorn` in `admin` | `oidc_clients` of the `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)) |
-| Secret `oauth2-proxy` (client ID, client secret, cookie secret) | 1Password item `oauth2-proxy-longhorn#<env>`, External Secrets |
+| Secret `oauth2-proxy` (client ID, client secret, cookie secret) | 1Password items `keycloak-oidc-longhorn-admin#<env>` (written by Terragrunt: username = client ID, password = client secret) and `oauth2-proxy-longhorn#<env>` (field `cookie-secret`), External Secrets |
 | UCS group `sec.app.longhorn.admin` with `sebi-adm` | UCS, owner's go needed ([`ucs-groups.md`](ucs-groups.md)) |
 
 The policy is the first `CiliumNetworkPolicy` of the repository; the model for the others is [#1995](https://github.com/isejalabs/homelab/issues/1995). It is deliberately narrow: it selects only the UI pods, so nothing else changes behaviour. The manager API stays protected by the chart's own `NetworkPolicy`, and only the UI (now behind the proxy) can reach it from outside Longhorn.

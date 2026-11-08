@@ -13,7 +13,13 @@ patches:
       kind: HelmRelease
   - patch: |-
       - op: replace
-        path: /spec/dataFrom/0/extract/key
+        path: /spec/data/0/remoteRef/key
+        value: keycloak-oidc-longhorn-admin#prod
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: keycloak-oidc-longhorn-admin#prod
+      - op: replace
+        path: /spec/data/2/remoteRef/key
         value: oauth2-proxy-longhorn#prod
     target:
       kind: ExternalSecret

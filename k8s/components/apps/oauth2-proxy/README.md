@@ -8,7 +8,7 @@ A login in front of a web UI that has none of its own. The component installs on
 | --- | --- | --- |
 | `OCIRepository` | `oauth2-proxy` | The upstream Helm chart `ghcr.io/oauth2-proxy/charts/oauth2-proxy`, pinned by tag and digest (Renovate bumps both) |
 | `HelmRelease` | `oauth2-proxy` | The proxy: one replica, session in an encrypted cookie, `keycloak-oidc` provider, PKCE `S256`, authorization by the `groups` claim |
-| `ExternalSecret` | `oauth2-proxy` | The Secret `oauth2-proxy` with `client-id`, `client-secret` and `cookie-secret`, from the 1Password item `oauth2-proxy-<APP>#<env>` |
+| `ExternalSecret` | `oauth2-proxy` | The Secret `oauth2-proxy` with `client-id`, `client-secret` and `cookie-secret`, from the 1Password items `keycloak-oidc-<APP>-admin#<env>` and `oauth2-proxy-<APP>#<env>` |
 
 The names are fixed (one proxy per namespace). The Service is `oauth2-proxy` on port 80, the pods carry `app.kubernetes.io/name: oauth2-proxy` and `app.kubernetes.io/instance: oauth2-proxy`.
 
@@ -37,7 +37,7 @@ Four things belong to the consumer, none of them in this component:
 
 ## Secrets
 
-`config.existingSecret` makes the chart read the three keys from the Secret the `ExternalSecret` writes, so nothing secret is in Git. The 1Password item holds `client-id` and `client-secret` of the Keycloak client and `cookie-secret`, 32 random bytes (for example `openssl rand -base64 32 | tr -- '+/' '-_'`). Rotating the cookie secret logs everybody out once.
+`config.existingSecret` makes the chart read the three keys from the Secret the `ExternalSecret` writes, so nothing secret is in Git. Client ID and secret come from the 1Password item `keycloak-oidc-<APP>-admin#<env>` that Terragrunt writes for the client (username and password of a login item, see [`keycloak-realms.md`](../../../../docs/identity/keycloak-realms.md#oidc-clients)); the `cookie-secret` is a hand-made item `oauth2-proxy-<APP>#<env>` with one field of that name, 32 random bytes (for example `openssl rand -base64 32 | tr -- '+/' '-_'`). Rotating the cookie secret logs everybody out once.
 
 ## Updates
 
