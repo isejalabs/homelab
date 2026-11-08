@@ -103,7 +103,8 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | --- | --- |
 | The module sets the RP ID, the flow and the binding, and rejects bad input | Verified offline (`tofu test` of the module) |
 | The flow, its condition and the `browser-mfa` binding exist in the `dev` realms `iseja` and `admin`, RP ID `dev-auth.dev.iseja.net`, `admin` with user verification `required`; the following plan shows no changes | Verified 2026-11-07 (applied from the unreleased module branch, 28 added, 2 changed) |
-| The flow in a live Keycloak: password, then factor; no factor leads to registration | Not verified yet (needs an enrollment by the owner) |
+| The flow against a throwaway Keycloak 26.8.1: a user without a factor gets the passkey registration after the password, a user with TOTP is asked for the code and signed in with it | Verified 2026-11-08 (scripted login; the first `dev` version failed every login and was fixed) |
+| The same in the `dev` Keycloak with `sebi-adm` (UCS) | Not verified yet (needs the owner) |
 | `sebi-adm` signs in with password + 1Password passkey, + YubiKey, + TOTP | Not verified yet |
 | A password login in `iseja` asks for a passkey or TOTP, no path skips it | Not verified yet |
 | Lost-authenticator recovery exercised once for `sebi-adm` | Not verified yet |
