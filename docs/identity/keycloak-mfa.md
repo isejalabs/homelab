@@ -108,8 +108,9 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | `sebi-adm` signs in to `admin` with UCS password + 1Password passkey | Verified 2026-11-08 (owner; the passkey is stored in 1Password, one `webauthn` credential in the database, no login error in the Keycloak log) |
 | `sebi-adm` signs in to `admin` with UCS password + TOTP, also in a fresh sign-in | Verified 2026-11-08 (owner) |
 | `sebi-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key |
-| A password login in `iseja` asks for a passkey or TOTP, no path skips it | Not verified yet |
-| Lost-authenticator recovery exercised once for `sebi-adm` | Not verified yet |
+| A password login in `iseja` asks for a factor, no path skips it: user `sebi` without a factor got the passkey registration straight after the password, then signed in with password + passkey | Verified 2026-11-08 (owner; one `webauthn` credential in the database; a user who already has a TOTP is asked for the code, see the throwaway-Keycloak row) |
+| Lost-authenticator recovery for `sebi-adm`, first row of the table (another factor still works): the passkey was deleted in the account console, the next sign-in asked for TOTP, and a new passkey was registered | Verified 2026-11-08 (owner) |
+| Lost-authenticator recovery, rows two and three (owner deletes the credentials in the `master` console) | **Not verified**: the `master` console lists no users in `iseja` or `admin` (the realms are LDAP-backed); whether a search finds them is open |
 | Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
 | `qa` plan with the released module | Plan 2026-11-08: 26 to add, 2 to change (RP ID, `admin` user verification), 0 to destroy, provider lock file unchanged; applied from `main` after the merge, then a following plan must show no changes: not verified yet |
 
