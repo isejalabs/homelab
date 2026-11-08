@@ -60,7 +60,7 @@ Not needed at the current size (a handful of accounts per group). If it is, in t
 
 ## Migration of the first names
 
-The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They were renamed in the live domain on 2026-11-01 (`dev` and `qa`, steps below; `prod` has no Keycloak yet). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
+The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They were renamed in the live domain on 2026-11-01 (`dev` and `qa`, steps below; `prod` came up afterwards and uses the new names from the start). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
 
 ```sh
 BASE="dc=dir,dc=iseja,dc=net"

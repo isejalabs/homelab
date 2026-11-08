@@ -314,7 +314,7 @@ A restore must bring back more than tables, realms and OIDC discovery: a user wh
 | `dev` | `dev-auth.dev.iseja.net` |
 | `qa` | `qa-auth.qa.iseja.net` |
 | `rebuild` | `rebuild-auth.rebuild.iseja.net` |
-| `prod` | `auth.iseja.net` (not deployed yet) |
+| `prod` | `auth.iseja.net` |
 
 - **A credential is bound to its RP ID.** A WebAuthn credential registered for one RP ID is not valid for another (W3C WebAuthn). Both realms, `iseja` and `admin`, are served from the same hostname, so they share the RP ID of their environment.
 - **Not yet confirmed on a live instance:** that the RP ID field of the WebAuthn policy is blank in the admin console of each realm after `keycloak-realm` was applied (step 1 of the [rehearsal](#rehearsal)), and that the dump carries the WebAuthn credential rows of LDAP-federated users (the table under [Overview](#overview) assumes it).

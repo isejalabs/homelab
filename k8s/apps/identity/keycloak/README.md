@@ -17,7 +17,7 @@ One place that knows who may sign in to what. UCS stays the authoritative direct
 
 ## Where it is used
 
-- **Used by**: the Terragrunt unit `keycloak-realm` (`dev`, `qa`) logs in with the bootstrap admin and manages the realms `iseja` (everyday accounts) and `admin` (`*-adm` accounts), see [`keycloak-realms.md`](../../../../docs/identity/keycloak-realms.md). No application is an OIDC client yet; the clients come with [#1827](https://github.com/isejalabs/homelab/issues/1827) and the per-service integrations.
+- **Used by**: the Terragrunt unit `keycloak-realm` (`dev`, `qa`, `prod`) logs in with the bootstrap admin and manages the realms `iseja` (everyday accounts) and `admin` (`*-adm` accounts), see [`keycloak-realms.md`](../../../../docs/identity/keycloak-realms.md). No application is an OIDC client yet; the clients come with [#1827](https://github.com/isejalabs/homelab/issues/1827) and the per-service integrations.
 - **Depends on**:
   - the `keycloak-db` PostgreSQL cluster in the same namespace (CloudNativePG, volume on `longhorn-ha`);
   - the `internal` Gateway in `gateway-api` (TLS ends there, Keycloak speaks plain HTTP on 8080);
@@ -34,7 +34,7 @@ The subdomain is `auth`, not `keycloak`. The general scheme is in [`reference/en
 | `dev` | [https://dev-auth.dev.iseja.net](https://dev-auth.dev.iseja.net) | [https://dev-auth.dev.iseja.net/admin/master/console/](https://dev-auth.dev.iseja.net/admin/master/console/) |
 | `qa` | [https://qa-auth.qa.iseja.net](https://qa-auth.qa.iseja.net) | [https://qa-auth.qa.iseja.net/admin/master/console/](https://qa-auth.qa.iseja.net/admin/master/console/) |
 | `rebuild` | [https://rebuild-auth.rebuild.iseja.net](https://rebuild-auth.rebuild.iseja.net) | [https://rebuild-auth.rebuild.iseja.net/admin/master/console/](https://rebuild-auth.rebuild.iseja.net/admin/master/console/) |
-| `prod` | [https://auth.iseja.net](https://auth.iseja.net) (not deployed yet) | [https://auth.iseja.net/admin/master/console/](https://auth.iseja.net/admin/master/console/) |
+| `prod` | [https://auth.iseja.net](https://auth.iseja.net) | [https://auth.iseja.net/admin/master/console/](https://auth.iseja.net/admin/master/console/) |
 | `dbg`, `head`, `poc`, `src` | not deployed: Keycloak runs only in the standing environments ([ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md), point 2) | |
 
 - **Prod is the exception to the scheme**: it does not get the environment prefix and, unlike every other app, is not under `prod.iseja.net`. The hostname is overridden in [`envs/prod`](envs/prod/kustomization.yaml) for both the `Keycloak` resource and the `HTTPRoute`; the Terragrunt `keycloak_url` must equal it (checked by `kustomize-build`).
@@ -50,7 +50,7 @@ The base URL above lands in the `master` realm. Every realm has its own address 
 | `dev` | [https://dev-auth.dev.iseja.net/realms/iseja/account/](https://dev-auth.dev.iseja.net/realms/iseja/account/) | [https://dev-auth.dev.iseja.net/realms/admin/account/](https://dev-auth.dev.iseja.net/realms/admin/account/) |
 | `qa` | [https://qa-auth.qa.iseja.net/realms/iseja/account/](https://qa-auth.qa.iseja.net/realms/iseja/account/) | [https://qa-auth.qa.iseja.net/realms/admin/account/](https://qa-auth.qa.iseja.net/realms/admin/account/) |
 | `rebuild` | [https://rebuild-auth.rebuild.iseja.net/realms/iseja/account/](https://rebuild-auth.rebuild.iseja.net/realms/iseja/account/) | [https://rebuild-auth.rebuild.iseja.net/realms/admin/account/](https://rebuild-auth.rebuild.iseja.net/realms/admin/account/) |
-| `prod` (not deployed yet) | [https://auth.iseja.net/realms/iseja/account/](https://auth.iseja.net/realms/iseja/account/) | [https://auth.iseja.net/realms/admin/account/](https://auth.iseja.net/realms/admin/account/) |
+| `prod` | [https://auth.iseja.net/realms/iseja/account/](https://auth.iseja.net/realms/iseja/account/) | [https://auth.iseja.net/realms/admin/account/](https://auth.iseja.net/realms/admin/account/) |
 
 Paths below the base URL, for any realm `<realm>` (`master`, `iseja`, `admin`):
 
@@ -77,7 +77,7 @@ A private window, or a second browser profile, avoids all of this for a one-off 
 
 - **Keycloak version**: the `Keycloak` resource sets no `spec.image`, so the version is the one the operator ships. It follows the release of the [Keycloak operator](../../../infra/keycloak/keycloak-operator/README.md) (vendored under its `base/vendor/`).
 - **PostgreSQL version**: pinned with tag and digest in `spec.imageName` of [`base/cluster.yaml`](base/cluster.yaml); a kustomize replacement copies it into the dump job. Every update is a manual PR, a major one runs `pg_upgrade`: [Upgrading PostgreSQL](../../../../docs/identity/keycloak-backup-restore.md#upgrading-postgresql).
-- **Per environment**: `dev`, `qa` and `rebuild` follow `base/`. Once the unit is promoted, `prod` pins its own versions under `envs/prod/` and takes an update only after a 7-day age gate and a manual merge: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg). Until then `envs/prod/` only carries the hostname, dump bucket and 1Password key overrides.
+- **Per environment**: `dev`, `qa` and `rebuild` follow `base/`. `prod` pins its own versions under `envs/prod/` and takes an update only after a 7-day age gate and a manual merge: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg). Besides the pins, `envs/prod/` carries the hostname, dump bucket and 1Password key overrides.
 
 ## Operations
 
