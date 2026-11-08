@@ -82,6 +82,38 @@ terragrunt apply
 
 Then, in the Keycloak admin console of each realm, open *User federation* → `ucs` → *Test connection* and *Test authentication*, run *Synchronize all users*, and check that only the accounts of that realm's filter arrive and that their groups appear under *Groups*.
 
+## UCS failover test in `prod`
+
+The connection URL of both realms lists `baerbel` first, then `adelheid` ([#1956](https://github.com/isejalabs/homelab/issues/1956)). Domain controllers were not shut down for the test (a planned outage of each would affect DNS, DHCP and LDAP for everything else, see [#1821](https://github.com/isejalabs/homelab/issues/1821)); the traffic from the Keycloak pod to one domain controller was dropped instead, and a real shutdown of `baerbel` was done once at the end for comparison.
+
+**Method.** A temporary `CiliumNetworkPolicy` in the namespace `keycloak`, applied with `kubectl apply` (not in Git, not managed by Flux) and deleted afterwards, named `tmp-failover-block-<dc>`, selecting the pod by `app=keycloak`, `app.kubernetes.io/instance=keycloak` and `app.kubernetes.io/managed-by=keycloak-operator`:
+
+```yaml
+spec:
+  endpointSelector: {matchLabels: {app: keycloak, app.kubernetes.io/instance: keycloak, app.kubernetes.io/managed-by: keycloak-operator}}
+  egress:
+    - toEntities: [all]
+  egressDeny:
+    - toCIDR: [10.7.1.102/32]   # baerbel; adelheid is 10.7.1.101/32
+      toPorts:
+        - ports: [{port: "7636", protocol: TCP}, {port: "7389", protocol: TCP}]
+```
+
+A deny rule beats any allow rule, so the policy drops only LDAP(S) to that one address. **The `egress` allow-all rule is required:** a policy with only `egressDeny` still switches the pod to default-deny for egress, and the first attempt therefore also cut the database and DNS for 41 s (20:12:06 to 20:12:47 UTC) until it was deleted; Keycloak stayed `Ready`. A plain Kubernetes `NetworkPolicy` is allow-only and cannot express this at all.
+
+**Proof that the block bites**, before any login counted: `kubectl exec keycloak-0 -- bash -c 'timeout 4 bash -c "</dev/tcp/<ip>/7636"'` (the image has no `nc`) failed for the blocked address while the other domain controller, `keycloak-db-rw:5432` and cluster DNS still connected. Dropped packets are not rejected, so the client sees a connect timeout; the Keycloak log shows `SocketTimeoutException: Connect timed out`.
+
+| UTC (2026-11-08) | State | Result |
+| --- | --- | --- |
+| 20:03 to 20:05 | No block (baseline): `sebi` in `iseja`, `sebi-adm` in `admin` | Both logged in, no noticeable delay |
+| 20:13 to 20:17 | Both domain controllers blocked | `sebi-adm` login failed: `LDAP server is unavailable for provider [ucs]`, `LOGIN_ERROR`; proves the test measures the federation |
+| 20:17 to 20:24 | Only `baerbel` blocked | Logins worked via `adelheid`, 41 s each (reported by the owner) |
+| 20:24 to 20:27 | Only `adelheid` blocked | Logins worked without noticeable delay |
+| about 20:27 to 20:33 | `baerbel` powered off for real by the owner, no policy | Logins worked, 40 to 41 s |
+| 20:33 | `baerbel` back, no policy | Both domain controllers, the database and DNS reachable from the pod; `kubectl get cnp,ccnp -A` empty |
+
+The simulated outage (dropped packets) and the real shutdown behaved the same, so the policy is a realistic stand-in. Failing over costs about 41 s per login while the first domain controller is down, which matches roughly four 10 s timeouts (`connectionTimeout` and `readTimeout` of the federation are both 10 s); where the attempts come from was not traced. With only the second domain controller down the first answers and nothing is lost. Lowering the connection timeout would shorten the failover but also risks false failures on a slow bind; it was not changed.
+
 ## Caveats
 
 - A user filter decides which realm an account may use. Keep the `iseja` and `admin` filters disjoint.
