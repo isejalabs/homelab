@@ -1,7 +1,8 @@
 ---
 date: 2026-09-28
 reviewed: 2026-09-29
-status: Planning complete; implementation not started
+updated: 2026-11-02
+status: Superseded by the reconciled observability plan 2026-11-observability.md; kept for history. Originally planning complete; implementation not started
 assessment: September 2026 observability assessment ../audits/2026-09-observability.md
 tracking: O11Y umbrella issue https://github.com/isejalabs/homelab/issues/71
 ---

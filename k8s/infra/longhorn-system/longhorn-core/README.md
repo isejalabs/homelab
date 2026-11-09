@@ -35,7 +35,7 @@ The Longhorn UI is published through the `internal` Gateway under the subdomain 
 | `rebuild` | [https://rebuild-longhorn.rebuild.iseja.net](https://rebuild-longhorn.rebuild.iseja.net) |
 | `src` | [https://src-longhorn.src.iseja.net](https://src-longhorn.src.iseja.net) |
 
-The route is on the `internal` Gateway, so it is reachable from the LAN only. Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
+The route is on the `internal` Gateway, so it is reachable from the LAN only. In the environments that run [`longhorn-auth`](../longhorn-auth/README.md) it ends at a login proxy instead of at the UI ([`longhorn-sso.md`](../../../../docs/identity/longhorn-sso.md)); the others still serve the UI without a login. Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 
 ## Updates
 
