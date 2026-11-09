@@ -8,7 +8,7 @@ Browser sign-in to the Proxmox web interface through the identity provider of [A
 
 **Status (2026-11-08):** inventory done (read-only), module and design prepared, nothing applied. The Keycloak client waits for `oidc_clients` in the `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)). The AD realm, `root@pam` and every API token are untouched.
 
-**On this page:** [Inventory](#inventory) · [Reuse before build](#reuse-before-build) · [Design](#design) · [Roles](#roles) · [MFA](#mfa) · [Break-glass](#break-glass) · [Rollout](#rollout) · [Open decisions](#open-decisions)
+**On this page:** [Inventory](#inventory) · [Reuse before build](#reuse-before-build) · [Design](#design) · [Roles](#roles) · [MFA](#mfa) · [Break-glass](#break-glass) · [Rollout](#rollout) · [Decisions](#decisions)
 
 ## Inventory
 
