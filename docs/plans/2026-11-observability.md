@@ -1,6 +1,7 @@
 ---
 date: 2026-11-02
-status: Issues restructured on the owner's go on 2026-11-02, see Tracking below; decisions D3, D4, D6 and D11 come from the owner's answers, the others await confirmation; no stream started
+updated: 2026-11-09
+status: Issues restructured on the owner's go on 2026-11-02, see Tracking below; D3, D4, D6 and D11 come from the owner's answers (D3 and D11 revised on 2026-11-09), D2 is partly open, the others await confirmation; no stream started
 scope: everything under https://github.com/isejalabs/homelab/issues/71 — Checkmk notifications, load and history, capacity checks, backup freshness, searchable logs with remote querying, log-derived alerts and the daily digest
 supersedes: 2026-09-observability.md (Codex, tracked by phase issues) and 2026-09-observability-claude.md (Claude, comparison only); the September assessments in ../audits/ stay as they are
 builds-on: 2026-10-checkmk-consolidation.md (https://github.com/isejalabs/homelab/issues/1783), which is done except its phase 4
@@ -31,21 +32,21 @@ The two September plans were written in parallel and never reconciled; only the 
 
 ## Decisions
 
-D3, D4, D6 and D11 reflect the owner's answers of 2026-11-02; the others are proposed and need the owner's confirmation before the stream that depends on them starts.
+D3, D4, D6 and D11 reflect the owner's answers of 2026-11-02, D3 and D11 as revised on 2026-11-09. D2 is decided for hosts and Smart Ping, open for Kubernetes objects. The others are proposed and need the owner's confirmation before the stream that depends on them starts.
 
 | # | Decision | Reason |
 | --- | --- | --- |
 | D1 | Checkmk stays the system for metrics, capacity, history and **all notifications**, including log-derived ones. | One notification owner, existing RRDs and mail; no second alerting pipeline to maintain. |
-| D2 | Each host notifies from **exactly one** site. Smart Ping hosts notify from `prod_k8s`; everything else from `prod`; Kubernetes objects from the `*_k8s` site of their cluster. | Notifications are per site and never merged ([#1901](https://github.com/isejalabs/homelab/issues/1901)). |
-| D3 | The `*_k8s` sites own Kubernetes monitoring. `prod` stops running the Kubernetes special agent against the clusters, `rebuild` included (owner: `prod` does not need `rebuild`). A `rebuild_k8s` site is added for upgrade tests (stream I). | Removes duplicate polling from the only Nagios site; CMC is cheaper per check and only the Ultimate sites have dynamic host management. |
-| D4 | Smart Ping stays in `prod_k8s`. When the site nears the 750-service limit (WARN 675, CRIT 713 already monitored), Kubernetes services are trimmed first (owner, 2026-11-02). If Checkmk's limits become the constraint for Kubernetes monitoring in general, Prometheus taking over the Kubernetes part is the long-term alternative, not a ping-only site. | Keeps Smart Ping where it runs today and fewer sites, as decided on 2026-10-20. |
+| D2 | Each host notifies from **exactly one** site: Smart Ping hosts from `prod_k8s`, every other physical and virtual host (the Talos nodes included) from `prod`. **Open:** where Kubernetes objects notify from, decided in stream B. Either the `*_k8s` site of the cluster (it sees every object, down to pods) or `prod` (one tool for all notifications, but only the coarse objects it monitors). | Notifications are per site and never merged ([#1901](https://github.com/isejalabs/homelab/issues/1901)). |
+| D3 | **`prod` is the long-term central site** (owner, 2026-11-09). It monitors every physical and virtual host, the Talos nodes included, and the near-static Kubernetes objects (namespaces, Deployments, StatefulSets, DaemonSets) of `dev`, `qa` and `prod` through its Kubernetes special agent, so the trends of CPU, memory and filesystems live there. The `*_k8s` sites (Ultimate today, possibly superseded by Prometheus) add what the Community edition does not provide: pod-level and finer-grained detail. `rebuild` leaves `prod`'s special agent (owner, 2026-11-02: `prod` does not need it) and gets a `rebuild_k8s` site for upgrade tests (stream I). | One query per cluster feeds all objects as piggyback data, so the Kubernetes checks in `prod` are cheap; keeping the trends in the central site lets the extra tool change without losing history. |
+| D4 | Smart Ping stays in `prod_k8s`. When the site nears the 750-service limit (WARN 675, CRIT 713 already monitored), Kubernetes services are trimmed first (owner, 2026-11-02), starting with those that `prod` already covers (D3). If Checkmk's limits become the constraint for Kubernetes monitoring in general, Prometheus taking over the fine-grained Kubernetes part is the long-term alternative, not a ping-only site. | Keeps Smart Ping where it runs today and fewer sites, as decided on 2026-10-20. |
 | D5 | Log store: **single-node VictoriaLogs on loghost** (two instances, see D6), fed by a copy of the syslog-ng stream, with the compressed file archive kept as fallback. No Loki pilot. | Native syslog intake, low RAM, an official CLI (`vlogscli`: query, live tail, JSON output, basic/bearer auth). The Loki comparison would cost weeks to decide a difference that is noise next to the host writes in [#1596](https://github.com/isejalabs/homelab/issues/1596). |
 | D6 | **Two VictoriaLogs instances** on loghost (owner, 2026-11-02): one for authentication logs, one for application, Kubernetes and system logs, each with its own retention. Retention periods are decided in F2; authentication is likely longer than 90 days. syslog-ng routes authentication facilities and programs to the first instance and everything else to the second. | Retention is global per VictoriaLogs instance, so different periods need separate instances. |
 | D7 | Budget for the whole logging addition, both instances and collectors included, fixed now: **≤ 1 GB/day incremental host writes, ≤ 512 MiB RAM, ≤ 0.2 cores average** on loghost's host. Measured once after rollout, not as a precondition. | Replaces the open-ended "agree a budget from a seven-day baseline" of phase 0. |
 | D8 | Log-derived alerts become Checkmk services: a small special agent (`vlogs_query`) in [`isejalabs/checkmk-modules`](https://github.com/isejalabs/checkmk-modules) runs fixed LogsQL counts and maps them to thresholds. | Same pattern as `longhorn_capacity` and `rustfs_quota`; gets graphs, delays and notifications for free. The Checkmk Event Console is the alternative if a rule needs per-message state. |
-| D9 | Terraform for Checkmk stays limited to the special-agent hosts, rules and Password Store entries. Everything else is captured by a nightly **read-only REST export** of folders, rules and notification settings into Git, instead of hand-kept rule ids in the reference docs. | The provider is v0.0.5 with one maintainer and was spiked on 2.4; the export gives a diffable record at no risk to the sites. |
+| D9 | Terraform for Checkmk stays limited to the special-agent hosts, rules and Password Store entries. Everything else is captured by a nightly **read-only REST export** of folders, rules and notification settings into Git, instead of hand-kept rule ids in the reference docs. **Credential leak (owner, 2026-11-09):** the export fails closed. It runs as a read-only user and takes an allow-list of rule sets and host attributes, not everything. It replaces every secret-bearing value (passwords, SNMP communities, webhook URLs, API and user keys, contact addresses) with a placeholder and aborts on any value it cannot classify. A secret scanner runs before each commit, the first export is checked by hand against the secrets in 1Password, and the export goes to a **private** repository unless that check shows nothing sensitive is left. | The provider is v0.0.5 with one maintainer and was spiked on 2.4; the export gives a diffable record at no risk to the sites. Password Store entries are not returned by the REST API (Werk 13722); whether every inline password, SNMP community and notification parameter is masked is not verified, so the export must not rely on it. |
 | D10 | Longhorn capacity and failure-mode checks read the Longhorn CRDs through the Kubernetes API with a read-only ServiceAccount token, not through the unauthenticated Longhorn UI route. | Removes the exposure in [#1714](https://github.com/isejalabs/homelab/issues/1714); phase 0 already verified `nodes.longhorn.io` is readable that way. |
-| D11 | **Push for urgent, mail for the rest.** Smart Ping DOWN, disk/quota CRIT and backup failures go to a push channel that reaches the phone (Slack, already used by `qa_k8s`, or PagerDuty; choice in stream B); everything else goes by mail. The mail address and any webhook or integration key are secrets: kept in 1Password (and SOPS where Terraform needs them), never written in an issue, ADR, plan or reference doc. | E-mail is not read often enough for an outage; the repository and its issues are public. |
+| D11 | **Push for urgent, mail for the rest.** Smart Ping DOWN, disk/quota CRIT and backup failures go to a push channel that reaches the phone; everything else goes by mail. Candidates, in order of preference (owner, 2026-11-09): **Pushover** (a notification method built into Checkmk; one-time USD 4.99 per platform, 30-day trial, 10,000 messages a month; its priority can override quiet hours), then Slack (already used by `qa_k8s`), then PagerDuty; choice in stream B. The mail address and any webhook, API or user key are secrets: kept in 1Password (and SOPS where Terraform needs them), never written in an issue, ADR, plan or reference doc. | E-mail is not read often enough for an outage; the repository and its issues are public. Pushover has no recurring cost, which fits the €0 preference. |
 
 ## Streams
 
@@ -65,11 +66,12 @@ A restore of CT 7002056 from the Proxmox Backup Server is not needed: PBS restor
 
 Tracked in [#2158](https://github.com/isejalabs/homelab/issues/2158).
 
-- [ ] Push channel chosen (Slack or PagerDuty, D11): free-plan limits checked, an app notification on the owner's phone shown to arrive for a test notification; the mail address and the webhook or key stored as secrets only.
+- [ ] Push channel chosen (Pushover preferred, else Slack or PagerDuty, D11): availability of the method on the Community site `prod` checked, an app notification on the owner's phone shown to arrive for a test notification; the mail address and the keys stored as secrets only.
 - [ ] `prod_k8s`: the ten Smart Ping hosts notify by push and mail on DOWN/UP with no delay, tested with a controlled outage of one WAN target.
 - [ ] `prod_k8s` and `prod`: service notifications live with the delays settled in [#1900](https://github.com/isejalabs/homelab/issues/1900) (15 minutes catch-all, longer for `Check_MK Discovery`, none for `Check_MK HW/SW Inventory`), after the noise clean-up in [#1901](https://github.com/isejalabs/homelab/issues/1901) and the threshold work already done.
 - [ ] Disk and quota CRIT notify by push without the catch-all delay.
 - [ ] Every host notifies from exactly one site (D2), checked with a list of hosts that exist in more than one site.
+- [ ] Decided and recorded: whether Kubernetes objects notify from the `*_k8s` sites or from `prod` (D2).
 
 ### C — Backup freshness
 
@@ -84,7 +86,7 @@ Tracked in [#2159](https://github.com/isejalabs/homelab/issues/2159).
 Tracked in [#2160](https://github.com/isejalabs/homelab/issues/2160).
 
 - [ ] A 24-hour per-command CPU profile of CT 7002056 (process accounting or cgroup sampling), ranking the Nagios checks, special agents and precompiled host checks.
-- [ ] `prod` no longer runs the Kubernetes special agent against the clusters (D3); the services it loses are confirmed to exist in the `*_k8s` sites.
+- [ ] `prod`'s Kubernetes special agent no longer queries `rebuild` (D3); `dev`, `qa` and `prod` stay, since one query per cluster is cheap.
 - [ ] The most expensive remaining items addressed from the profile, starting with the Proxmox special agent of `pve4` (36 to 40 seconds per run) and the forked `check_icmp` host checks of hosts that have an agent (switch to the `Check_MK`-status host check where Smart Ping already covers fast detection).
 - [ ] Measured before and after on the Proxmox RRD of CT 7002056 against a trial target of 0.5 cores day average (today about 0.75); the owner could not judge the number up front, so the target is revisited with the profile's result rather than treated as fixed. This closes phase 4 of the consolidation plan.
 
@@ -113,7 +115,7 @@ Tracked in [#1439](https://github.com/isejalabs/homelab/issues/1439) (F1 to F3),
 
 Tracked in [#2161](https://github.com/isejalabs/homelab/issues/2161).
 
-- [ ] Nightly read-only export of folders, rules, notification rules and host attributes of each running site into Git (D9), so the reference docs link to the export instead of repeating rule ids. Contact addresses, webhook URLs and integration keys are stripped from the export (D11).
+- [ ] Nightly read-only export of an allow-list of folders, rule sets, notification rules and host attributes of each running site into Git (D9), so the reference docs link to the export instead of repeating rule ids. Fails closed on credentials: secret-bearing values replaced by placeholders, an unknown value aborts the run, a secret scanner before each commit, the first export checked by hand against the secrets in 1Password, and a private repository unless that check shows nothing sensitive is left.
 - [ ] The Terraform provider and the two custom special agents re-checked against Checkmk 2.5 (the ADR 0015 spike was on 2.4, and 2.5 changes the password reference format).
 - [ ] A short upgrade checklist for the next Checkmk release: what to re-test, in which order.
 - [ ] The open post-merge follow-up issues of the Checkmk work reviewed once: closed where done or obsolete, the rest folded into G or E.
@@ -165,13 +167,16 @@ The two September plans carry a status line pointing to this plan; their bodies 
 
 - PBS restore: proven with other VMs and LXCs, accepted for the monitoring container too (stream A).
 - `rebuild`: `prod` does not need it for Kubernetes monitoring; a `rebuild_k8s` site is needed to test upgrades (D3, stream I).
+- Kubernetes in `prod` (2026-11-09): `prod` keeps its Kubernetes special agent and becomes the long-term central site for all hosts and the near-static Kubernetes objects with their trends; the `*_k8s` sites or Prometheus add fine-grained detail (D3). Where Kubernetes objects notify from is open (D2).
+- Configuration export (2026-11-09): must not leak credentials kept in Checkmk (D9).
 - Service limit of `prod_k8s`: trim Kubernetes services first; Prometheus may take over Kubernetes monitoring if Checkmk becomes the limiting factor (D4).
 - Logs: two VictoriaLogs instances, authentication and applications; retention to be decided, authentication likely longer than 90 days (D6, F2).
-- Notifications: the mail address stays in a secret, never in a public issue, ADR or plan; Slack or PagerDuty for push to the phone, since mail is not read often enough (D11, stream B).
+- Notifications: the mail address stays in a secret, never in a public issue, ADR or plan; push to the phone, since mail is not read often enough, with Pushover preferred over Slack and PagerDuty (2026-11-09) (D11, stream B).
 - Load target: try 0.5 cores day average (stream D).
 
 ## Still open
 
 1. Retention periods of the two VictoriaLogs instances (decided in F2, before ingest).
-2. Slack or PagerDuty for push (decided in B, after checking their free plans).
-3. When Prometheus would replace Checkmk for Kubernetes: what counts as "Checkmk is the limiting factor" (for example, trimming below a minimum useful service set, or the free licence terms changing).
+2. The push channel: Pushover unless its test in stream B fails, else Slack or PagerDuty.
+3. Where Kubernetes objects notify from: the `*_k8s` sites or `prod` (D2, decided in stream B).
+4. When Prometheus would replace Checkmk for Kubernetes: what counts as "Checkmk is the limiting factor" (for example, trimming below a minimum useful service set, or the free licence terms changing).
