@@ -182,6 +182,7 @@ nav:
   - CI: docs/architecture/ci.md
 - Reference:
   - Index: docs/reference/README.md
+  - Backup freshness: docs/reference/backup-freshness.md
   - Environments: docs/reference/environments.md
   - Monitoring sites: docs/reference/monitoring-sites.md
   - Monitoring thresholds: docs/reference/monitoring-thresholds.md

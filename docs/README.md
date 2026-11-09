@@ -42,6 +42,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Restore the Keycloak database | [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
+| Check whether a backup is fresh and who is told when it is not | [`backup-freshness.md`](reference/backup-freshness.md) |
 
 ### Identity (Keycloak)
 
