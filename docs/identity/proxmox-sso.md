@@ -78,7 +78,7 @@ So the second factor of the new login has to come from Keycloak. The module `key
 
 ## Rollout
 
-Each step only after the previous one, and each step that changes the live cluster needs the owner's go.
+Each step only after the previous one, and each step that changes the live cluster needs the owner's go (given on 2026-11-09). Done so far: step 1, step 2 (the clients `proxmox-iseja` and `proxmox-admin` exist in `prod` since 2026-11-09) and step 3 (the UCS groups `sec.app.proxmox.admin|operator|readonly` and their members were created by the owner).
 
 1. [#2227](https://github.com/isejalabs/homelab/issues/2227) merged: `oidc_clients` available; a throwaway client proven in `dev`.
 2. Add the client `proxmox` to the `prod` (and, for testing the unit, `dev`) `keycloak-realm` input; apply from `main`.
@@ -87,13 +87,15 @@ Each step only after the previous one, and each step that changes the live clust
 5. Test: `sebi-adm` through `kc-admin` (administrative rights), an account outside the group (no rights), `root@pam` and the AD login still work, automation unaffected (`terragrunt plan` of a `vms` unit and the Checkmk and CSI tokens still authenticate).
 6. [#2236](https://github.com/isejalabs/homelab/issues/2236): UCS groups, realm `kc-iseja`, `Operator` role, `PVEAuditor` for `mary`; verify with the real accounts.
 
-## Open decisions
+## Decisions
 
-| # | Decision | Proposal |
+Confirmed by the owner on 2026-11-09:
+
+| # | Decision | Outcome |
 | --- | --- | --- |
 | 1 | Which Keycloak issues for the single cluster | `prod`; `dev`/`qa` prove the unit without rights on the hypervisors |
 | 2 | Autocreate users or pre-create them | Autocreate, rights only from groups |
 | 3 | Realm IDs | `kc-admin`, `kc-iseja` (comments name the Keycloak realm) |
-| 4 | Where the unit lives | One `proxmox-access` unit for the cluster under `terragrunt/prod/eu-central-1/prod/` (the cluster is shared by all environments; the `prod` IdP serves it) |
-| 5 | MFA gate | `second_factor` on the realm `admin` before the `Administrator` grant |
-| 6 | Scope of the operator's guests | Whole cluster, or a pool of guests; decided in [#2236](https://github.com/isejalabs/homelab/issues/2236) |
+| 4 | Where the unit lives | One `proxmox-access` unit for the cluster under `terragrunt/prod/eu-central-1/prod/` |
+| 5 | MFA gate | `second_factor` on the realm `admin`, applied in `prod` ([#2214](https://github.com/isejalabs/homelab/pull/2214)) before the `Administrator` grant |
+| 6 | Scope of the operator and the read-only account | Whole cluster (ACL path `/`) |
