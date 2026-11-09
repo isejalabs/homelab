@@ -1,7 +1,7 @@
 ---
 date: 2026-11-02
 updated: 2026-11-09
-status: Issues restructured on the owner's go on 2026-11-02, see Tracking below; D3, D4, D6 and D11 come from the owner's answers (D3 and D11 revised on 2026-11-09), D2 is partly open, the others await confirmation; no stream started
+status: Decisions D1 to D11 confirmed by the owner on 2026-11-09 (D3 and D11 revised, D10 amended); D2 still open for Kubernetes objects; issues restructured on 2026-11-02, see Tracking below; no stream started
 scope: everything under https://github.com/isejalabs/homelab/issues/71 — Checkmk notifications, load and history, capacity checks, backup freshness, searchable logs with remote querying, log-derived alerts and the daily digest
 supersedes: 2026-09-observability.md (Codex, tracked by phase issues) and 2026-09-observability-claude.md (Claude, comparison only); the September assessments in ../audits/ stay as they are
 builds-on: 2026-10-checkmk-consolidation.md (https://github.com/isejalabs/homelab/issues/1783), which is done except its phase 4
@@ -32,7 +32,7 @@ The two September plans were written in parallel and never reconciled; only the 
 
 ## Decisions
 
-D3, D4, D6 and D11 reflect the owner's answers of 2026-11-02, D3 and D11 as revised on 2026-11-09. D2 is decided for hosts and Smart Ping, open for Kubernetes objects. The others are proposed and need the owner's confirmation before the stream that depends on them starts.
+All decisions were confirmed by the owner on 2026-11-09. D3, D4, D6 and D11 come from the owner's own answers (2026-11-02, D3 and D11 revised on 2026-11-09), D10 was amended the same day. D2 is decided for hosts and Smart Ping and still open for Kubernetes objects.
 
 | # | Decision | Reason |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ D3, D4, D6 and D11 reflect the owner's answers of 2026-11-02, D3 and D11 as revi
 | D7 | Budget for the whole logging addition, both instances and collectors included, fixed now: **≤ 1 GB/day incremental host writes, ≤ 512 MiB RAM, ≤ 0.2 cores average** on loghost's host. Measured once after rollout, not as a precondition. | Replaces the open-ended "agree a budget from a seven-day baseline" of phase 0. |
 | D8 | Log-derived alerts become Checkmk services: a small special agent (`vlogs_query`) in [`isejalabs/checkmk-modules`](https://github.com/isejalabs/checkmk-modules) runs fixed LogsQL counts and maps them to thresholds. | Same pattern as `longhorn_capacity` and `rustfs_quota`; gets graphs, delays and notifications for free. The Checkmk Event Console is the alternative if a rule needs per-message state. |
 | D9 | Terraform for Checkmk stays limited to the special-agent hosts, rules and Password Store entries. Everything else is captured by a nightly **read-only REST export** of folders, rules and notification settings into Git, instead of hand-kept rule ids in the reference docs. **Credential leak (owner, 2026-11-09):** the export fails closed. It runs as a read-only user and takes an allow-list of rule sets and host attributes, not everything. It replaces every secret-bearing value (passwords, SNMP communities, webhook URLs, API and user keys, contact addresses) with a placeholder and aborts on any value it cannot classify. A secret scanner runs before each commit, the first export is checked by hand against the secrets in 1Password, and the export goes to a **private** repository unless that check shows nothing sensitive is left. | The provider is v0.0.5 with one maintainer and was spiked on 2.4; the export gives a diffable record at no risk to the sites. Password Store entries are not returned by the REST API (Werk 13722); whether every inline password, SNMP community and notification parameter is masked is not verified, so the export must not rely on it. |
-| D10 | Longhorn capacity and failure-mode checks read the Longhorn CRDs through the Kubernetes API with a read-only ServiceAccount token, not through the unauthenticated Longhorn UI route. | Removes the exposure in [#1714](https://github.com/isejalabs/homelab/issues/1714); phase 0 already verified `nodes.longhorn.io` is readable that way. |
+| D10 | Longhorn capacity and failure-mode checks read the Longhorn CRDs through the Kubernetes API with a read-only ServiceAccount token, not through the Longhorn UI route (owner, confirmed 2026-11-09). The UI route is protected by oauth2-proxy since [#2228](https://github.com/isejalabs/homelab/issues/2228) (operator and read-only access in [#2229](https://github.com/isejalabs/homelab/issues/2229)); monitoring keeps working there only through a skip-auth exception for `GET /v1/nodes`. | The CRD path gives the agent its own least-privilege identity, independent of the human SSO, so the skip-auth exception can be removed and [#1714](https://github.com/isejalabs/homelab/issues/1714) is solved; phase 0 already verified `nodes.longhorn.io` is readable that way. |
 | D11 | **Push for urgent, mail for the rest.** Smart Ping DOWN, disk/quota CRIT and backup failures go to a push channel that reaches the phone; everything else goes by mail. Candidates, in order of preference (owner, 2026-11-09): **Pushover** (a notification method built into Checkmk; one-time USD 4.99 per platform, 30-day trial, 10,000 messages a month; its priority can override quiet hours), then Slack (already used by `qa_k8s`), then PagerDuty; choice in stream B. The mail address and any webhook, API or user key are secrets: kept in 1Password (and SOPS where Terraform needs them), never written in an issue, ADR, plan or reference doc. | E-mail is not read often enough for an outage; the repository and its issues are public. Pushover has no recurring cost, which fits the €0 preference. |
 
 ## Streams
@@ -94,7 +94,7 @@ Tracked in [#2160](https://github.com/isejalabs/homelab/issues/2160).
 
 Tracked in [#1438](https://github.com/isejalabs/homelab/issues/1438), the remainder of phase 1A; the agents themselves are live.
 
-- [ ] `longhorn_capacity` reads the CRDs through the Kubernetes API (D10); the Longhorn UI route is no longer used by monitoring ([#1714](https://github.com/isejalabs/homelab/issues/1714) closed).
+- [ ] `longhorn_capacity` reads the CRDs through the Kubernetes API (D10); the Longhorn UI route is no longer used by monitoring, its skip-auth exception for `GET /v1/nodes` (from [#2228](https://github.com/isejalabs/homelab/issues/2228)) is removed, and [#1714](https://github.com/isejalabs/homelab/issues/1714) is closed.
 - [ ] Values reconciled against the Longhorn UI, TrueNAS and RustFS for one known volume and one bucket; time-to-full shown where history is long enough, explicit "unknown" where it is not.
 - [ ] Longhorn failure modes as services: faulted or degraded volumes, volumes stuck attaching, instance managers not running (the list on [#1441](https://github.com/isejalabs/homelab/issues/1441)).
 - [ ] Daily USB backup-disk SMART and usage checks unchanged; no new spin-ups.
