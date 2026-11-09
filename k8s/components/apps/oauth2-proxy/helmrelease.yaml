@@ -23,6 +23,9 @@ spec:
       # S256 needs "PKCE: S256" on the Keycloak client
       code-challenge-method: S256
       cookie-expire: 8h
+      # Ask Keycloak again every minute (refresh token): a logout or a disabled account in Keycloak ends the session
+      # within about that minute instead of at the end of the 8 hours
+      cookie-refresh: 1m
       # LDAP accounts need not have an e-mail address: the login name is what the session carries
       insecure-oidc-allow-unverified-email: "true"
       oidc-email-claim: preferred_username

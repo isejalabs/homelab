@@ -27,7 +27,7 @@ browser ──https──► Gateway (HTTPRoute) ──► oauth2-proxy ──ht
 | provider | `keycloak-oidc`, PKCE `S256` | the Keycloak client must have PKCE set to `S256` |
 | authorization | `--allowed-group` | the group claim alone decides; `groups` is requested as a scope (`openid profile groups`) |
 | user name | `--oidc-email-claim=preferred_username`, unverified e-mail allowed | accounts come from LDAP and need not have an e-mail address |
-| session | encrypted cookie, 8 hours | no Redis to run; a change of group membership counts at the latest after 8 hours |
+| session | encrypted cookie, 8 hours, refreshed against Keycloak every minute (`--cookie-refresh=1m`) | no Redis to run. The cookie is the proxy's own session and does not end when the Keycloak session does, which was seen in `dev`: after a logout in Keycloak the dashboard stayed open. The refresh asks Keycloak with the refresh token every minute, so a logout, a disabled account or a removed group takes effect within about a minute; `/oauth2/sign_out` ends the proxy session at once |
 | `--skip-provider-button` | on | one provider only, so go straight to Keycloak |
 | `--reverse-proxy` | on | build the callback URL from `X-Forwarded-Host` and `-Proto` of the Gateway |
 | replicas, PDB | 1, none | a PodDisruptionBudget with one replica blocks draining the node |
