@@ -40,7 +40,7 @@ inputs = {
   # The Checkmk site prod_k8s (Ultimate, on monitoring2) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
   # include_email stays off: notifications on prod_k8s are not enabled yet (#1901), and the e-mail attribute plus the
-  # contact group "all" would make the user a mail recipient. The Community site prod is not set up.
+  # contact group "all" would make the user a mail recipient.
   saml_clients = {
     "prod_k8s-iseja" = {
       realm     = "iseja"
@@ -56,10 +56,19 @@ inputs = {
     }
   }
 
+  # OIDC clients. The secret of each goes to the 1Password item keycloak-oidc-<key>#prod (oidc_secret_item_title_format in
+  # _envcommon/keycloak-realm.hcl).
+  #
   # Proxmox VE (cluster ISEJA-Lab, four nodes) signs in humans through OpenID Connect, one client per realm because a
   # Proxmox OpenID realm trusts a single issuer. Proxmox sends the address the browser used as the redirect URI, so every
   # node FQDN is listed, with and without a trailing slash. The Proxmox side (realms, groups, ACLs) is the unit
   # proxmox-access, see docs/identity/proxmox-sso.md.
+  #
+  # The Community site prod (monitoring2) has neither SAML nor OIDC. The system Apache in front of it signs humans in with
+  # mod_auth_openidc and hands the user name to Checkmk in a header, see docs/identity/checkmk-sso.md. One client per
+  # realm and entry point, because Checkmk is reached under two host names: monitoring2.home.iseja.net (realm iseja) and
+  # monitoring.home.iseja.net (realm admin, for the WebAuthn-protected administrators). Salt reads the secrets from the
+  # 1Password items for the Apache.
   oidc_clients = {
     "proxmox-iseja" = {
       realm     = "iseja"
@@ -78,6 +87,18 @@ inputs = {
         [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006"],
         [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006/"],
       )
+    }
+    "checkmk-prod-iseja" = {
+      realm                     = "iseja"
+      name                      = "Checkmk prod (iseja)"
+      redirect_uris             = ["https://monitoring2.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring2.home.iseja.net/*"]
+    }
+    "checkmk-prod-admin" = {
+      realm                     = "admin"
+      name                      = "Checkmk prod (admin)"
+      redirect_uris             = ["https://monitoring.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring.home.iseja.net/*"]
     }
   }
 }
