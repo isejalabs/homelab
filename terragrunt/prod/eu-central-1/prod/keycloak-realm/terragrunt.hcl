@@ -29,6 +29,11 @@ terraform {
 # replace-domain/prefix-domain components (k8s/apps/identity/keycloak/envs/prod); scripts/ci/kustomize-build-all.sh fails
 # when this URL differs from the rendered Keycloak and HTTPRoute hostnames, so change them together.
 # ---------------------------------------------------------------------------------------------------------------------
+locals {
+  # The Proxmox VE cluster nodes, which each serve the web UI on their own FQDN (Let's Encrypt certificate per node).
+  proxmox_nodes = ["pve1", "pve4", "pve5", "pve6"]
+}
+
 inputs = {
   keycloak_url = "https://auth.iseja.net"
 
@@ -48,6 +53,31 @@ inputs = {
       client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
       acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
       name      = "Checkmk prod_k8s (admin)"
+    }
+  }
+
+  # Proxmox VE (cluster ISEJA-Lab, four nodes) signs in humans through OpenID Connect, one client per realm because a
+  # Proxmox OpenID realm trusts a single issuer. Proxmox sends the address the browser used as the redirect URI, so every
+  # node FQDN is listed, with and without a trailing slash. The Proxmox side (realms, groups, ACLs) is the unit
+  # proxmox-access, see docs/identity/proxmox-sso.md.
+  oidc_clients = {
+    "proxmox-iseja" = {
+      realm     = "iseja"
+      client_id = "proxmox-iseja"
+      name      = "Proxmox VE (iseja)"
+      redirect_uris = concat(
+        [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006"],
+        [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006/"],
+      )
+    }
+    "proxmox-admin" = {
+      realm     = "admin"
+      client_id = "proxmox-admin"
+      name      = "Proxmox VE (admin)"
+      redirect_uris = concat(
+        [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006"],
+        [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006/"],
+      )
     }
   }
 }
