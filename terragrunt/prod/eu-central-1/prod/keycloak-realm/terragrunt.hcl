@@ -79,5 +79,16 @@ inputs = {
         [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006/"],
       )
     }
+    # Zigbee2MQTT has no login of its own; the unit zigbee2mqtt-auth puts an oauth2-proxy (realm admin, group
+    # sec.app.zigbee2mqtt.admin) in front of it, see docs/identity/zigbee2mqtt-sso.md. Zigbee2MQTT runs in prod only,
+    # hence no entry in the dev and qa units. The generated secret lands in the 1Password item
+    # keycloak-oidc-zigbee2mqtt-admin#prod, which an ExternalSecret hands to the proxy.
+    "zigbee2mqtt-admin" = {
+      realm         = "admin"
+      client_id     = "zigbee2mqtt"
+      name          = "Zigbee2MQTT"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "zigbee2mqtt")}/oauth2/callback"]
+      pkce          = true
+    }
   }
 }
