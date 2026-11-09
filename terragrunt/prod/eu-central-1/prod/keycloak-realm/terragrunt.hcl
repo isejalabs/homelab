@@ -35,7 +35,7 @@ inputs = {
   # The Checkmk site prod_k8s (Ultimate, on monitoring2) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
   # include_email stays off: notifications on prod_k8s are not enabled yet (#1901), and the e-mail attribute plus the
-  # contact group "all" would make the user a mail recipient. The Community site prod is not set up.
+  # contact group "all" would make the user a mail recipient.
   saml_clients = {
     "prod_k8s-iseja" = {
       realm     = "iseja"
@@ -48,6 +48,28 @@ inputs = {
       client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
       acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
       name      = "Checkmk prod_k8s (admin)"
+    }
+  }
+
+  # The Community site prod (monitoring2) has neither SAML nor OIDC. The system Apache in front of it signs humans in with
+  # mod_auth_openidc and hands the user name to Checkmk in a header, see docs/identity/checkmk-sso.md. One client per
+  # realm and entry point, because Checkmk is reached under two host names: monitoring2.home.iseja.net (realm iseja) and
+  # monitoring.home.iseja.net (realm admin, for the WebAuthn-protected administrators). The generated secrets land in
+  # the 1Password items keycloak-oidc-checkmk-prod-<realm>#prod (vault K8S), from which Salt reads them for the Apache.
+  oidc_clients = {
+    "checkmk-prod-iseja" = {
+      realm                     = "iseja"
+      name                      = "Checkmk prod (iseja)"
+      redirect_uris             = ["https://monitoring2.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring2.home.iseja.net/*"]
+      secret_item_title         = "keycloak-oidc-checkmk-prod-iseja#prod"
+    }
+    "checkmk-prod-admin" = {
+      realm                     = "admin"
+      name                      = "Checkmk prod (admin)"
+      redirect_uris             = ["https://monitoring.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring.home.iseja.net/*"]
+      secret_item_title         = "keycloak-oidc-checkmk-prod-admin#prod"
     }
   }
 }
