@@ -1,0 +1,12 @@
+# Token of the ServiceAccount in monitoring-reader.yaml. It holds no data in the repository: the token controller fills
+# in token and ca.crt in the cluster, so this file is excluded from the forbid-secrets pre-commit hook. A long-lived
+# token, because Checkmk cannot request short-lived ones: it stays valid until this Secret is deleted (or the cluster
+# is recreated); deleting it revokes the token, Flux then recreates the Secret with a new one.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: checkmk-longhorn-reader-token
+  namespace: longhorn-system
+  annotations:
+    kubernetes.io/service-account.name: checkmk-longhorn-reader
+type: kubernetes.io/service-account-token

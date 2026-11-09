@@ -6,6 +6,8 @@ namespace: longhorn-system
 resources:
   - job-fs-trim-default.yaml
   - job-snapshot.yaml
+  - monitoring-reader-token.yaml
+  - monitoring-reader.yaml
   - sc-cache.yaml
   - sc-ext4.yaml
   - sc-fast.yaml

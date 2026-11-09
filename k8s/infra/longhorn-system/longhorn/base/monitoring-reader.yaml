@@ -1,0 +1,40 @@
+# Read-only identity of the Checkmk special agent longhorn_capacity (decision D10 in
+# docs/plans/2026-11-observability.md): it may only get and list the three Longhorn CRDs it reads, in this namespace,
+# through the Kubernetes API, independent of the human SSO in front of the Longhorn UI. The token of its Secret
+# (monitoring-reader-token.yaml) is copied once into 1Password, from where Terraform writes it into the Checkmk Password Store, see
+# docs/operations/longhorn-monitoring.md.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: checkmk-longhorn-reader
+  namespace: longhorn-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: checkmk-longhorn-reader
+  namespace: longhorn-system
+rules:
+  - apiGroups:
+      - longhorn.io
+    resources:
+      - instancemanagers
+      - nodes
+      - volumes
+    verbs:
+      - get
+      - list
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: checkmk-longhorn-reader
+  namespace: longhorn-system
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: checkmk-longhorn-reader
+subjects:
+  - kind: ServiceAccount
+    name: checkmk-longhorn-reader
+    namespace: longhorn-system
