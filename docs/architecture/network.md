@@ -157,6 +157,10 @@ spec:
 
 The Cloudflare API token itself is a `SealedSecret` — see [`secrets.md`](secrets.md#sealed-secrets--for-secrets-committed-as-ciphertext) for how it got there. This is Cloudflare's **only** role in this architecture: issuing certificates. There is no Cloudflare Tunnel or other public-ingress path anywhere in `k8s/` — see the gap noted below.
 
+## Network policies
+
+Pods accept connections from every other pod unless a policy says otherwise; the repository has few policies, and the model for them is still open ([#1995](https://github.com/isejalabs/homelab/issues/1995)). The existing ones are the `NetworkPolicy` objects that the Longhorn chart and the Keycloak operator ship for their own pods, and the first `CiliumNetworkPolicy` of the repository, `longhorn-ui-only-from-oauth2-proxy` in [`longhorn-auth`](../../k8s/infra/longhorn-system/longhorn-auth/base/networkpolicy.yaml), which admits only the login proxy to the Longhorn UI ([`longhorn-sso.md`](../identity/longhorn-sso.md)). Traffic from the Gateway to a backend needs no policy unless the backend has one that selects it.
+
 ## DNS: AdGuard + Unbound
 
 These are two separate apps, not a sidecar pair — [`k8s/apps/dns/adguard/`](../../k8s/apps/dns/adguard/) and [`k8s/apps/dns/unbound/`](../../k8s/apps/dns/unbound/) each have their own Deployment and `LoadBalancer` Service. AdGuard is the LAN's actual DNS server (filtering/ad-blocking); Unbound is its upstream resolver for anything under the internal domain — [`k8s/apps/dns/adguard/base/config/AdGuardHome.yaml`](../../k8s/apps/dns/adguard/base/config/AdGuardHome.yaml):

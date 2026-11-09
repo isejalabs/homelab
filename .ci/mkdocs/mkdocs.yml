@@ -162,6 +162,8 @@ nav:
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
+    - Longhorn human SSO: docs/identity/longhorn-sso.md
+    - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
@@ -186,6 +188,7 @@ nav:
   - Index: k8s/README.md
   - Shared components: k8s/components/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
+  - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
   - Storage component: k8s/components/apps/storage/README.md
   - Transformers:
     - add-labels: k8s/components/transformers/add-labels/README.md
@@ -214,6 +217,7 @@ nav:
     - kopiur repository: k8s/infra/kopiur-system/kopiur-repository/README.md
     - kubelet-serving-cert-approver: k8s/infra/kube-system/kubelet-serving-cert-approver/README.md
     - Longhorn classes and jobs: k8s/infra/longhorn-system/longhorn/README.md
+    - Longhorn login: k8s/infra/longhorn-system/longhorn-auth/README.md
     - Longhorn core: k8s/infra/longhorn-system/longhorn-core/README.md
     - proxmox-csi: k8s/infra/csi-proxmox/proxmox-csi/README.md
     - sealed-secrets: k8s/infra/sealed-secrets/sealed-secrets/README.md
