@@ -6,7 +6,7 @@ status: draft
 
 Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`sebi-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-08):** prepared for `dev`; the Keycloak client does not exist yet, it comes with `oidc_clients` in the `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)). Nothing is applied to a cluster.
+**Status (2026-11-09):** prepared for `dev`, as code only. The client is declared in the `dev` `keycloak-realm` unit but not applied, and nothing is applied to a cluster. `oidc_clients` exists since [#2227](https://github.com/isejalabs/homelab/issues/2227).
 
 ## How it works
 
@@ -14,8 +14,8 @@ The Web UI of the operator (port 9080, published by the `HTTPRoute` of [`flux-op
 
 | Part | Where it lives |
 | --- | --- |
-| Keycloak client `flux-operator` in the realm `admin` | Code: `oidc_clients` of the unit `keycloak-realm` ([#2227](https://github.com/isejalabs/homelab/issues/2227)); redirect URI `https://<flux host>/oauth2/callback` |
-| Client secret | 1Password item `flux-operator-oidc#<env>` (field `password`), delivered by an `ExternalSecret`, rendered by the chart into the web config; never in Git |
+| Keycloak client `flux-operator` in the realm `admin` | Code: entry `flux-operator-admin` in `oidc_clients` of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) ([OIDC clients](keycloak-realms.md#oidc-clients)); redirect URI `https://<flux host>/oauth2/callback` |
+| Client secret | 1Password item `keycloak-oidc-flux-operator-admin#<env>` (field `password`), written by the `keycloak-realm` unit and delivered by an `ExternalSecret`, rendered by the chart into the web config; never in Git |
 | Web config (issuer, claim rules) | `HelmRelease` values `web.config` in [`envs/<env>/helmrelease.yaml`](../../k8s/infra/flux-system/flux-operator/envs/dev/helmrelease.yaml) |
 | Authorization | `ClusterRoleBinding` of the group `sec.app.flux-operator.admin` to the chart's `flux-web-admin` |
 | UCS group | `sec.app.flux-operator.admin`, member `sebi-adm` ([`ucs-groups.md`](ucs-groups.md)); creation needs the owner's go |
@@ -48,6 +48,6 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 ## Open points
 
-- Client secret and client definition: wait for [#2227](https://github.com/isejalabs/homelab/issues/2227); adjust the 1Password item name and fields to its decision.
+- Apply the `dev` `keycloak-realm` unit (the owner's go; plan must only add the client, its default scopes and the 1Password item), then roll out the overlay with the `track-branch` skill.
 - MFA behaviour of the realm `admin` is recorded after the first real login.
 - Roles for `sebi` and `mary` and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
