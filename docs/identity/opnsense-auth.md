@@ -10,7 +10,7 @@ OPNsense does not use the Keycloak identity provider. The gateways `gw2` and `gw
 
 ## Decision
 
-Proposed, to be confirmed against the installed version and edition (see [Not verified](#not-verified)):
+Proposed; the installed version (26.7.8, reported by the owner on 2026-11-09) is the one whose source was read, so the findings below apply to it directly (see [Not verified](#not-verified) for what is left):
 
 - **Server type "LDAP + Timebased One Time Password"** (`ldap-totp`) against the UCS domain controllers, for the web interface and the console/SSH password login. The directory supplies the password and the group membership; the second factor is a TOTP seed stored in the local OPNsense user. Nothing about the second factor depends on UCS, Keycloak or the cluster.
 - **`root` stays a local account** with the "Local Database" server as the last entry of the server list. It is the break-glass login and is not touched.
@@ -19,7 +19,7 @@ Proposed, to be confirmed against the installed version and edition (see [Not ve
 
 ## What OPNsense can do
 
-Source read: [`opnsense/core`](https://github.com/opnsense/core) tag `26.7.8` (the newest release at the time of writing, 2026-11-08), directory `src/opnsense/mvc/app/library/OPNsense/Auth/`. The installed version is not yet known; the behaviour below is old, stable code, but the privilege list differs between releases.
+Source read: [`opnsense/core`](https://github.com/opnsense/core) tag `26.7.8` (the newest release at the time of writing, 2026-11-08), directory `src/opnsense/mvc/app/library/OPNsense/Auth/`. `gw2` and `gw3` run exactly this version (reported by the owner), so the code and the privilege list below are those of the installed release. The version line is the Community Edition (the tag exists in `opnsense/core`; the Business Edition with OIDC uses its own numbering), so no OIDC login is available; this is inferred from the version, the edition itself was not asked.
 
 | Question | Answer | Evidence |
 | --- | --- | --- |
@@ -34,7 +34,7 @@ Source read: [`opnsense/core`](https://github.com/opnsense/core) tag `26.7.8` (t
 | Bind account | Always required: the user's DN is found by a search with the bind account, then the password is verified by a bind as that user. An empty bind DN means an anonymous bind, which UCS refuses here (`ldap/acl/read/anonymous: no`, see [`keycloak-realms.md`](keycloak-realms.md#ucs-setup)). So a dedicated read-only account is needed (see [Configuration](#configuration)). | `LDAP::_authenticate()` |
 | Several servers as fallback | The list under `System ‣ Settings ‣ Administration ‣ Authentication` is ordered; the first server that accepts the credentials wins, and the help text names it as the fallback during connectivity issues. A failed server is skipped. | `AuthenticationFactory::authenticate()`, `system_advanced_admin.php` |
 | What the list covers | **Both** the web interface (`Services/WebGui`) **and** the system login (`Services/System`: console, `sshd`, `su`, `sudo`) read the same list. SSH keys are not affected. | `Auth/Services/*.php` |
-| High availability | Users and groups, and authentication servers, are synchronised by the HA sync only if they are ticked as items in `System ‣ High Availability ‣ Settings` (`core.inc`, sections `system.user,system.group` and `system.authserver`). Certificates and authorities are a third item. | `core_xmlrpc_sync()` |
+| High availability | The HA sync (enabled here, per the owner) copies the items ticked in `System ‣ High Availability ‣ Settings` from the master to the backup: users and groups (`system.user,system.group`), authentication servers (`system.authserver`), certificates and authorities, and the **Web GUI** item (`system.webgui`), which holds the server list that decides who may log in. Which items are ticked has not been read out. A change made on the master therefore reaches the backup within seconds, including a wrong server list. | `core_xmlrpc_sync()` (26.7.8) |
 
 ## Configuration
 
@@ -45,9 +45,9 @@ Planned content of [#2238](https://github.com/isejalabs/homelab/issues/2238); no
 - Groups `sec.app.opnsense.admin` (members: `sebi-adm`), later `sec.app.opnsense.operator` and `sec.app.opnsense.readonly` ([#2239](https://github.com/isejalabs/homelab/issues/2239)). Accounts only, no nested groups (LDAP `memberOf` is direct only).
 - A read-only bind account **`opnsense-ro`**, an ordinary user in no group, separate from `keycloak-ro` so each can be rotated and revoked alone. Its password is stored in 1Password and, because OPNsense keeps the bind password in `config.xml`, it also lives in the OPNsense configuration and in its backups. The account can read directory entries and nothing else.
 
-**OPNsense** (on `gw2`, then `gw3` unless the HA sync item "Authentication Servers" is enabled):
+**OPNsense** (configured on the HA master; the items users and groups, authentication servers and certificates are synced to the backup, see [High availability](#what-opnsense-can-do) above; `gw4` is not part of the pair, cannot reach the DCs on 7636 and keeps its local login):
 
-1. `System ‣ Trust ‣ Authorities`: import the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, the same certificate as in the 1Password item `ucs-ca`). Tick "Certificates and Authorities" in the HA sync if both boxes should get it.
+1. `System ‣ Trust ‣ Authorities`: import the UCS CA (`/etc/univention/ssl/ucsCA/CAcert.pem`, the same certificate as in the 1Password item `ucs-ca`). Needs the HA sync item "Certificates and Authorities" for the backup to get it.
 2. Name resolution of the DCs without UCS DNS: `Services ‣ Unbound DNS ‣ Overrides` with `baerbel.dir.iseja.net` (10.7.1.102) and `adelheid.dir.iseja.net` (10.7.1.101). The certificate check needs the name, and the name must resolve while UCS DNS is down, which is exactly the outage case (the DNS and LDAP dependency is otherwise circular for the login).
 3. `System ‣ Access ‣ Servers`: two servers of type "LDAP + Timebased One Time Password", one per DC. Hostname as above, port 7636, transport SSL, protocol 3, bind DN `uid=opnsense-ro,cn=users,dc=dir,dc=iseja,dc=net`, search scope subtree, base DN `dc=dir,dc=iseja,dc=net`, user attribute `uid`, extended query `|(memberOf=cn=sec.app.opnsense.admin,cn=groups,dc=dir,dc=iseja,dc=net)(memberOf=cn=sec.app.opnsense.operator,...)(memberOf=cn=sec.app.opnsense.readonly,...)` (one clause per group that exists), "Read properties" and "Synchronize groups" on, "Limit groups" `sec.app.opnsense.admin,sec.app.opnsense.operator,sec.app.opnsense.readonly`, automatic user creation **off**, token length 6.
 4. `System ‣ Access ‣ Groups`: create the local groups with exactly these names; `sec.app.opnsense.admin` gets the privilege "All pages".
@@ -74,7 +74,7 @@ Firewall rules: the LDAPS connection starts on the firewall itself, from the add
 
 ## Test procedure without lock-out
 
-For [#2238](https://github.com/isejalabs/homelab/issues/2238). Do it on one box first (ask the owner which one is the backup), with the HA sync of the changed items paused so a mistake does not copy over.
+For [#2238](https://github.com/isejalabs/homelab/issues/2238). The HA sync copies the Web GUI item (the server list) to the backup within seconds, so a wrong list would lock out both boxes at once. Before step 3 untick the HA sync item "Web GUI" in `System ‣ High Availability ‣ Settings` on the master, so the list is only active on the master first; tick it again once step 5 has passed. Users, groups and authentication servers can stay synced, they do no harm until the list points at them.
 
 1. **Before anything:** open two browser sessions as `root` on the box (one stays open throughout, a private window is enough); confirm the console route (Proxmox VM console of the gateway) and that the `root` password from the vault works in a **third** fresh login. Export the configuration (`System ‣ Configuration ‣ Backups`) and keep it off the box.
 2. Create CA, DNS overrides, servers, groups and the user as in [Configuration](#configuration), **without** touching the `Authentication ‣ Server` setting. Use `System ‣ Access ‣ Tester` for `sebi-adm` (password + token): it must authenticate, show the `memberOf` of `sec.app.opnsense.admin`, and an account outside the group (`mary`, or `sebi`) must fail with "User DN not found".
@@ -95,7 +95,8 @@ Decision for [#2239](https://github.com/isejalabs/homelab/issues/2239), to be co
 
 ## Not verified
 
-- **Installed version and edition** of `gw2` and `gw3` (the static asset hashes of their login pages differ, which suggests different builds), whether the Business Edition (with OIDC) is in use, and whether HA sync of users, groups and authentication servers is enabled. Asked of the owner; no access to the boxes was used.
-- Exact menu names and the privilege list of the installed version, which may differ from 26.7.8.
-- The UCS side: the certificate's subject alternative names (the host name must match), whether the DCs admit 7636 from the gateways' addresses, whether the user itself may read `memberOf` of its own entry (needed for "Synchronize groups"; the bind account reads it for Keycloak).
+- **Reported by the owner (2026-11-09), not checked by the agent:** OPNsense 26.7.8; the certificate of `baerbel` carries the subject alternative names `baerbel.dir.iseja.net` and `baerbel`, so the FQDN matches; the DCs admit TCP 7636 from `gw2` and `gw3` (not from `gw4`); the HA sync is enabled. No access to the boxes was used.
+- The certificate of `adelheid` (the second server entry needs `adelheid.dir.iseja.net` in its names), which of the HA sync items are ticked (in particular "Web GUI", "Users and Groups", "Authentication Servers" and "Certificates and Authorities"), and whether the Business Edition is in use (not expected for this version line).
+- Menu names: taken from 26.7.8 and earlier documentation; compare with the screens when configuring.
+- Whether the user itself may read `memberOf` of its own entry (needed for "Synchronize groups", the code reads it after the user bound; the bind account reads it for Keycloak).
 - The login delay during an outage (timeouts) and the order of the server list.
