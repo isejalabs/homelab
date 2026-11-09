@@ -52,11 +52,8 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](identity/keycloak-break-glass.md) |
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
 | Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
-<<<<<<< HEAD
 | Sign in to the Flux Operator Web UI with the identity provider | [`flux-operator-sso.md`](identity/flux-operator-sso.md) |
-=======
 | Sign in to Proxmox with the identity provider (inventory, design, roles) | [`proxmox-sso.md`](identity/proxmox-sso.md) |
->>>>>>> origin/main
 | Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
 | Put a login in front of a web UI that has none (OAuth2 Proxy) | [`oauth2-proxy.md`](identity/oauth2-proxy.md) |
 | Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
