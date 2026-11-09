@@ -8,7 +8,7 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 diag              # diagnostics: whoami
 │   ├── 📁 dns               # DNS: adguard, powerdns, unbound
 │   ├── 📁 finances          # personal finance: actualbudget
-│   ├── 📁 home-automation   # smart home: zigbee2mqtt
+│   ├── 📁 home-automation   # smart home: zigbee2mqtt, zigbee2mqtt-auth
 │   ├── 📁 identity          # identity provider: keycloak
 │   ├── 📁 monitoring        # monitoring: checkmk-agent, metrics-server
 │   └── 📁 network           # network management: unifi-controller, unifi-mongodb

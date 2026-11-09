@@ -14,3 +14,10 @@ spec:
       main:
         hostnames:
           - zigbee2mqtt.prod.iseja.net
+        # Send the frontend through the login proxy of the `zigbee2mqtt-auth` unit instead of straight to the pod. The
+        # CiliumNetworkPolicy of that unit admits only the proxy to port 8080. To roll back, remove this `rules` entry
+        # and the unit from flux/envs/prod together: the policy alone would cut the route off.
+        rules:
+          - backendRefs:
+              - name: oauth2-proxy
+                port: 80

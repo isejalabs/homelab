@@ -6,7 +6,7 @@ status: planning
 
 How the Zigbee2MQTT web frontend gets human authentication, what the deployed version offers, and how the decided design (oauth2-proxy as a plain reverse proxy plus a `CiliumNetworkPolicy`) behaves for a websocket-heavy single-page app. The investigation is [#2230](https://github.com/isejalabs/homelab/issues/2230), part of [#1767](https://github.com/isejalabs/homelab/issues/1767); the rules of the rollout are in [#2198](https://github.com/isejalabs/homelab/issues/2198), the design in [ADR 0016](../decisions/0016-identity-and-web-sso.md). The implementation is [#2231](https://github.com/isejalabs/homelab/issues/2231), the question who besides `sebi-adm` may get in is [#2232](https://github.com/isejalabs/homelab/issues/2232).
 
-**On this page:** [Decision](#decision) · [What Zigbee2MQTT offers](#what-zigbee2mqtt-offers) · [What is deployed, who reaches the frontend](#what-is-deployed-who-reaches-the-frontend) · [How the proxy route behaves](#how-the-proxy-route-behaves) · [Is the proxy route too complicated?](#is-the-proxy-route-too-complicated) · [Roles: `sebi` and `mary`](#roles-sebi-and-mary)
+**On this page:** [Decision](#decision) · [What Zigbee2MQTT offers](#what-zigbee2mqtt-offers) · [What is deployed, who reaches the frontend](#what-is-deployed-who-reaches-the-frontend) · [How the proxy route behaves](#how-the-proxy-route-behaves) · [Is the proxy route too complicated?](#is-the-proxy-route-too-complicated) · [Roles: `sebi` and `mary`](#roles-sebi-and-mary) · [The pieces](#the-pieces) · [Break-glass](#break-glass) · [Rollout](#rollout)
 
 ## Decision
 
@@ -70,7 +70,7 @@ What follows for the user and for the design:
 | Websocket through oauth2-proxy | Works. oauth2-proxy proxies upgrades by default (`--proxy-websockets=true`), and the upgrade also works through the Cilium Gateway |
 | Session expiry while a socket is open | Socket survives; new connections fail closed (above). Gateway `ExternalAuth` also decides per request, so it would behave the same |
 | Zigbee2MQTT `auth_token` as a second layer injected by the proxy | Not possible with oauth2-proxy (no query rewriting). `ExternalAuth` cannot do it either: its specification lets the auth service pass headers on, and has no way to rewrite the query string. The network policy replaces it |
-| `X-Forwarded-*` handling | Host, scheme and the upgrade headers arrive intact. Configure `--reverse-proxy` with `--trusted-proxy-ip` for the Gateway (the proxy logs a warning otherwise) |
+| `X-Forwarded-*` handling | Host, scheme and the upgrade headers arrive intact with `--reverse-proxy`, which the shared component sets. `--trusted-proxy-ip` (which restricts who may send `X-Forwarded-*`) is not set, as in every consumer of the component: the groups claim of the ID token, not a header, decides authorization, and a forged forwarded host can only change the callback URL that Keycloak then checks against the client's redirect URIs |
 | No bypass | Needs the `CiliumNetworkPolicy`; verified. With `ExternalAuth` the policy would have to admit the Gateway's ingress identity, which every route shares, so it would be weaker than admitting one proxy pod |
 | Cilium version | Only the proxy route works on the `1.18.14` that `prod` runs (`dev` and `qa` run 1.19.9); nothing in the design needs more |
 
@@ -85,3 +85,40 @@ Expected outcome of [#2232](https://github.com/isejalabs/homelab/issues/2232): *
 - A second realm provider on the proxy would therefore only widen access without any read-only guarantee.
 
 Consequently only `sec.app.zigbee2mqtt.admin` exists; no `operator` or `readonly` group is created in UCS.
+
+## The pieces
+
+| Piece | Where |
+| --- | --- |
+| Proxy: `HelmRelease` `oauth2-proxy` in `zigbee2mqtt`, realm `admin`, allowed group `sec.app.zigbee2mqtt.admin`, one extra argument `cookie-samesite: lax`, no `skip-auth-route` | [`zigbee2mqtt-auth`](../../k8s/apps/home-automation/zigbee2mqtt-auth/README.md) with the [component](../../k8s/components/apps/oauth2-proxy/README.md) |
+| `CiliumNetworkPolicy` `zigbee2mqtt-only-from-oauth2-proxy`: the pod accepts TCP 8080 from the proxy pods only | [`zigbee2mqtt-auth/base/networkpolicy.yaml`](../../k8s/apps/home-automation/zigbee2mqtt-auth/base/networkpolicy.yaml) |
+| Route: `backendRef` `zigbee2mqtt` → `oauth2-proxy` (port 80) | `rules` in [`zigbee2mqtt/envs/prod/helmrelease.yaml`](../../k8s/apps/home-automation/zigbee2mqtt/envs/prod/helmrelease.yaml) |
+| Keycloak client `zigbee2mqtt` in `admin` | `oidc_clients` entry `zigbee2mqtt-admin` of the `prod` `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)) |
+| Secret `oauth2-proxy` (client ID, client secret, cookie secret) | 1Password items `keycloak-oidc-zigbee2mqtt-admin#prod` (written by Terragrunt) and `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`), External Secrets |
+| UCS group `sec.app.zigbee2mqtt.admin` with `sebi-adm` | UCS, owner's go needed ([`ucs-groups.md`](ucs-groups.md)) |
+
+The policy selects the Zigbee2MQTT pod by its two labels and admits the proxy on port 8080 only. The pod makes only outgoing connections (MQTT broker, serial device), which an ingress rule does not touch. The Service is `zigbee2mqtt` on 8080 and the pod labels `app.kubernetes.io/name` and `app.kubernetes.io/instance` are `zigbee2mqtt` (rendered from the `app-template` chart 5.3.0 of the HelmRelease).
+
+## Break-glass
+
+The frontend without Keycloak, UCS, the proxy or the Gateway; needs only the cluster admin kubeconfig:
+
+```sh
+kubectl port-forward -n zigbee2mqtt svc/zigbee2mqtt 8080:8080 --context admin@prod-homelab
+# then http://localhost:8080
+```
+
+This goes to the pod directly and is the one unauthenticated way in; it is as protected as the kubeconfig. **Not yet tested with the policy applied** (open item below). Zigbee2MQTT does not depend on the proxy to run: pairing and the Home Assistant integration (MQTT) are unaffected when the login is down.
+
+## Rollout
+
+Zigbee2MQTT runs in `prod` only and `prod` applies run from `main`, so the rollout is in two merges:
+
+| Step | State |
+| --- | --- |
+| 1. Keycloak client `zigbee2mqtt` in `prod` | in a pull request of its own ([#2255](https://github.com/isejalabs/homelab/pull/2255)); applied from `main` on the owner's go, one `keycloak-realm` apply at a time |
+| 2. 1Password item `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`, 32 random bytes), UCS group `sec.app.zigbee2mqtt.admin` with `sebi-adm` | by hand, the group with the owner's go; after the group sync clear the Keycloak user cache of `sebi-adm` ([`longhorn-sso.md`](longhorn-sso.md#rollout): a new membership is not seen by a cached user) |
+| 3. Unit, policy and route switch | manifests written, build for all 8 environments; merging them activates the login in `prod`, so they merge only after steps 1 and 2 |
+| 4. Live test in `prod` | open: no page load without a session (302), websocket handshake without a session refused, `sebi-adm` reaches the frontend and the device list updates live, direct access to the pod from another pod times out, kubelet probes stay green, break-glass port-forward works with the policy applied |
+
+Rollback: remove the `rules` entry from `envs/prod/helmrelease.yaml` of `zigbee2mqtt` **and** the unit from `flux/envs/prod`; removing only the route switch or only the unit leaves a policy or a route that cuts the frontend off. `dev` and `qa` do not run the application, so there was no environment to try the switch in before `prod`; the proxy itself was proven against a stand-in in `dev` (above).
