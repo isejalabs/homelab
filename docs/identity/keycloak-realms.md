@@ -6,7 +6,7 @@ status: current
 
 The realm content of the identity provider ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 7) is managed by the Terragrunt unit `keycloak-realm` per environment, which uses the module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-realm) from `isejalabs/terraform-modules`. The Keycloak server itself is deployed by Flux (`k8s/apps/identity/keycloak`); this unit only fills it.
 
-The unit creates the realms `iseja` (everyday accounts) and `admin` (`*-adm` accounts), each with a **read-only** LDAP federation to UCS and a `groups` client scope. The unit can also register SAML clients (`saml_clients`, one per application and realm) for applications that only speak SAML; the Checkmk sites use it, see [`checkmk-sso.md`](checkmk-sso.md). Kerberos and the OIDC clients come with [#1827](https://github.com/isejalabs/homelab/issues/1827) and the per-service integrations, the second factor (WebAuthn, TOTP) is part of the unit, see [`keycloak-mfa.md`](keycloak-mfa.md).
+The unit creates the realms `iseja` (everyday accounts) and `admin` (`*-adm` accounts), each with a **read-only** LDAP federation to UCS and a `groups` client scope. The unit can also register SAML clients (`saml_clients`, one per application and realm) for applications that only speak SAML; the Checkmk sites use it, see [`checkmk-sso.md`](checkmk-sso.md). It registers OIDC clients as well (`oidc_clients`, see [OIDC clients](#oidc-clients)) for the applications that sign humans in with OpenID Connect, natively or through `oauth2-proxy`. Kerberos comes with [#1827](https://github.com/isejalabs/homelab/issues/1827), the second factor (WebAuthn, TOTP) is part of the unit, see [`keycloak-mfa.md`](keycloak-mfa.md).
 
 The directory facts (base DN, domain controllers, bind account, group names) and the realm definitions are stated once in [`terragrunt/_envcommon/keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl); only the Keycloak URL differs per environment. That URL must equal the hostname the environment's Keycloak overlay serves (derived by the `replace-domain`/`prefix-domain` components, `prod` overrides it in [`envs/prod`](../../k8s/apps/identity/keycloak/envs/prod/kustomization.yaml)); the `kustomize-build` check fails when the unit's `keycloak_url` differs from the rendered `Keycloak` or `HTTPRoute` hostname.
 
@@ -70,6 +70,58 @@ The unit is the one place where the break-glass administrator (`keycloak-bootstr
 Verified in `dev` (2026-11-01 and 2026-11-02, applied from the branch with the module from its branch): the unit created the client, its roles and the 1Password item; `keycloak-realm` refreshed every resource it manages with the client alone and applied a write (a brute-force setting of both realms, changed and reverted) without a missing role; changing `secret_rotation` replaced the secret and the 1Password item in one apply, after which `keycloak-realm` logged in with the new one. Verified in `qa` (2026-11-02, applied from `main`): the unit created the client, its roles and the 1Password item, and `keycloak-realm` plans with no changes using the client alone. Both units pin their module to a release tag, see [`terragrunt/README.md`](../../terragrunt/README.md#automation-client-keycloak-automation). The secret is part of the state of both units, see [Caveats](#caveats).
 
 **Registered environments:** `dev`, `qa` and `prod` have the units `keycloak-automation` and `keycloak-realm`; `rebuild` has neither yet. The `prod` units were registered with the enabling pull request of the `prod` go-live ([#2196](https://github.com/isejalabs/homelab/issues/2196)): both copy the `qa` unit with its tracked provider lock file, `keycloak_url` is `https://auth.iseja.net`, `existing_realms` is empty (the instance has no realms yet) and `keycloak-realm` has no `saml_clients` yet (the Checkmk sites `prod_k8s` and `prod` are not set up for SSO, see [`checkmk-sso.md`](checkmk-sso.md)). They were applied from `main` on 2026-11-08, once Keycloak answered on its URL: `keycloak-automation` first (client `terragrunt`, the 1Password item `keycloak-terragrunt#prod`, [#2200](https://github.com/isejalabs/homelab/issues/2200)), then `keycloak-realm` (the realms `iseja` and `admin` with their UCS federation); both plan clean afterwards.
+
+## OIDC clients
+
+Each application that signs humans in with OpenID Connect gets its client as code, in the `oidc_clients` input of the unit of each environment that runs the application ([`dev`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl), [`qa`](../../terragrunt/non-prod/eu-central-1/qa/keycloak-realm/terragrunt.hcl), [`prod`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)), next to `saml_clients`; the redirect URIs hold the environment's hostnames, which is why the entries are per unit and not in the shared [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl). The module [`keycloak-realm`](https://github.com/isejalabs/terraform-modules/tree/main/modules/keycloak-realm) sets the client up as described in its README; this section is what an application owner needs.
+
+**Adding a client for an application** (one entry per realm the application should accept, so usually `admin` first, then `iseja`):
+
+1. Add the entry to `oidc_clients` in the unit of the environment, key `<app>-<realm>`:
+
+   ```hcl
+   oidc_clients = {
+     "longhorn-admin" = {
+       realm         = "admin" # iseja (everyday accounts) or admin (*-adm accounts)
+       client_id     = "longhorn"
+       # https only; the hostname comes from the environment, see below. oauth2-proxy: /oauth2/callback
+       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
+       # optional: name, post_logout_redirect_uris, web_origins,
+       #           public (default false), pkce (default: on for public clients only), groups_scope (default true)
+     }
+   }
+   ```
+
+   Do not type the hostname per environment: `app_url_format` in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) is the URL scheme of the k8s overlays (`https://dev-longhorn.dev.iseja.net` in every non-prod environment, `https://longhorn.prod.iseja.net` in prod; [naming](../reference/environments.md#domain-and-naming)), and `format(..., "<hostname label>")` fills in the application. The same entry is therefore valid in every unit; only an application whose overlay uses another hostname (as prod does for Keycloak itself) states its URL in full.
+
+2. Plan and apply the unit as in [Apply and verify](#apply-and-verify) (`qa`/`prod` from `main` only). Check that the plan only adds `keycloak_openid_client`, `keycloak_openid_client_default_scopes` and `onepassword_item` for the new key.
+3. The application learns from Keycloak: issuer `https://<keycloak host>/realms/<realm>` (also the output `oidc_issuer_urls`; discovery at `<issuer>/.well-known/openid-configuration`), client ID (the entry's `client_id` or key), and the secret from the 1Password item (below). Request the scopes `openid profile email groups`; the ID token, the access token and the userinfo response then carry the claim `groups` with the `sec.app.<app>.<role>` names of the account ([`ucs-groups.md`](ucs-groups.md)).
+4. Map the groups to the roles of the application there. Create the UCS groups when the owner has agreed to the change ([`ucs-groups.md`](ucs-groups.md#naming-scheme)).
+
+**Variable shape.** `oidc_clients` is a `map(object)` keyed by a name of your choice (the state key and, unless `client_id` is set, the client ID; renaming it recreates the client):
+
+| Attribute | Default | Meaning |
+| --- | --- | --- |
+| `realm` | required | `iseja` or `admin`; an application that accepts both gets two entries |
+| `redirect_uris` | required | `https://` only, a trailing `*` is allowed |
+| `post_logout_redirect_uris`, `web_origins` | `[]` | `https://` only |
+| `client_id`, `name` | the key | client ID and display name |
+| `public` | `false` | `true`: no secret (single-page apps, native apps) |
+| `pkce` | `public` | require PKCE with S256; turn it off only for an application that sends no code challenge |
+| `groups_scope` | `true` | add the `groups` scope as a default scope |
+| `secret_item_title` | `keycloak-oidc-<key>#<env>` | title of the 1Password item for a confidential client |
+
+Only the authorization code flow is enabled (no implicit flow, no password grant, no service account), and the tokens carry no realm role mappings; authorization comes from the `groups` claim. The module's `oidc_default_scopes` lists the other default scopes (`basic`, `web-origins`, `acr`, `roles`, `profile`, `email`).
+
+**Secret handling.** Decided in [#2227](https://github.com/isejalabs/homelab/issues/2227): Keycloak generates the secret of a confidential client, and the module writes it to a 1Password login item in the `K8S` vault, titled `keycloak-oidc-<key>#<env>` (format `oidc_secret_item_title_format` in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)), client ID as `username`, secret as `password`. The secret is not a module output and never in Git; like the other credentials it is part of the unit's state ([Caveats](#caveats)). Consumers read the item:
+
+- **In-cluster (oauth2-proxy, Flux Operator):** an `ExternalSecret` with `extract.key: keycloak-oidc-<key>#base` against the `onepassword-connect` store, and a patch in `envs/<env>` that sets the environment suffix, the same way the Keycloak unit reads its own items (`keycloak-bootstrap-admin#dev` in [`envs/dev`](../../k8s/apps/identity/keycloak/envs/dev/kustomization.yaml)). The Secret then has `username` (client ID) and `password` (secret).
+- **Terragrunt/Ansible (Proxmox):** read the item `keycloak-oidc-<key>#<env>` with the 1Password provider or `op read "op://K8S/keycloak-oidc-<key>#<env>/password"`.
+- **Rotation:** recreate the client with `terragrunt apply -replace='keycloak_openid_client.this["<key>"]'`; the item is updated in the same apply and the application's secret follows from the ExternalSecret refresh. Not tried in `dev` yet.
+
+**Removing a client** removes the entry; the client and its item are destroyed in the same apply.
+
+**Verified** in `dev` on 2026-11-08, applied from the module branch with a throwaway client in realm `admin` ([#2227](https://github.com/isejalabs/homelab/issues/2227)): the client, its default scopes and the 1Password item were created, and the item's secret was the client's secret. Keycloak's scope evaluation (`generate-example-id-token`, `-access-token` and `-userinfo` of the admin API) for `sebi-adm` returned `groups: ["sec.app.checkmk.admin"]` in all three, with `aud`/`azp` the client; the client had only the authorization code flow, `full_scope_allowed` off and the scopes `web-origins`, `acr`, `roles`, `profile`, `groups`, `basic`, `email`. The throwaway client was removed afterwards. A browser login as `sebi-adm` was **not** part of this proof: the `admin` realm in `dev` requires a second factor ([#2206](https://github.com/isejalabs/homelab/issues/2206)) that needs the owner's authenticator, and the first real login comes with the first application.
 
 ## Apply and verify
 

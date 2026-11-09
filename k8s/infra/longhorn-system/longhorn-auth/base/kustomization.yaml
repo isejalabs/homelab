@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: longhorn-system
+
+components:
+  - ../../../../components/apps/oauth2-proxy
+
+resources:
+  - networkpolicy.yaml
+
+patches:
+  # The Checkmk special agent longhorn_capacity reads this one path without credentials (#1714 replaces that by a
+  # local credential); everything else, the rest of the API included, needs the login.
+  - patch: |-
+      - op: add
+        path: /spec/values/extraArgs/skip-auth-route
+        value: GET=^/v1/nodes$
+    target:
+      kind: HelmRelease

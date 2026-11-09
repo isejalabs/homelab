@@ -26,7 +26,7 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   └── 📁 kustomize         # kustomize bases applied during bootstrap
 │       └── 📁 personal      # personal credentials, injected with `op inject` during bootstrap
 ├── 📁 components            # shared DRY kustomize layer (see components/README.md)
-│   ├── 📁 apps              # building blocks an app includes: kopiur secret wiring, PVC storage
+│   ├── 📁 apps              # building blocks an app includes: kopiur secret wiring, OAuth2 Proxy login, PVC storage
 │   ├── 📁 envs              # per-environment Components included by every app/infra overlay
 │   └── 📁 transformers      # the transformers those components apply (nine, listed in components/README.md)
 ├── 📁 infra                 # infrastructure workloads, one folder per namespace; each component is a unit (see below)
@@ -42,7 +42,7 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 keycloak          # Keycloak operator: keycloak-operator
 │   ├── 📁 kopiur-system     # backup and restore: kopiur, kopiur-repository
 │   ├── 📁 kube-system       # cluster basics: cilium, kubelet-serving-cert-approver, snapshot-controller
-│   ├── 📁 longhorn-system   # block storage: longhorn, longhorn-core
+│   ├── 📁 longhorn-system   # block storage: longhorn, longhorn-auth, longhorn-core
 │   ├── 📁 o11y              # CRD groundwork only, nothing deployed: grafana-operator, kube-prometheus-stack
 │   └── 📁 sealed-secrets    # encrypted secrets in Git: sealed-secrets
 └── 📁 test                  # throwaway manifests for manually exercising things; not reconciled by Flux

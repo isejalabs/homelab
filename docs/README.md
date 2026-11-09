@@ -53,6 +53,8 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
 | Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
 | Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
+| Put a login in front of a web UI that has none (OAuth2 Proxy) | [`oauth2-proxy.md`](identity/oauth2-proxy.md) |
+| Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
 | Protect the Zigbee2MQTT web frontend, or see why it uses a proxy | [`zigbee2mqtt-sso.md`](identity/zigbee2mqtt-sso.md) |
 
 ### Troubleshoot
