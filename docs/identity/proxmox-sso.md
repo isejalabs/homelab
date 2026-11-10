@@ -67,7 +67,7 @@ Checks for [#2236](https://github.com/isejalabs/homelab/issues/2236), against th
 | `sebi-adm@DIR.ISEJA.NET` | TOTP enrolled in Proxmox (`pveum user tfa list`: one `totp` entry), applies to AD realm logins |
 | Any OpenID Connect realm | **None from Proxmox.** Proxmox's own two-factor configuration applies to its own realms; the OpenID Connect login is authenticated at the identity provider only. Consistent with the test logins: `pveum user tfa list` has an entry only for `sebi-adm@DIR.ISEJA.NET` and none for any `@kc-admin` or `@kc-iseja` user, yet those users signed in. |
 
-So the second factor of the new login has to come from Keycloak. The module `keycloak-realm` can require one per realm (`second_factor`, version 0.5.0, [#2206](https://github.com/isejalabs/homelab/issues/2206)), but [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) does not set it yet. **Gate (met):** `Administrator` is granted to the OpenID Connect realm only after the realm `admin` asks `sebi-adm` for WebAuthn or TOTP ([#2214](https://github.com/isejalabs/homelab/pull/2214), applied in `prod` on 2026-11-08), otherwise the new path would be weaker than the old one (password only against UCS). Not yet recorded here: what `sebi-adm` was actually asked for at the first login (enrollment, then which factor); see [Verification](#verification).
+So the second factor of the new login has to come from Keycloak. The module `keycloak-realm` can require one per realm (`second_factor`, version 0.5.0, [#2206](https://github.com/isejalabs/homelab/issues/2206)), but [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) does not set it yet. **Gate (met):** `Administrator` is granted to the OpenID Connect realm only after the realm `admin` asks `sebi-adm` for WebAuthn or TOTP ([#2214](https://github.com/isejalabs/homelab/pull/2214), applied in `prod` on 2026-11-08), otherwise the new path would be weaker than the old one (password only against UCS). Observed at the first login of `sebi-adm` on 2026-11-10: Keycloak sent the account through the enrollment of a WebAuthn authenticator before signing in; see [Verification](#verification).
 
 ## Break-glass
 
@@ -103,7 +103,7 @@ Applied on 2026-11-09 from `main` ([PR 2259](https://github.com/isejalabs/homela
 | API tokens and automation unaffected | The unit's own `terragrunt plan` with the `terraform@pve` token after the apply reports no changes | `terragrunt plan` on 2026-11-10 |
 | Proxmox asks no second factor for OpenID Connect logins | No TFA entry exists for any OpenID Connect user, and they signed in | `pveum user tfa list` |
 
-Still open: what Keycloak asked `sebi-adm` for at the first login (WebAuthn enrollment, then which factor each time). The realm configuration requires one; the observation of the login itself is not recorded here yet.
+The second factor comes from Keycloak: the first login of `sebi-adm` through `kc-admin` required enrolling a WebAuthn authenticator (reported by the owner on 2026-11-10), as the `second_factor` setting of the realm `admin` is meant to do. Later logins use that authenticator.
 
 ## Decisions
 
