@@ -11,4 +11,8 @@ patches:
   - path: backup-target.yaml
   - path: csi-replicacount.yaml
   - path: helm-version.yaml
+  - path: http-route-oauth2-proxy.yaml
+    target:
+      kind: HTTPRoute
+      name: longhorn
   - path: minio-backup-secret.yaml

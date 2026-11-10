@@ -60,7 +60,7 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | <img src="../assets/icons/sealed-secrets.png" width="20" height="20" alt=""> [`sealed-secrets`](../../k8s/infra/sealed-secrets/sealed-secrets/) | `sealed-secrets` | [Bitnami Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) controller (see [`secrets.md`](secrets.md)) | yes | minimal |
 | 📸 [`snapshot-controller`](../../k8s/infra/kube-system/snapshot-controller/) | `kube-system` | [`snapshot-controller`](https://github.com/kubernetes-csi/external-snapshotter) (VolumeSnapshot CRDs/controller) | CRDs only | minimal |
 
-³ `longhorn-auth` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev` and `qa` so far: an environment joins once its Keycloak client for the Longhorn proxy exists, see [`longhorn-sso.md`](../identity/longhorn-sso.md#rollout).
+³ `longhorn-auth` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev`, `prod` and `qa`: an environment joins once its Keycloak client for the Longhorn proxy exists, see [`longhorn-sso.md`](../identity/longhorn-sso.md#rollout).
 
 ### CRDs-only, not actually deployed
 
