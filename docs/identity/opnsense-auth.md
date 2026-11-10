@@ -12,11 +12,12 @@ The gateways `gw2` and `gw3` are not managed from this repository (see [`network
 
 Proposed, not applied in production. A proof of concept ran on `gw3` on 2026-11-10 (see [below](#oidc-with-os-sso-proof-of-concept-on-gw3)):
 
-- **OIDC to the Keycloak realm `admin`** through the third-party plugin **os-sso**, for the web interface only. Keycloak owns the second factor (TOTP or passkey), so the cumbersome "token in front of the password" entry of OPNsense's own TOTP is not needed. This replaces the earlier LDAP + TOTP proposal as the preferred route, because LDAP + TOTP keeps the seed in every local user and needs the token typed into the password field.
+- **OIDC to the Keycloak realm `admin`** through the third-party plugin **os-sso**, for the web interface only. Keycloak owns the second factor (in the realm `admin`: the UCS password, then a WebAuthn passkey or key with TOTP as fallback, see [`keycloak-mfa.md`](keycloak-mfa.md)), so the cumbersome "token in front of the password" entry of OPNsense's own TOTP is not needed. This replaces the earlier LDAP + TOTP proposal as the preferred route, because LDAP + TOTP keeps the seed in every local user and needs the token typed into the password field.
 - **`root` stays a local account** with the local second factor (as today: the server "Google Auth OTP" is the only entry in the login list of `gw3`). It is the break-glass login and is not touched.
 - **Users are local accounts that the plugin owns**: created with the plugin's own writer (no usable password), bound to the Keycloak subject at the first login. Nothing is created automatically from the directory.
 - **LDAP + TOTP stays documented** below as the alternative if the plugin is rejected (maintainer, age, review effort); it is the only route that needs no third-party code.
-- **Blocking condition before production:** the Keycloak second-factor flows are not in place yet ([#2206](https://github.com/isejalabs/homelab/issues/2206)); until they are, an OIDC login to the firewall is only as strong as the realm `admin` password step. Do not enable it on the HA master before that.
+- **A Keycloak session skips the second factor.** An existing Keycloak SSO session (cookie) is accepted without a new factor, so an administrator who is already signed in to another application reaches the firewall without being asked. The plugin can send `max_age`, which makes Keycloak re-authenticate a session older than the given number of seconds, and can require an `acr`; setting `max_age` on the production server is part of the production steps. Not tested.
+- **Dependency:** the firewall login depends on the production Keycloak (cluster, database, UCS federation), while the cluster's routing depends on the firewall. `root` + local TOTP breaks the loop; that is why it stays untouched.
 
 ## What OPNsense can do
 
@@ -66,13 +67,13 @@ Goal of the proof of concept ([#2237](https://github.com/isejalabs/homelab/issue
 - The first login writes to `config.xml` (the binding stamp). On an HA backup this write is local and a later sync from the master may undo it; the binding is re-created at the next login.
 - UIDs: `create()` takes the next free number and stamps the account against it, so a chosen uid (20000 here) is set via `nextuid` for the one call and `nextuid` restored.
 
-**Not exercised.** A login with Keycloak unreachable (expected: the button fails, `root` + local TOTP works), group claims from UCS (`sec.app.opnsense.admin`), the two-factor behaviour at Keycloak (flows are [#2206](https://github.com/isejalabs/homelab/issues/2206)), `gw2`, the HA master, and removing the plugin again.
+**Not exercised.** A login with Keycloak unreachable (expected: the button fails, `root` + local TOTP works), group claims from UCS (`sec.app.opnsense.admin`), whether the owner was asked for the second factor during the test (the realm `admin` of `dev` requires one per [`keycloak-mfa.md`](keycloak-mfa.md), but the prompt was not observed), `gw2`, the HA master, and removing the plugin again.
 
 ## OIDC: towards production
 
 Not done; needs the owner's go at each step (an authentication change on the firewall, a UCS group).
 
-1. **Second factor at Keycloak first** ([#2206](https://github.com/isejalabs/homelab/issues/2206)): TOTP or passkey enforced for the realm `admin`, and its break-glass story ([`keycloak-break-glass.md`](keycloak-break-glass.md)) checked, because with this route the firewall admin login depends on Keycloak (see below).
+1. **Second factor and recovery**: the factor itself is enforced in the realm `admin` of `qa` and `prod` ([`keycloak-mfa.md`](keycloak-mfa.md), apply recorded there). Before relying on it for the firewall check that `sebi-adm` has the hardware key enrolled in `prod` (the check was moved to [#2247](https://github.com/isejalabs/homelab/issues/2247)), and read [`keycloak-break-glass.md`](keycloak-break-glass.md) once with this dependency in mind. Set `max_age` on the server (see [Decision](#decision)) so that an existing Keycloak session does not replace the second factor.
 2. **Production client**: a client in the prod `keycloak-realm` unit with the redirect URIs of every box that serves the login (the CARP name if the GUI is reached over it, plus each box's own name, `gw3` and `gw2`). The dev client of the proof of concept is replaced, not reused, and its secret item removed.
 3. **UCS group** `sec.app.opnsense.admin` (members: `sebi-adm`) as a gate: set "Required groups" on the server so that only that group may log in, and map it to the local `admins` group with the plugin's group map. A UCS change; not made.
 4. **Accounts on the HA master** with the plugin's writer, then check what reaches `gw3`: the users and groups sync copies the `<user>` entries, but the plugin keeps its ownership marker in its own settings section, which is not a sync item of the list read from core (unverified); an account without the marker is refused as a privileged account. If the marker does not travel, create the account on each box.
