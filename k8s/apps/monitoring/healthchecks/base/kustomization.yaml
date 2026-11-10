@@ -11,11 +11,11 @@ components:
 
 resources:
   - ns.yaml
-  - deployment.yaml
   - externalsecret.yaml
+  - helmrelease.yaml
   - http-route.yaml
   - networkpolicy.yaml
-  - service.yaml
+  - ocirepository.yaml
 
 patches:
   # The monitored hosts ping /ping/<uuid> (and /start, /fail, /<exit code>) with nothing but the URL. Nothing else

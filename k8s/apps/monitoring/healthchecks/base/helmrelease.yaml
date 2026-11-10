@@ -1,0 +1,107 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.bjw-s.dev/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &name healthchecks
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: app-template
+  interval: 1h
+  values:
+    controllers:
+      main:
+        containers:
+          main:
+            env:
+              DB: sqlite
+              DB_NAME: /data/hc.sqlite
+              DEBUG: "False"
+              DEFAULT_FROM_EMAIL: healthchecks@example.com
+              # The access log of the proxy already shows every request
+              GUNICORN_DISABLE_LOGGING: "1"
+              # A small instance: two workers are plenty and keep the writers on the SQLite file few
+              GUNICORN_WORKERS: "2"
+              # Accounts exist only through the login proxy (REMOTE_USER_HEADER), never by self-registration
+              REGISTRATION_OPEN: "False"
+              # oauth2-proxy sends the login name of the Keycloak account in this header and strips any copy a client sent;
+              # the network policy lets nothing but the proxy reach this pod. Django form: HTTP_ + upper case, - as _.
+              REMOTE_USER_HEADER: HTTP_X_FORWARDED_EMAIL
+              SITE_NAME: iseja healthchecks
+              # Patched per environment (the hostname of the HTTPRoute), see #2280
+              SITE_ROOT: https://healthchecks.example.com
+            # SECRET_KEY, plus optionally the EMAIL_* settings for alert emails (see the ExternalSecret)
+            envFrom:
+              - secretRef:
+                  name: *name
+            image:
+              repository: healthchecks/healthchecks
+              tag: v5.0.3@sha256:5eb96eb72dc63ac24743f1c0fc4469931155329e05c9781a0809320de0ae479c
+            # /health checks the database connection and skips the ALLOWED_HOSTS check, so no Host header is needed
+            probes:
+              liveness:
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  periodSeconds: 30
+                  timeoutSeconds: 5
+                custom: true
+                enabled: true
+              readiness:
+                spec:
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  periodSeconds: 10
+                custom: true
+                enabled: true
+              startup:
+                spec:
+                  failureThreshold: 30
+                  httpGet:
+                    path: /health
+                    port: 8000
+                  periodSeconds: 5
+                custom: true
+                enabled: true
+            resources:
+              limits:
+                memory: 384Mi
+              requests:
+                cpu: 20m
+                memory: 192Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop: ["ALL"]
+        # One replica on a ReadWriteOnce volume with a SQLite file: the old pod must be gone before the new one starts
+        replicas: 1
+        strategy: Recreate
+
+    defaultPodOptions:
+      securityContext:
+        # 1000 is the PUID/PGID of the kopiur mover (apps/storage component), so file ownership is the same on both sides
+        fsGroup: 1000
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 1000
+        runAsNonRoot: true
+        runAsUser: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+    persistence:
+      data:
+        existingClaim: ${APP}
+        globalMounts:
+          - path: /data
+        type: persistentVolumeClaim
+
+    # The route is a plain HTTPRoute (http-route.yaml), not the chart's: the domain transformers only reach that
+    service:
+      main:
+        controller: main
+        ports:
+          http:
+            port: 8000

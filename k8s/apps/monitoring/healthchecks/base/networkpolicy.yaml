@@ -11,6 +11,7 @@ metadata:
 spec:
   endpointSelector:
     matchLabels:
+      # the label app-template puts on the pods of a release's single controller
       app.kubernetes.io/name: healthchecks
   ingress:
     - fromEndpoints:

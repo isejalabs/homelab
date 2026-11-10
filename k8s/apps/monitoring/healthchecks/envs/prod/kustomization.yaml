@@ -13,6 +13,9 @@ patches:
       kind: HelmRelease
       name: oauth2-proxy
   - path: site-root.yaml
+    target:
+      kind: HelmRelease
+      name: healthchecks
   - patch: |-
       - op: replace
         path: /spec/dataFrom/0/extract/key

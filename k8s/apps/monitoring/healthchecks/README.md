@@ -8,7 +8,7 @@
 | --- | --- |
 | Namespace | `healthchecks` |
 | Runs in | `dev` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`); `qa` and `prod` follow |
-| Installed via | raw manifests (Deployment, Service, HTTPRoute, ExternalSecret, `CiliumNetworkPolicy`) plus the components `apps/oauth2-proxy` and `apps/storage/pvc` (1Gi, backed up by kopiur) |
+| Installed via | HelmRelease, chart `app-template` (bjw-s-labs, OCI) for the pod and its Service, plus raw `HTTPRoute`, `ExternalSecret` and `CiliumNetworkPolicy` and the components `apps/oauth2-proxy` and `apps/storage/pvc` (1Gi, backed up by kopiur) |
 | Flux Kustomization | `healthchecks`, depends on `gateway-api`, `longhorn` |
 
 ## Purpose
@@ -34,7 +34,11 @@ The application trusts the header `X-Forwarded-Email` of the proxy (`REMOTE_USER
 
 ## Updates
 
-The image is pinned (tag and digest) in [`base/deployment.yaml`](base/deployment.yaml); Renovate bumps both. The proxy's chart is pinned once for every consumer in the [component](../../../components/apps/oauth2-proxy/README.md#updates). No special Renovate rule: default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md). The container runs the database migrations on every start.
+The image is pinned (tag and digest) in `values.controllers.main.containers.main.image.tag` of [`base/helmrelease.yaml`](base/helmrelease.yaml), the `app-template` chart in [`base/ocirepository.yaml`](base/ocirepository.yaml); Renovate bumps both. The proxy's chart is pinned once for every consumer in the [component](../../../components/apps/oauth2-proxy/README.md#updates). No special Renovate rule: default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md). The container runs the database migrations on every start.
+
+## Reuse before build
+
+Decision record for [#2275](https://github.com/isejalabs/homelab/issues/2275): the chart `app-template` ([bjw-s-labs](https://github.com/bjw-s-labs/helm-charts), what `zigbee2mqtt` and `powerdns` already use) over a hand-written Deployment and Service, for consistency and Renovate handling. The `HTTPRoute` stays a plain manifest because the domain transformers only rewrite that kind, not a route inside HelmRelease values; making them reach HelmRelease values is [#2280](https://github.com/isejalabs/homelab/issues/2280), until then `SITE_ROOT` and the proxy's issuer are patched per environment. No upstream Helm chart or Kubernetes manifests exist for Healthchecks itself; community charts were not adopted (one more maintainer to depend on for one container).
 
 ## Operations
 
