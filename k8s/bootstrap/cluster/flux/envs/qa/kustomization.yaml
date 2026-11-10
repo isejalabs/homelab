@@ -7,3 +7,4 @@ components:
 resources:
   - ../../sets
   - ../../sets/standing
+  - ../../../../../infra/longhorn-system/longhorn-auth/flux
