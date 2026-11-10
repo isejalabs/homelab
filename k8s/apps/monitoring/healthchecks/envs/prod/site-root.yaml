@@ -1,0 +1,15 @@
+---
+# The public URL of this environment, the hostname of the HTTPRoute (the domain transformers do not reach env vars).
+# Ping URLs and links in alert mails are built from it.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: healthchecks
+spec:
+  template:
+    spec:
+      containers:
+        - name: healthchecks
+          env:
+            - name: SITE_ROOT
+              value: https://healthchecks.prod.iseja.net

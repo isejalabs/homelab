@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: healthchecks
+
+components:
+  - ../../../../components/apps/oauth2-proxy
+  - ../../../../components/apps/storage/pvc
+
+resources:
+  - ns.yaml
+  - deployment.yaml
+  - externalsecret.yaml
+  - http-route.yaml
+  - networkpolicy.yaml
+  - service.yaml
+
+patches:
+  # The monitored hosts ping /ping/<uuid> (and /start, /fail, /<exit code>) with nothing but the URL. Nothing else
+  # skips the login. The proxy removes the X-Forwarded-* user headers from these requests (skip-auth-strip-headers,
+  # default true), so a client cannot log itself in through them.
+  - patch: |-
+      - op: add
+        path: /spec/values/extraArgs/skip-auth-route
+        value: ^/ping/
+    target:
+      kind: HelmRelease
+      name: oauth2-proxy

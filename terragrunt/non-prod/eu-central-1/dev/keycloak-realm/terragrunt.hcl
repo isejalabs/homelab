@@ -60,5 +60,14 @@ inputs = {
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
       pkce          = true
     }
+    # Self-hosted healthchecks (k8s/apps/monitoring/healthchecks): the oauth2-proxy of that unit logs in with this
+    # client (realm admin, group sec.app.healthchecks.admin); secret in the 1Password item
+    # keycloak-oidc-healthchecks-admin#dev.
+    "healthchecks-admin" = {
+      realm         = "admin"
+      client_id     = "healthchecks"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "healthchecks")}/oauth2/callback"]
+      pkce          = true
+    }
   }
 }

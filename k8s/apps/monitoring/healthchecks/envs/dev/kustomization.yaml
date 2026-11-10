@@ -1,0 +1,35 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/dev
+
+resources:
+  - ../../base
+
+patches:
+  - path: issuer.yaml
+    target:
+      kind: HelmRelease
+      name: oauth2-proxy
+  - path: site-root.yaml
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: healthchecks#dev
+    target:
+      kind: ExternalSecret
+      name: healthchecks
+  - patch: |-
+      - op: replace
+        path: /spec/data/0/remoteRef/key
+        value: keycloak-oidc-healthchecks-admin#dev
+      - op: replace
+        path: /spec/data/1/remoteRef/key
+        value: keycloak-oidc-healthchecks-admin#dev
+      - op: replace
+        path: /spec/data/2/remoteRef/key
+        value: oauth2-proxy-healthchecks#dev
+    target:
+      kind: ExternalSecret
+      name: oauth2-proxy

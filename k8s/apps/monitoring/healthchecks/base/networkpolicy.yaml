@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/cilium.io/ciliumnetworkpolicy_v2.json
+# Healthchecks trusts the REMOTE_USER_HEADER implicitly: whoever can send it to the pod is logged in as that user. Once
+# this policy selects the pod, only the oauth2-proxy of this namespace can connect, on the application port. Not the
+# Gateway, not a pod of another namespace. kubelet probes and `kubectl port-forward` (break-glass) are not
+# policy-checked ingress and keep working.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: healthchecks-only-from-oauth2-proxy
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: healthchecks
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: oauth2-proxy
+            app.kubernetes.io/name: oauth2-proxy
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP

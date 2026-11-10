@@ -8,3 +8,4 @@ resources:
   - ../../sets/minimal
   - ../../sets/standing
   - ../../../../../infra/longhorn-system/longhorn-auth/flux
+  - ../../../../../apps/monitoring/healthchecks/flux
