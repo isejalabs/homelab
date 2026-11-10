@@ -100,5 +100,14 @@ inputs = {
       redirect_uris             = ["https://monitoring.home.iseja.net/prod/oidc-redirect"]
       post_logout_redirect_uris = ["https://monitoring.home.iseja.net/*"]
     }
+
+    # The Longhorn dashboard has no login of its own: the oauth2-proxy of k8s/infra/longhorn-system/longhorn-auth logs in
+    # with this client (realm admin, group sec.app.longhorn.admin), see docs/identity/longhorn-sso.md.
+    "longhorn-admin" = {
+      realm         = "admin"
+      client_id     = "longhorn"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
+      pkce          = true
+    }
   }
 }
