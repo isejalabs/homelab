@@ -34,14 +34,14 @@ The application trusts the header `X-Forwarded-Email` of the proxy (`REMOTE_USER
 
 ## Updates
 
-The image is pinned (tag and digest) in [`base/deployment.yaml`](base/deployment.yaml); Renovate bumps both. The proxy's chart is pinned once for every consumer in the [component](../../../components/apps/oauth2-proxy/README.md#updates). No special Renovate rule: default flow of [`update-handling.md`](../../../docs/operations/update-handling.md). The container runs the database migrations on every start.
+The image is pinned (tag and digest) in [`base/deployment.yaml`](base/deployment.yaml); Renovate bumps both. The proxy's chart is pinned once for every consumer in the [component](../../../components/apps/oauth2-proxy/README.md#updates). No special Renovate rule: default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md). The container runs the database migrations on every start.
 
 ## Operations
 
 | Task | Doc |
 | --- | --- |
-| Back up, restore, or import data into a blank PVC | [`kopiur-backup-restore.md`](../../../docs/backup/kopiur-backup-restore.md) |
-| How the login proxy works, reuse it | [`oauth2-proxy.md`](../../../docs/identity/oauth2-proxy.md) |
+| Back up, restore, or import data into a blank PVC | [`kopiur-backup-restore.md`](../../../../docs/backup/kopiur-backup-restore.md) |
+| How the login proxy works, reuse it | [`oauth2-proxy.md`](../../../../docs/identity/oauth2-proxy.md) |
 
 ## Cheat sheet
 
