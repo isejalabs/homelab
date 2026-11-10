@@ -41,6 +41,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Restore app data | [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](backup/longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
 | Restore the Keycloak database | [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
+| Restore a Checkmk site's own backup | [`checkmk-backup-restore.md`](backup/checkmk-backup-restore.md#restore-into-an-isolated-site) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
 
 ### Identity (Keycloak)
