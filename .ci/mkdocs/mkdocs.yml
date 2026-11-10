@@ -46,7 +46,7 @@ exclude_docs: |
 use_directory_urls: true
 
 validation:
-  omitted_files: info
+  omitted_files: warn
   absolute_links: warn
   unrecognized_links: warn
   anchors: warn
@@ -154,14 +154,19 @@ nav:
     - Longhorn snapshots: docs/backup/longhorn-snapshots.md
     - Keycloak database: docs/identity/keycloak-backup-restore.md
     - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
+    - Checkmk site backup and restore: docs/backup/checkmk-backup-restore.md
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
   - Identity:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
+    - Second factor in the Keycloak realms: docs/identity/keycloak-mfa.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
+    - Longhorn human SSO: docs/identity/longhorn-sso.md
+    - Proxmox human SSO: docs/identity/proxmox-sso.md
+    - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
@@ -182,10 +187,12 @@ nav:
   - Monitoring sites: docs/reference/monitoring-sites.md
   - Monitoring thresholds: docs/reference/monitoring-thresholds.md
   - Monitoring notifications: docs/reference/monitoring-notifications.md
+  - Project icons: docs/assets/icons/README.md
 - Components and apps:
   - Index: k8s/README.md
   - Shared components: k8s/components/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
+  - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
   - Storage component: k8s/components/apps/storage/README.md
   - Transformers:
     - add-labels: k8s/components/transformers/add-labels/README.md
@@ -214,6 +221,7 @@ nav:
     - kopiur repository: k8s/infra/kopiur-system/kopiur-repository/README.md
     - kubelet-serving-cert-approver: k8s/infra/kube-system/kubelet-serving-cert-approver/README.md
     - Longhorn classes and jobs: k8s/infra/longhorn-system/longhorn/README.md
+    - Longhorn login: k8s/infra/longhorn-system/longhorn-auth/README.md
     - Longhorn core: k8s/infra/longhorn-system/longhorn-core/README.md
     - proxmox-csi: k8s/infra/csi-proxmox/proxmox-csi/README.md
     - sealed-secrets: k8s/infra/sealed-secrets/sealed-secrets/README.md
@@ -286,3 +294,4 @@ nav:
     - "2026-09 · Observability implementation plan": docs/plans/2026-09-observability.md
     - "2026-10 · Checkmk site consolidation plan": docs/plans/2026-10-checkmk-consolidation.md
     - "2026-10 · Identity and web SSO — independent design pass": docs/plans/2026-10-identity-claude.md
+    - "2026-11 · Observability plan (reconciled)": docs/plans/2026-11-observability.md

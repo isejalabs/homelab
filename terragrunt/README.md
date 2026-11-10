@@ -283,7 +283,7 @@ Pitfalls it already accounts for, in case you query by hand:
 
 ## Keycloak realms (`keycloak-realm`)
 
-`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS and a `groups` claim scope) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev`, `qa` and `prod`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
+`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS, a `groups` claim scope, an explicit WebAuthn relying-party ID and a second factor after the UCS password, see [`docs/identity/keycloak-mfa.md`](../docs/identity/keycloak-mfa.md)) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev`, `qa` and `prod`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
 
 ### Automation client (`keycloak-automation`)
 
