@@ -43,3 +43,6 @@ spec:
           sessionDuration: 8h
           type: OAuth2
         baseURL: https://flux.example.com
+      # the user needs the action verbs only (see clusterrole.yaml); the operator performs the native patch/create itself
+      userActions:
+        access: FineGrained

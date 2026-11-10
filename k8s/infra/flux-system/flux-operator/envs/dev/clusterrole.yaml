@@ -1,0 +1,84 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/rbac.authorization.k8s.io/clusterrole_v1.json
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: flux-operator-web-admin
+# What the Web UI needs to show Flux and its workloads and to run the Flux actions, nothing else: no Secret, no ConfigMap, no
+# arbitrary kind (the chart's flux-web-admin reads `*/*`). With web.userActions.access FineGrained the action verbs are
+# enough: the native patch/create of an action is done by the operator's own account after the verb was checked, so this
+# role (and a later Kubernetes API binding of the same group) carries no write verb except the pod delete, which is native.
+rules:
+  # Flux resources: view and the Flux actions
+  - apiGroups:
+      - fluxcd.controlplane.io
+      - helm.toolkit.fluxcd.io
+      - image.toolkit.fluxcd.io
+      - kustomize.toolkit.fluxcd.io
+      - notification.toolkit.fluxcd.io
+      - source.extensions.fluxcd.io
+      - source.toolkit.fluxcd.io
+    resources:
+      - "*"
+    verbs:
+      - download
+      - get
+      - list
+      - reconcile
+      - resume
+      - suspend
+      - watch
+  # workloads of the inventories: view and restart
+  - apiGroups:
+      - apps
+    resources:
+      - daemonsets
+      - deployments
+      - statefulsets
+    verbs:
+      - get
+      - list
+      - restart
+      - watch
+  - apiGroups:
+      - apps
+    resources:
+      - replicasets
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - batch
+    resources:
+      - cronjobs
+      - jobs
+    verbs:
+      - get
+      - list
+      - restart
+      - watch
+  # pods, their logs and the events of the objects
+  - apiGroups:
+      - ""
+    resources:
+      - events
+    verbs:
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods
+    verbs:
+      - delete
+      - get
+      - list
+      - watch
+  - apiGroups:
+      - ""
+    resources:
+      - pods/log
+    verbs:
+      - get

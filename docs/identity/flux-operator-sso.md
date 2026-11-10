@@ -17,7 +17,7 @@ The Web UI of the operator (port 9080, published by the `HTTPRoute` of [`flux-op
 | Keycloak client `flux-operator` in the realm `admin` | Code: entry `flux-operator-admin` in `oidc_clients` of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) ([OIDC clients](keycloak-realms.md#oidc-clients)); redirect URI `https://<flux host>/oauth2/callback` |
 | Client secret | 1Password item `keycloak-oidc-flux-operator-admin#<env>` (field `password`), written by the `keycloak-realm` unit and delivered by an `ExternalSecret`, rendered by the chart into the web config; never in Git |
 | Web config (issuer, claim rules) | `HelmRelease` values `web.config` in [`envs/<env>/helmrelease.yaml`](../../k8s/infra/flux-system/flux-operator/envs/dev/helmrelease.yaml) |
-| Authorization | `ClusterRoleBinding` of the group `sec.app.flux-operator.admin` to the chart's `flux-web-admin` |
+| Authorization | `ClusterRoleBinding` of the group `sec.app.flux-operator.admin` to the custom `ClusterRole` [`flux-operator-web-admin`](../../k8s/infra/flux-system/flux-operator/envs/dev/clusterrole.yaml), see [Role](#role-of-the-admin-group) |
 | UCS group | `sec.app.flux-operator.admin`, member `sebi-adm` ([`ucs-groups.md`](ucs-groups.md)); creation needs the owner's go |
 
 ## Claim handling
@@ -27,6 +27,20 @@ The operator's service account may impersonate **any** user and group, so a clai
 - **groups:** only the entries that start with `sec.app.flux-operator.` are impersonated, a leading `/` (Keycloak's full group path) is removed first. Other groups of the token, for example a `system:masters`, never reach the API server.
 - **username:** `oidc:` plus `preferred_username`, so it cannot equal a service account or a `system:` user and the audit log shows where the request came from. Keep the prefix in step with the Kubernetes API OIDC work ([#1766](https://github.com/isejalabs/homelab/issues/1766)).
 - **validations:** the login is refused when no `sec.app.flux-operator.*` group is left or the username is empty. A missing `groups` claim yields an empty list (`has()` guard), so it never grants anything and never errors into a default.
+
+## Role of the admin group
+
+The chart's predefined roles are not used. `flux-web-user` and `flux-web-admin` read `*/*`, which includes every `Secret` and `ConfigMap`, and `flux-web-admin` adds `patch` on Flux resources and workloads, job creation and pod deletion. The RBAC would then not protect secrets, and every member of the group (and any later Kubernetes API binding of it, [#1766](https://github.com/isejalabs/homelab/issues/1766)) would hold those natively. Decision, after the review of [PR #2241](https://github.com/isejalabs/homelab/pull/2241): the group `sec.app.flux-operator.admin` gets the custom role [`flux-operator-web-admin`](../../k8s/infra/flux-system/flux-operator/envs/dev/clusterrole.yaml), which grants:
+
+| Area | Verbs |
+| --- | --- |
+| Flux resources (all Flux API groups) | `get`, `list`, `watch` and the actions `reconcile`, `suspend`, `resume`, `download` |
+| `deployments`, `statefulsets`, `daemonsets`, `cronjobs`, `jobs` | `get`, `list`, `watch` and the action `restart` |
+| `replicasets`, `events` | `get`, `list`, `watch` |
+| `pods` | `get`, `list`, `watch`, `delete` (the delete is the pod action; the verb is native) |
+| `pods/log` | `get` |
+
+Not granted: `Secret`, `ConfigMap`, any other kind, `patch`/`create`/`update`, node and namespace listing (the dashboard gets the namespace list and the node summary from the operator itself, see the [least-privilege page](https://github.com/controlplaneio-fluxcd/flux-operator/blob/v0.62.1/docs/web/web-least-privilege-rbac.md)). The UI runs in `userActions.access: FineGrained`: it checks the action verb against the user and performs the native `patch`/`create` with the operator's own account (which is `cluster-admin` when the UI is embedded, as here). The group therefore needs no write verb for the Flux actions, so a Kubernetes API login of the same account cannot patch anything. Flux actions are still powerful (a `suspend` of the `Kustomization` of a unit stops its reconciliation); that is the purpose of the admin role and is intended. The roles of [#2234](https://github.com/isejalabs/homelab/issues/2234) are cut the same way.
 
 ## Versions
 

@@ -6,6 +6,7 @@ components:
 
 resources:
   - ../../base
+  - clusterrole.yaml
   - clusterrolebinding.yaml
   - externalsecret.yaml
 
