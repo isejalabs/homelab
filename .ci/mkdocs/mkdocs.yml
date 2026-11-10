@@ -154,6 +154,7 @@ nav:
     - Longhorn snapshots: docs/backup/longhorn-snapshots.md
     - Keycloak database: docs/identity/keycloak-backup-restore.md
     - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
+    - Checkmk site backup and restore: docs/backup/checkmk-backup-restore.md
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
