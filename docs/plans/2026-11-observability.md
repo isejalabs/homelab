@@ -1,7 +1,7 @@
 ---
 date: 2026-11-02
-updated: 2026-11-09
-status: Decisions D1 to D11 confirmed by the owner on 2026-11-09 (D3 and D11 revised, D10 amended); D2 still open for Kubernetes objects; issues restructured on 2026-11-02, see Tracking below; no stream started
+updated: 2026-11-11
+status: Decisions D1 to D11 confirmed by the owner on 2026-11-09 (D3 and D11 revised, D10 amended); D2 fully decided as of 2026-11-11 (Kubernetes objects notify from the `*_k8s` sites, stream B); issues restructured on 2026-11-02, see Tracking below; no stream started
 scope: everything under https://github.com/isejalabs/homelab/issues/71 — Checkmk notifications, load and history, capacity checks, backup freshness, searchable logs with remote querying, log-derived alerts and the daily digest
 supersedes: 2026-09-observability.md (Codex, tracked by phase issues) and 2026-09-observability-claude.md (Claude, comparison only); the September assessments in ../audits/ stay as they are
 builds-on: 2026-10-checkmk-consolidation.md (https://github.com/isejalabs/homelab/issues/1783), which is done except its phase 4
@@ -32,12 +32,12 @@ The two September plans were written in parallel and never reconciled; only the 
 
 ## Decisions
 
-All decisions were confirmed by the owner on 2026-11-09. D3, D4, D6 and D11 come from the owner's own answers (2026-11-02, D3 and D11 revised on 2026-11-09), D10 was amended the same day. D2 is decided for hosts and Smart Ping and still open for Kubernetes objects.
+All decisions were confirmed by the owner on 2026-11-09. D3, D4, D6 and D11 come from the owner's own answers (2026-11-02, D3 and D11 revised on 2026-11-09), D10 was amended the same day. D2 was decided for hosts and Smart Ping on 2026-11-09 and for Kubernetes objects on 2026-11-11, after the stream B investigation ([#2158](https://github.com/isejalabs/homelab/issues/2158)).
 
 | # | Decision | Reason |
 | --- | --- | --- |
 | D1 | Checkmk stays the system for metrics, capacity, history and **all notifications**, including log-derived ones. | One notification owner, existing RRDs and mail; no second alerting pipeline to maintain. |
-| D2 | Each host notifies from **exactly one** site: Smart Ping hosts from `prod_k8s`, every other physical and virtual host (the Talos nodes included) from `prod`. **Open:** where Kubernetes objects notify from, decided in stream B. Either the `*_k8s` site of the cluster (it sees every object, down to pods) or `prod` (one tool for all notifications, but only the coarse objects it monitors). | Notifications are per site and never merged ([#1901](https://github.com/isejalabs/homelab/issues/1901)). |
+| D2 | Each host notifies from **exactly one** site: Smart Ping hosts from `prod_k8s`, every other physical and virtual host (the Talos nodes included) from `prod`. **Kubernetes objects** (namespaces, Deployments, DaemonSets, StatefulSets) notify from the **`*_k8s` site of their own cluster**, not from `prod` (owner, 2026-11-11, stream B): `prod`'s Kubernetes special agent only imports a hand-picked subset today (5 of the 51 `Replicas` services `prod_k8s` has), both options are similarly quiet with the 15 min delay, and `prod_k8s` already notifies for Smart Ping so this adds no new notifying site. Revisit once Prometheus takes over the fine-grained Kubernetes part (D4); the alerts move with the data. | Notifications are per site and never merged ([#1901](https://github.com/isejalabs/homelab/issues/1901)). |
 | D3 | **`prod` is the long-term central site** (owner, 2026-11-09). It monitors every physical and virtual host, the Talos nodes included, and the near-static Kubernetes objects (namespaces, Deployments, StatefulSets, DaemonSets) of `dev`, `qa` and `prod` through its Kubernetes special agent, so the trends of CPU, memory and filesystems live there. The `*_k8s` sites (Ultimate today, possibly superseded by Prometheus) add what the Community edition does not provide: pod-level and finer-grained detail. `rebuild` leaves `prod`'s special agent (owner, 2026-11-02: `prod` does not need it) and gets a `rebuild_k8s` site for upgrade tests (stream I). | One query per cluster feeds all objects as piggyback data, so the Kubernetes checks in `prod` are cheap; keeping the trends in the central site lets the extra tool change without losing history. |
 | D4 | Smart Ping stays in `prod_k8s`. When the site nears the 750-service limit (WARN 675, CRIT 713 already monitored), Kubernetes services are trimmed first (owner, 2026-11-02), starting with those that `prod` already covers (D3). If Checkmk's limits become the constraint for Kubernetes monitoring in general, Prometheus taking over the fine-grained Kubernetes part is the long-term alternative, not a ping-only site. | Keeps Smart Ping where it runs today and fewer sites, as decided on 2026-10-20. |
 | D5 | Log store: **single-node VictoriaLogs on loghost** (two instances, see D6), fed by a copy of the syslog-ng stream, with the compressed file archive kept as fallback. No Loki pilot. | Native syslog intake, low RAM, an official CLI (`vlogscli`: query, live tail, JSON output, basic/bearer auth). The Loki comparison would cost weeks to decide a difference that is noise next to the host writes in [#1596](https://github.com/isejalabs/homelab/issues/1596). |
@@ -71,7 +71,7 @@ Tracked in [#2158](https://github.com/isejalabs/homelab/issues/2158).
 - [ ] `prod_k8s` and `prod`: service notifications live with the delays settled in [#1900](https://github.com/isejalabs/homelab/issues/1900) (15 minutes catch-all, longer for `Check_MK Discovery`, none for `Check_MK HW/SW Inventory`), after the noise clean-up in [#1901](https://github.com/isejalabs/homelab/issues/1901) and the threshold work already done.
 - [ ] Disk and quota CRIT notify by push without the catch-all delay.
 - [ ] Every host notifies from exactly one site (D2), checked with a list of hosts that exist in more than one site.
-- [ ] Decided and recorded: whether Kubernetes objects notify from the `*_k8s` sites or from `prod` (D2).
+- [x] Decided and recorded: Kubernetes objects notify from the `*_k8s` sites, not from `prod` (D2, owner 2026-11-11).
 
 ### C — Backup freshness
 
@@ -167,7 +167,7 @@ The two September plans carry a status line pointing to this plan; their bodies 
 
 - PBS restore: proven with other VMs and LXCs, accepted for the monitoring container too (stream A).
 - `rebuild`: `prod` does not need it for Kubernetes monitoring; a `rebuild_k8s` site is needed to test upgrades (D3, stream I).
-- Kubernetes in `prod` (2026-11-09): `prod` keeps its Kubernetes special agent and becomes the long-term central site for all hosts and the near-static Kubernetes objects with their trends; the `*_k8s` sites or Prometheus add fine-grained detail (D3). Where Kubernetes objects notify from is open (D2).
+- Kubernetes in `prod` (2026-11-09): `prod` keeps its Kubernetes special agent and becomes the long-term central site for all hosts and the near-static Kubernetes objects with their trends; the `*_k8s` sites or Prometheus add fine-grained detail (D3). Where Kubernetes objects notify from: the `*_k8s` sites, decided 2026-11-11 (D2).
 - Configuration export (2026-11-09): must not leak credentials kept in Checkmk (D9).
 - Service limit of `prod_k8s`: trim Kubernetes services first; Prometheus may take over Kubernetes monitoring if Checkmk becomes the limiting factor (D4).
 - Logs: two VictoriaLogs instances, authentication and applications; retention to be decided, authentication likely longer than 90 days (D6, F2).
@@ -178,5 +178,4 @@ The two September plans carry a status line pointing to this plan; their bodies 
 
 1. Retention periods of the two VictoriaLogs instances (decided in F2, before ingest).
 2. The push channel: Pushover unless its test in stream B fails, else Slack or PagerDuty.
-3. Where Kubernetes objects notify from: the `*_k8s` sites or `prod` (D2, decided in stream B).
-4. When Prometheus would replace Checkmk for Kubernetes: what counts as "Checkmk is the limiting factor" (for example, trimming below a minimum useful service set, or the free licence terms changing).
+3. When Prometheus would replace Checkmk for Kubernetes: what counts as "Checkmk is the limiting factor" (for example, trimming below a minimum useful service set, or the free licence terms changing).
