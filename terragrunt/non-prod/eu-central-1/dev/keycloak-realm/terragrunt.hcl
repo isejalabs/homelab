@@ -69,5 +69,16 @@ inputs = {
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "healthchecks")}/oauth2/callback"]
       pkce          = true
     }
+
+    # Proof of concept: the OIDC login of the OPNsense gateway gw3 through the community plugin os-sso, which the
+    # firewall needs no Keycloak-side tweaks for beyond this client. The callback is the plugin's fixed path on the
+    # node's own name; a productive login uses the shared name of the HA pair. docs/identity/opnsense-auth.md
+    "opnsense-admin" = {
+      realm         = "admin"
+      client_id     = "opnsense"
+      name          = "OPNsense gw3 (PoC)"
+      redirect_uris = ["https://gw3.home.iseja.net/api/sso/oidc/callback"]
+      pkce          = true
+    }
   }
 }

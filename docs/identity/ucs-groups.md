@@ -8,7 +8,7 @@ UCS stays authoritative for users and groups ([ADR 0016](../decisions/0016-ident
 
 ## Naming scheme
 
-Names are lower case, segments separated by `.`, in the form `<kind>.<area>.<name>[.<role>]`. UCS accepts dots in group names (the regular expression of the UDM `name` property allows them, and `fs.onedrive.sebi` already exists).
+Names are lower case, segments separated by `.`, in the form `<kind>.<area>.<name>[.<role>]`. UCS accepts dots in group names (the regular expression of the UDM `name` property allows them, and `fs.onedrive.bob` already exists).
 
 | Group | Kind | Meaning | Read by Keycloak |
 | --- | --- | --- | --- |
@@ -74,9 +74,9 @@ done
 Between the rename and the `terragrunt apply` of the realm filters, the filters match nobody, so run them back to back. The local administrator of Checkmk (`cmkadmin`) is the way in meanwhile ([`checkmk-sso.md`](checkmk-sso.md#break-glass)). In this order:
 
 1. **Merge** the pull request that changes the filters in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) (no apply happens on merge).
-2. **UCS:** rename the groups (above) and check `ldapsearch ... "(uid=sebi)" memberOf` returns `cn=sec.idm.users,...` ([`keycloak-realms.md`](keycloak-realms.md#ucs-setup)).
+2. **UCS:** rename the groups (above) and check `ldapsearch ... "(uid=bob)" memberOf` returns `cn=sec.idm.users,...` ([`keycloak-realms.md`](keycloak-realms.md#ucs-setup)).
 3. **Keycloak:** from `main`, `terragrunt apply` the `keycloak-realm` unit of `dev` and then `qa` ([`keycloak-realms.md`](keycloak-realms.md#apply-and-verify)). In each realm, *User federation → ucs → Mappers → groups → Sync LDAP groups to Keycloak* imports the new names and drops the old ones, then *Sync changed users* (or wait up to an hour, see [`checkmk-sso.md`](checkmk-sso.md#changing-who-has-access)). The group sync is also an admin API call: `POST /admin/realms/<realm>/user-storage/<ucs-provider-id>/mappers/<groups-mapper-id>/sync?direction=fedToKeycloak` (the direction values are `fedToKeycloak` and `keycloakToFed`, not the console's wording); it answered `3 imported groups, 0 updated groups, 3 removed groups` in each of the four realms.
 4. **Checkmk:** in each SAML connection of `dev_k8s` and `qa_k8s` (four in all) replace the group names in the role and contact group mapping by the new ones ([`checkmk-sso.md`](checkmk-sso.md#checkmk-side)). Checkmk 2.5.0p15 has no REST call to change a SAML connection (only `GET`, `POST` and `DELETE`), and deleting one risks its users, which carry `connector: keycloak_iseja`. The change was therefore made in the site's `etc/check_mk/multisite.d/wato/user_connections.mk`, the file the setup page writes, as the site user with a backup copy in the site's `tmp/`; the REST `GET` then returned the new names.
-5. **Verify** a login as `sebi`, `sebi-adm` and `mary` in both sites. Checked: `ldapsearch` shows `memberOf: cn=sec.idm.users,...` for `sebi`, and the Keycloak user groups in `dev` and `qa` are `sebi` → `sec.app.checkmk.operator`, `sebi-adm` → `sec.app.checkmk.admin`, `mary` → `sec.app.checkmk.readonly`. The owner confirmed complete browser logins as `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s` on 2026-11-02.
+5. **Verify** a login as `bob`, `bob-adm` and `alice` in both sites. Checked: `ldapsearch` shows `memberOf: cn=sec.idm.users,...` for `bob`, and the Keycloak user groups in `dev` and `qa` are `bob` → `sec.app.checkmk.operator`, `bob-adm` → `sec.app.checkmk.admin`, `alice` → `sec.app.checkmk.readonly`. The owner confirmed complete browser logins as `bob`, `bob-adm` and `alice` in `dev_k8s` and `qa_k8s` on 2026-11-02.
 
 To roll back, rename the groups back and revert the pull request.
