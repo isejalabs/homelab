@@ -240,6 +240,7 @@ nav:
     - UniFi MongoDB: k8s/apps/network/unifi-mongodb/README.md
     - whoami: k8s/apps/diag/whoami/README.md
     - Zigbee2MQTT: k8s/apps/home-automation/zigbee2mqtt/README.md
+    - Zigbee2MQTT login: k8s/apps/home-automation/zigbee2mqtt-auth/README.md
   - Terragrunt envcommon: terragrunt/_envcommon/README.md
   - Scripts:
     - Overview: scripts/README.md

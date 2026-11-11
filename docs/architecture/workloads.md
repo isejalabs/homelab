@@ -25,10 +25,11 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 | <img src="../assets/icons/mongodb.svg" width="20" height="20" alt=""> [`unifi-mongodb`](../../k8s/apps/network/unifi-mongodb/) | `network` | MongoDB backing store for `unifi-controller` above, on proxmox-csi (see [`storage.md`](storage.md)) | optional |
 | 🙋 [`whoami`](../../k8s/apps/diag/whoami/) | `diag` | Traefik's [`whoami`](https://github.com/traefik/whoami) HTTP echo/debug server (`ghcr.io/traefik/whoami`) | minimal |
 | <img src="../assets/icons/zigbee2mqtt.svg" width="20" height="20" alt=""> [`zigbee2mqtt`](../../k8s/apps/home-automation/zigbee2mqtt/) | `home-automation` | [Zigbee2MQTT](https://www.zigbee2mqtt.io/) — bridge between the Zigbee network (ConBee II passed through to one worker) and the MQTT broker for Home Assistant | none ² |
+| <img src="../assets/icons/zigbee2mqtt.svg" width="20" height="20" alt=""> [`zigbee2mqtt-auth`](../../k8s/apps/home-automation/zigbee2mqtt-auth/) | `home-automation` | Login for the Zigbee2MQTT frontend: [OAuth2 Proxy](https://oauth2-proxy.github.io/oauth2-proxy/) against Keycloak plus a `CiliumNetworkPolicy` (see [`zigbee2mqtt-sso.md`](../identity/zigbee2mqtt-sso.md)) | none ² |
 
 ¹ `keycloak` is registered in `dev`, `qa`, `prod` and `rebuild` only, see [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml).
 
-² `zigbee2mqtt` is registered in `prod` only, because there is a single physical coordinator.
+² `zigbee2mqtt` is registered in `prod` only, because there is a single physical coordinator; `zigbee2mqtt-auth` follows it.
 
 ## Infra (`k8s/infra/`)
 

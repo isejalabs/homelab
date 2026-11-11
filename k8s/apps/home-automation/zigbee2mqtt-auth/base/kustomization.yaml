@@ -1,0 +1,23 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: zigbee2mqtt
+
+components:
+  - ../../../../components/apps/oauth2-proxy
+
+resources:
+  - networkpolicy.yaml
+
+patches:
+  # Zigbee2MQTT's frontend is a single-page app on a websocket, which a browser opens with the session cookie. Zigbee2MQTT
+  # checks no Origin, so the cookie must not travel on a cross-site request: SameSite=Lax (oauth2-proxy sets no attribute
+  # by default and not every browser defaults to Lax). No skip-auth-route: nothing calls the frontend without a browser.
+  - patch: |-
+      - op: add
+        path: /spec/values/extraArgs/cookie-samesite
+        value: lax
+    target:
+      kind: HelmRelease
