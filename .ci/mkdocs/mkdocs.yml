@@ -166,6 +166,7 @@ nav:
     - Checkmk human SSO: docs/identity/checkmk-sso.md
     - Longhorn human SSO: docs/identity/longhorn-sso.md
     - Proxmox human SSO: docs/identity/proxmox-sso.md
+    - OPNsense administrator login: docs/identity/opnsense-auth.md
     - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
