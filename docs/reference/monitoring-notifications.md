@@ -19,7 +19,7 @@ What fires a notification, when, and why that is (not yet) a good signal-to-nois
 | `qa_k8s` | **on** (mail and Slack) | 15 min for all services (rule "Delay all service notifications by 15m"); 60 min for `Check_MK Discovery`, none for `Check_MK HW/SW Inventory` (since 2026-10-25, [#1900](https://github.com/isejalabs/homelab/issues/1900)) | none (24x7) | every 5 min, auto-rediscovery after 15 min grouping |
 | `dev_k8s` | off in effect: default mail rule, but the contact has no mail address, so every mail fails | none | none | |
 | `prod_k8s` | off in effect: default mail rule, but the contact has no mail address, so every mail fails | none | none | every 33 min, auto-rediscovery after 15 min grouping |
-| `prod` | off: no notification rule, and the contact `sebi` has notifications disabled | none | `p5-22` (05:00–22:00, every day) for hosts and services; `APT Updates` uses `p_reg_wo_apt` (11:20–22:00) | every 125 min for `tcp`-tagged hosts, adds new services only |
+| `prod` | off: no notification rule, and the contact `bob` has notifications disabled | none | `p5-22` (05:00–22:00, every day) for hosts and services; `APT Updates` uses `p_reg_wo_apt` (11:20–22:00) | every 125 min for `tcp`-tagged hosts, adds new services only |
 
 "Off" is not the global switch: the core's `enable_notifications` is on in every site. On `dev_k8s` and `prod_k8s` the raw notifications reach the mail rule and fail there (`notify.log`: "Cannot send HTML email: empty destination email address", 411 times on `dev_k8s` in the 14 days to 2026-11-09). So setting a mail address on one of these contacts switches notifications on at once, without any delay rule; apply the delays first.
 
@@ -145,8 +145,8 @@ The capacity delay of 0 min is cheap: 12 capacity episodes on `prod` in 14 days,
 
 Notification rules, once the keys and the address exist (UI: Setup > Notifications):
 
-1. **Push:** method Pushover, contact `sebi`; host events DOWN and UP of the Smart Ping hosts (`prod_k8s`); service events to CRIT and back of the capacity services above (both sites). Priority high for problems, normal for recoveries.
-2. **Mail:** the existing default HTML mail rule (host `d`/`r`, service `c`/`w`/`r`), with the address set on contact `sebi`.
+1. **Push:** method Pushover, contact `bob`; host events DOWN and UP of the Smart Ping hosts (`prod_k8s`); service events to CRIT and back of the capacity services above (both sites). Priority high for problems, normal for recoveries.
+2. **Mail:** the existing default HTML mail rule (host `d`/`r`, service `c`/`w`/`r`), with the address set on contact `bob`.
 
 ### `prod` is not ready for service notifications
 
@@ -155,7 +155,7 @@ Replayed against the rules above, `prod` would send about 600 notifications in 1
 ### Steps for the owner
 
 1. Pushover: create the account (30-day trial, then USD 4.99 per platform), install the app, create an application named Checkmk. Store the API key and the user key in 1Password.
-2. Enter both keys in the push rule on `prod_k8s` (and on `prod` for capacity) and set the mail address on contact `sebi` (from 1Password; `qa_k8s` already has it), only **after** the delay rules are active.
+2. Enter both keys in the push rule on `prod_k8s` (and on `prod` for capacity) and set the mail address on contact `bob` (from 1Password; `qa_k8s` already has it), only **after** the delay rules are active.
 3. Test the delivery with Setup > Notifications > Test notifications (host `google-dns`, state DOWN): the push must arrive on the phone.
 4. Controlled outage of one WAN target, reversible and local to `monitoring2`: as root in the container, `iptables -I OUTPUT -d 8.8.8.8 -p icmp -j DROP`; wait for the DOWN push (seconds plus the host delay); `iptables -D OUTPUT -d 8.8.8.8 -p icmp -j DROP`; wait for the UP push. Only ICMP from the monitoring container to that address is dropped; DNS uses the internal resolvers.
 
