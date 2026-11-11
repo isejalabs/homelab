@@ -13,14 +13,14 @@ Like the first pass, this was produced from repository evidence, issue history, 
 ## Summary
 
 - **Select the IdP now: upstream Keycloak, run in Kubernetes, federating UCS read-only.** It is the only candidate that covers OIDC, SAML, LDAP/AD federation, Kerberos SPNEGO, conditional MFA and passkeys in one product, and it is the IdP inside Nubus, so it is also the migration path. The live UCS inventory changes integration details, not this choice.
-- **Two realms, not one:** an everyday realm (`iseja`) with Kerberos SPNEGO for `sebi` and family, and an admin realm (`admin`) for `*-adm` accounts only, no Kerberos, UCS password plus a WebAuthn authenticator (passkey or YubiKey), TOTP as fallback. This is what makes `sebi` and `sebi-adm` work side by side in one browser.
+- **Two realms, not one:** an everyday realm (`iseja`) with Kerberos SPNEGO for `bob` and family, and an admin realm (`admin`) for `*-adm` accounts only, no Kerberos, UCS password plus a WebAuthn authenticator (passkey or YubiKey), TOTP as fallback. This is what makes `bob` and `bob-adm` work side by side in one browser.
 - **Decouple from Cilium 1.20.** Native OIDC covers most services; the two or three that have no auth of their own (Longhorn, Zigbee2MQTT, AdGuard) get oauth2-proxy as a plain reverse proxy, which works on the Cilium 1.18 that `prod` runs today. Gateway `ExternalAuth` becomes an optional later consolidation, not a prerequisite.
 - **Placement is a design decision the first pass skipped:** the authoritative IdP runs in `prod`; `qa` runs its own instance as the upgrade gate; `rebuild` runs one to rehearse IdP recovery; other non-prod environments use the `prod` IdP (non-prod depending on prod is the acceptable direction).
 - **Availability is concrete, not open:** 2 Keycloak replicas, CloudNativePG with 1 instance (2 optional), sessions persisted in the database, nightly database backups to S3, realm configuration in Git. Target: 1 h to restore, at most 24 h of MFA enrollments lost. Every core infrastructure service keeps a local login that does not depend on the IdP, Kubernetes, or UCS.
 
 ## Inputs
 
-The owner's brief (paraphrased): UCS on `adelheid` (pve1) and `baerbel` (pve5) provides DHCP, DNS for `dir.iseja.net` and `10.7.0.0/16`, LDAP, Kerberos, AD and SAML (`ucs-sso.dir.iseja.net`); `adelheid` hangs from time to time. Nubus is the long-term wish but cannot replace UCS network services. Keycloak on UCS was tried as a PoC; it was not HA-capable without a shared PostgreSQL, and it is ClickOps. A PostgreSQL cluster is not required; failover plus a replicated Longhorn volume is enough. Services: Longhorn, Flux Operator, Zigbee2MQTT, Immich, Checkmk, Proxmox, RustFS, OPNsense, TrueNAS, and more. Core services may keep local login. 2FA for web apps; ideally real SSO from the OS Kerberos login on macOS and Windows; keep the `sebi` / `sebi-adm` split.
+The owner's brief (paraphrased): UCS on `adelheid` (pve1) and `baerbel` (pve5) provides DHCP, DNS for `dir.iseja.net` and `10.7.0.0/16`, LDAP, Kerberos, AD and SAML (`ucs-sso.dir.iseja.net`); `adelheid` hangs from time to time. Nubus is the long-term wish but cannot replace UCS network services. Keycloak on UCS was tried as a PoC; it was not HA-capable without a shared PostgreSQL, and it is ClickOps. A PostgreSQL cluster is not required; failover plus a replicated Longhorn volume is enough. Services: Longhorn, Flux Operator, Zigbee2MQTT, Immich, Checkmk, Proxmox, RustFS, OPNsense, TrueNAS, and more. Core services may keep local login. 2FA for web apps; ideally real SSO from the OS Kerberos login on macOS and Windows; keep the `bob` / `bob-adm` split.
 
 Repository and issue facts that shape the design:
 
@@ -39,7 +39,7 @@ Each row is a point to confirm or reject. "First pass" means ADR 0016 in [PR #17
 | D1 | IdP selection | Deferred until after UCS inventory; Keycloak, Nubus "and other candidates" to be evaluated | **Select Keycloak now.** The hard requirements (OIDC + SAML + LDAP/AD federation + Kerberos SPNEGO + conditional MFA) leave two products: Keycloak and authentik (Kerberos source with SPNEGO). Authelia, Zitadel, Kanidm, Pocket ID lack SPNEGO. Keycloak wins on Nubus alignment (Nubus *is* Keycloak plus UCS extensions), maturity of its Kerberos/LDAP federation, an official operator and an official OpenTofu provider. The inventory decides *how* to federate, not *which* IdP. | Accept Keycloak as the IdP |
 | D2 | Gateway `ExternalAuth` | Central pattern for browser apps; proof in `poc` gated on Cilium 1.18 → 1.19 → 1.20 and Gateway API 1.6.1 CRDs; part of #1715 acceptance | **Not on the critical path.** Only Longhorn, Zigbee2MQTT and AdGuard lack native SSO. oauth2-proxy as a reverse proxy in front of each (plus a `CiliumNetworkPolicy` that only admits the proxy) works on today's Cilium. Flux Operator's UI has **native** OIDC with Kubernetes impersonation, so it does not need a gateway filter. Keep the `ExternalAuth` proof as its own optional issue, done when Cilium 1.20 reaches `prod` for its own reasons. | Move the `ExternalAuth` proof out of #1715 acceptance |
 | D3 | IdP placement across environments | Not addressed | `prod` hosts the authoritative IdP, also for Proxmox, OPNsense, TrueNAS, RustFS, Checkmk. `qa` runs its own Keycloak (upgrade and config gate), `rebuild` runs one (rehearses restore). `dbg`/`dev`/`head`/`poc`/`src` register their UIs as clients in the `prod` IdP. One codebase, deployed with the usual `base/` + `envs/` overlays. | Confirm placement, and that non-prod may depend on `prod` |
-| D4 | `sebi` / `sebi-adm` | "Preserve separate identities, map groups" | **Two realms.** A browser holds one SSO session per realm, and SPNEGO always presents the OS user's ticket (`sebi`), so a single realm cannot give both identities SSO at once: logging in as `sebi-adm` would replace `sebi`'s session. With `iseja` (everyday, Kerberos) and `admin` (`*-adm` only, passkey, no Kerberos), both sessions coexist. Admin UIs trust only `admin`; everyday apps trust only `iseja`. Kerberos SSO for `sebi-adm` is not possible from a `sebi` OS login; SSO across admin apps after one passkey login per day is. | Accept two realms |
+| D4 | `bob` / `bob-adm` | "Preserve separate identities, map groups" | **Two realms.** A browser holds one SSO session per realm, and SPNEGO always presents the OS user's ticket (`bob`), so a single realm cannot give both identities SSO at once: logging in as `bob-adm` would replace `bob`'s session. With `iseja` (everyday, Kerberos) and `admin` (`*-adm` only, passkey, no Kerberos), both sessions coexist. Admin UIs trust only `admin`; everyday apps trust only `iseja`. Kerberos SSO for `bob-adm` is not possible from a `bob` OS login; SSO across admin apps after one passkey login per day is. | Accept two realms |
 | D5 | MFA with Kerberos | "Require MFA; Kerberos must not silently bypass it" (no policy chosen) | `iseja`: a valid Kerberos ticket from a domain-joined device counts as sufficient (device + OS password); any password login requires a second factor (passkey or TOTP). `admin`: passkey (WebAuthn) always, TOTP only as a fallback credential. Requiring OTP *on top of* Kerberos is possible in Keycloak but removes the SSO benefit; offer it per client via a step-up level (`acr`) instead of globally. | Is Kerberos-from-a-domain-device acceptable as strong enough for everyday apps? |
 | D6 | Availability target | "Define an acceptable outage"; no numbers | Concrete proposal in [Availability and recovery](#availability-and-recovery): 2 Keycloak replicas, CloudNativePG 1 instance (2 optional), persisted sessions, nightly backups to RustFS, RTO 1 h, RPO 24 h for MFA enrollments. | Accept the targets |
 | D7 | Database | "A single instance on recoverable storage remains an option" | Use **CloudNativePG**, even with 1 instance: it brings scheduled base backups and WAL archiving to S3, point-in-time restore, and a one-line switch to 2 instances. A plain PostgreSQL StatefulSet would need all of that hand-built. | Accept CloudNativePG |
@@ -57,7 +57,7 @@ Each row is a point to confirm or reject. "First pass" means ADR 0016 in [PR #17
 | D1 | Accepted, made explicit | The choice is **Keycloak in Kubernetes** (placement in D3). Keycloak on UCS is rejected as the IdP: it is the same Keycloak, but ClickOps, on DCs short of memory ([#1816](https://github.com/isejalabs/homelab/issues/1816)), next to an unstable `adelheid`, and it would still need an external PostgreSQL for shared state. A Univention Keycloak on UCS is only relevant for UCS's *own* portal/UMC SAML login; see D9. |
 | D2 | Accepted | — |
 | D3 | Accepted | — |
-| D4 | Accepted, refined | Realm names: `admin` confirmed; the everyday realm (working name `home` in this pass) is named **`iseja`**, matching the AD domain `ISEJA`. Keycloak realm names are local to one instance, so every environment reuses both names. The `admin` realm accepts any **WebAuthn** authenticator (passkey in 1Password, YubiKey, platform authenticator) as the second factor, with **TOTP as a fallback**. Keep it *password (UCS) + WebAuthn*, not passwordless: the UCS password check keeps UCS authoritative for locking or disabling an account. Trade-off to know: if the `sebi-adm` password, passkey and TOTP seed all live in 1Password, the factors collapse into "access to the vault"; a YubiKey enrolled as an additional authenticator keeps one factor outside it. |
+| D4 | Accepted, refined | Realm names: `admin` confirmed; the everyday realm (working name `home` in this pass) is named **`iseja`**, matching the AD domain `ISEJA`. Keycloak realm names are local to one instance, so every environment reuses both names. The `admin` realm accepts any **WebAuthn** authenticator (passkey in 1Password, YubiKey, platform authenticator) as the second factor, with **TOTP as a fallback**. Keep it *password (UCS) + WebAuthn*, not passwordless: the UCS password check keeps UCS authoritative for locking or disabling an account. Trade-off to know: if the `bob-adm` password, passkey and TOTP seed all live in 1Password, the factors collapse into "access to the vault"; a YubiKey enrolled as an additional authenticator keeps one factor outside it. |
 | D5 | Accepted, rationale corrected | The earlier wording overstated it: a Kerberos ticket is **not** bound to a domain-joined device. Anyone who can reach a KDC (TCP/UDP 88) can run `kinit` with the password and then use SPNEGO, so in practice Kerberos SSO means "password only". Compensating controls, all in the Kerberos/MFA sub-issue: (1) restrict KDC ports on OPNsense to the managed-client and server VLANs; (2) inventory remote access that yields a ticket or a password prompt (SSH on UCS, TrueNAS and other Linux hosts → key-only; RDP on Windows → off or restricted); (3) apps holding sensitive data (actualbudget, later others) request a higher level (`acr`) and get a second factor even after Kerberos. |
 | D6/D7 | Accepted ("start small, think big, scale fast") | Start with 1 PostgreSQL instance; the scale-up is `instances: 2`, a one-line change. Database outage and maintenance behaviour is spelt out in [Availability and recovery](#availability-and-recovery). |
 | D8 | Accepted | — |
@@ -106,7 +106,7 @@ Authorization stays in UCS groups, so there is one place to grant and audit acce
 - `sec.idm.admins`: `*-adm` accounts only; the `admin` realm's LDAP filter admits nothing else.
 - Per-app role groups, for example `sec.app.immich.users`, `sec.app.longhorn.admins`, `sec.app.proxmox.admins`, `sec.app.k8s.admins`, `sec.app.k8s.viewers`. Keycloak passes them in a `groups` claim; each app maps them to its roles.
 
-`sebi` is in `sec.idm.users`; `sebi-adm` is in `sec.idm.admins` plus the admin app groups. Nobody is in both realms' filters with the same account.
+`bob` is in `sec.idm.users`; `bob-adm` is in `sec.idm.admins` plus the admin app groups. Nobody is in both realms' filters with the same account.
 
 ### Kerberos SPNEGO
 
@@ -133,8 +133,8 @@ Each application keeps its **own** session once an OIDC login has completed; it 
 
 | Situation during a database outage | Expected result |
 | --- | --- |
-| `sebi-adm` already logged in to Checkmk `prod` | Keeps working until Checkmk's own session expires |
-| `sebi-adm` opens a second app (Flux UI, Longhorn) for the first time | Fails: needs a new authorization at Keycloak, even though the SSO cookie exists |
+| `bob-adm` already logged in to Checkmk `prod` | Keeps working until Checkmk's own session expires |
+| `bob-adm` opens a second app (Flux UI, Longhorn) for the first time | Fails: needs a new authorization at Keycloak, even though the SSO cookie exists |
 | `kubectl` with a still-valid ID token (kubelogin cache) | Works: the API server checks the token signature against cached keys, without calling Keycloak |
 | `kubectl` after the ID token expired | Fails until Keycloak is back; use the break-glass kubeconfig |
 | App that refreshes access tokens in the background (Immich mobile) | Fails at the next refresh |
@@ -157,7 +157,7 @@ Resource estimate for `prod`: Keycloak 2 × ~1 GiB, PostgreSQL ~512 MiB, Longhor
 Every service moves toward one of three levels; each level is useful on its own:
 
 1. **Central identity:** users and passwords come from UCS (LDAP/AD bind or via the IdP); no personal local accounts, only break-glass.
-2. **Central MFA:** the second factor is enrolled once in Keycloak, not per service (today `sebi-adm` uses a Proxmox-local TOTP on top of the AD realm).
+2. **Central MFA:** the second factor is enrolled once in Keycloak, not per service (today `bob-adm` uses a Proxmox-local TOTP on top of the AD realm).
 3. **SSO:** an existing Keycloak session logs the user in without asking again.
 
 Levels 2 and 3 require the service to authenticate through Keycloak (OIDC, SAML, or a proxy in front of it). A direct LDAP/AD bind stays at level 1: the password alone opens it, so such a service keeps its own local second factor where it has one.
@@ -190,7 +190,7 @@ Levels 2 and 3 require the service to authenticate through Keycloak (OIDC, SAML,
 
 - UCS version and patch level; which IdP serves `ucs-sso.dir.iseja.net` (Univention Keycloak app vs. SimpleSAMLphp); every Keycloak/PostgreSQL component from the PoC on both DCs; what depends on it (portal, UMC, any SAML client).
 - Kerberos: realm, KDCs, how Windows and Mac clients obtain tickets, whether an `HTTP/` SPN can be added for a non-`dir.iseja.net` hostname.
-- Account model: existing groups, `sebi` / `sebi-adm` membership, family accounts.
+- Account model: existing groups, `bob` / `bob-adm` membership, family accounts.
 - Deployed versions/editions: Proxmox, Checkmk edition, RustFS, OPNsense, TrueNAS, actualbudget, Flux Operator.
 
 Acceptance: a written inventory in #1715; D9 resolved; D11 rows confirmed.
@@ -201,12 +201,12 @@ Acceptance: a written inventory in #1715; D9 resolved; D11 rows confirmed.
 - Terragrunt unit for realm content: `iseja` and `admin` realms, LDAP federation (both DCs, read-only, import + periodic sync, group mapper), flows, password policy, brute-force protection.
 - Restore drill in `rebuild`: restore the database from backup and log in with an existing passkey.
 
-Acceptance: login with `sebi` (iseja) and `sebi-adm` (admin) in the same browser simultaneously; `adelheid` stopped → logins still work; database stopped on purpose → behaviour recorded against the expectations in [Availability and recovery](#what-still-works-while-the-database-is-unavailable); a node drain of the PostgreSQL node completes; restore drill documented.
+Acceptance: login with `bob` (iseja) and `bob-adm` (admin) in the same browser simultaneously; `adelheid` stopped → logins still work; database stopped on purpose → behaviour recorded against the expectations in [Availability and recovery](#what-still-works-while-the-database-is-unavailable); a node drain of the PostgreSQL node completes; restore drill documented.
 
 ### Phase 2 — Kerberos and MFA proof
 
 - SPN and keytab; Kerberos on the `iseja` realm; client policies for Windows and macOS.
-- MFA flows per D4/D5; WebAuthn enrollment (passkey, YubiKey) for `sebi-adm`; TOTP fallback; step-up level for sensitive `iseja` apps.
+- MFA flows per D4/D5; WebAuthn enrollment (passkey, YubiKey) for `bob-adm`; TOTP fallback; step-up level for sensitive `iseja` apps.
 - Kerberos exposure per D5: KDC ports restricted to trusted VLANs on OPNsense; inventory of SSH (key-only on UCS, TrueNAS, Linux hosts) and RDP access.
 
 Acceptance: a domain-joined Mac and a Windows client open a `iseja` client without a prompt; a phone gets password + second factor; the `admin` realm never accepts Kerberos; a step-up client asks for a second factor after Kerberos; `kinit` from an untrusted VLAN fails.

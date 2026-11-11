@@ -18,7 +18,7 @@ Decisions D4 and D5 of the [design plan](../plans/2026-10-identity-claude.md) an
 | `iseja` (everyday accounts) | A passkey, a security key or a TOTP code, whichever the user has set up | none needed, any of the three is enough | Passkey or key, registered at the first login |
 
 - The password stays a UCS password, so UCS stays authoritative: disabling or locking the account in UCS ends all access, whatever factors are enrolled. Not passwordless, on purpose.
-- If the `sebi-adm` password, passkey and TOTP seed all live in 1Password, the factors collapse into "access to the vault". A YubiKey enrolled **in addition** keeps one factor outside it, so enroll one.
+- If the `bob-adm` password, passkey and TOTP seed all live in 1Password, the factors collapse into "access to the vault". A YubiKey enrolled **in addition** keeps one factor outside it, so enroll one.
 - Until Kerberos SSO exists ([#1827](https://github.com/isejalabs/homelab/issues/1827)) every login to `iseja` is a password login, so the second factor applies to all of them. The Kerberos side (a valid ticket counts as sufficient, step-up for sensitive apps) is not part of this flow and does not weaken it for `admin`: that realm never accepts Kerberos.
 - The `master` realm is not changed by any of this, see [Break-glass and lockout](#break-glass-and-lockout).
 
@@ -60,11 +60,11 @@ The flow is `browser-mfa` in every realm that sets `second_factor`, and replaces
 
 The first login after the flow is active asks for the registration; nothing has to be done in advance.
 
-### `sebi-adm` in the `admin` realm
+### `bob-adm` in the `admin` realm
 
 Needs the owner's hands: the authenticators are physical or in the owner's 1Password.
 
-1. Open the account console of the realm: `https://<keycloak host>/realms/admin/account` (dev: `https://dev-auth.dev.iseja.net/realms/admin/account`), sign in as `sebi-adm` with the UCS password.
+1. Open the account console of the realm: `https://<keycloak host>/realms/admin/account` (dev: `https://dev-auth.dev.iseja.net/realms/admin/account`), sign in as `bob-adm` with the UCS password.
 2. Keycloak asks to register a security key or passkey. Choose the **1Password passkey** first (the browser offers to save it in 1Password), name it `1password`.
 3. Sign out, sign in again: UCS password, then the passkey prompt. This is the first criterion.
 4. Under *Account security* → *Signing in* → *Two-factor authentication* choose **Set up Passkey** again (Keycloak 26 labels every WebAuthn credential *Passkey*, there is no separate *security key* button). In the browser dialog pick the security key instead of 1Password (*Use a different device* / *Security key*; if 1Password keeps answering, dismiss its prompt or disable its passkey prompt for the page), touch the YubiKey. With user verification required, the key needs a PIN; Chrome and Safari offer to set one on first use. Name it `yubikey`, sign out and in with it.
@@ -84,7 +84,7 @@ Which case applies depends on whether the user still has another factor.
 | --- | --- | --- |
 | Another factor still works | The user | Sign in with it, then account console → *Signing in*: delete the lost authenticator, add a new one. |
 | No factor works (`iseja`) | The owner | Sign in to the [`master` console](keycloak-break-glass.md#sign-in-to-the-admin-console), choose the realm, *Users* → search `*` (the list stays empty until a search runs) → the person → *Credentials*: delete the lost credential(s). At the next login the person is asked to register a new factor. |
-| No factor works (`admin`, `sebi-adm`) | The owner, with the break-glass login | Same, in realm `admin`. The login of the `master` realm needs neither UCS nor any factor of the `admin` realm. |
+| No factor works (`admin`, `bob-adm`) | The owner, with the break-glass login | Same, in realm `admin`. The login of the `master` realm needs neither UCS nor any factor of the `admin` realm. |
 
 Deleting a credential never touches the UCS password. If the lost authenticator may be in somebody else's hands, also change the UCS password and disable the account in UCS meanwhile; Keycloak does not need to be touched for that.
 
@@ -104,13 +104,13 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 | The module sets the RP ID, the flow and the binding, and rejects bad input | Verified offline (`tofu test` of the module) |
 | The flow, its condition and the `browser-mfa` binding exist in the `dev` realms `iseja` and `admin`, RP ID `dev-auth.dev.iseja.net`, `admin` with user verification `required`; the following plan shows no changes | Verified 2026-11-07 (applied from the unreleased module branch, 28 added, 2 changed) |
 | The flow against a throwaway Keycloak 26.8.1: a user without a factor gets the passkey registration after the password, a user with TOTP is asked for the code and signed in with it | Verified 2026-11-08 (scripted login; the first `dev` version failed every login and was fixed) |
-| The same in the `dev` Keycloak with `sebi-adm` (UCS): no factor yet leads to the passkey registration | Verified 2026-11-08 (owner; the first two attempts failed on the flow bugs fixed in the module before) |
-| `sebi-adm` signs in to `admin` with UCS password + 1Password passkey | Verified 2026-11-08 (owner; the passkey is stored in 1Password, one `webauthn` credential in the database, no login error in the Keycloak log) |
-| `sebi-adm` signs in to `admin` with UCS password + TOTP, also in a fresh sign-in | Verified 2026-11-08 (owner) |
-| `sebi-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key ([#2250](https://github.com/isejalabs/homelab/issues/2250)) |
-| A password login in `iseja` asks for a factor, no path skips it: user `sebi` without a factor got the passkey registration straight after the password, then signed in with password + passkey | Verified 2026-11-08 (owner; one `webauthn` credential in the database; a user who already has a TOTP is asked for the code, see the throwaway-Keycloak row) |
-| Lost-authenticator recovery for `sebi-adm`, first row of the table (another factor still works): the passkey was deleted in the account console, the next sign-in asked for TOTP, and a new passkey was registered | Verified 2026-11-08 (owner) |
-| Lost-authenticator recovery, row three (owner deletes the credential of `sebi-adm` in the `master` console) | Verified 2026-11-09 (owner): a credential of `sebi-adm` in realm `admin` was deleted in the `master` console, the next sign-in asked for the registration of a new passkey. Row two (`iseja`) uses the same console steps and the same flow, not exercised separately |
+| The same in the `dev` Keycloak with `bob-adm` (UCS): no factor yet leads to the passkey registration | Verified 2026-11-08 (owner; the first two attempts failed on the flow bugs fixed in the module before) |
+| `bob-adm` signs in to `admin` with UCS password + 1Password passkey | Verified 2026-11-08 (owner; the passkey is stored in 1Password, one `webauthn` credential in the database, no login error in the Keycloak log) |
+| `bob-adm` signs in to `admin` with UCS password + TOTP, also in a fresh sign-in | Verified 2026-11-08 (owner) |
+| `bob-adm` signs in to `admin` with UCS password + hardware security key | **Not verified**: the owner's YubiKey NEO speaks only the older U2F protocol and cannot do user verification (PIN), which `admin` requires; to be repeated with a FIDO2 key ([#2250](https://github.com/isejalabs/homelab/issues/2250)) |
+| A password login in `iseja` asks for a factor, no path skips it: user `bob` without a factor got the passkey registration straight after the password, then signed in with password + passkey | Verified 2026-11-08 (owner; one `webauthn` credential in the database; a user who already has a TOTP is asked for the code, see the throwaway-Keycloak row) |
+| Lost-authenticator recovery for `bob-adm`, first row of the table (another factor still works): the passkey was deleted in the account console, the next sign-in asked for TOTP, and a new passkey was registered | Verified 2026-11-08 (owner) |
+| Lost-authenticator recovery, row three (owner deletes the credential of `bob-adm` in the `master` console) | Verified 2026-11-09 (owner): a credential of `bob-adm` in realm `admin` was deleted in the `master` console, the next sign-in asked for the registration of a new passkey. Row two (`iseja`) uses the same console steps and the same flow, not exercised separately |
 | Realm configuration plans without changes in `dev` with the released module `keycloak-realm-v0.5.0` | Verified 2026-11-08 (`No changes`) |
 | `qa` and `prod` realm configuration with the released module `keycloak-realm-v0.5.0` | Applied from `main` (`eb1b1a2c`) 2026-11-08 in both: 26 added, 2 changed (RP ID, `admin` user verification), 0 destroyed; the following plan shows `No changes`; RP ID `qa-auth.qa.iseja.net` and `auth.iseja.net` |
 | A sign-in with a second factor in `qa` | Verified 2026-11-08 (owner) |
@@ -118,7 +118,7 @@ Enforcing the second factor cannot lock the owner out of Keycloak itself:
 
 ## Open points
 
-- **Hardware key must be FIDO2.** `admin` requires user verification, so a security key needs a PIN, which only FIDO2 keys (YubiKey 5 series, Security Key series and newer) support. Older U2F-only keys such as the YubiKey NEO cannot be enrolled in `admin`; Microsoft accounts reject them for the same reason. The key test of `sebi-adm` waits for such a key, tracked in [#2250](https://github.com/isejalabs/homelab/issues/2250).
+- **Hardware key must be FIDO2.** `admin` requires user verification, so a security key needs a PIN, which only FIDO2 keys (YubiKey 5 series, Security Key series and newer) support. Older U2F-only keys such as the YubiKey NEO cannot be enrolled in `admin`; Microsoft accounts reject them for the same reason. The key test of `bob-adm` waits for such a key, tracked in [#2250](https://github.com/isejalabs/homelab/issues/2250).
 - **TOTP as the enrollment choice for everyday accounts.** The first login registers a passkey or key; TOTP is added by the user in the account console. The unit can require TOTP instead (`second_factor = { enroll = "totp" }`), for example for accounts on devices without passkey support. Keycloak offers no per-login choice between the two registrations.
 - **Step-up for sensitive `iseja` apps** and Kerberos in the same flow: [#1827](https://github.com/isejalabs/homelab/issues/1827), sub-issue [#2211](https://github.com/isejalabs/homelab/issues/2211).
 - **Recovery codes** (Keycloak's *Recovery Authentication Codes*) are not enabled. The owner's break-glass access is the recovery path.
