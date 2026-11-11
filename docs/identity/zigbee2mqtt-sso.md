@@ -4,16 +4,16 @@ status: planning
 
 # Zigbee2MQTT web frontend: authentication approach
 
-How the Zigbee2MQTT web frontend gets human authentication, what the deployed version offers, and how the decided design (oauth2-proxy as a plain reverse proxy plus a `CiliumNetworkPolicy`) behaves for a websocket-heavy single-page app. The investigation is [#2230](https://github.com/isejalabs/homelab/issues/2230), part of [#1767](https://github.com/isejalabs/homelab/issues/1767); the rules of the rollout are in [#2198](https://github.com/isejalabs/homelab/issues/2198), the design in [ADR 0016](../decisions/0016-identity-and-web-sso.md). The implementation is [#2231](https://github.com/isejalabs/homelab/issues/2231), the question who besides `sebi-adm` may get in is [#2232](https://github.com/isejalabs/homelab/issues/2232).
+How the Zigbee2MQTT web frontend gets human authentication, what the deployed version offers, and how the decided design (oauth2-proxy as a plain reverse proxy plus a `CiliumNetworkPolicy`) behaves for a websocket-heavy single-page app. The investigation is [#2230](https://github.com/isejalabs/homelab/issues/2230), part of [#1767](https://github.com/isejalabs/homelab/issues/1767); the rules of the rollout are in [#2198](https://github.com/isejalabs/homelab/issues/2198), the design in [ADR 0016](../decisions/0016-identity-and-web-sso.md). The implementation is [#2231](https://github.com/isejalabs/homelab/issues/2231), the question who besides `alice-adm` may get in is [#2232](https://github.com/isejalabs/homelab/issues/2232).
 
-**On this page:** [Decision](#decision) · [What Zigbee2MQTT offers](#what-zigbee2mqtt-offers) · [What is deployed, who reaches the frontend](#what-is-deployed-who-reaches-the-frontend) · [How the proxy route behaves](#how-the-proxy-route-behaves) · [Is the proxy route too complicated?](#is-the-proxy-route-too-complicated) · [Roles: `sebi` and `mary`](#roles-sebi-and-mary) · [The pieces](#the-pieces) · [Break-glass](#break-glass) · [Rollout](#rollout)
+**On this page:** [Decision](#decision) · [What Zigbee2MQTT offers](#what-zigbee2mqtt-offers) · [What is deployed, who reaches the frontend](#what-is-deployed-who-reaches-the-frontend) · [How the proxy route behaves](#how-the-proxy-route-behaves) · [Is the proxy route too complicated?](#is-the-proxy-route-too-complicated) · [Roles: everyday accounts](#roles-everyday-accounts) · [The pieces](#the-pieces) · [Break-glass](#break-glass) · [Rollout](#rollout)
 
 ## Decision
 
 - **oauth2-proxy as a plain reverse proxy** in front of the Service, against the `admin` realm, authorized by the UCS group `sec.app.zigbee2mqtt.admin`, plus a `CiliumNetworkPolicy` that admits only the proxy to the Zigbee2MQTT pod. The shared proxy pattern is the one built for Longhorn ([#2228](https://github.com/isejalabs/homelab/issues/2228)); there is no second pattern.
 - **Zigbee2MQTT's own `auth_token` stays unset.** It cannot be injected by the proxy (see below), and the network policy already closes the bypass.
 - **The Gateway `ExternalAuth` route ([#1832](https://github.com/isejalabs/homelab/issues/1832)) is not needed** for this app; the reasons are in [Is the proxy route too complicated?](#is-the-proxy-route-too-complicated).
-- **`sebi` and `mary` get no access** (admin only), see [Roles](#roles-sebi-and-mary).
+- **Everyday accounts get no access** (administrator account only), see [Roles](#roles-everyday-accounts).
 
 ## What Zigbee2MQTT offers
 
@@ -76,12 +76,12 @@ What follows for the user and for the design:
 
 What moving [#1832](https://github.com/isejalabs/homelab/issues/1832) forward would cost, for the record: Cilium `prod` 1.18 → 1.19 → 1.20 (two minor upgrades, each through `dev`, `qa`, `prod`), the Gateway API CRDs on the experimental channel (the `ExternalAuth` filter is experimental) with the TLSRoute version preservation described in [#1715](https://github.com/isejalabs/homelab/issues/1715), and an authentication service for the filter to call, which is oauth2-proxy again in `auth_request` mode, so no proxy is saved. It gains nothing for Zigbee2MQTT: the same checks happen at the same moment (the handshake), the bypass protection gets weaker and the app gets no extra capability. If it is wanted for other reasons (consolidating the per-app proxies of Longhorn, Zigbee2MQTT and AdGuard into one), it can follow later without redoing the Keycloak side.
 
-## Roles: `sebi` and `mary`
+## Roles: everyday accounts
 
-Expected outcome of [#2232](https://github.com/isejalabs/homelab/issues/2232): **no access for `sebi` and `mary`**, decided from the same source reading:
+Expected outcome of [#2232](https://github.com/isejalabs/homelab/issues/2232): **no access for the everyday accounts** (realm `iseja`), decided from the same source reading:
 
 - There is no read-only mode: every websocket message becomes an MQTT publish (see the table above), including `bridge/request/restart`, `permit_join` and device `set` commands. A UI that "only looks" is not an enforced restriction.
-- A proxy cannot filter it: oauth2-proxy authenticates the upgrade request and then relays frames without looking at them; method and path rules see `GET /api` for read and write alike. Filtering frames would need a custom websocket-aware proxy, which is a new component to maintain for a UI used by one person.
+- A proxy cannot filter it: oauth2-proxy authenticates the upgrade request and then relays frames without looking at them; method and path rules see `GET /api` for read and write alike. Filtering frames would need a custom websocket-aware proxy, which is a new component to maintain for a UI used by the administrator alone.
 - A second realm provider on the proxy would therefore only widen access without any read-only guarantee.
 
 Consequently only `sec.app.zigbee2mqtt.admin` exists; no `operator` or `readonly` group is created in UCS.
@@ -95,7 +95,7 @@ Consequently only `sec.app.zigbee2mqtt.admin` exists; no `operator` or `readonly
 | Route: `backendRef` `zigbee2mqtt` → `oauth2-proxy` (port 80) | `rules` in [`zigbee2mqtt/envs/prod/helmrelease.yaml`](../../k8s/apps/home-automation/zigbee2mqtt/envs/prod/helmrelease.yaml) |
 | Keycloak client `zigbee2mqtt` in `admin` | `oidc_clients` entry `zigbee2mqtt-admin` of the `prod` `keycloak-realm` unit ([#2227](https://github.com/isejalabs/homelab/issues/2227)) |
 | Secret `oauth2-proxy` (client ID, client secret, cookie secret) | 1Password items `keycloak-oidc-zigbee2mqtt-admin#prod` (written by Terragrunt) and `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`), External Secrets |
-| UCS group `sec.app.zigbee2mqtt.admin` with `sebi-adm` | UCS, owner's go needed ([`ucs-groups.md`](ucs-groups.md)) |
+| UCS group `sec.app.zigbee2mqtt.admin` with `alice-adm` | UCS, owner's go needed ([`ucs-groups.md`](ucs-groups.md)) |
 
 The policy selects the Zigbee2MQTT pod by its two labels and admits the proxy on port 8080 only. The pod makes only outgoing connections (MQTT broker, serial device), which an ingress rule does not touch. The Service is `zigbee2mqtt` on 8080 and the pod labels `app.kubernetes.io/name` and `app.kubernetes.io/instance` are `zigbee2mqtt` (rendered from the `app-template` chart 5.3.0 of the HelmRelease).
 
@@ -117,8 +117,8 @@ Zigbee2MQTT runs in `prod` only and `prod` applies run from `main`, so the rollo
 | Step | State |
 | --- | --- |
 | 1. Keycloak client `zigbee2mqtt` in `prod` | in a pull request of its own ([#2255](https://github.com/isejalabs/homelab/pull/2255)); applied from `main` on the owner's go, one `keycloak-realm` apply at a time |
-| 2. 1Password item `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`, 32 random bytes), UCS group `sec.app.zigbee2mqtt.admin` with `sebi-adm` | by hand, the group with the owner's go; after the group sync clear the Keycloak user cache of `sebi-adm` ([`longhorn-sso.md`](longhorn-sso.md#rollout): a new membership is not seen by a cached user) |
+| 2. 1Password item `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`, 32 random bytes), UCS group `sec.app.zigbee2mqtt.admin` with `alice-adm` | by hand, the group with the owner's go; after the group sync clear the Keycloak user cache of `alice-adm` ([`longhorn-sso.md`](longhorn-sso.md#rollout): a new membership is not seen by a cached user) |
 | 3. Unit, policy and route switch | manifests written, build for all 8 environments; merging them activates the login in `prod`, so they merge only after steps 1 and 2 |
-| 4. Live test in `prod` | open: no page load without a session (302), websocket handshake without a session refused, `sebi-adm` reaches the frontend and the device list updates live, direct access to the pod from another pod times out, kubelet probes stay green, break-glass port-forward works with the policy applied |
+| 4. Live test in `prod` | open: no page load without a session (302), websocket handshake without a session refused, `alice-adm` reaches the frontend and the device list updates live, direct access to the pod from another pod times out, kubelet probes stay green, break-glass port-forward works with the policy applied |
 
 Rollback: remove the `rules` entry from `envs/prod/helmrelease.yaml` of `zigbee2mqtt` **and** the unit from `flux/envs/prod`; removing only the route switch or only the unit leaves a policy or a route that cuts the frontend off. `dev` and `qa` do not run the application, so there was no environment to try the switch in before `prod`; the proxy itself was proven against a stand-in in `dev` (above).
