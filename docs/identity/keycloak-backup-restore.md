@@ -296,7 +296,7 @@ So after a restore from another environment, the Terragrunt state of the target 
 
 ### Observations of the manual drill
 
-- **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `sebi` and `sebi-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#2206](https://github.com/isejalabs/homelab/issues/2206)). The only credential row in the dump is the master admin password.
+- **Tables and realms match the source**, but the restore cannot say anything about credentials Keycloak does not store. `bob` and `bob-adm` are federated: their password is checked against UCS, so Keycloak holds no local credential for them and "an existing credential" is only a UCS password until MFA exists ([#2206](https://github.com/isejalabs/homelab/issues/2206)). The only credential row in the dump is the master admin password.
 - **WebAuthn is not exercised yet.** Nobody has enrolled one anywhere, so the part of the plan "login with an existing WebAuthn credential" stays open until the rehearsal below runs ([#2206](https://github.com/isejalabs/homelab/issues/2206) enrolled credentials in `dev` on 2026-11-08, see [`keycloak-mfa.md`](keycloak-mfa.md)); see [WebAuthn after a restore](#webauthn-after-a-restore) for what this drill could not show even then and for the rehearsal ([#1943](https://github.com/isejalabs/homelab/issues/1943)) to repeat.
 - **No sessions to test.** There are no applications yet, so the drill does not show what happens to existing app sessions; per the table under [Overview](#overview) they are lost anyway.
 - **Hostname and TLS** come from the target's `Keycloak` resource (`rebuild-auth.rebuild.iseja.net`) and shared Gateway wildcard certificate (now Let's Encrypt production), not from the dump.
@@ -317,7 +317,7 @@ A restore must bring back more than tables, realms and OIDC discovery: a user wh
 | `prod` | `auth.iseja.net` |
 
 - **A credential is bound to its RP ID.** A WebAuthn credential registered for one RP ID is not valid for another (W3C WebAuthn). Both realms, `iseja` and `admin`, are served from the same hostname, so they share the RP ID of their environment.
-- **Confirmed in `dev` on 2026-11-08:** the `credential` table holds the WebAuthn and TOTP credentials of the LDAP-federated users `sebi` and `sebi-adm`, so a dump carries them (the table under [Overview](#overview) assumed it), and enrolling a passkey for a federated user works (no problem with the user handle). Not yet confirmed: that they survive a restore (the [rehearsal](#rehearsal)).
+- **Confirmed in `dev` on 2026-11-08:** the `credential` table holds the WebAuthn and TOTP credentials of the LDAP-federated users `bob` and `bob-adm`, so a dump carries them (the table under [Overview](#overview) assumed it), and enrolling a passkey for a federated user works (no problem with the user handle). Not yet confirmed: that they survive a restore (the [rehearsal](#rehearsal)).
 
 ### What a restore under a different hostname cannot prove
 
@@ -340,7 +340,7 @@ To keep the RP ID (and the issuer) the drill has to answer on the hostname the c
 Run it once [#2206](https://github.com/isejalabs/homelab/issues/2206) has rolled out the WebAuthn flows. Setup A in `dev` is decided (see above); the owner holds the authenticator.
 
 1. **Before enrolling:** open *Authentication* → *Policies* → *WebAuthn Policy* in each realm and note whether *Relying Party ID* is blank. Enroll a test credential for a federated test user. Keycloak builds the WebAuthn user handle from the internal user ID, which for users of an external federation is a storage ID that can exceed the 64-byte limit of the specification (see the WebAuthn chapter of the Keycloak server administration guide); if enrolment fails for a federated user, that is a finding for [#2206](https://github.com/isejalabs/homelab/issues/2206) and not for the restore.
-2. **Enroll** one credential in each realm: `admin` (the `sebi-adm` account, or a test account in `idm-admins`) and `iseja` (a test account in `idm-users`). Log in once with each to prove they work before the restore.
+2. **Enroll** one credential in each realm: `admin` (the `bob-adm` account, or a test account in `idm-admins`) and `iseja` (a test account in `idm-users`). Log in once with each to prove they work before the restore.
 3. **Dump:** trigger a manual dump ([Daily tasks](#daily-tasks)) after the enrolments and note the key (`just backup::keycloak::list -e dev`). Optionally delete the test credential of one realm afterwards in the admin console, so that only the restored data can satisfy the later login.
 4. **Restore** that dump in `dev` with `just backup::keycloak::restore -e dev --identity <key file> --dump <key>` ([Restore](#restore); the dump is age-encrypted, so the [age key](#encryption-key-age) is needed). The hostname does not change.
 5. **Log in** in each realm with password and the enrolled credential. Expected: success.

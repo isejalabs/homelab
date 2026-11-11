@@ -109,5 +109,20 @@ inputs = {
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
       pkce          = true
     }
+
+    # The OPNsense gateways gw2 and gw3 are configured by hand; the os-sso plugin on each box logs the administrators in
+    # with this client (realm admin, group sec.app.opnsense.admin), see docs/identity/opnsense-auth.md and ADR 0020. Each
+    # box is reached by its own name, so both callbacks are listed. The secret lands in the item
+    # keycloak-oidc-opnsense-admin#prod, which is read by hand when the server entry is added on the box.
+    "opnsense-admin" = {
+      realm     = "admin"
+      client_id = "opnsense"
+      name      = "OPNsense (admin)"
+      redirect_uris = [
+        "https://gw2.home.iseja.net/api/sso/oidc/callback",
+        "https://gw3.home.iseja.net/api/sso/oidc/callback",
+      ]
+      pkce = true
+    }
   }
 }

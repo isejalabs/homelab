@@ -45,7 +45,7 @@ spec:
             - name: TZ
               value: Europe/Berlin
             - name: PUBLIC_KEY
-              value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC5Ccs6NeGOiFe+JVXmhGDNoo1tHeWZnZbTXIU4GHq9g sebi@mbp-2021 #optional
+              value: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC5Ccs6NeGOiFe+JVXmhGDNoo1tHeWZnZbTXIU4GHq9g bob@laptop #optional
             # - name: PUBLIC_KEY_FILE
             #   value: assets/authorized_keys #optional
           resources:

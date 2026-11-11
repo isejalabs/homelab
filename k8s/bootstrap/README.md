@@ -141,14 +141,14 @@ customresourcedefinition.apiextensions.k8s.io/thanosrulers.monitoring.coreos.com
 2026-09-01T18:51:01+02:00 INFO Running stage... stage=apps
 Pulling ghcr.io/controlplaneio-fluxcd/charts/flux-instance:0.59.0
 Pulling ghcr.io/controlplaneio-fluxcd/charts/flux-operator:0.59.0
-Skipping refresh for chart at /Users/sebi/Library/Caches/helmfile/oci__registry-1_docker_io/bitnamicharts/sealed-secrets/2.19.3 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
-Skipping refresh for chart at /Users/sebi/Library/Caches/helmfile/oci__quay_io/jetstack/charts/cert-manager/v1.21.1 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
-Skipping refresh for chart at /Users/sebi/Library/Caches/helmfile/oci__quay_io/cilium/charts/cilium/1.18.13 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
+Skipping refresh for chart at /Users/bob/Library/Caches/helmfile/oci__registry-1_docker_io/bitnamicharts/sealed-secrets/2.19.3 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
+Skipping refresh for chart at /Users/bob/Library/Caches/helmfile/oci__quay_io/jetstack/charts/cert-manager/v1.21.1 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
+Skipping refresh for chart at /Users/bob/Library/Caches/helmfile/oci__quay_io/cilium/charts/cilium/1.18.13 (shared cache, another process may be using it; run 'helmfile cache cleanup' to force refresh)
 Pulled: ghcr.io/controlplaneio-fluxcd/charts/flux-instance:0.59.0
 Digest: sha256:c7078e69a189182c0f89e0d48bdfefd4f86f84bea7d4e842eba38bd8c12d2980
 Pulled: ghcr.io/controlplaneio-fluxcd/charts/flux-operator:0.59.0
 Digest: sha256:ae962f87e04301c61aeb41698146027ba4c2e4b4157d4c08fb4a4e335be9aa42
-Upgrading release=cilium, chart=/Users/sebi/Library/Caches/helmfile/oci__quay_io/cilium/charts/cilium/1.18.13/cilium, namespace=kube-system
+Upgrading release=cilium, chart=/Users/bob/Library/Caches/helmfile/oci__quay_io/cilium/charts/cilium/1.18.13/cilium, namespace=kube-system
 Release "cilium" has been upgraded. Happy Helming!
 NAME: cilium
 LAST DEPLOYED: Tue Sep  1 18:51:02 2026
@@ -165,7 +165,7 @@ hook[postsync] logs | customresourcedefinition.apiextensions.k8s.io/ciliumbgpclu
 hook[postsync] logs | customresourcedefinition.apiextensions.k8s.io/ciliumbgppeerconfigs.cilium.io condition met
 hook[postsync] logs | customresourcedefinition.apiextensions.k8s.io/ciliumloadbalancerippools.cilium.io condition met
 hook[postsync] logs |
-Upgrading release=sealed-secrets, chart=/Users/sebi/Library/Caches/helmfile/oci__registry-1_docker_io/bitnamicharts/sealed-secrets/2.19.3/sealed-secrets, namespace=sealed-secrets
+Upgrading release=sealed-secrets, chart=/Users/bob/Library/Caches/helmfile/oci__registry-1_docker_io/bitnamicharts/sealed-secrets/2.19.3/sealed-secrets, namespace=sealed-secrets
 Release "sealed-secrets" does not exist. Installing it now.
 NAME: sealed-secrets
 LAST DEPLOYED: Tue Sep  1 18:54:58 2026
@@ -176,7 +176,7 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Listing releases matching ^sealed-secrets$
 sealed-secrets	sealed-secrets	1       	2026-09-01 18:54:58.822408 +0200 CEST	deployed	sealed-secrets-2.19.3	0.39.1
-Upgrading release=cert-manager, chart=/Users/sebi/Library/Caches/helmfile/oci__quay_io/jetstack/charts/cert-manager/v1.21.1/cert-manager, namespace=cert-manager
+Upgrading release=cert-manager, chart=/Users/bob/Library/Caches/helmfile/oci__quay_io/jetstack/charts/cert-manager/v1.21.1/cert-manager, namespace=cert-manager
 Release "cert-manager" does not exist. Installing it now.
 NAME: cert-manager
 LAST DEPLOYED: Tue Sep  1 18:55:49 2026
@@ -187,7 +187,7 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Listing releases matching ^cert-manager$
 cert-manager	cert-manager	1       	2026-09-01 18:55:49.036471 +0200 CEST	deployed	cert-manager-v1.21.1	v1.21.1
-Upgrading release=flux-operator, chart=/Users/sebi/Library/Caches/helmfile/oci__ghcr_io/controlplaneio-fluxcd/charts/flux-operator/0.59.0/flux-operator, namespace=flux-system
+Upgrading release=flux-operator, chart=/Users/bob/Library/Caches/helmfile/oci__ghcr_io/controlplaneio-fluxcd/charts/flux-operator/0.59.0/flux-operator, namespace=flux-system
 Release "flux-operator" does not exist. Installing it now.
 NAME: flux-operator
 LAST DEPLOYED: Tue Sep  1 18:56:16 2026
@@ -198,7 +198,7 @@ DESCRIPTION: Install complete
 TEST SUITE: None
 Listing releases matching ^flux-operator$
 flux-operator	flux-system	1       	2026-09-01 18:56:16.755728 +0200 CEST	deployed	flux-operator-0.59.0	v0.59.0
-Upgrading release=flux-instance, chart=/Users/sebi/Library/Caches/helmfile/oci__ghcr_io/controlplaneio-fluxcd/charts/flux-instance/0.59.0/flux-instance, namespace=flux-system
+Upgrading release=flux-instance, chart=/Users/bob/Library/Caches/helmfile/oci__ghcr_io/controlplaneio-fluxcd/charts/flux-instance/0.59.0/flux-instance, namespace=flux-system
 Release "flux-instance" does not exist. Installing it now.
 NAME: flux-instance
 LAST DEPLOYED: Tue Sep  1 18:56:37 2026

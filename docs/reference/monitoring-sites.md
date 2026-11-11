@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-11-10. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#2157](https://github.com/isejalabs/homelab/issues/2157), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-11-10; the service counts in the [licence state](#licence-state) table re-read on 2026-11-11 ([`2026-11-proxmox-capacity-phase4.md`](../audits/2026-11-proxmox-capacity-phase4.md)). Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#2157](https://github.com/isejalabs/homelab/issues/2157), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -91,10 +91,10 @@ All four Ultimate sites (`prod_k8s`, `core`, `qa_k8s`, `dev_k8s`) report **`Lice
 
 | Site | Services | Headroom to 750 |
 | --- | --- | --- |
-| `prod_k8s` | 599 (679 before 2026-10-21, 589 before 2026-10-28) | 151 (80% used) |
+| `prod_k8s` | 650 on 2026-11-11 (599 on 2026-10-29, 679 before 2026-10-21, 589 before 2026-10-28) | 100 (87% used, 25 below the WARN level of 675) |
 | `core` (stopped 2026-10-29) | 636 | 114 |
-| `qa_k8s` | 616 | 134 |
-| `dev_k8s` | not read | |
+| `qa_k8s` | 665 on 2026-11-11 (616 on 2026-10-20) | 85 (10 below the WARN level of 675) |
+| `dev_k8s` | 581 on 2026-11-11 | 169 |
 
 The Community site `prod` has no limit (`free` is stopped).
 
