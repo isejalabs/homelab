@@ -39,14 +39,16 @@ inputs = {
 
   # The Checkmk site prod_k8s (Ultimate, on monitoring2) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
-  # include_email stays off: notifications on prod_k8s are not enabled yet (#1901), and the e-mail attribute plus the
-  # contact group "all" would make the user a mail recipient.
+  # include_email is on for the iseja client only: the e-mail attribute plus the contact group "all" makes the user a
+  # mail recipient, and a Checkmk user without an address makes the notification fail (#2294). The admin accounts are in
+  # no contact group, so that client sends none. Notifications themselves are still off on prod_k8s until #1901.
   saml_clients = {
     "prod_k8s-iseja" = {
-      realm     = "iseja"
-      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk prod_k8s (iseja)"
+      realm         = "iseja"
+      client_id     = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
+      acs_url       = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
+      name          = "Checkmk prod_k8s (iseja)"
+      include_email = true
     }
     "prod_k8s-admin" = {
       realm     = "admin"
