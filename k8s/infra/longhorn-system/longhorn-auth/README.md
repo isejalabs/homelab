@@ -13,7 +13,7 @@ A login in front of the Longhorn dashboard: an OAuth2 Proxy against the Keycloak
 
 ## Purpose
 
-The Longhorn dashboard and its API have no authentication, and the `HTTPRoute` published them to the whole LAN ([#1725](https://github.com/isejalabs/homelab/issues/1725), [#2228](https://github.com/isejalabs/homelab/issues/2228)). Longhorn has no login to turn on, so [ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md) (point 8) puts a proxy in front: only `sebi-adm`, member of the UCS group `sec.app.longhorn.admin`, gets in. The `CiliumNetworkPolicy` `longhorn-ui-only-from-oauth2-proxy` admits only the proxy to the UI pods, so the Gateway and other namespaces cannot bypass it. How it fits together, the monitoring exception, break-glass and the decision on `sebi` and `mary` ([#2229](https://github.com/isejalabs/homelab/issues/2229)): [`longhorn-sso.md`](../../../../docs/identity/longhorn-sso.md).
+The Longhorn dashboard and its API have no authentication, and the `HTTPRoute` published them to the whole LAN ([#1725](https://github.com/isejalabs/homelab/issues/1725), [#2228](https://github.com/isejalabs/homelab/issues/2228)). Longhorn has no login to turn on, so [ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md) (point 8) puts a proxy in front: only `bob-adm`, member of the UCS group `sec.app.longhorn.admin`, gets in. The `CiliumNetworkPolicy` `longhorn-ui-only-from-oauth2-proxy` admits only the proxy to the UI pods, so the Gateway and other namespaces cannot bypass it. How it fits together, the monitoring exception, break-glass and the decision on `bob` and `mary` ([#2229](https://github.com/isejalabs/homelab/issues/2229)): [`longhorn-sso.md`](../../../../docs/identity/longhorn-sso.md).
 
 ## Where it is used
 

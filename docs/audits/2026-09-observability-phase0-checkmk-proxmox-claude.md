@@ -6,7 +6,7 @@ origin: produced by Claude (Anthropic's Claude Code), via read-only SSH commands
 
 # Phase 0 inventory — Checkmk, Proxmox, loghost
 
-Access used: root SSH (agent key) to `monitoring1/2`, `loghost`, `pve1/4/6`. `salt-master.home.iseja.net` was reachable as `localsebi` but `sudo` needs a password we didn't have, so `salt-key`/`salt '*' grains...`-based inventory was not available — anywhere below marked "via Salt" was NOT obtained and is a gap.
+Access used: root SSH (agent key) to `monitoring1/2`, `loghost`, `pve1/4/6`. `salt-master.home.iseja.net` was reachable as `localbob` but `sudo` needs a password we didn't have, so `salt-key`/`salt '*' grains...`-based inventory was not available — anywhere below marked "via Salt" was NOT obtained and is a gap.
 
 ## Checkmk site inventory
 

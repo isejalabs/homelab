@@ -80,3 +80,10 @@ Compliance is checked by the guard from [#2286](https://github.com/isejalabs/hom
 - Edit history of comments can be removed by their author and by anyone with write access (the revision's content goes, its author and time stay); the documentation does not say the same for issue and pull request descriptions, so that is tested on a throwaway item first ([GitHub: tracking changes in a comment](https://docs.github.com/en/communities/moderating-comments-and-conversations/tracking-changes-in-a-comment)).
 - Placeholders cost a reader a small translation, and the guard will produce occasional false positives.
 - The documentation site is already published and indexable, so the sweeps ([#2284](https://github.com/isejalabs/homelab/issues/2284), [#2285](https://github.com/isejalabs/homelab/issues/2285)) reduce what a search engine shows only after the next build and re-crawl.
+
+## Amendments
+
+Amended on 2026-11-11 at the owner's request ([#2284](https://github.com/isejalabs/homelab/issues/2284)):
+
+- The owner's accounts map to fixed placeholders: `bob` for the personal account and `bob-adm` for the administrative one. Documentation shows the placeholder where a real account name would appear, so a reader substitutes their own.
+- The AWS account ID of the Terraform state backend stays public. The tooling needs it in `terragrunt/*/account.hcl` and the per-environment `.envrc` files, so moving it into a SOPS file would not remove it from the repository. The owner accepts the disclosure for now and will reconsider if a separate production AWS account is created.
