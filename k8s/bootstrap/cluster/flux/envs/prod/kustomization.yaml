@@ -8,3 +8,4 @@ resources:
   - ../../sets
   - ../../sets/standing
   - ../../../../../apps/home-automation/zigbee2mqtt/flux
+  - ../../../../../infra/longhorn-system/longhorn-auth/flux

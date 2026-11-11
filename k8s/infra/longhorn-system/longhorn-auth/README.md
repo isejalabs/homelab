@@ -7,13 +7,13 @@ A login in front of the Longhorn dashboard: an OAuth2 Proxy against the Keycloak
 | | |
 | --- | --- |
 | Namespace | `longhorn-system` |
-| Runs in | `dev` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/dev/kustomization.yaml`); `qa` and `prod` follow once their Keycloak clients exist |
+| Runs in | `dev`, `prod`, `qa` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`) |
 | Installed via | the shared component [`oauth2-proxy`](../../../components/apps/oauth2-proxy/README.md) (HelmRelease, OCIRepository, ExternalSecret) plus a `CiliumNetworkPolicy` |
 | Flux Kustomization | `longhorn-auth`, depends on `longhorn-core` |
 
 ## Purpose
 
-The Longhorn dashboard and its API have no authentication, and the `HTTPRoute` published them to the whole LAN ([#1725](https://github.com/isejalabs/homelab/issues/1725), [#2228](https://github.com/isejalabs/homelab/issues/2228)). Longhorn has no login to turn on, so [ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md) (point 8) puts a proxy in front: only `sebi-adm`, member of the UCS group `sec.app.longhorn.admin`, gets in. The `CiliumNetworkPolicy` `longhorn-ui-only-from-oauth2-proxy` admits only the proxy to the UI pods, so the Gateway and other namespaces cannot bypass it. How it fits together, the monitoring exception, break-glass and the decision on `sebi` and `mary` ([#2229](https://github.com/isejalabs/homelab/issues/2229)): [`longhorn-sso.md`](../../../../docs/identity/longhorn-sso.md).
+The Longhorn dashboard and its API have no authentication, and the `HTTPRoute` published them to the whole LAN ([#1725](https://github.com/isejalabs/homelab/issues/1725), [#2228](https://github.com/isejalabs/homelab/issues/2228)). Longhorn has no login to turn on, so [ADR 0016](../../../../docs/decisions/0016-identity-and-web-sso.md) (point 8) puts a proxy in front: only `bob-adm`, member of the UCS group `sec.app.longhorn.admin`, gets in. The `CiliumNetworkPolicy` `longhorn-ui-only-from-oauth2-proxy` admits only the proxy to the UI pods, so the Gateway and other namespaces cannot bypass it. How it fits together, the monitoring exception, break-glass and the decision on `bob` and `alice` ([#2229](https://github.com/isejalabs/homelab/issues/2229)): [`longhorn-sso.md`](../../../../docs/identity/longhorn-sso.md).
 
 ## Where it is used
 
