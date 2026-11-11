@@ -269,6 +269,7 @@ nav:
   - "ADR 0015 · Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
   - "ADR 0016 · Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
   - "ADR 0017 · Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+  - "ADR 0019 · Public disclosure of homelab details": docs/decisions/0019-public-disclosure-policy.md
 - Audits and plans (dated snapshots):
   - Audits:
     - Index: docs/audits/README.md
