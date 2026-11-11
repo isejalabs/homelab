@@ -1,8 +1,7 @@
 ---
 id: ADR 0020
-status: planning
+status: current
 accepted: 2026-11-11
-becomes-current: once the production rollout of https://github.com/isejalabs/homelab/issues/2238 is verified on both gateways
 ---
 
 # OPNsense administrator login through OIDC
@@ -39,8 +38,8 @@ Production steps and their order are tracked in [#2238](https://github.com/iseja
 
 ## Consequences
 
-- The firewall administrator login now depends on production Keycloak (cluster, database, UCS federation). `root` with its local second factor breaks the loop, which is why it is not touched; the outage behaviour is measured before the rollout counts as done.
-- The plugin is installed per gateway (a package is not synced), and its settings and its ownership marker for accounts are not part of the HA sync. Accounts are therefore created on each gateway, with the same numeric user id so that a user list synced from the master keeps matching the marker already present on the other box. This is a hypothesis until it is observed.
+- The firewall administrator login now depends on production Keycloak (cluster, database, UCS federation). `root` with its local second factor breaks the loop, which is why it is not touched. Measured on 2026-11-11 with Keycloak unreachable from one gateway: the button fails after about 8 seconds and `root` works. A new `sec.app.*` group needs a manual group sync in Keycloak before its first use.
+- The plugin is installed per gateway (a package is not synced), and its settings and its ownership marker for accounts are not part of the HA sync. Accounts are therefore created on each gateway, with the same numeric user id so that a user list synced from the master keeps matching the marker on the other box. Observed on 2026-11-11: the account created on the master reached the backup through the daily sync and worked there, because the marker already existed from the proof of concept; for a new account the marker has to be created on each box. A leftover binding to a differently named provider blocks a login under strict binding until it is cleared.
 - The HA sync copies the list of authentication servers from the master to the backup, so an entry added by hand on the backup is replaced by the master's list at its next sync. The production server entry is configured on the master.
 - Single-maintainer risk and a manual update burden are accepted; the fallback above is the exit.
 - In the firewall's audit log the configuration write at the login callback is attributed to `root` and the client address, not to the signed-in user, so "who changed this" has to be read around SSO logins with care.

@@ -1,10 +1,10 @@
 ---
-status: planning
+status: current
 ---
 
 # OPNsense administrator login
 
-The gateways `gw2` and `gw3` are not managed from this repository (see [`network.md`](../architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)), so this page records the decision, the proof of concept and the procedure for a login that is configured by hand in the web interface. Tracking: [#1730](https://github.com/isejalabs/homelab/issues/1730) (evaluation), [#2237](https://github.com/isejalabs/homelab/issues/2237) (this investigation), [#2238](https://github.com/isejalabs/homelab/issues/2238) (`bob-adm`), [#2239](https://github.com/isejalabs/homelab/issues/2239) (operator and read-only). The framing decision is [ADR 0016](../decisions/0016-identity-and-web-sso.md), points 8 and 9, which assumed that OPNsense can only bind LDAP; the proof of concept below shows a way to real OIDC, so the result here refines that point (a decision record is only written once the owner adopts it for production).
+The gateways `gw2` and `gw3` are not managed from this repository (see [`network.md`](../architecture/network.md#physical-network-opnsense-ucs-and-the-root-nameservers)), so this page records the decision, the proof of concept and the procedure for a login that is configured by hand in the web interface. Tracking: [#1730](https://github.com/isejalabs/homelab/issues/1730) (evaluation), [#2237](https://github.com/isejalabs/homelab/issues/2237) (this investigation), [#2238](https://github.com/isejalabs/homelab/issues/2238) (`bob-adm`), [#2239](https://github.com/isejalabs/homelab/issues/2239) (operator and read-only). The framing decision is [ADR 0016](../decisions/0016-identity-and-web-sso.md), points 8 and 9, which assumed that OPNsense can only bind LDAP; [ADR 0020](../decisions/0020-opnsense-administrator-login.md) refines that point with the OIDC route described here.
 
 Account names on this page are placeholders under [ADR 0019](../decisions/0019-public-disclosure-policy.md): `bob-adm` is the owner's administrator account, `bob` the everyday one, and other users are not named. Log lines are quoted with the placeholder in place of the real name.
 
@@ -12,13 +12,13 @@ Account names on this page are placeholders under [ADR 0019](../decisions/0019-p
 
 ## Decision
 
-Adopted by the owner on 2026-11-11 as [ADR 0020](../decisions/0020-opnsense-administrator-login.md); not yet applied in production. A proof of concept ran on `gw3` on 2026-11-10 (see [below](#oidc-with-os-sso-proof-of-concept-on-gw3)):
+Adopted by the owner on 2026-11-11 as [ADR 0020](../decisions/0020-opnsense-administrator-login.md) and applied in production the same day on `gw2` (the HA master) and `gw3` (the backup), after a proof of concept on `gw3` on 2026-11-10 (see [below](#oidc-with-os-sso-proof-of-concept-on-gw3)):
 
 - **OIDC to the Keycloak realm `admin`** through the third-party plugin **os-sso**, for the web interface only. Keycloak owns the second factor (in the realm `admin`: the UCS password, then a WebAuthn passkey or key with TOTP as fallback, see [`keycloak-mfa.md`](keycloak-mfa.md)), so the cumbersome "token in front of the password" entry of OPNsense's own TOTP is not needed. This replaces the earlier LDAP + TOTP proposal as the preferred route, because LDAP + TOTP keeps the seed in every local user and needs the token typed into the password field.
 - **`root` stays a local account** with the local second factor (as today: the server "Google Auth OTP" is the only entry in the login list of `gw3`). It is the break-glass login and is not touched.
 - **Users are local accounts that the plugin owns**: created with the plugin's own writer (no usable password), bound to the Keycloak subject at the first login. Nothing is created automatically from the directory.
 - **LDAP + TOTP stays documented** below as the alternative if the plugin is rejected (maintainer, age, review effort); it is the only route that needs no third-party code.
-- **A Keycloak session skips the second factor.** An existing Keycloak SSO session (cookie) is accepted without a new factor, so an administrator who is already signed in to another application reaches the firewall without being asked. The plugin can send `max_age`, which makes Keycloak re-authenticate a session older than the given number of seconds, and can require an `acr`; setting `max_age` on the production server is part of the production steps. Not tested.
+- **A Keycloak session skips the second factor.** An existing Keycloak SSO session (cookie) is accepted without a new factor, so an administrator who is already signed in to another application reaches the firewall without being asked. The plugin can send `max_age`, which makes Keycloak re-authenticate a session older than the given number of seconds, and can require an `acr`; the production server sends `max_age` 300 (seen in the redirect to Keycloak); that Keycloak then asks again for an older session was not tested.
 - **Dependency:** the firewall login depends on the production Keycloak (cluster, database, UCS federation), while the cluster's routing depends on the firewall. `root` + local TOTP breaks the loop; that is why it stays untouched.
 
 ## What OPNsense can do
@@ -73,11 +73,11 @@ Goal of the proof of concept ([#2237](https://github.com/isejalabs/homelab/issue
 
 ## OIDC: towards production
 
-Not done; needs the owner's go at each step (an authentication change on the firewall, a UCS group).
+Rolled out on 2026-11-11, each firewall and UCS step with the owner's go. The steps in the order they were taken, with what was observed, followed by the operation notes ([administrators](#adding-or-removing-an-administrator) and [rollback](#rollback)).
 
 1. **Second factor and recovery**: the factor itself is enforced in the realm `admin` of `qa` and `prod` ([`keycloak-mfa.md`](keycloak-mfa.md), apply recorded there). The owner reports (2026-11-11) that `bob-adm` has an independent TOTP factor set up, which is accepted in place of the hardware key for this rollout (the hardware-key check stays open in [#2247](https://github.com/isejalabs/homelab/issues/2247)). Read [`keycloak-break-glass.md`](keycloak-break-glass.md) once with this dependency in mind. Set `max_age` on the server (see [Decision](#decision)) so that an existing Keycloak session does not replace the second factor.
 2. **Production client**: a client in the prod `keycloak-realm` unit with the redirect URIs of every box that serves the login (the CARP name if the GUI is reached over it, plus each box's own name, `gw3` and `gw2`). The dev client of the proof of concept is replaced, not reused, and its secret item removed.
-3. **UCS group** `sec.app.opnsense.admin` (members: `bob-adm`) as a gate: set "Required groups" on the server so that only that group may log in, and map it to the local `admins` group with the plugin's group map. A UCS change; not made.
+3. **UCS group** `sec.app.opnsense.admin` (members: `bob-adm`) as a gate: set "Required groups" on the server so that only that group may log in, and map it to the local `admins` group with the plugin's group map. The group was created by the owner in UCS; Keycloak imported it only after a manual group sync (see below).
 4. **Plugin on `gw2`**: installed on 2026-11-11 from the same pinned release (config backup first; the SHA-256 of the downloaded package equals the one audited against the tagged source). The only configuration change was the plugin's own session-expiry job and settings; the login list did not change.
 5. **Server entry and accounts.** The authentication-server list is synced from the master, so the production entry is added on `gw2` and appears on `gw3` within seconds, **replacing the entry added by hand on `gw3`** (including the proof-of-concept one). To test before that, add the production entry on `gw3` by hand first, which the master's next sync then overwrites with the same entry. Accounts: the `<user>` entries are synced, but the plugin's ownership marker is kept in its own settings section, which is not synced, and an administrator account without the marker is refused. The marker is stored against the numeric user id, so the account is created with the plugin's writer on both boxes with **the same uid** (20000 on `gw3` already); then a synced user list matches the marker on the other box. Each box stamps the Keycloak subject at its own first login.
 
@@ -99,8 +99,37 @@ Not done; needs the owner's go at each step (an authentication change on the fir
 
    **Outage test on `gw3` (2026-11-11 20:03 to 20:07).** Keycloak was made unreachable from the box alone, without a firewall rule (a rule is an HA sync item and could have reached `gw2`): a temporary line in `/etc/hosts` pointed the Keycloak name at an unroutable address, with an automatic removal as a safety net; `config.xml`, the login list and `root` were untouched. Result: the button failed with the plugin's generic error page after a few seconds, and the log shows the cause, `OIDC: HTTP request failed: Connection timed out after 8023 milliseconds`, so an unreachable Keycloak costs the administrator one 8-second wait and no access. The `root` login with its local second factor worked during the outage, as the break-glass path is meant to. The line was removed afterwards (`/etc/hosts` identical to the saved original), gw3 reached Keycloak again and the button redirected to it as before. The browser of the administrator reaches Keycloak on its own, so this simulates the box-side half of an outage (discovery and token exchange); with Keycloak down for everyone the button fails the same way.
 
-6. **Outage behaviour to measure**: Keycloak down (the cluster, the hypervisor, an internet-independent path), the UCS federation down while Keycloak is up, the clock of the box (token validation). The answer for every case is `root` + local TOTP on the box, which this route never touches.
+6. **Outage behaviour**: measured for Keycloak unreachable from `gw3` (see the results above): the button fails after about 8 seconds, `root` with the local second factor works. Not tested: the UCS federation down while Keycloak is up (a domain controller was deliberately not powered off, [#1821](https://github.com/isejalabs/homelab/issues/1821)) and a wrong clock on the box (token validation). The answer in every case is `root` + local TOTP, which this route never touches.
 7. **Plugin upkeep**: single maintainer, version `2026.11.1`, no signed attestation. Updates are installed by hand after the same comparison with the tagged source; there is no Renovate or Flux for this. Reviewing a release is the owner's call.
+
+
+### Adding or removing an administrator
+
+1. UCS: the account is in the realm group `sec.idm.admins` and in `sec.app.opnsense.admin` ([`ucs-groups.md`](ucs-groups.md)); then run the group sync in the Keycloak admin console (realm `admin`, user federation `ucs`), because a new group or membership is not in the token before it.
+2. Firewall, **on each gateway**: create the local account with the plugin's own writer (the GUI cannot mark an account as plugin-owned) and add it to `admins`. The users and groups sync copies the `<user>` entry and the group membership from the master, but the plugin's ownership marker is kept in its own settings section and is not synced, so a synced account without the marker is refused as a privileged account that the plugin did not create. On `gw3` the first account worked through the sync alone only because the marker was already there from the proof of concept. The snippet runs as `root` (or with `sudo`) on the box:
+
+   ```php
+   <?php
+   require_once("config.inc"); require_once("auth.inc");
+   use OPNsense\Core\Config;
+   use OPNsense\SSO\LocalAccountWriter;
+   use OPNsense\SSO\GroupMembers;
+   $w = new LocalAccountWriter();
+   $cnf = Config::getInstance()->object();
+   $node = $w->create(['name' => 'bob-adm', 'descr' => 'Administrator, Keycloak login only']);
+   foreach ($cnf->system->group as $g) {
+       if ((string)$g->name === 'admins') { GroupMembers::set($g, array_merge(GroupMembers::uids($g), [(string)$node->uid])); }
+   }
+   $w->persist('bob-adm', true);
+   ```
+
+   Use the same numeric uid on both boxes (the call takes `system.nextuid`; set it to the wanted value for the call and put it back), so that the user list synced from the master keeps matching the marker on the other box. Take a `config.xml` backup first; nothing in the snippet sets a password.
+3. A login that is refused says why in the system log of the box (`os-sso oidc: ...`): a missing group (sync the groups, check the membership), an account claimed by another provider name (strict binding; clear the old binding with `AccountStamps::set($node, 'sso_subject', '')` and `$w->persist(...)`), an unknown account (no local user of that name).
+4. Removing an administrator: remove the account from `sec.app.opnsense.admin` in UCS (the next login is refused after the group sync) and delete the local account on both boxes.
+
+### Rollback
+
+`root` and its local second factor were never changed, so access to the firewall does not depend on any of this. To go back to local logins only: delete the `keycloak` server under `System ‣ Access ‣ Servers` (it is an HA sync item and reaches the backup with the next sync), delete the plugin-owned administrator accounts, run `pkg delete os-sso-devel` on each box (the plugin's leftover settings in `config.xml` are inert), and remove the `opnsense-admin` client from the prod `keycloak-realm` unit. The configuration backups taken before each step are in `/conf/backup/` on the boxes. The LDAP route above is the alternative if central logins are still wanted without the plugin.
 
 ## LDAP and local TOTP: configuration
 
@@ -154,16 +183,17 @@ For [#2238](https://github.com/isejalabs/homelab/issues/2238). The web-interface
 
 ## Operator and read-only access
 
-Decision for [#2239](https://github.com/isejalabs/homelab/issues/2239), to be confirmed once the chosen login route works with the real account. The privilege analysis holds for both routes (it is about OPNsense's page-level rights); with OIDC the group comes from the plugin's group map instead of LDAP `memberOf`:
+Decision for [#2239](https://github.com/isejalabs/homelab/issues/2239), recorded at the close-out of the rollout on 2026-11-11: **no operator or read-only access is granted.** The analysis below stays as the evidence. The privilege analysis holds for both routes (it is about OPNsense's page-level rights); with OIDC the group comes from the plugin's group map instead of LDAP `memberOf`:
 
 - **OPNsense has no read-only or read/write separation.** A privilege grants URL patterns (`ACL.xml` in the 26.7.8 source), and a page that reads can usually also write. Evidence from the same source: "Status: Services" is `api/core/service/*` (start, stop, restart), "Diagnostics: Show States" includes `del_state`, `kill_states`, `flush_states`, the dashboard saves widgets into the user's configuration (`saveWidgetsAction`), and "Lobby: Password" would let a directory user set a local password and so bypass the second factor.
 - **The owner's everyday account `bob` (operator): possible.** Candidate set of pages that only read or run a diagnostic that leaves no configuration behind: Lobby: Dashboard, Status: Interfaces, Diagnostics: Logs: System, Logs: Gateways, Firewall statistics, Routing tables, ARP and NDP tables, Netstat, System Health, Ping, Traceroute, Test Port (the ping job writes a temporary file, not the configuration). Not granted: Status: Services, Show States, Firewall sessions (pftop), Packet Capture, Lobby: Password, anything under Firewall, Interfaces, System: Access or Configuration. The firewall log views show every client's connections; for the owner's own account that is acceptable.
 - **Other users (read-only): not granted.** There is no read-only privilege, and the pages that would be harmless show network internals (logs, routing, connections) of every user without a use for the account. This is the outcome the rollout rules allow ("no access if no safe role"); the group `sec.app.opnsense.readonly` is not created.
 - The group `sec.app.opnsense.operator` is created when `bob` is enabled, with the page list above as privileges of the local group; the list is checked against the privilege names of the installed version first.
+- **Why the operator role is not implemented:** the Keycloak client `opnsense` is in the realm `admin`, which holds only administrator accounts, while the owner's everyday account is in the realm `iseja`. An operator login would need a second client in `iseja`, a UCS group `sec.app.opnsense.operator`, a local group with the page list above and the plugin's group map, for a role that is not needed now. It stays a possible follow-up; the page list is checked against the privilege names of the installed release (26.7.6_3) when it is built.
 
 ## Not verified
 
 - **Measured on `gw3` on 2026-11-10 (OIDC proof of concept):** `opnsense-version` `26.7.6_3` on `gw3`; login list "Google Auth OTP" only; the plugin install, the server entry, the local account and the Keycloak login. Measured on `gw2` on 2026-11-11 (read only): `26.7.6_3`, the same single login entry, the plugin not installed, the ticked HA sync items. Everything else about the gateways is from the owner or from source.
 - **Reported by the owner (2026-11-09), not checked by the agent:** OPNsense `26.7.8` (the readings above disagree for both boxes); the certificate of `baerbel` carries the subject alternative names `baerbel.dir.iseja.net` and `baerbel`; the DCs admit TCP 7636 from `gw2` and `gw3` (not from `gw4`); `gw2` is the HA master and the GUI is reached through each box's own name (`gw2` and `gw3` under `home.iseja.net`).
-- **OIDC route:** what is listed under "Not exercised" in the proof of concept, whether the plugin's marker stays valid on the other box when the master syncs the user with the same uid (the marker itself survived a sync that removed the user, see above; the account created on the master has not been tested yet), and the plugin's own security claims (only checked: package identical with source, vendored libraries identical with upstream).
+- **OIDC route:** that Keycloak asks again for a session older than `max_age`, the second factor Keycloak asked for at the logins (not observed by the agent), a `root` drill on `gw2` and on the console (skipped by the owner), a login after disabling the account in UCS (skipped by the owner), the UCS federation down while Keycloak is up, and the plugin's own security claims (only checked: package identical with source, vendored libraries identical with upstream).
 - **LDAP route:** the certificate of `adelheid` (the second server entry needs `adelheid.dir.iseja.net` in its names), whether the Business Edition is in use (not expected for this version line), menu names (taken from 26.7.8 and earlier documentation), whether the user itself may read `memberOf` of its own entry, the login delay during an outage and the order of the server list.
