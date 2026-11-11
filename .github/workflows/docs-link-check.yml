@@ -29,6 +29,8 @@ jobs:
     - run: scripts/ci/check-workloads-catalog.sh
     # Every file under scripts/ must be linked from its nearest README.md, and no README may repeat a "##" heading (#2177).
     - run: scripts/ci/check-scripts-index.sh
+    # Every Markdown file the docs site serves must be listed in the nav of .ci/mkdocs/mkdocs.yml, or it gets no sidebar entry.
+    - run: scripts/ci/check-docs-nav.sh
     # Every k8s/{apps,infra} unit needs a README.md with the headings of the template in k8s/README.md (#2098).
     - run: scripts/ci/check-unit-readmes.sh
     # Every hostname linked in a unit README's Access section must be served by that unit's rendered overlay (#2111).

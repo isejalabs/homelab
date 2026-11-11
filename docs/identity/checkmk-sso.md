@@ -4,7 +4,7 @@ status: current
 
 # Checkmk human SSO
 
-Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). The Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered, and `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) is wired to the **prod** identity provider, see [below](#prod_k8s-prod-identity-provider). The Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) has no SAML: it takes users and roles from UCS over LDAP, see [below](#prod-community-ldap); header SSO for it is not built yet. The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
+Browser sign-in to the Checkmk sites through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1727](https://github.com/isejalabs/homelab/issues/1727); the design is in [the plan comment](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802). The Ultimate sites `dev_k8s` and `qa_k8s` ([#2107](https://github.com/isejalabs/homelab/issues/2107)) are covered, and `prod_k8s` ([#2108](https://github.com/isejalabs/homelab/issues/2108)) is wired to the **prod** identity provider, see [below](#prod_k8s-prod-identity-provider). The Community site `prod` ([#2109](https://github.com/isejalabs/homelab/issues/2109)) has no SAML: it takes users and roles from UCS over LDAP, see [below](#prod-community-ldap), and signs humans in with OpenID Connect in the system Apache of `monitoring2`, see [below](#prod-community-openid-connect-through-the-system-apache). The sites and their editions are in [`monitoring-sites.md`](../reference/monitoring-sites.md).
 
 **Status (2026-11-02):** the UCS groups exist, and for `dev_k8s` and `qa_k8s` the Keycloak clients are applied and both SAML connections are created in the site. The login page shows the two buttons and Keycloak accepts the request of each. Complete logins were verified by the owner for `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s`; the users the sites created are `sebi` (role `user`, contact group `all`, in `qa_k8s` with the e-mail address), `sebi-adm` (role `admin`, no contact group) and `mary` (role `guest`). The page describes these two sites; `prod` is not set up and is added when it is.
 
@@ -97,7 +97,7 @@ The Ultimate site `prod_k8s` (on `monitoring2`, 2.5.0p15, Apache port 5088, agen
 
 ## `prod` (Community): LDAP
 
-The site `prod` on `monitoring2` is Community 2.5.0p15, which has no SAML and no native OpenID Connect login ([plan, track B](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802)). Its users and roles come from UCS over LDAP; the login by OpenID Connect through the web server is a later step of [#2109](https://github.com/isejalabs/homelab/issues/2109) and **not** in place: today a human logs in at the form with the UCS password, without a second factor.
+The site `prod` on `monitoring2` is Community 2.5.0p15, which has no SAML and no native OpenID Connect login ([plan, track B](https://github.com/isejalabs/homelab/issues/1727#issuecomment-6557954802)). Its users and roles come from UCS over LDAP; the login by OpenID Connect through the web server is the [next section](#prod-community-openid-connect-through-the-system-apache). Until that is switched on, a human logs in at the form with the UCS password, without a second factor.
 
 Done on 2026-11-08 ([#2109](https://github.com/isejalabs/homelab/issues/2109), phase 2), with the findings of the spikes in [that issue](https://github.com/isejalabs/homelab/issues/2109):
 
@@ -117,6 +117,52 @@ Done on 2026-11-08 ([#2109](https://github.com/isejalabs/homelab/issues/2109), p
 - **How it was configured:** through the REST API of the site as its `automation` user (secret read from the site into a shell variable, never printed; the audit log shows `automation`): `contact_group_config`, `rule` (ruleset `host_contactgroups`), `password` and `ldap_connection`, the connection created deactivated and enabled after the local users were gone. Community has the `ldap_connection` endpoint (`POST`, `GET`, `PUT`, `DELETE`); the SAML one is Ultimate only.
 - **Rollback:** disable or delete the connection `ucs`, delete the three users it created, remove the rule and the contact group, and restore the local users from `/root/backup-2109-pre-ldap.tgz` on `monitoring2` (config of `conf.d/wato`, `multisite.d` and the two profile directories as of before the change; `root`-only).
 - **A user without a `sec.app.checkmk.*` group is not imported**, so there is no account to log in with.
+
+## `prod` (Community): OpenID Connect through the system Apache
+
+**Status (2026-11-10): live on `prod`.** The Keycloak clients are defined in [`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl) (applied from `main`, 6 resources added), the Apache configuration is the Salt state `apps.check-mk.server.oidc` ([`sebiklamar/salt-iseja.net`](https://github.com/sebiklamar/salt-iseja.net/pull/41), applied by the owner), and the site setting is on. Results: [Rollout and results](#rollout-and-results-of-the-openid-connect-login).
+
+Community has no SAML and no OIDC login, so the web server in front of the site does the OIDC part and passes the user name on. The system Apache of `monitoring2` is the only listener on 443; the site's own Apache listens on 127.0.0.1 only. That makes the system Apache the trust boundary for the header `X-Remote-User`, which Checkmk accepts once the site setting `auth_by_http_header = "X-Remote-User"` is on. Why this and not oauth2-proxy: the amendment of 2026-11-09 in [ADR 0016](../decisions/0016-identity-and-web-sso.md#amendments).
+
+| Entry point | Keycloak realm | Client | Admitted groups |
+| --- | --- | --- | --- |
+| `monitoring2.home.iseja.net` | `iseja` | `checkmk-prod-iseja` | `sec.app.checkmk.operator`, `sec.app.checkmk.readonly` |
+| `monitoring.home.iseja.net` | `admin` (WebAuthn) | `checkmk-prod-admin` | `sec.app.checkmk.admin` |
+
+- **Flow.** The browser asks `/prod`; `mod_auth_openidc` sends it to Keycloak (authorization code with PKCE S256, scopes `openid profile groups`), checks the `groups` claim with `Require claim`, and sets `X-Remote-User` from `preferred_username` (the UCS user ID, which is also the LDAP user ID in Checkmk). The Checkmk role and contact group come from the LDAP sync, [above](#prod-community-ldap).
+- **The client secrets** are generated by the Keycloak module and written to the 1Password items `keycloak-oidc-checkmk-prod-{iseja,admin}#prod` (vault `K8S`); Salt reads them through the `onepassword` ext_pillar into root-only files on `monitoring2`. The cookie passphrase of the module is generated once on the host.
+- **Strip first.** Every request loses any `X-Remote-User` (and its underscore spellings, which a WSGI server would map to the same name). The site accepts the header from anyone who reaches it, so an Apache without this config in front of a site with the setting on would let anybody log in as any user: apply the Salt state before the site setting.
+- **An unknown name is not refused by Checkmk.** In 2.5.0p15 a header with a name that no user has creates a session with role `user` and no contact group (sees nothing). The refusal happens in Apache by the group claim; a UCS user who is in a group but was not synced yet gets exactly that empty session until the next sync (5 minutes). The name is case-sensitive.
+- **Password and header cannot mix.** Checkmk ranks a Basic or Bearer login above the header, and a human's UCS password works on the REST API with no second factor. So `Authorization` is removed on every OIDC-protected request, and the login form is blocked on the public names (`POST` to `login.py` and `_username`/`_password` in its query answer 403). The REST API keeps its own login only for the automation users `terraform`, `automation` and `automation-cmk-agent-ctl` (the Terraform provider uses Basic auth); a human uses the browser session.
+- **Logout** is rewritten to the OIDC logout, otherwise the next request would log the user straight in again. The Checkmk session cookie itself stays valid until its own idle timeout, so a stolen cookie outlives the OIDC session for that time; the OIDC session lasts 8 hours at most and 1 hour idle.
+- **Distributed monitoring, agent registration and Livestatus** do not go through 443 (the agent receiver is port 8001, Livestatus TLS 6601) and are unaffected; the `prod_k8s` and `free` sites on the same Apache are not configured by this.
+
+**Test bed (owner, 2026-11-09):** a second Apache on port 8443 with the same configuration in front of a throwaway Checkmk 2.5.0p15 site (LDAP connection as on `prod`, header setting on), against the dev Keycloak. Passed: `sebi` and `mary` through the `iseja` entry point, `sebi-adm` through the `admin` entry point with WebAuthn, a UCS user without a `sec.app.checkmk.*` group refused by Apache (403), `sebi` refused on the `admin` entry point, the logout ending the Keycloak session without logging in again, and the login form not accepting a password. A first run failed because `%{REMOTE_USER}e` sends the text `(null)` as the header value; the `expr=%{REMOTE_USER}` form is the right one. The test bed, the throwaway site and the temporary dev clients were removed afterwards.
+
+### Rollout and results of the OpenID Connect login
+
+Done on 2026-11-10 ([#2109](https://github.com/isejalabs/homelab/issues/2109), phase 3), in this order, because the site trusts the header from anyone who reaches it:
+
+1. **Keycloak clients** applied from `main` ([PR 2253](https://github.com/isejalabs/homelab/pull/2253)): plan 6 to add, 0 to change, 0 to destroy (two clients, their default scopes, the 1Password items `keycloak-oidc-checkmk-prod-{iseja,admin}#prod`).
+2. **Salt state** `apps.check-mk.server.oidc` applied on `monitoring2` after the two `onepassword_items` entries were added to its pillar and a copy of `/etc/apache2` was taken (`/root/backup-2109-pre-oidc.tgz`). Checked afterwards: `apache2ctl configtest` OK; both host names redirect to their Keycloak realm and client; a forged `X-Remote-User` through 443 is redirected to Keycloak instead of accepted; a `POST` to `login.py` answers 403; a human's password on the REST API goes to Keycloak; `prod_k8s` on the same Apache is unchanged (200).
+3. **Site setting** `auth_by_http_header = "X-Remote-User"` added to `etc/check_mk/multisite.d/wato/global.mk` of `prod` right after (previous file: `/root/global.mk.pre-2109-header` on `monitoring2`). It is effective without a restart: a request straight to the site with the header is accepted, without it the site shows its login page.
+
+| Test | Result |
+| --- | --- |
+| `sebi` at `monitoring2.home.iseja.net`: Keycloak login with second factor, straight into Checkmk as `user` | passed (owner) |
+| `mary` at the same address: `guest` | passed (owner) |
+| `sebi-adm` at `monitoring.home.iseja.net` with WebAuthn: `admin` | passed (owner) |
+| `sebi` at the admin address; a user without a `sec.app.checkmk.*` group at either address | refused by Apache, passed (owner) |
+| Logout in Checkmk ends the Keycloak session | passed (owner) |
+| Break-glass: SSH tunnel to `127.0.0.1:5001`, local `omdadmin` | passed (owner) |
+| REST API as `terraform` through the public name | `GET /version` 200 with Bearer and with Basic (the Terraform provider uses Basic); the 403 on the contact group list is the same when asking the site directly, so it comes from the strict role of ADR 0015, not from Apache |
+| Agent registration, [regression check](#regression-check-agent-registration) against port 8001 | passed: wrong secret 401, right secret 404 for the unknown host. `prod` has no `agent_registration` user, so the check ran as `automation-cmk-agent-ctl` (`--user`), through an SSH tunnel |
+
+**Rollback:** delete the `auth_by_http_header` line from `global.mk` (the login form still does not accept a password on the public names while the Apache config is in place), then restore the previous Apache files from the backup if the whole OIDC front is to go; Salt does not delete the files it wrote.
+
+**Break-glass for `prod`:** the local `omdadmin` on the site's own Apache, reached through an SSH tunnel (`ssh -L 5001:127.0.0.1:5001 root@monitoring2.home.iseja.net`, then `http://127.0.0.1:5001/prod/`). That Apache has no OIDC configuration, so the login form works there. With the header setting on, anyone with a shell on `monitoring2` can also send the header to port 5001 themselves, which is why the host stays root-only.
+
+**Not covered:** distributed monitoring between the sites uses Livestatus TLS (6601) and the agent receiver (8001), which do not pass through the Apache; both ports still listen, but a connection test between the sites was not run. Registering a real host was not run either. A Checkmk crash report on 2026-11-10 shows a stored dashboard with the widget type `average_scatterplot`, which Community does not know; it is a dashboard configuration problem and independent of the login.
 
 ## First login and activation
 
@@ -156,6 +202,7 @@ CMK_REGISTRATION_PASSWORD=<secret of agent_registration> \
 
 - **Result (2026-11-02):** passes on `dev_k8s` and `qa_k8s` with both SAML connections in place, and fails with exit 1 for a wrong secret. No run before the connections existed, so there is no baseline from before the change; the code paths do not overlap.
 - **Result for `prod_k8s` (2026-11-08):** passes with both connections in place (401 for a wrong secret, 404 for the right one). Port 8088 is not reachable from the workstation, so the script ran against `127.0.0.1` through an SSH tunnel (`ssh -L 18088:127.0.0.1:8088 root@monitoring2.home.iseja.net`).
+- **Result for `prod` (2026-11-10):** passes with the OpenID Connect front and the header setting in place (401 for a wrong secret, 404 for the right one) on port 8001, as `automation-cmk-agent-ctl`, through an SSH tunnel.
 - **`pairing` is not part of it:** `POST /pairing` answers 403 `You do not have the permission for agent pairing` for `agent_registration` on both sites. In 2.5.0p15 only the `admin` role has `general.agent_pairing` by default and the sites have no role overrides, so this is the default, not a result of SAML.
 - **Not covered:** the registration of a real host (it changes the host's UUID and trust) and the pull/TLS connection after it.
 

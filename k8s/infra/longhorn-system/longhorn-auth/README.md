@@ -7,7 +7,7 @@ A login in front of the Longhorn dashboard: an OAuth2 Proxy against the Keycloak
 | | |
 | --- | --- |
 | Namespace | `longhorn-system` |
-| Runs in | `dev` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/dev/kustomization.yaml`); `qa` and `prod` follow once their Keycloak clients exist |
+| Runs in | `dev`, `prod`, `qa` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`) |
 | Installed via | the shared component [`oauth2-proxy`](../../../components/apps/oauth2-proxy/README.md) (HelmRelease, OCIRepository, ExternalSecret) plus a `CiliumNetworkPolicy` |
 | Flux Kustomization | `longhorn-auth`, depends on `longhorn-core` |
 

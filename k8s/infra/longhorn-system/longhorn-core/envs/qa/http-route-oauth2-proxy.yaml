@@ -1,0 +1,6 @@
+---
+# Send the UI route through the login proxy of the `longhorn-auth` unit instead of straight to the UI. The
+# CiliumNetworkPolicy of that unit admits only the proxy to the UI.
+- op: replace
+  path: /spec/rules/0/backendRefs/0/name
+  value: oauth2-proxy
