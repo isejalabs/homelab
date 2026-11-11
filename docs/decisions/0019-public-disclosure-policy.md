@@ -1,6 +1,7 @@
 ---
 id: ADR 0019
 status: planning
+accepted: 2026-11-11
 becomes-current: once the file sweep (https://github.com/isejalabs/homelab/issues/2284) and the tracker sweep (https://github.com/isejalabs/homelab/issues/2285) are done
 ---
 
