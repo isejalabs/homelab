@@ -110,7 +110,7 @@ Matched by host name across `prod`, `prod_k8s`, `qa_k8s` and `dev_k8s` (`core` i
 | Talos nodes | `prod-ctrl-01..03`, `prod-work-01..03`; `qa-ctrl-02`, `qa-work-01..03`; `dev-ctrl-01`, `dev-work-01..03` | `prod`, plus the cluster's `*_k8s` site | `prod` |
 | Kubernetes objects | 24 namespaces and Deployments (15 of `prod`, 7 of `dev`, 2 of `qa`), plus the three cluster collector hosts | `prod`, plus the cluster's `*_k8s` site | The cluster's `*_k8s` site, decided 2026-11-11, see [below](#where-kubernetes-objects-notify-from-d2) |
 
-`qa_k8s` notifies today for its Talos nodes; D2 moves them to `prod`, so `qa_k8s` needs the same node rule as `prod_k8s` once `prod` notifies.
+`qa_k8s` notifies today for its Talos nodes (confirmed live: `qa-ctrl-02`, `qa-work-01..03` carry the same `cmk/kubernetes/object:node` label as `prod_k8s`'s nodes); D2 moves them to `prod`, so `qa_k8s` needs the same node-disable rule as `prod_k8s`, added to the table [below](#rules-prepared-for-prod_k8s-prod-and-qa_k8s-not-applied). Apply it **in the same change** as `prod`'s node rules, not before and not after: applying it first leaves `qa`'s nodes notifying from neither site until `prod` catches up, applying it after leaves them notifying from both for a while.
 
 ### Where Kubernetes objects notify from (D2)
 
@@ -127,21 +127,24 @@ Noise is no argument either way: with the 15 min delay both sites would send abo
 
 **Decided (owner, 2026-11-11): Kubernetes objects notify from the `*_k8s` site of their cluster** (`prod_k8s` for `prod`, `qa_k8s` for `qa`, none for `dev`), and `prod` turns notifications off for its Kubernetes object and cluster collector hosts (folders `k8s/ends` and `k8s/piggys`). Reasons: full workload coverage today instead of 5 of 51 `Replicas`; `prod_k8s` notifies anyway for Smart Ping, so no extra site sends; widening `prod`'s object set to match would add piggyback hosts to the site that stream D is trying to unload. Revisit when Prometheus takes over the fine-grained part (D4): the alerts move with the data. Recorded in the plan's D2 row ([`docs/plans/2026-11-observability.md`](../plans/2026-11-observability.md)).
 
-### Rules prepared for `prod_k8s` and `prod` (not applied)
+### Rules prepared for `prod_k8s`, `prod` and `qa_k8s` (not applied)
 
-Same shape as on `qa_k8s`, in this order (first match wins), at the root folder. Applying them was blocked in the agent session; the owner applies them in the UI or approves the REST call ([#2158](https://github.com/isejalabs/homelab/issues/2158)).
+Same shape as the existing `qa_k8s` rules, in this order (first match wins), at the root folder. Applying them was blocked in the agent session; the owner applies them in the UI or approves the REST call ([#2158](https://github.com/isejalabs/homelab/issues/2158)).
 
 | Ruleset | Condition | Value | Sites |
 | --- | --- | --- | --- |
-| Delay service notifications | service `Check_MK Discovery$` | 60 min | both |
-| Delay service notifications | service begins with `Filesystem`, `zpool`, `Storage Pool`, `Proxmox VE Storage`, `RustFS bucket`, `Longhorn disk`, `PVC ` | 0 min | both |
-| Delay service notifications | all | 15 min | both |
-| Enable/disable notifications for services | service `Check_MK HW/SW Inventory$` | disable | both |
+| Delay service notifications | service `Check_MK Discovery$` | 60 min | `prod_k8s`, `prod` |
+| Delay service notifications | service begins with `Filesystem`, `zpool`, `Storage Pool`, `Proxmox VE Storage`, `RustFS bucket`, `Longhorn disk`, `PVC ` | 0 min | `prod_k8s`, `prod` |
+| Delay service notifications | all | 15 min | `prod_k8s`, `prod` |
+| Enable/disable notifications for services | service `Check_MK HW/SW Inventory$` | disable | `prod_k8s`, `prod` |
 | Enable/disable notifications for hosts and for services | host label `cmk/kubernetes/object:node` | disable | `prod_k8s` (D2) |
+| Enable/disable notifications for hosts and for services | host label `cmk/kubernetes/object:node` | disable | `qa_k8s` (D2) — apply together with `prod`'s node rules below, not before and not after (see [above](#hosts-in-more-than-one-site-d2)) |
 | Enable/disable notifications for hosts | the ten Smart Ping hosts that also exist in `prod` | disable | `prod` (D2) |
 | Delay host notifications | the twelve Smart Ping hosts | 2 min (owner, 2026-11-11) | `prod_k8s` |
 
 The capacity delay of 0 min is cheap: 12 capacity episodes on `prod` in 14 days, all longer than 15 min. Mind that five `Filesystem /` services of Talos nodes and `monitoring2`'s are CRIT right now through the time-left levels (60 days left, CRIT below 70), so they push as soon as the push rule is live ([#1908](https://github.com/isejalabs/homelab/issues/1908), [#1843](https://github.com/isejalabs/homelab/issues/1843)).
+
+The `qa_k8s` node-disable rule only makes sense once `prod` actually notifies for Talos nodes (a mail address or push rule on `prod`'s contact, not merely the rules existing) — otherwise `qa`'s nodes stop notifying from `qa_k8s` with nothing picking them up on `prod` yet.
 
 Notification rules, once the keys and the address exist (UI: Setup > Notifications):
 
