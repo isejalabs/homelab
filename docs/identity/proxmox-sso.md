@@ -4,9 +4,9 @@ status: current
 
 # Proxmox human SSO
 
-Browser sign-in to the Proxmox web interface through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1728](https://github.com/isejalabs/homelab/issues/1728); first scenario `bob-adm` with administrative rights [#2235](https://github.com/isejalabs/homelab/issues/2235); operator and read-only roles for `bob` and `mary` [#2236](https://github.com/isejalabs/homelab/issues/2236); rules of the rollout [#2198](https://github.com/isejalabs/homelab/issues/2198).
+Browser sign-in to the Proxmox web interface through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1728](https://github.com/isejalabs/homelab/issues/1728); first scenario `bob-adm` with administrative rights [#2235](https://github.com/isejalabs/homelab/issues/2235); operator and read-only roles for `bob` and `alice` [#2236](https://github.com/isejalabs/homelab/issues/2236); rules of the rollout [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-10):** live. The realms `kc-admin` and `kc-iseja`, the three groups, the `Operator` role and the ACLs on `/` are applied by the Terragrunt unit `prod/proxmox-access` (module `proxmox-access` 0.1.0), and the owner confirmed the logins of `bob-adm`, `bob` and `mary`, of the AD realm and of `root@pam` on 2026-11-10. The AD realm stays the default and `root@pam` and every API token are untouched; removing the AD realm is a separate decision. What was verified, and what is still open, is under [Verification](#verification).
+**Status (2026-11-10):** live. The realms `kc-admin` and `kc-iseja`, the three groups, the `Operator` role and the ACLs on `/` are applied by the Terragrunt unit `prod/proxmox-access` (module `proxmox-access` 0.1.0), and the owner confirmed the logins of `bob-adm`, `bob` and `alice`, of the AD realm and of `root@pam` on 2026-11-10. The AD realm stays the default and `root@pam` and every API token are untouched; removing the AD realm is a separate decision. What was verified, and what is still open, is under [Verification](#verification).
 
 **On this page:** [Inventory](#inventory) · [Reuse before build](#reuse-before-build) · [Design](#design) · [Roles](#roles) · [MFA](#mfa) · [Break-glass](#break-glass) · [Rollout](#rollout) · [Verification](#verification) · [Decisions](#decisions)
 
@@ -38,7 +38,7 @@ The outcome is the module [`proxmox-access`](https://github.com/isejalabs/terraf
 
 ## Design
 
-- **One OpenID Connect realm per Keycloak realm.** Proxmox accepts several, and the login page offers them in a realm drop-down. `kc-admin` (issuer `https://auth.iseja.net/realms/admin`, accounts `*-adm`) comes first ([#2235](https://github.com/isejalabs/homelab/issues/2235)); `kc-iseja` follows for `bob` and `mary` ([#2236](https://github.com/isejalabs/homelab/issues/2236)). The realm ID becomes the suffix of the user ID (`bob-adm@kc-admin`) and of every group name, so it is kept short.
+- **One OpenID Connect realm per Keycloak realm.** Proxmox accepts several, and the login page offers them in a realm drop-down. `kc-admin` (issuer `https://auth.iseja.net/realms/admin`, accounts `*-adm`) comes first ([#2235](https://github.com/isejalabs/homelab/issues/2235)); `kc-iseja` follows for `bob` and `alice` ([#2236](https://github.com/isejalabs/homelab/issues/2236)). The realm ID becomes the suffix of the user ID (`bob-adm@kc-admin`) and of every group name, so it is kept short.
 - **Issuer: the `prod` Keycloak.** The cluster is one and real, and ADR 0016 (point 2) lets `prod` serve the out-of-cluster services. The same rule as for Checkmk applies ([`checkmk-sso.md`](checkmk-sso.md)): `dev` and `qa` prove the client and the unit, they do not get rights on the production hypervisors.
 - **Users: autocreate at the first login; rights only from groups.** `autocreate = true` and `groups_autocreate = false`: a user exists without any right until the claim puts them into a group that is declared in code. The alternative, pre-creating each user, adds an entry per person to the code and gains nothing, since the realm filter (`sec.idm.admins`) already decides who may sign in. An account outside the group gets an empty interface.
 - **Groups: claim `groups`, replaced at every login** (`groups_overwrite = true`), so removing someone from the UCS group takes effect at the next login. Proxmox appends the realm ID to the claim value, so the UCS group `sec.app.proxmox.admin` becomes the Proxmox group `sec.app.proxmox.admin-kc-admin`, declared in code with its ACL. Value and realm: [`proxmox-access` README](https://github.com/isejalabs/terraform-modules/blob/proxmox-access-v0.1.0/modules/proxmox-access/README.md#how-the-login-maps-to-rights).
@@ -52,7 +52,7 @@ The outcome is the module [`proxmox-access`](https://github.com/isejalabs/terraf
 | --- | --- | --- | --- | --- | --- |
 | `bob-adm` | `admin` | `sec.app.proxmox.admin` | `sec.app.proxmox.admin-kc-admin` | `Administrator` | `/` |
 | `bob` | `iseja` | `sec.app.proxmox.operator` | `sec.app.proxmox.operator-kc-iseja` | custom `Operator` (below) | `/` or the pool of guests it may operate |
-| `mary` | `iseja` | `sec.app.proxmox.readonly` | `sec.app.proxmox.readonly-kc-iseja` | `PVEAuditor` | `/` |
+| `alice` | `iseja` | `sec.app.proxmox.readonly` | `sec.app.proxmox.readonly-kc-iseja` | `PVEAuditor` | `/` |
 
 `Administrator` rather than `PVEAdmin` for the administrator: it is what the existing `Admin` group has (both are granted today), and it is the only built-in role with `Permissions.Modify`, `Realm.Allocate` and `Sys.Modify`. Verified by listing the roles on the cluster.
 
@@ -85,7 +85,7 @@ Each step only after the previous one, and each step that changes the live clust
 3. UCS: create `sec.app.proxmox.admin`, add `bob-adm`; sync the Keycloak group mapper. Owner's go.
 4. Release the module, add the Terragrunt unit `proxmox-access` for the cluster with realm `kc-admin`, group, and the `Administrator` ACL; `plan` first (it must show only new resources, nothing on the AD realm, `root@pam`, users or tokens), then apply from `main`.
 5. Test: `bob-adm` through `kc-admin` (administrative rights), an account outside the group (no rights), `root@pam` and the AD login still work, automation unaffected (`terragrunt plan` of a `vms` unit and the Checkmk and CSI tokens still authenticate).
-6. [#2236](https://github.com/isejalabs/homelab/issues/2236): UCS groups, realm `kc-iseja`, `Operator` role, `PVEAuditor` for `mary`; verify with the real accounts.
+6. [#2236](https://github.com/isejalabs/homelab/issues/2236): UCS groups, realm `kc-iseja`, `Operator` role, `PVEAuditor` for `alice`; verify with the real accounts.
 
 ## Verification
 
@@ -96,7 +96,7 @@ Applied on 2026-11-09 from `main` ([PR 2259](https://github.com/isejalabs/homela
 | Realms | `kc-admin` and `kc-iseja` exist; `DIR.ISEJA.NET` is still the default | `pveum realm list` |
 | `bob-adm` through `kc-admin` | Signs in; effective rights are those of `Administrator` (47 privileges on all 38 paths, including `Permissions.Modify`, `Realm.Allocate`, `Sys.Console`) | owner's confirmation; `pveum user permissions bob-adm@kc-admin` |
 | `bob` through `kc-iseja` | Signs in; exactly the 10 privileges of `Operator` on every path | owner's confirmation; `pveum user permissions bob@kc-iseja` |
-| `mary` through `kc-iseja` | Signs in; exactly the 7 privileges of `PVEAuditor` on every path | owner's confirmation; `pveum user permissions mary@kc-iseja` |
+| `alice` through `kc-iseja` | Signs in; exactly the 7 privileges of `PVEAuditor` on every path | owner's confirmation; `pveum user permissions alice@kc-iseja` |
 | Operator cannot manage users, realms, permissions or open a node shell | `Operator` has none of `User.Modify`, `Group.Allocate`, `Realm.*`, `Permissions.Modify`, `Sys.Console`, `Sys.Modify`. A token cannot exceed its owner's rights, so it cannot carry more | `pveum user permissions` as above |
 | An account outside the groups gets no rights | `toni@kc-iseja` was autocreated at its first login and has no permission on any path | `pveum user permissions toni@kc-iseja` |
 | AD login and `root@pam` still work | Confirmed by the owner. The apply changed neither realm | owner's confirmation; apply result |

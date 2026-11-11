@@ -46,7 +46,7 @@ The checklist for a new user; the component README has the field-level details.
 ## Limits and things to know
 
 - **One provider per proxy.** OAuth2 Proxy runs one OIDC provider (the alpha configuration has a `providers` list, but its documentation says multiple providers are "not yet working"). An application that must accept the realms `iseja` and `admin` both needs a second proxy on a second hostname. Every application of this pattern starts with `admin` only.
-- **Authorization is coarse.** The proxy knows "in the group or not". It cannot say "may read, may not delete": a role split needs a layer behind the proxy that looks at the request, see the finding for Longhorn in [`longhorn-sso.md`](longhorn-sso.md#operator-and-read-only-for-bob-and-mary).
+- **Authorization is coarse.** The proxy knows "in the group or not". It cannot say "may read, may not delete": a role split needs a layer behind the proxy that looks at the request, see the finding for Longhorn in [`longhorn-sso.md`](longhorn-sso.md#operator-and-read-only-for-bob-and-alice).
 - **Startup needs Keycloak.** The proxy fetches the discovery document of the issuer when it starts and exits if that fails, so it restarts until Keycloak answers. An already running proxy keeps serving sessions while Keycloak is down, but cannot start a login. That is why break-glass must not go through the proxy.
 - **Reserved paths.** `/oauth2/*` on the application's hostname belongs to the proxy.
 - **WebSockets** pass through the proxy.
