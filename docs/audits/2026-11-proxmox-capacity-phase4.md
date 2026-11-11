@@ -1,6 +1,6 @@
 ---
 date: 2026-11-11
-status: Readings taken 12 days after the changes (2026-10-29), proposals only; nothing was changed on any host and the owner decides the memory limits and the pve1 relief
+status: Readings taken 12 days after the changes (2026-10-29); the readings changed nothing, the owner then had the two console VMs swapped between pve1 and pve4 (see Applied), the memory limits stay proposals
 scope: the one-week readings that phase 4 of the Checkmk consolidation plan waits for — CPU and memory of CT 7002056 (`monitoring2`, pve4) and CT 7002061 (`monitoring1`, pve5), memory and load of pve1, pve4 and pve5, and the state of the Checkmk sites. It does not cover disk, network, power or the Kubernetes content of the `*_k8s` sites
 origin: Claude (Claude Code), read-only SSH to pve1, pve4, pve5, monitoring1 and monitoring2 (Proxmox RRD through `pvesh`, the containers' cgroup files and `ps`, `lq` on the sites, the kernel logs of the three nodes). The scheduled tasks that should have taken these readings on 2026-11-05 had failed with a network error
 tracking: https://github.com/isejalabs/homelab/issues/1783
@@ -26,7 +26,7 @@ data: data/2026-11-proxmox-capacity-phase4-daily.csv
 - **CPU in cores** is `cpu` times the vCPUs (3 for both containers). **CPU pressure** is `pressurecpusome` (share of the time at least one task waited for a CPU). **Load** is the node's `loadavg`, averaged per 30 minutes.
 - **Windows:** A = 2026-10-20 to 2026-10-27 (before every change, container limit already 10 GiB), B = 2026-10-28 to 2026-10-29 21:10 (phase 1 intervals and the ten ping-only hosts, `core` stopped at 2026-10-29 00:05), C = 2026-10-30 to 2026-11-10 (after the merge of `free` and the stop of `core`; 12 full days). 2026-11-11 is a partial day and is not in the windows. The reading was taken at night, so "day" means 08:00 to 20:00 of the earlier days.
 - **Container memory** is Proxmox's "used", which leaves out file-backed pages including `shmem` (see [reading container memory](../reference/monitoring-sites.md#reading-container-memory)). That gap has shrunk: `shmem` is 0.19 GiB in `monitoring2` and 0.04 GiB in `monitoring1` now (1.29 GiB on 2026-10-18), so the Proxmox figure is within 0.2 GiB of what the OOM killer counts.
-- **Nothing was changed.** My first call wrote two temporary JSON files (1.2 MB) to `/tmp` on pve4 and removed them at once; everything else was a read.
+- **The readings changed nothing.** The only change on 2026-11-11 is the swap of two console VMs on the owner's instruction, see [Applied](#applied-on-2026-11-11). My first call wrote two temporary JSON files (1.2 MB) to `/tmp` on pve4 and removed them at once; everything else was a read.
 
 ## CT 7002056 (`monitoring2`, pve4)
 
@@ -128,6 +128,21 @@ The owner gave the electricity price (0.36 €/kWh, 2026-11-11). Power figures a
 
 The earlier threshold "within 50 € a year below about 0.23 €/kWh" no longer applies: at 0.36 €/kWh a permanent `pve6` is about 79 € a year, about 23% on top of the current four devices. This is a power cost only; it does not change the memory findings above.
 
+## Applied on 2026-11-11
+
+On the owner's instruction (the console hosts must never all be on one node: at least one console host has to be reachable while a Proxmox node is shut down or rebooting) `hannelore` and `tabea` were swapped, which is the pve1 relief of the proposals plus its mirror image. Online migration, 02:11 to 02:15 CET:
+
+| VM | From, to | Command | Result |
+| --- | --- | --- | --- |
+| `hannelore` (VM 7007108, 4.5 GiB, 10 and 19 GiB disks on `local-enc`) | pve1 to pve4 | `qm migrate 7007108 pve4 --online --with-local-disks` | finished after 52 minutes (the disk mirror ran at about 10 MiB/s), downtime 200 ms, guest agent answers |
+| `tabea` (VM 7009120, 1.5 GiB, 10 GiB disk) | pve4 to pve1 | `qm migrate 7009120 pve1 --online --with-local-disks` (the first try without `--with-local-disks` aborted at the pre-check, nothing changed) | finished after 2 min 45 s, downtime 77 ms, guest agent answers |
+
+- **Placement now:** `hannelore` on pve4, `tabea` on pve1, so each of the two nodes has one console host. Both run, `onboot` is unchanged.
+- **Replication:** the job 7009120-1 of `tabea` reversed by itself (pve1 to pve4, every 15 minutes), first run after the move OK. `hannelore` has no replication job.
+- **Effect (spot readings right after, not a window):** pve1 6.4 GiB free and 8.4 GiB available of 47.9 GiB (5.1 GiB available at 00:50 with the old placement), pve4 9.3 GiB free and 14.5 GiB available of 64 GiB. The net move for pve1 is -3.0 GiB of guest peaks (`hannelore` 3.7 out, `tabea` 1.35 in, so pve1's lowest available memory with `rebuild` up should be about 4.6 GiB instead of 1.6) and for pve4 +3.0 GiB (lowest available about 8.9 GiB instead of 11.9). Re-read a window of days to confirm.
+- **Rollback:** the same commands the other way round.
+- **Not changed:** the memory limits of both containers, the Terragrunt entry of `rebuild-work-01`.
+
 ## Not measured
 
 - Per-process memory history: only a snapshot of 2026-11-11 00:53 exists, so the steps in `monitoring1` and `monitoring2` are not attributed.
@@ -143,6 +158,6 @@ The earlier threshold "within 50 € a year below about 0.23 €/kWh" no longer 
 | --- | --- | --- | --- |
 | CT 7002056 memory limit | keep 10 GiB | none | none |
 | CT 7002061 memory limit | 9 GiB, optional | allocation of pve5's running guests 41.0 to 40.0 GiB, no memory returned | `pct set 7002061 --memory 9216` on pve5; roll back with `--memory 10240` |
-| pve1 relief | `hannelore` to pve4 (alternative or addition: `rebuild-work-01` to pve4 through its Terragrunt entry) | pve1 lowest available memory 1.6 to about 5.3 GiB (6.5 with `rebuild-work-01`) with `rebuild` up; pve4 11.9 to about 8.2 GiB, +0.09 cores | `qm migrate 7007108 pve4 --online --with-local-disks` (not tested) |
+| pve1 relief | `hannelore` to pve4, with `tabea` to pve1 in exchange (**done 2026-11-11**, see Applied); optional on top: `rebuild-work-01` to pve4 through its Terragrunt entry | pve1 lowest available memory 1.6 to about 5.3 GiB (6.5 with `rebuild-work-01`) with `rebuild` up; pve4 11.9 to about 8.2 GiB, +0.09 cores | `qm migrate 7007108 pve4 --online --with-local-disks` (not tested) |
 | Stale services in `prod` | remove the 15 services of `free`, `spikeprod` and `restoretest` on `monitoring2` (service discovery, remove vanished, or a Disabled-services rule like the one for `core`) | 15 UNKNOWN fewer | Checkmk web interface |
 | Service-count levels | decide before `qa_k8s` reaches 675 whether the levels stay or services are removed | avoids a WARN that is expected within weeks | none |
