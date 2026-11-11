@@ -67,7 +67,7 @@ One-time setup of the Connect server and its token, before the first bootstrap. 
 $ op connect server create k8s --vaults K8S
 Set up a Connect server.
 UUID: C4SMSGSK2JEW5KCB2UPP4VGP7Q
-Credentials file: /Users/sebi/src/homelab/1password-credentials.json
+Credentials file: /Users/bob/src/homelab/1password-credentials.json
 
 # op connect token create
 $ op connect token create k8s --server k8s --vault K8S

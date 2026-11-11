@@ -39,7 +39,7 @@ Not part of this decision: whether the site is public. That is the owner's call 
 ## Consequences
 
 - The whole checkout is the `docs_dir`, so everything not Markdown or an image, and everything that is not documentation (`.github/`, `.agents/`, `_attic/`, `ZZ.bak/`, `docs/logs/`, `AGENTS.md`), is excluded in `exclude_docs`. A new documentation directory outside `docs/` needs no change; a new top-level directory with Markdown that is not documentation does.
-- A page that should appear in the sidebar has to be added to `nav`. Pages missing from it are still built and searchable; MkDocs only reports them at `INFO` level.
+- A page that should appear in the sidebar has to be added to `nav`. Pages missing from it are still built and searchable, but have no sidebar entry. `validation.omitted_files` is `warn`, so the strict build fails on such a page, and [`scripts/ci/check-docs-nav.sh`](../../scripts/ci/check-docs-nav.sh) fails the required `docs-link-check` check, since `docs-build` is not a required check (a new page was once merged without a sidebar entry because MkDocs only reported it at `INFO` level).
 - Heading anchors use GitHub-compatible slugs, so `#anchor` links behave the same on github.com and on the site, and `--strict` turns a broken one into a failed build.
 - Links from a page to a file or directory that is not part of the site resolve to `https://github.com/isejalabs/homelab/blob/main/...` or `.../tree/main/...` at build time. A link to a path that does not exist anywhere is left alone, so the build fails on it.
 - Mermaid is rendered in the browser by a script that Material loads at runtime from a CDN; the site has that runtime dependency only on pages with a Mermaid fence.
