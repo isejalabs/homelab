@@ -4,7 +4,7 @@ status: draft
 
 # Flux Operator Web UI SSO
 
-Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`alice-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
+Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
 **Status (2026-11-09):** prepared for `dev`, as code only. The client is declared in the `dev` `keycloak-realm` unit but not applied, and nothing is applied to a cluster. `oidc_clients` exists since [#2227](https://github.com/isejalabs/homelab/issues/2227).
 
@@ -18,7 +18,7 @@ The Web UI of the operator (port 9080, published by the `HTTPRoute` of [`flux-op
 | Client secret | 1Password item `keycloak-oidc-flux-operator-admin#<env>` (field `password`), written by the `keycloak-realm` unit and delivered by an `ExternalSecret`, rendered by the chart into the web config; never in Git |
 | Web config (issuer, claim rules) | `HelmRelease` values `web.config` in [`envs/<env>/helmrelease.yaml`](../../k8s/infra/flux-system/flux-operator/envs/dev/helmrelease.yaml) |
 | Authorization | `ClusterRoleBinding` of the group `sec.app.flux-operator.admin` to the custom `ClusterRole` [`flux-operator-web-admin`](../../k8s/infra/flux-system/flux-operator/envs/dev/clusterrole.yaml), see [Role](#role-of-the-admin-group) |
-| UCS group | `sec.app.flux-operator.admin`, member `alice-adm` ([`ucs-groups.md`](ucs-groups.md)); creation needs the owner's go |
+| UCS group | `sec.app.flux-operator.admin`, member `bob-adm` ([`ucs-groups.md`](ucs-groups.md)); creation needs the owner's go |
 
 ## Claim handling
 
@@ -64,4 +64,4 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 - Apply the `dev` `keycloak-realm` unit (the owner's go; plan must only add the client, its default scopes and the 1Password item), then roll out the overlay with the `track-branch` skill.
 - MFA behaviour of the realm `admin` is recorded after the first real login.
-- Operator and read-only roles for the everyday accounts (`alice`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
+- Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
