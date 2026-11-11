@@ -58,7 +58,7 @@ The unit creates, per site, one client in `iseja` and one in `admin`, with the e
 | `https://iseja.net/claims/userid` | the username |
 | `https://iseja.net/claims/alias` | the username |
 | `https://iseja.net/claims/groups` | the names of the user's `sec.app.*` groups, multi-valued |
-| `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` (the `iseja` clients of `qa_k8s` and `prod_k8s`) |
+| `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` (the `iseja` clients of `dev_k8s`, `qa_k8s` and `prod_k8s`) |
 
 The `https://iseja.net/claims/` prefix is only a namespace that makes the attribute names unique, like an XML namespace: nothing is ever fetched from it, it need not resolve, and it is the same in every environment (it is not replaced by `dev-auth.dev.iseja.net` or any other host). It has to be a URL because Checkmk insists on a user ID attribute name that starts with `http`. It is the default of `saml_claims` in the module and can be overridden there, but the Keycloak mappers and the Checkmk connection must use the same names.
 
@@ -77,7 +77,7 @@ Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML au
 | Signing certificate | built-in | built-in |
 | User ID attribute | `https://iseja.net/claims/userid` | same |
 | Full name attribute | `https://iseja.net/claims/alias` | same |
-| E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` and `prod_k8s` (not `dev_k8s`) | not set |
+| E-mail attribute | `https://iseja.net/claims/email` on `dev_k8s`, `qa_k8s` and `prod_k8s` | not set |
 | Roles | attribute `https://iseja.net/claims/groups`: `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` | `sec.app.checkmk.admin` → `admin` |
 | Contact groups | type "map" on the same attribute: `sec.app.checkmk.operator` → `all` | none |
 
@@ -175,11 +175,11 @@ Keycloak already has the address (the LDAP federation maps UCS `mail` to the use
 | `qa_k8s` | SAML attribute `https://iseja.net/claims/email`, `include_email` on the client | live since 2026-11-02 |
 | `prod_k8s` | the same: `include_email` on `prod_k8s-iseja` (code, [`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)) **and** the e-mail attribute in the Checkmk connection `keycloak_iseja` | code in [#2294](https://github.com/isejalabs/homelab/issues/2294); the Checkmk side is a manual step, see below |
 | `prod` (Community) | LDAP: the e-mail attribute `mail` in the user settings of the connection `ucs`, filled by the next sync | manual step, see below |
-| `dev_k8s` | not sent: nothing notifies from this site, and the address would make `bob` a recipient | unchanged |
+| `dev_k8s` | the same as `prod_k8s`: `include_email` on `dev_k8s-iseja` and the attribute in `keycloak_iseja`. The address makes `bob` a recipient, so notifications of `dev_k8s` are switched off in Checkmk where they are not wanted (owner decision, 2026-11-11) | code in [#2294](https://github.com/isejalabs/homelab/issues/2294); the Checkmk side is a manual step |
 
 Only the `iseja` realm sends it. The `admin` accounts are in no contact group, so they are never notified and the `admin` clients and connections stay without an address (as on `qa_k8s`).
 
-**Apply order for `prod_k8s`:** 1. apply the Keycloak unit from `main` (changes only the mapper of one client); 2. set the e-mail attribute of `keycloak_iseja` to `https://iseja.net/claims/email` (UI, or `user_connections.mk` as in [Changing a connection later](#checkmk-side), because the REST API cannot update a connection); 3. the user logs in once, since Checkmk takes the attributes over at each login. Step 2 before step 1 would point the connection at an attribute that Keycloak does not send yet, and Checkmk refuses a login whose mapped attribute is missing for the roles (`Configured user attribute cannot be found in response`); whether it does for the e-mail attribute too was not tried, so keep the order.
+**Apply order for `prod_k8s` and `dev_k8s`:** 1. apply the Keycloak unit from `main` (changes only the mapper of one client); 2. set the e-mail attribute of `keycloak_iseja` to `https://iseja.net/claims/email` (UI, or `user_connections.mk` as in [Changing a connection later](#checkmk-side), because the REST API cannot update a connection); 3. the user logs in once, since Checkmk takes the attributes over at each login. Step 2 before step 1 would point the connection at an attribute that Keycloak does not send yet, and Checkmk refuses a login whose mapped attribute is missing for the roles (`Configured user attribute cannot be found in response`); whether it does for the e-mail attribute too was not tried, so keep the order.
 
 **Apply for `prod`:** open the connection `ucs` (*Setup → Users → LDAP & Active Directory*), enable the *Email address* attribute with the LDAP attribute `mail`, save and *Synchronize now*; the REST API (`GET`, then `PUT` of the whole connection on Community) does the same, read the body of the `GET` first. The sync is a change to the users, so look at the pending changes before activating, see [First login and activation](#first-login-and-activation).
 
