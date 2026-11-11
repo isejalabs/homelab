@@ -116,6 +116,18 @@ data: data/2026-11-proxmox-capacity-phase4-daily.csv
 
 - **Host-level OOM kills of `apt-get` on 2026-10-28:** pve1 04:13 (10.8 GB anon), pve5 04:41 (11.0 GB), pve4 05:29 (17.8 GB), each a global kill (`CONSTRAINT_NONE`) of an `apt-get` of `cron.service` (the task dump of pve5 lists `apticron`). pve4's memory used reached 61.6 of 62.5 GiB at that time and pve5's 45.1 of 46.8. No later event in the kernel logs since 2026-10-18 21:00, apt is 3.0.3 to 3.0.4. What the `apt-get` did and why it grew was not examined. It is a risk to every capacity figure here: a single cron job can use more than the 12 GiB left on pve4.
 
+## Fourth node: yearly power cost at 0.36 €/kWh
+
+The owner gave the electricity price (0.36 €/kWh, 2026-11-11). Power figures are from the [36-hour reading of 2026-10-22](https://github.com/isejalabs/homelab/issues/1783#issuecomment-6334220945) in the issue, not re-measured here; the arithmetic is rechecked.
+
+| Setup | Draw | Energy per year | Cost per year |
+| --- | --- | --- | --- |
+| `pve6` permanently on | 25.1 W | 220 kWh (25.1 W x 8.76) | about 79 € |
+| pve1, pve4, pve5 and the NAS | about 110 W | about 960 kWh | about 346 € |
+| the same with `pve6` | about 135 W | about 1,180 kWh | about 425 € |
+
+The earlier threshold "within 50 € a year below about 0.23 €/kWh" no longer applies: at 0.36 €/kWh a permanent `pve6` is about 79 € a year, about 23% on top of the current four devices. This is a power cost only; it does not change the memory findings above.
+
 ## Not measured
 
 - Per-process memory history: only a snapshot of 2026-11-11 00:53 exists, so the steps in `monitoring1` and `monitoring2` are not attributed.
