@@ -41,6 +41,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Restore app data | [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](backup/longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
 | Restore the Keycloak database | [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
+| Restore a Checkmk site's own backup | [`checkmk-backup-restore.md`](backup/checkmk-backup-restore.md#restore-into-an-isolated-site) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
 
 ### Identity (Keycloak)
@@ -109,7 +110,7 @@ When in doubt, prefer colocating with the code; use this folder only for documen
 
 A doc is owned by whoever owns the thing it describes, and gets updated in the same PR as that thing changes (see the commons "Documentation check" convention). `architecture/*` is cross-cutting by design, so "owned by" means whoever changes the mechanism it documents, not one dedicated maintainer.
 
-`decisions/*` and `audits/*` are the exception: once written, their body is a historical record and isn't rewritten — a decision gets superseded by a new ADR that notes the old one, and a stale audit gets a follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to change over its life.
+`decisions/*` and `audits/*` are the exception: once written, their body is a historical record and isn't rewritten — a decision gets superseded by a new ADR that notes the old one, and a stale audit gets a follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to change over its life. The one exception to this exception is a detail that [ADR 0019](decisions/0019-public-disclosure-policy.md) forbids publishing: it is removed or replaced in place, in any document.
 
 ### Keeping this current
 

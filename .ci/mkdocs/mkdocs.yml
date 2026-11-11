@@ -154,6 +154,7 @@ nav:
     - Longhorn snapshots: docs/backup/longhorn-snapshots.md
     - Keycloak database: docs/identity/keycloak-backup-restore.md
     - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
+    - Checkmk site backup and restore: docs/backup/checkmk-backup-restore.md
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
@@ -268,6 +269,7 @@ nav:
   - "ADR 0015 · Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
   - "ADR 0016 · Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
   - "ADR 0017 · Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+  - "ADR 0019 · Public disclosure of homelab details": docs/decisions/0019-public-disclosure-policy.md
 - Audits and plans (dated snapshots):
   - Audits:
     - Index: docs/audits/README.md
@@ -288,6 +290,7 @@ nav:
     - "2026-10 · Moving monitoring1 to pve1 instead of dev-ctrl-03": docs/audits/2026-10-monitoring1-placement.md
     - "2026-10 · Proxmox memory and CPU capacity": docs/audits/2026-10-proxmox-capacity.md
     - "2026-10 · RustFS bucket capacity check — implementation decision": docs/audits/2026-10-rustfs-capacity.md
+    - "2026-11 · Proxmox capacity, phase 4 readings (Checkmk containers and nodes)": docs/audits/2026-11-proxmox-capacity-phase4.md
   - Plans:
     - "2026-09 · Observability implementation plan — independent pass": docs/plans/2026-09-observability-claude.md
     - "2026-09 · Observability implementation plan": docs/plans/2026-09-observability.md

@@ -35,8 +35,8 @@ BASE="dc=dir,dc=iseja,dc=net"
 # groups that admit accounts into a realm; members are added after the group exists, so the memberOf overlay fills in
 udm groups/group create --position "cn=groups,$BASE" --set name=sec.idm.users  --set description="Accounts allowed into the Keycloak realm iseja"
 udm groups/group create --position "cn=groups,$BASE" --set name=sec.idm.admins --set description="Accounts allowed into the Keycloak realm admin"
-udm groups/group modify --dn "cn=sec.idm.users,cn=groups,$BASE"  --append users="uid=sebi,cn=users,$BASE"      # plus the other everyday accounts
-udm groups/group modify --dn "cn=sec.idm.admins,cn=groups,$BASE" --append users="uid=sebi-adm,cn=users,$BASE"
+udm groups/group modify --dn "cn=sec.idm.users,cn=groups,$BASE"  --append users="uid=bob,cn=users,$BASE"      # plus the other everyday accounts
+udm groups/group modify --dn "cn=sec.idm.admins,cn=groups,$BASE" --append users="uid=bob-adm,cn=users,$BASE"
 
 # read-only bind account: an ordinary user in no realm group; keep the password out of the shell history
 read -rs -p "bind password: " PW; echo
@@ -48,7 +48,7 @@ Store the password in the 1Password item `keycloak-ldap-bind#<env>` (field `pass
 
 ```sh
 ldapsearch -x -H ldaps://baerbel.dir.iseja.net:7636 -D "uid=keycloak-ro,cn=users,dc=dir,dc=iseja,dc=net" -W \
-  -b "cn=users,dc=dir,dc=iseja,dc=net" "(uid=sebi)" uid entryUUID memberOf
+  -b "cn=users,dc=dir,dc=iseja,dc=net" "(uid=bob)" uid entryUUID memberOf
 ```
 
 It must return the entry with `entryUUID` and, after the group setup, `memberOf: cn=sec.idm.users,...`. Anonymous reads are off in this domain (`ldap/acl/read/anonymous: no`), so a failing bind shows up here first.
@@ -121,7 +121,7 @@ Only the authorization code flow is enabled (no implicit flow, no password grant
 
 **Removing a client** removes the entry; the client and its item are destroyed in the same apply.
 
-**Verified** in `dev` on 2026-11-08, applied from the module branch with a throwaway client in realm `admin` ([#2227](https://github.com/isejalabs/homelab/issues/2227)): the client, its default scopes and the 1Password item were created, and the item's secret was the client's secret. Keycloak's scope evaluation (`generate-example-id-token`, `-access-token` and `-userinfo` of the admin API) for `sebi-adm` returned `groups: ["sec.app.checkmk.admin"]` in all three, with `aud`/`azp` the client; the client had only the authorization code flow, `full_scope_allowed` off and the scopes `web-origins`, `acr`, `roles`, `profile`, `groups`, `basic`, `email`. The throwaway client was removed afterwards. A browser login as `sebi-adm` was **not** part of this proof: the `admin` realm in `dev` requires a second factor ([#2206](https://github.com/isejalabs/homelab/issues/2206)) that needs the owner's authenticator, and the first real login comes with the first application.
+**Verified** in `dev` on 2026-11-08, applied from the module branch with a throwaway client in realm `admin` ([#2227](https://github.com/isejalabs/homelab/issues/2227)): the client, its default scopes and the 1Password item were created, and the item's secret was the client's secret. Keycloak's scope evaluation (`generate-example-id-token`, `-access-token` and `-userinfo` of the admin API) for `bob-adm` returned `groups: ["sec.app.checkmk.admin"]` in all three, with `aud`/`azp` the client; the client had only the authorization code flow, `full_scope_allowed` off and the scopes `web-origins`, `acr`, `roles`, `profile`, `groups`, `basic`, `email`. The throwaway client was removed afterwards. A browser login as `bob-adm` was **not** part of this proof: the `admin` realm in `dev` requires a second factor ([#2206](https://github.com/isejalabs/homelab/issues/2206)) that needs the owner's authenticator, and the first real login comes with the first application.
 
 ## Apply and verify
 
@@ -157,8 +157,8 @@ A deny rule beats any allow rule, so the policy drops only LDAP(S) to that one a
 
 | UTC (2026-11-08) | State | Result |
 | --- | --- | --- |
-| 20:03 to 20:05 | No block (baseline): `sebi` in `iseja`, `sebi-adm` in `admin` | Both logged in, no noticeable delay |
-| 20:13 to 20:17 | Both domain controllers blocked | `sebi-adm` login failed: `LDAP server is unavailable for provider [ucs]`, `LOGIN_ERROR`; proves the test measures the federation |
+| 20:03 to 20:05 | No block (baseline): `bob` in `iseja`, `bob-adm` in `admin` | Both logged in, no noticeable delay |
+| 20:13 to 20:17 | Both domain controllers blocked | `bob-adm` login failed: `LDAP server is unavailable for provider [ucs]`, `LOGIN_ERROR`; proves the test measures the federation |
 | 20:17 to 20:24 | Only `baerbel` blocked | Logins worked via `adelheid`, 41 s each (reported by the owner) |
 | 20:24 to 20:27 | Only `adelheid` blocked | Logins worked without noticeable delay |
 | about 20:27 to 20:33 | `baerbel` powered off for real by the owner, no policy | Logins worked, 40 to 41 s |

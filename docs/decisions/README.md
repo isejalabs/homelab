@@ -56,3 +56,4 @@ status: current | planning | superseded
 | [0015](0015-checkmk-configuration-as-code.md) | Checkmk configuration as code: Terraform provider, Ansible deferred | current |
 | [0016](0016-identity-and-web-sso.md) | Identity and web SSO architecture | planning |
 | [0017](0017-docs-site-generator.md) | Documentation site generator: MkDocs with the Material theme | current |
+| [0019](0019-public-disclosure-policy.md) | Public disclosure of homelab details: what is public, generalized or never published | planning |
