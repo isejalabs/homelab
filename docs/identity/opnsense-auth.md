@@ -69,7 +69,7 @@ Goal of the proof of concept ([#2237](https://github.com/isejalabs/homelab/issue
 - The first login writes to `config.xml` (the binding stamp). On an HA backup this write is local and a later sync from the master may undo it; the binding is re-created at the next login.
 - UIDs: `create()` takes the next free number and stamps the account against it, so a chosen uid (20000 here) is set via `nextuid` for the one call and `nextuid` restored.
 
-**Not exercised.** A login with Keycloak unreachable (expected: the button fails, `root` + local TOTP works), group claims from UCS (`sec.app.opnsense.admin`), whether the owner was asked for the second factor during the test (the realm `admin` of `dev` requires one per [`keycloak-mfa.md`](keycloak-mfa.md), but the prompt was not observed), `gw2`, the HA master, and removing the plugin again.
+**Not exercised in the proof of concept (done later in production, see [OIDC: towards production](#oidc-towards-production)).** A login with Keycloak unreachable, group claims from UCS (`sec.app.opnsense.admin`), whether the owner was asked for the second factor during the test (the realm `admin` of `dev` requires one per [`keycloak-mfa.md`](keycloak-mfa.md), but the prompt was not observed), `gw2`, the HA master, and removing the plugin again.
 
 ## OIDC: towards production
 
@@ -93,6 +93,11 @@ Not done; needs the owner's go at each step (an authentication change on the fir
 
 
    **`gw3`, first attempt (2026-11-11).** The daily HA sync (07:07) had put the `keycloak` entry and the account on `gw3`. A login there was refused: `local account '<account>' is claimed by provider 'keycloak-dev' and strict account binding is on for 'keycloak'; refusing to bind`, the leftover binding to the proof-of-concept provider described above. With the owner's go, the binding was cleared on `gw3` after a `config.xml` backup, with a short script that uses the plugin's own `AccountStamps::set` (a dry run first); the ownership marker stayed and nothing else in the configuration changed. `gw2` never had a dev binding, so it was not affected.
+
+
+   **`gw3` results (2026-11-11).** The login through the Keycloak button worked (audit line `Successful login for user 'bob-adm' via SSO (keycloak)` at 19:56), and with the account taken out of the UCS group `sec.app.opnsense.admin` and the groups synchronised again the next attempt was refused (`'bob-adm' is in none of the groups required by this provider`, 20:01). The gate therefore works in both directions on `gw3` as on `gw2`.
+
+   **Outage test on `gw3` (2026-11-11 20:03 to 20:07).** Keycloak was made unreachable from the box alone, without a firewall rule (a rule is an HA sync item and could have reached `gw2`): a temporary line in `/etc/hosts` pointed the Keycloak name at an unroutable address, with an automatic removal as a safety net; `config.xml`, the login list and `root` were untouched. Result: the button failed with the plugin's generic error page after a few seconds, and the log shows the cause, `OIDC: HTTP request failed: Connection timed out after 8023 milliseconds`, so an unreachable Keycloak costs the administrator one 8-second wait and no access. The `root` login with its local second factor worked during the outage, as the break-glass path is meant to. The line was removed afterwards (`/etc/hosts` identical to the saved original), gw3 reached Keycloak again and the button redirected to it as before. The browser of the administrator reaches Keycloak on its own, so this simulates the box-side half of an outage (discovery and token exchange); with Keycloak down for everyone the button fails the same way.
 
 6. **Outage behaviour to measure**: Keycloak down (the cluster, the hypervisor, an internet-independent path), the UCS federation down while Keycloak is up, the clock of the box (token validation). The answer for every case is `root` + local TOTP on the box, which this route never touches.
 7. **Plugin upkeep**: single maintainer, version `2026.11.1`, no signed attestation. Updates are installed by hand after the same comparison with the tagged source; there is no Renovate or Flux for this. Reviewing a release is the owner's call.
