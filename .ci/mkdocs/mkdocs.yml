@@ -164,6 +164,7 @@ nav:
     - Second factor in the Keycloak realms: docs/identity/keycloak-mfa.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
+    - Flux Operator Web UI SSO: docs/identity/flux-operator-sso.md
     - Longhorn human SSO: docs/identity/longhorn-sso.md
     - Proxmox human SSO: docs/identity/proxmox-sso.md
     - OPNsense administrator login: docs/identity/opnsense-auth.md

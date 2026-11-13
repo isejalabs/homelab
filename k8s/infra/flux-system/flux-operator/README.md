@@ -37,6 +37,8 @@ The web UI is published through the `internal` Gateway under the subdomain `flux
 
 Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 
+Without a login, the UI runs with the identity of the operator's service account. With Keycloak SSO ([`flux-operator-sso.md`](../../../../docs/identity/flux-operator-sso.md), prepared for `dev`) the login is required and Kubernetes RBAC decides what a user sees.
+
 ## Updates
 
 - **Chart**: tag and digest in [`base/ocirepository.yaml`](base/ocirepository.yaml). Keep it in step with [`flux-instance`](../flux-instance/README.md) (same release train). No special Renovate rule: the default flow of [`update-handling.md`](../../../../docs/operations/update-handling.md) applies.
