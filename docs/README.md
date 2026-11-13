@@ -43,6 +43,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
 | Restore a Checkmk site's own backup | [`checkmk-backup-restore.md`](backup/checkmk-backup-restore.md#restore-into-an-isolated-site) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
+| Check whether a backup is fresh and who is told when it is not | [`backup-freshness.md`](reference/backup-freshness.md) |
 
 ### Identity (Keycloak)
 
