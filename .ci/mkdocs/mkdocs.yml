@@ -231,6 +231,7 @@ nav:
     - Actual Budget: k8s/apps/finances/actualbudget/README.md
     - AdGuard: k8s/apps/dns/adguard/README.md
     - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
+    - Healthchecks: k8s/apps/monitoring/healthchecks/README.md
     - Keycloak: k8s/apps/identity/keycloak/README.md
     - metrics-server: k8s/apps/monitoring/metrics-server/README.md
     - PowerDNS: k8s/apps/dns/powerdns/README.md

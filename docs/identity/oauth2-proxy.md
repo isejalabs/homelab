@@ -4,7 +4,7 @@ status: current
 
 # OAuth2 Proxy in front of a web UI
 
-How an application with no login of its own gets one from the identity provider ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 8; [service matrix](../plans/2026-10-identity-claude.md#service-matrix)). The first user is Longhorn ([`longhorn-sso.md`](longhorn-sso.md)); Zigbee2MQTT ([#1767](https://github.com/isejalabs/homelab/issues/1767)) and AdGuard ([#1830](https://github.com/isejalabs/homelab/issues/1830)) follow with the same pieces. Tracking: [#2228](https://github.com/isejalabs/homelab/issues/2228). Applications with native OIDC (Flux Operator, Proxmox) do not use this.
+How an application with no login of its own gets one from the identity provider ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 8; [service matrix](../plans/2026-10-identity-claude.md#service-matrix)). The first user is Longhorn ([`longhorn-sso.md`](longhorn-sso.md)); Healthchecks ([#2275](https://github.com/isejalabs/homelab/issues/2275), with `REMOTE_USER_HEADER` and `/ping/` as the one path without login, see [`healthchecks`](../../k8s/apps/monitoring/healthchecks/README.md)), Zigbee2MQTT ([#1767](https://github.com/isejalabs/homelab/issues/1767)) and AdGuard ([#1830](https://github.com/isejalabs/homelab/issues/1830)) follow with the same pieces. Tracking: [#2228](https://github.com/isejalabs/homelab/issues/2228). Applications with native OIDC (Flux Operator, Proxmox) do not use this.
 
 ## How it works
 

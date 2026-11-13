@@ -17,6 +17,7 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 | <img src="../assets/icons/actual-budget.png" width="20" height="20" alt=""> [`actualbudget`](../../k8s/apps/finances/actualbudget/) | `finances` | [Actual Budget](https://github.com/actualbudget/actual) — personal finance/budgeting app | optional |
 | <img src="../assets/icons/adguard-home.svg" width="20" height="20" alt=""> [`adguard`](../../k8s/apps/dns/adguard/) | `dns` | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) — LAN DNS filtering/ad-blocking (see [`network.md`](network.md#dns-adguard--unbound)) | optional |
 | <img src="../assets/icons/checkmk.svg" width="20" height="20" alt=""> [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/) | `monitoring` | [Checkmk](https://checkmk.com/) Kubernetes monitoring agent (cluster + node collectors) | minimal |
+| 💓 [`healthchecks`](../../k8s/apps/monitoring/healthchecks/) | `monitoring` | [Healthchecks](https://healthchecks.io/) self-hosted heartbeat monitor (SQLite on a volume, login through an OAuth2 Proxy against Keycloak, `/ping/` open) — [#2275](https://github.com/isejalabs/homelab/issues/2275) | none ⁴ |
 | <img src="../assets/icons/keycloak.svg" width="20" height="20" alt=""> [`keycloak`](../../k8s/apps/identity/keycloak/) | `identity` | [Keycloak](https://www.keycloak.org/) identity provider (single replica) with its [CloudNativePG](https://cloudnative-pg.io/) database (1 instance, no WAL archiving; daily `pg_dump` to RustFS, see [`keycloak-backup-restore.md`](../identity/keycloak-backup-restore.md)) — [#1826](https://github.com/isejalabs/homelab/issues/1826) | `standing` ¹ |
 | 📊 [`metrics-server`](../../k8s/apps/monitoring/metrics-server/) | `monitoring` | Kubernetes [`metrics-server`](https://github.com/kubernetes-sigs/metrics-server) (resource metrics for `kubectl top`/HPA) | minimal |
 | <img src="../assets/icons/powerdns.png" width="20" height="20" alt=""> [`powerdns`](../../k8s/apps/dns/powerdns/) | `dns` | [PowerDNS](https://www.powerdns.com/) — authoritative nameserver for the environment's own `<env>.iseja.net` zone (and PTR), dynamically populated by `external-dns` below (see [`network.md`](network.md#dns-authoritative-zones-powerdns)) | minimal |
@@ -29,6 +30,8 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 ¹ `keycloak` is registered in `dev`, `qa`, `prod` and `rebuild` only, see [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml).
 
 ² `zigbee2mqtt` is registered in `prod` only, because there is a single physical coordinator.
+
+⁴ `healthchecks` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev` only for now; `qa` and `prod` follow.
 
 ## Infra (`k8s/infra/`)
 
