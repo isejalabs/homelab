@@ -3,8 +3,9 @@
 # construction, and unrecognized-flag handling. Sourced, not executed directly, and POSIX `sh` only (both
 # `sh` and `bash` callers source it) -- see #1275.
 #
-# Usage (from a script living directly under scripts/):
-#   SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+# Usage (SCRIPTS_DIR is scripts/ itself, so the ".." count below is the script's depth under scripts/: one
+# for a script in scripts/ci/ or scripts/tools/, two for one in scripts/ops/<domain>/):
+#   SCRIPTS_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 #   . "${SCRIPTS_DIR}/lib/common.sh"
 # Assumes the caller has already set SCRIPTS_DIR as above before sourcing this file, and that the caller
 # defines its own usage() function (unknown_flag below calls it, but each script's synopsis differs).
@@ -60,8 +61,8 @@ validate_environment() {
 # in this repo uses ("admin@<env>-homelab"). Prints nothing for an empty/unset environment, so callers can
 # use this unconditionally and fall back to whatever kubecontext is already current. Always returns 0, even
 # then -- otherwise `CTX=$(kubecontext_for_environment "")` becomes a failing simple command under `set -e`,
-# silently killing any caller that (like kopiur-restore.sh/kopiur-bypass-restore.sh) doesn't already guard
-# every call site with `[ -n "${ENV}" ] &&` the way kopiur-list.sh/kopiur-create.sh do. Confirmed live,
+# silently killing any caller that (like ops/kopiur/restore.sh/ops/kopiur/bypass-restore.sh) doesn't already guard
+# every call site with `[ -n "${ENV}" ] &&` the way ops/kopiur/list.sh/ops/kopiur/create.sh do. Confirmed live,
 # 2026-09-18 (#1287 review) -- masked at the time by the validate_environment bug above letting an empty env
 # reach this function at all in scripts that call validate_environment unconditionally first.
 kubecontext_for_environment() {

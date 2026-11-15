@@ -1,8 +1,9 @@
+---
+id: ADR 0004
+status: current
+---
+
 # Kustomize overlays for the environment-variation axis
-
-## Status
-
-current
 
 ## Context
 

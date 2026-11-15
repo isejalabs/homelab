@@ -15,4 +15,4 @@ jobs:
     - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
       with:
         install_args: gum helm helmfile yq
-    - run: scripts/helmfile-template-all.sh
+    - run: scripts/ci/helmfile-template-all.sh

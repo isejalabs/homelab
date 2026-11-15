@@ -1,8 +1,9 @@
+---
+id: ADR 0009
+status: current
+---
+
 # Flux over ArgoCD
-
-## Status
-
-current
 
 ## Context
 

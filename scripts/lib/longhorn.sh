@@ -1,6 +1,6 @@
 # shellcheck shell=bash
-# Shared helpers for the longhorn-snapshot-*.sh scripts. Sourced after lib/common.sh, bash only (uses arrays).
-# Expects the caller to have set CTX_ARGS (an array: empty, or `--context <ctx>`) like kopiur-create.sh does.
+# Shared helpers for the scripts under scripts/ops/longhorn/. Sourced after lib/common.sh, bash only (uses arrays).
+# Expects the caller to have set CTX_ARGS (an array: empty, or `--context <ctx>`) like ops/kopiur/create.sh does.
 # (Array expansions use the ${a[@]+"${a[@]}"} form: an empty array is "unbound" under `set -u` on bash 3.2.)
 
 # Prints one "<volume> <namespace> <pvc>" line per Longhorn volume that is bound to a PVC in scope: all

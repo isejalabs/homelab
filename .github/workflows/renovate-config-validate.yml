@@ -17,6 +17,6 @@ jobs:
         node-version: 24
     - id: version
       run: |
-        . scripts/renovate-config-validator-version.sh
+        . scripts/ci/renovate-config-validator-version.sh
         echo "renovate=$RENOVATE_VERSION" >> "$GITHUB_OUTPUT"
     - run: npx --yes -p "renovate@${{ steps.version.outputs.renovate }}" renovate-config-validator .github/renovate.json5 .github/renovate/*.json5

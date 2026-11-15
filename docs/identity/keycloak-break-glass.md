@@ -27,7 +27,7 @@ The identity provider never protects its own recovery path ([ADR 0016](../decisi
 
 | Where | What |
 | --- | --- |
-| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev` and `qa`; the `prod` and `rebuild` items are created when those environments register Keycloak. |
+| 1Password, vault `K8S`, item `keycloak-bootstrap-admin#<env>` | The source of truth. Fields `username` and `password`. Exists for `dev`, `qa` and `prod`; the `rebuild` item is created by hand before that environment registers Keycloak, see [Installation](../../k8s/apps/identity/keycloak/README.md#2-bootstrap-admin). |
 | `ExternalSecret` `keycloak-bootstrap-admin` in namespace `keycloak` | Extracts the whole item (key `keycloak-bootstrap-admin#<env>`, set per environment in `k8s/apps/identity/keycloak/envs/<env>/`), refresh interval 1 h. |
 | `Secret` `keycloak-bootstrap-admin` in namespace `keycloak` | Created by the ExternalSecret. Carries `username`, `password` and `notesPlain` (the item's notes field). |
 | Keycloak pod `keycloak-0` | The Keycloak Operator maps the Secret (`spec.bootstrapAdmin.user.secret` in [`keycloak.yaml`](../../k8s/apps/identity/keycloak/base/keycloak.yaml)) to the environment variables `KC_BOOTSTRAP_ADMIN_USERNAME` and `KC_BOOTSTRAP_ADMIN_PASSWORD`. |
@@ -54,14 +54,14 @@ The `master` realm answers on the same hostname as the other realms; only the re
 | --- | --- |
 | `dev` | `https://dev-auth.dev.iseja.net/admin/master/console/` |
 | `qa` | `https://qa-auth.qa.iseja.net/admin/master/console/` |
-| `prod` | `https://auth.iseja.net/admin/master/console/` (not deployed yet) |
+| `prod` | `https://auth.iseja.net/admin/master/console/` |
 
 Sign in with the `username` and `password` of the item. Do not pick the realm selector `iseja` or `admin`: those delegate the password check to UCS.
 
 Once in, the realms `iseja` and `admin` appear in the realm selector. What usually helps:
 
 - *User federation* → `ucs`: test connection and authentication, or fix the connection URL or bind credential for the moment (the Terragrunt unit overwrites a manual change at its next apply, so mirror the fix in the unit afterwards).
-- *Users* → the person → *Credentials*: delete a lost WebAuthn key or TOTP so the person can enroll again. This is the break-glass step the [restore documentation](keycloak-backup-restore.md) refers to for the `admin` realm.
+- *Users* → search `*` (the list of an LDAP-backed realm stays empty until a search runs) → the person → *Credentials*: delete a lost WebAuthn key or TOTP so the person can enroll again (the whole procedure: [lost authenticator](keycloak-mfa.md#lost-authenticator)). This is the break-glass step the [restore documentation](keycloak-backup-restore.md) refers to for the `admin` realm.
 
 ### When the Gateway or the certificate is down
 
@@ -110,12 +110,12 @@ Checked on `qa` (2026-10-26) against the live resources unless noted otherwise:
 | `kc.sh bootstrap-admin user` needs all nodes stopped | From the Keycloak documentation, not tried |
 | Reading the item with `op item get` | Command standard, not run in this session |
 | Sign-in to `master` with the item's credential, the rotation steps, the `kcadm.sh` login | Not tried (no credential read in the writing session) |
-| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Verified in `dev` (2026-11-01): the unit, which logs in with this account (password grant), planned, applied and planned again clean after the client existed. The sign-in in the admin console was not tried |
+| The account still signs in to `master` once the automation client exists, and `keycloak-automation` leaves it unchanged | Verified in `dev` (2026-11-01): the unit, which logs in with this account (password grant), planned, applied and planned again clean after the client existed. Verified in `qa` (2026-11-07): the owner signed in to the admin console of `master` with the item's credential, with the automation client in place. The console shows the banner "You are logged in as a temporary admin user" (see [Open points](#open-points)) |
 | Facts for `prod` and `rebuild` | Not applicable yet, nothing is deployed there |
 
 ## Open points
 
 - **MFA for the bootstrap admin.** The plan asks for the local admin of each core service to have its own MFA where the product supports it. That is not configured on the `master` account here. Enabling it needs a decision first: the Terragrunt provider signs in with the password through the `admin-cli` client and probably cannot answer a one-time-code prompt, so it would need a service account of its own beforehand.
 - **A second named `master` admin** per person (instead of only the shared bootstrap account) would make cause 1 above recoverable without the `kc.sh` route. Not decided.
-- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass login and the login of the `keycloak-automation` unit; the console may keep warning about it.
+- **Keycloak marks bootstrap accounts as temporary** and recommends removing them after a permanent admin exists. Here the account is kept on purpose, as the break-glass login and the login of the `keycloak-automation` unit; the console keeps showing the banner "You are logged in as a temporary admin user" after the sign-in (seen in `qa`, 2026-11-07). The automation client replaces this account only for `keycloak-realm`, not as the emergency login.
 - **Rehearse the lost-admin recovery (cause 4)** in `dev`, and the sign-in itself in `prod` once it is deployed ([#1826](https://github.com/isejalabs/homelab/issues/1826)).

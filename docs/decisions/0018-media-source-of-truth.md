@@ -1,10 +1,15 @@
+---
+id: ADR 0018
+status: planning
+accepted: 2026-11-02
+becomes-current: once the full library import (https://github.com/isejalabs/homelab/issues/2151) has run
+---
+
 # Media source of truth: Lightroom Classic and Immich
 
-## Status
-
-planning — first version, from [#2143](https://github.com/isejalabs/homelab/issues/2143), Phase 0 of the Immich implementation ([#413](https://github.com/isejalabs/homelab/issues/413)). The options and the proposed decision are based on the current workflow, the owner's answers of 2026-11-02 (see [Owner's input](#owners-input)) and the Immich documentation (checked on 2026-11-02 against the `main` branch of [`immich-app/immich`](https://github.com/immich-app/immich/tree/main/docs/docs)). The owner accepted the decision on 2026-11-02. It still has to hold in the [proof of concept](#proof-of-concept), tracked in [#2309](https://github.com/isejalabs/homelab/issues/2309); the remaining [open questions](#open-questions) are settled there or in the named issues. PoC results are added below as dated amendments, and the decision is changed where the PoC shows it is wrong. The ADR becomes `current` when the full import ([#2151](https://github.com/isejalabs/homelab/issues/2151)) has run.
-
 ## Context
+
+This first version comes from [#2143](https://github.com/isejalabs/homelab/issues/2143), Phase 0 of the Immich implementation ([#413](https://github.com/isejalabs/homelab/issues/413)). The options and the proposed decision are based on the current workflow, the owner's answers of 2026-11-02 (see [Owner's input](#owners-input)) and the Immich documentation (checked on 2026-11-02 against the `main` branch of [`immich-app/immich`](https://github.com/immich-app/immich/tree/main/docs/docs)). The owner accepted the decision on 2026-11-02. It still has to hold in the [proof of concept](#proof-of-concept), tracked in [#2309](https://github.com/isejalabs/homelab/issues/2309); the remaining [open questions](#open-questions) are settled there or in the named issues. PoC results are added as dated entries in an `## Amendments` section, and the decision is changed where the PoC shows it is wrong.
 
 ### Current workflow
 

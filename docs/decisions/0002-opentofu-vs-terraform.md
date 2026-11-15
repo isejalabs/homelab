@@ -1,8 +1,9 @@
+---
+id: ADR 0002
+status: current
+---
+
 # OpenTofu over Terraform
-
-## Status
-
-current
 
 ## Context
 

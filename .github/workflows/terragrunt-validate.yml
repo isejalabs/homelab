@@ -27,7 +27,7 @@ jobs:
           - "!terragrunt/**/*.md" # e.g. terragrunt/README.md, terragrunt/_envcommon/README.md - not a unit
           - ".mise.toml"
           - "mise.lock"
-          - "scripts/terragrunt-validate-all.sh"
+          - "scripts/ci/terragrunt-validate-all.sh"
           - "scripts/lib/common.sh"
           - ".github/workflows/terragrunt-validate.yml"
 
@@ -65,4 +65,4 @@ jobs:
           tf-plugin-cache-
     - run: tofu fmt -check -recursive terragrunt/
     - run: terragrunt hcl format --check --diff --working-dir terragrunt
-    - run: scripts/terragrunt-validate-all.sh
+    - run: scripts/ci/terragrunt-validate-all.sh

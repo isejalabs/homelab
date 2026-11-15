@@ -1,8 +1,9 @@
+---
+id: ADR 0007
+status: current
+---
+
 # Folder-based environment separation, not git branches
-
-## Status
-
-current
 
 ## Context
 

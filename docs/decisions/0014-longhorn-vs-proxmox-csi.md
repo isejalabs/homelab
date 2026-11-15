@@ -1,8 +1,9 @@
+---
+id: ADR 0014
+status: current
+---
+
 # Longhorn vs. proxmox-csi
-
-## Status
-
-current
 
 ## Context
 

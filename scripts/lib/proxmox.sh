@@ -1,10 +1,10 @@
 # shellcheck shell=bash
-# Shared helpers for the scripts/proxmox-vm-*.sh scripts (#1296): Proxmox REST API auth, VM discovery, task
+# Shared helpers for the scripts under scripts/ops/proxmox/ (#1296): Proxmox REST API auth, VM discovery, task
 # polling. Bash only (unlike scripts/lib/common.sh, which both `sh` and `bash` callers source) -- the
-# snapshot script needs bash arrays for its parallel-VM PID tracking, so every proxmox-vm-*.sh script is
+# snapshot script needs bash arrays for its parallel-VM PID tracking, so every script under scripts/ops/proxmox/ is
 # bash throughout rather than mixing shells.
 #
-# Usage (from a script living directly under scripts/, after sourcing lib/common.sh):
+# Usage (from a script under scripts/ops/proxmox/, after sourcing lib/common.sh):
 #   . "${SCRIPTS_DIR}/lib/proxmox.sh"
 
 # Every mktemp'd curl-config file created by proxmox_curl (see below) is appended here so the EXIT trap
@@ -172,7 +172,7 @@ proxmox_filter_vmid() {
 }
 
 # Polls a Proxmox task (a UPID returned by an async API call like snapshot creation/rollback/start/stop)
-# every 3s up to a 10 minute cap, same polling shape as scripts/kopiur-create.sh's backup_one(). Returns 0
+# every 3s up to a 10 minute cap, same polling shape as scripts/ops/kopiur/create.sh's backup_one(). Returns 0
 # only once the task's exitstatus is exactly "OK"; logs the task's own log tail on failure or timeout.
 proxmox_wait_task() {
     local node="$1" upid="$2"
@@ -220,7 +220,7 @@ proxmox_validate_snapshot_name() {
 
 # Performs one VM power action via POST /nodes/<node>/qemu/<vmid>/status/<action> and waits for the
 # resulting task. <action> must be one Proxmox actually exposes at this path (start/stop/shutdown/reset) --
-# not validated here, that's scripts/proxmox-vm-power.sh's job so the error surfaces before any API call.
+# not validated here, that's scripts/ops/proxmox/vm-power.sh's job so the error surfaces before any API call.
 proxmox_vm_power_action() {
     local action="$1" vmid="$2" node="$3"
     local upid

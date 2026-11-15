@@ -1,8 +1,9 @@
+---
+id: ADR 0011
+status: current
+---
+
 # PowerDNS as the in-cluster authoritative DNS server
-
-## Status
-
-current
 
 ## Context
 

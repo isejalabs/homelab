@@ -1,8 +1,9 @@
+---
+id: ADR 0006
+status: current
+---
+
 # Helm usage: kept independent of kustomize, moved from tool-agnostic to Flux-native values
-
-## Status
-
-current
 
 ## Context
 

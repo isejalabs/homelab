@@ -17,7 +17,7 @@ Lock Info:
   ID:        18efe7b0-6332-f5e7-b00e-a68457ad1e08
   Path:      non-prod-homelab-eu-central-1-tf-state-443370678269/non-prod/eu-central-1/rebuild/vehagn-k8s/tf.tfstate
   Operation: OperationTypeApply
-  Who:       sebi@hannelore
+  Who:       bob@hannelore
   Created:   2026-10-13 10:57:44.487422634 +0000 UTC
 ```
 

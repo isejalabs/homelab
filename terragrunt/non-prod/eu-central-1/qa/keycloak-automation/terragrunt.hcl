@@ -26,7 +26,7 @@ terraform {
 
 # ---------------------------------------------------------------------------------------------------------------------
 # The Keycloak URL is specific to this environment. The hostname is derived per environment by the
-# replace-domain/prefix-domain components (k8s/apps/identity/keycloak/envs/qa); scripts/kustomize-build-all.sh fails
+# replace-domain/prefix-domain components (k8s/apps/identity/keycloak/envs/qa); scripts/ci/kustomize-build-all.sh fails
 # when this URL differs from the rendered Keycloak and HTTPRoute hostnames, so change them together. The realms
 # that exist already when this unit is applied are specific to the environment too.
 # ---------------------------------------------------------------------------------------------------------------------

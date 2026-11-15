@@ -1,8 +1,9 @@
+---
+id: ADR 0005
+status: current
+---
+
 # Multiple environments, and why production differs from the rest
-
-## Status
-
-current
 
 ## Context
 

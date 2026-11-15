@@ -21,6 +21,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 
 | I need to… | Start here |
 | --- | --- |
+| Install the tools and get the access needed to work on the repo | [`zero-to-cluster.md`](zero-to-cluster.md#0-before-you-start) |
 | Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
@@ -40,6 +41,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Restore app data | [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](backup/longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
 | Restore the Keycloak database | [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md#restore) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
+| Restore a Checkmk site's own backup | [`checkmk-backup-restore.md`](backup/checkmk-backup-restore.md#restore-into-an-isolated-site) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
 
 ### Identity (Keycloak)
@@ -47,10 +49,15 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | I need to… | Start here |
 | --- | --- |
 | Configure realms and LDAP federation | [`keycloak-realms.md`](identity/keycloak-realms.md) |
+| Enroll or recover a passkey, YubiKey or TOTP in Keycloak | [`keycloak-mfa.md`](identity/keycloak-mfa.md) |
 | Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](identity/keycloak-break-glass.md) |
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
 | Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
+| Sign in to Proxmox with the identity provider (inventory, design, roles) | [`proxmox-sso.md`](identity/proxmox-sso.md) |
 | Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
+| Put a login in front of a web UI that has none (OAuth2 Proxy) | [`oauth2-proxy.md`](identity/oauth2-proxy.md) |
+| Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
+| Sign in to OPNsense with the UCS account, or recover when UCS is down | [`opnsense-auth.md`](identity/opnsense-auth.md) |
 
 ### Troubleshoot
 
@@ -77,12 +84,12 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
   - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites through it.
+  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative).
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
 - **[`audits/`](audits)** — dated, point-in-time assessments, never current-state documentation and never edited after the fact (see [`audits/README.md`](audits/README.md) for the format, cadence, and how findings turn into tracked issues).
-- **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries its own **Date**/**Status** header like an audit; unlike an audit, its status line is updated as phases land.
+- **[`plans/`](plans)** — dated implementation plans that follow from an audit (e.g. the observability and Checkmk consolidation plans). Each carries the same front matter as an audit (see [`audits/README.md`](audits/README.md#format)), plus `updated` where its `status` changes; unlike an audit, its `status` is updated as phases land.
 - **Per-folder `README.md`, elsewhere in the repo** — usage/procedural notes tied to one specific piece of tooling or code, updated in the same PR as the code they describe:
   - runbooks for a whole process, e.g. [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md), [`terragrunt/README.md`](../terragrunt/README.md),
   - the README of every app/infra unit under `k8s/apps/` and `k8s/infra/`: purpose, where it is used, how to reach it per environment, where its versions are pinned and a command cheat sheet, written from the template in [`k8s/README.md`](../k8s/README.md#readme-of-an-appinfra-unit) ([#2098](https://github.com/isejalabs/homelab/issues/2098), rollout in progress, first examples [`keycloak`](../k8s/apps/identity/keycloak/README.md) and [`cloudnative-pg`](../k8s/infra/cnpg-system/cloudnative-pg/README.md)). What a cross-cutting doc already owns (hostname scheme, update rules, runbooks) stays there and is linked, not copied.
@@ -104,7 +111,7 @@ When in doubt, prefer colocating with the code; use this folder only for documen
 
 A doc is owned by whoever owns the thing it describes, and gets updated in the same PR as that thing changes (see the commons "Documentation check" convention). `architecture/*` is cross-cutting by design, so "owned by" means whoever changes the mechanism it documents, not one dedicated maintainer.
 
-`decisions/*` and `audits/*` are the exception: once written, their body is a historical record and isn't rewritten — a decision gets superseded by a new ADR that notes the old one, and a stale audit gets a follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to change over its life.
+`decisions/*` and `audits/*` are the exception: once written, their body is a historical record and isn't rewritten — a decision gets superseded by a new ADR that notes the old one, and a stale audit gets a follow-up doc, rather than either being edited in place. Only an ADR's own `Status` field is expected to change over its life. The one exception to this exception is a detail that [ADR 0019](decisions/0019-public-disclosure-policy.md) forbids publishing: it is removed or replaced in place, in any document.
 
 ### Keeping this current
 
@@ -136,7 +143,7 @@ Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-
 
 ### Status labels
 
-Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information), and already in use in `decisions/*`'s `## Status` section:
+Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits/2026-09-documentation.md#f13--inferred-information-should-be-explicitly-distinguished-from-authoritative-information), and already in use in `decisions/*`'s `status:` front matter:
 
 | Status | Meaning |
 | --- | --- |
@@ -147,7 +154,7 @@ Borrowed from the Sep 2026 documentation audit's own [F13 recommendation](audits
 
 Where it's signalled depends on the doc type, since each already has its own natural home for it:
 
-- `architecture/*`, `reference/*`, and the procedural docs in `operations/`, `backup/`, `identity/` and `troubleshooting/`: a YAML frontmatter block at the very top of the file, before the title —
+- `architecture/*`, `reference/*`, `decisions/*`, and the procedural docs in `operations/`, `backup/`, `identity/` and `troubleshooting/`: a YAML frontmatter block at the very top of the file, before the title —
 
   ```yaml
   ---
@@ -156,8 +163,8 @@ Where it's signalled depends on the doc type, since each already has its own nat
   ```
 
   — which also doubles as the place for any other per-doc metadata later, without inventing a second mechanism. `architecture/*`/`reference/*` also repeat their status in the **Status** column of their folder's `README.md` index, since those tables are the entry point for those docs.
-- `decisions/*`: the ADR's own `## Status` section.
-- `audits/*`: implicit from the folder — everything there is `audit`, never `current`; not retrofitted with an inline marker, since each already carries its own, more specific status prose (e.g. "partial" vs. "complete"), and these files are never rewritten after the fact (see Ownership above).
+- `decisions/*`: the same front matter, with the ADR's number as `id: ADR NNNN` ahead of `status:` (the file name carries it too, the front matter makes it visible on the site) and `status: current`, `planning` or `superseded`. An ADR whose status needs more than the label (a date of acceptance, a condition for becoming `current`) adds a key for it, e.g. `accepted:` or `becomes-current:`; later changes to the decision go in an `## Amendments` section.
+- `plans/*` and `audits/*`: the label is implicit from the folder — everything in `audits/` is `audit`, never `current`, and everything in `plans/` is a dated plan. Their front matter carries a *free-text* `status:` instead, which says how complete the assessment or plan is (e.g. "partial" vs. "complete") and is not one of the labels above. The site shows the folder's banner and, below it, that front matter as a metadata block; the keys are listed in [`audits/README.md`](audits/README.md#format).
 - `_attic/`, elsewhere in the repo: implicit from the folder — everything there is `historical` (see the root README's [folder structure](../README.md#-folder-structure)).
 
 ### Diagrams
@@ -183,11 +190,12 @@ The Markdown in this repo is also built into a searchable, navigable site with [
 What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
 
 - The whole checkout is the docs directory, so the per-folder READMEs and the root `README.md` appear on the site without being moved. Everything that is not documentation (`.github/`, `.agents/`, `_attic/`, `ZZ.bak/`, `AGENTS.md`) is excluded in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
-- Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
-- The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, an ADR's `## Status` section, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans).
-- The footer of every page names the git commit the site was built from (ID linked to github.com, plus its head line), read from the checkout at build time; a build outside a git checkout leaves it out.
+- Relative links to source files and directories that are not part of the site are rewritten to their `github.com/isejalabs/homelab/blob/main` or `tree/main` URL at build time. A link to a directory whose `README.md` is a page of the site (a unit folder in the [workload catalog](architecture/workloads.md), say) goes to that page instead, since github.com shows the README on the directory page anyway. Keep writing them as relative links, so they keep working on github.com and in `docs-link-check`.
+- The [status labels](#status-labels) are shown as a banner below the page title: the `status:` front matter, and a dated-snapshot notice for everything under [`audits/`](audits) and [`plans/`](plans). The rest of a page's front matter (date, scope, origin, tracking, ...) is shown as a metadata block below it, in file order.
+- The footer of every page names the last git commit that changed that page's source file (ID linked to github.com, head line and date), read from the checkout at build time with `git log -- <file>`, so an unchanged page keeps its commit across builds. It needs the full history: a shallow clone or a build outside a git checkout leaves the footer out, which is why the [`docs-build`](../.github/workflows/docs-build.yml) workflow checks out with `fetch-depth: 0`.
 - `mermaid` code fences are rendered as diagrams.
-- A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml).
+- A new page is built and searchable without further steps, but only appears in the sidebar once it is added to the `nav:` list in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml); `scripts/ci/check-docs-nav.sh` (in the `docs-link-check` workflow) and the strict build fail on a page that is missing there. The sidebar text of an ADR starts with its ID (`ADR 0001 · Title`) and that of an audit or plan with the month from its file name (`2026-10 · Title`), so repeated audits of one subject can be told apart; leave a date the title repeats out of it.
+- A section title in the sidebar is a link only where the nav entry of its landing page is called `Index` (Material would otherwise take the first `README.md` of the section, link the title to that one unit and drop the unit from the list). `extra.nav_section_links` in `mkdocs.yml` links a section title to a heading of a page instead; `Infrastructure` and `Apps` use it to point at their catalog on [`workloads.md`](architecture/workloads.md). The build fails when that section or heading no longer exists.
 
 Preview locally (Python 3.11 or newer, with the virtual environment outside the checkout so MkDocs does not scan it; the versions are pinned in [`requirements.txt`](../.ci/mkdocs/requirements.txt)), from the repository root:
 

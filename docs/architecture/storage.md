@@ -66,7 +66,7 @@ terragrunt import 'module.volumes.module.persistent-volume["pv-mongodb"].kuberne
 for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); do terragrunt state rm "$i"; done
 ```
 
-([`scripts/tg-state-rm.sh`](../../scripts/tg-state-rm.sh) automates this, alongside removing other dangling state — the k8s-side `persistent-volume` entries, `sealed_secrets`, `talos.*`, and the proxmox-csi namespace/secret — so a destroy doesn't hang or fail on stale references; [`scripts/volume-remove-state.sh`](../../scripts/volume-remove-state.sh) does the narrower proxmox-volume-only version, with the comment *"allows re-using them upon re-creating the cluster (needs state import then)"*.) The disk (and its data — MongoDB's data directory, in the unifi-controller example) physically survives the teardown. On rebuild, [`terragrunt/README.md`](../../terragrunt/README.md#import-proxmox-volume)'s import commands above re-attach the surviving Proxmox disk plus a fresh `PersistentVolume` object to the new cluster.
+([`scripts/tools/tg-state-rm.sh`](../../scripts/tools/tg-state-rm.sh) automates this, alongside removing other dangling state — the k8s-side `persistent-volume` entries, `sealed_secrets`, `talos.*`, and the proxmox-csi namespace/secret — so a destroy doesn't hang or fail on stale references; [`scripts/tools/volume-remove-state.sh`](../../scripts/tools/volume-remove-state.sh) does the narrower proxmox-volume-only version, with the comment *"allows re-using them upon re-creating the cluster (needs state import then)"*.) The disk (and its data — MongoDB's data directory, in the unifi-controller example) physically survives the teardown. On rebuild, [`terragrunt/README.md`](../../terragrunt/README.md#import-proxmox-volume)'s import commands above re-attach the surviving Proxmox disk plus a fresh `PersistentVolume` object to the new cluster.
 
 ## Longhorn — ordinary in-cluster dynamic storage
 
@@ -74,6 +74,7 @@ for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); d
 
 - `longhorn-core` installs the Helm chart itself ([`base/helmrelease.yaml`](../../k8s/infra/longhorn-system/longhorn-core/base/helmrelease.yaml)): chart `v1.12.1`, `defaultSettings.defaultDataPath: /var/mnt/longhorn`, `defaultReplicaCount: 2`, and a deliberately small footprint (`longhornUI.replicas: 1`, single-replica CSI sidecars) appropriate for a homelab rather than a large production fleet.
 - `longhorn` (`dependsOn: longhorn-core`) carries the custom `StorageClass`es, a `VolumeSnapshotClass`, and backup/trim/snapshot `RecurringJob`s.
+- `longhorn-auth` (`dependsOn: longhorn-core`, registered per environment, `dev` so far) puts a Keycloak login in front of the dashboard, because Longhorn has none: [`longhorn-sso.md`](../identity/longhorn-sso.md).
 
 ### StorageClasses — one driver, several tradeoff profiles
 

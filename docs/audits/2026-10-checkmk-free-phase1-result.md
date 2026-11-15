@@ -1,6 +1,12 @@
-# Checkmk site `free`: result of phase 1 (intervals) — 2026-10-28
+---
+date: 2026-10-28
+status: Change applied and verified; follow-up readings of the next 17 hours added
+scope: the three interval rules of phase 1 in the consolidation plan ../plans/2026-10-checkmk-consolidation.md#phase-1--free-intervals-configuration-only and the load of the Nagios site `free` before and after. It does not cover `prod`, `prod_k8s` or `core`, which were not touched
+origin: Claude (Claude Code), REST API of `prod` (rules and activation) and read-only `lq` (livestatus) on `monitoring2` as `free`
+tracking: https://github.com/isejalabs/homelab/issues/1783, umbrella https://github.com/isejalabs/homelab/issues/71
+---
 
-**Date:** 2026-10-28. **Status:** Change applied and verified; follow-up readings of the next 17 hours added. **Scope:** the three interval rules of phase 1 in the [consolidation plan](../plans/2026-10-checkmk-consolidation.md#phase-1--free-intervals-configuration-only) and the load of the Nagios site `free` before and after. It does not cover `prod`, `prod_k8s` or `core`, which were not touched. **Origin:** Claude (Claude Code), REST API of `prod` (rules and activation) and read-only `lq` (livestatus) on `monitoring2` as `free`. **Tracking:** [#1783](https://github.com/isejalabs/homelab/issues/1783), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+# Checkmk site `free`: result of phase 1 (intervals) — 2026-10-28
 
 ## What was changed
 

@@ -6,8 +6,35 @@ components:
 
 resources:
   - ../../base
+  - cert-auth.yaml
 
 patches:
   - path: gw-external.yaml
   - path: gw-internal.yaml
   - path: gw-internal-http.yaml
+  - patch: |-
+      - op: add
+        path: /spec/listeners/-
+        value:
+          name: https-auth
+          allowedRoutes:
+            namespaces:
+              from: All
+          hostname: auth.iseja.net
+          port: 443
+          protocol: HTTPS
+          tls:
+            certificateRefs:
+              - kind: Secret
+                name: auth-cert
+                group: ""
+    target:
+      kind: Gateway
+      name: internal
+  - patch: |-
+      - op: replace
+        path: /spec/dnsNames/0
+        value: auth.iseja.net
+    target:
+      kind: Certificate
+      name: auth-cert

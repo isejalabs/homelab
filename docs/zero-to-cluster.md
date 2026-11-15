@@ -10,7 +10,26 @@ This is the same sequence as the [full cluster rebuild](backup/disaster-recovery
 
 ## 0. Before you start
 
-Install the tools from the root README's [prerequisites table](../README.md#-prerequisites) and get the access listed under [Terragrunt prerequisites](../terragrunt/README.md#prerequisites) (SOPS age key, AWS credentials for the state role, network access to the Proxmox API) and the [bootstrap prerequisites](../k8s/bootstrap/README.md#deploying-infrastructure-and-applications) (a signed-in 1Password CLI).
+### Tools
+
+Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](../.mise.toml), [`terragrunt/.mise.toml`](../terragrunt/.mise.toml) and [`k8s/.mise.toml`](../k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them.
+
+| Tool | What it is for | Pinned in |
+| --- | --- | --- |
+| `opentofu`, `terragrunt` | Provision Proxmox VMs and the Talos install ([`terragrunt/README.md`](../terragrunt/README.md)) | [`terragrunt/.mise.toml`](../terragrunt/.mise.toml) |
+| `talosctl` | Talos cluster access and config import | [`terragrunt/.mise.toml`](../terragrunt/.mise.toml) |
+| `sops`, `age` | Encrypt and decrypt the `*.sops.yaml` secrets ([`architecture/secrets.md`](architecture/secrets.md)) | [`.mise.toml`](../.mise.toml) |
+| `op` (1Password CLI) | Resolve `op://` references during bootstrap | [`.mise.toml`](../.mise.toml) |
+| `just`, `gum` | Command runner and its prompts and logging for `just bootstrap::cluster` | [`.mise.toml`](../.mise.toml) |
+| `helm`, `helmfile` | Install foundational CRDs and infra before Flux ([`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md)) | [`.mise.toml`](../.mise.toml) |
+| `kubectl`, `jq`, `yq`, `minijinja` | Cluster access and the templating and JSON/YAML processing the bootstrap and scripts use | [`.mise.toml`](../.mise.toml) |
+| `kustomize`, `kubeconform` | Render and validate the manifests locally, as CI does | [`k8s/.mise.toml`](../k8s/.mise.toml) |
+| `flate`, `pre-commit`, `lychee`, `kind` | Run CI checks locally: Flux validation, hooks, docs link check, bootstrap test cluster ([`architecture/ci.md`](architecture/ci.md)) | [`.mise.toml`](../.mise.toml) |
+| [`direnv`](https://direnv.net/) | Load each environment's `.envrc` (state role) when entering its folder | not pinned, see [`terragrunt/README.md`](../terragrunt/README.md#prerequisites) |
+
+### Access
+
+Besides the tools you need the access listed under [Terragrunt prerequisites](../terragrunt/README.md#prerequisites) (SOPS age key, AWS credentials for the state role, network access to the Proxmox API) and the [bootstrap prerequisites](../k8s/bootstrap/README.md#deploying-infrastructure-and-applications) (a signed-in 1Password CLI).
 
 **Expected result:** the pinned tools are installed, and Terragrunt can decrypt the SOPS files and assume the environment's state role. Without the age key, values silently fall back to CI placeholders and a real plan fails.
 

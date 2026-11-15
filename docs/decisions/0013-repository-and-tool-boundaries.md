@@ -1,8 +1,9 @@
+---
+id: ADR 0013
+status: planning
+---
+
 # Repository and IaC tool boundaries
-
-## Status
-
-planning
 
 ## Context
 

@@ -6,4 +6,5 @@ components:
 
 resources:
   - ../../sets/minimal
-  - ../../sets/soaking
+  - ../../sets/standing
+  - ../../../../../infra/longhorn-system/longhorn-auth/flux

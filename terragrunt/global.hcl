@@ -10,6 +10,6 @@ locals {
 
   # Environments with a Longhorn S3 backup target, i.e. a "<env>-longhorn-backup" RustFS bucket besides the
   # "<env>-kopiur-backup" one (see the longhorn-core backup-target.yaml overlays). Used by the RustFS monitoring
-  # identities and their Checkmk rules; scripts/rustfs-verify-monitoring.sh mirrors it in shell.
+  # identities and their Checkmk rules; scripts/tools/rustfs-verify-monitoring.sh mirrors it in shell.
   longhorn_backup_envs = ["dev", "prod", "qa", "rebuild"]
 }

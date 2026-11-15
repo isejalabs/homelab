@@ -27,7 +27,7 @@ Not exposed.
 ## Updates
 
 - **Version**: the release number is in the two upstream URL comments of [`base/kustomization.yaml`](base/kustomization.yaml) (they must be equal), next to the files under `base/vendor/`.
-- **Flow**: Renovate bumps the URLs; run `scripts/vendor-manifests.sh update` on that PR branch to fetch the matching files (the `kustomize-build` check fails until they match): [`update-handling.md`](../../../../docs/operations/update-handling.md#renovate).
+- **Flow**: Renovate bumps the URLs; run `scripts/ci/vendor-manifests.sh update` on that PR branch to fetch the matching files (the `kustomize-build` check fails until they match): [`update-handling.md`](../../../../docs/operations/update-handling.md#renovate).
 - **Pinned**: Renovate allows `<=1.4` for Cilium compatibility; `head` and `poc` are the exception that track newer releases, labeled `updateStrategy:pinWatch`: [Non-standard update strategies](../../../../docs/operations/update-handling.md#non-standard-update-strategies). Raise the cap only together with a Cilium version that supports the newer API.
 
 ## Operations
@@ -44,8 +44,8 @@ kubectl get crd --context admin@<env>-homelab | grep gateway.networking.k8s.io
 kubectl get crd gateways.gateway.networking.k8s.io --context admin@<env>-homelab -o jsonpath='{.metadata.annotations.gateway\.networking\.k8s\.io/bundle-version}'
 
 # fetch the vendored files for the version in the URL comments, then check
-scripts/vendor-manifests.sh update
-scripts/vendor-manifests.sh check
+scripts/ci/vendor-manifests.sh update
+scripts/ci/vendor-manifests.sh check
 ```
 
 ## Upstream

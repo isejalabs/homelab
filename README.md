@@ -23,26 +23,8 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 | Upgrade Talos/Kubernetes or replace a node | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 | Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
-| Look up a term (`kopiur`, `soaking`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
-
-## 🧰 Prerequisites
-
-Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](.mise.toml), [`terragrunt/.mise.toml`](terragrunt/.mise.toml) and [`k8s/.mise.toml`](k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them.
-
-| Tool | What it is for | Pinned in |
-| --- | --- | --- |
-| `opentofu`, `terragrunt` | Provision Proxmox VMs and the Talos install ([`terragrunt/README.md`](terragrunt/README.md)) | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
-| `talosctl` | Talos cluster access and config import | [`terragrunt/.mise.toml`](terragrunt/.mise.toml) |
-| `sops`, `age` | Encrypt and decrypt the `*.sops.yaml` secrets ([`docs/architecture/secrets.md`](docs/architecture/secrets.md)) | [`.mise.toml`](.mise.toml) |
-| `op` (1Password CLI) | Resolve `op://` references during bootstrap | [`.mise.toml`](.mise.toml) |
-| `just`, `gum` | Command runner and its prompts and logging for `just bootstrap::cluster` | [`.mise.toml`](.mise.toml) |
-| `helm`, `helmfile` | Install foundational CRDs and infra before Flux ([`k8s/bootstrap/README.md`](k8s/bootstrap/README.md)) | [`.mise.toml`](.mise.toml) |
-| `kubectl`, `jq`, `yq`, `minijinja` | Cluster access and the templating and JSON/YAML processing the bootstrap and scripts use | [`.mise.toml`](.mise.toml) |
-| `kustomize`, `kubeconform` | Render and validate the manifests locally, as CI does | [`k8s/.mise.toml`](k8s/.mise.toml) |
-| `flate`, `pre-commit`, `lychee`, `kind` | Run CI checks locally: Flux validation, hooks, docs link check, bootstrap test cluster ([`docs/architecture/ci.md`](docs/architecture/ci.md)) | [`.mise.toml`](.mise.toml) |
-| [`direnv`](https://direnv.net/) | Load each environment's `.envrc` (state role) when entering its folder | not pinned, see [`terragrunt/README.md`](terragrunt/README.md#prerequisites) |
-
-Besides tools you need the SOPS age key, AWS credentials for the state role and a signed-in 1Password CLI; the per-step access is listed in [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start).
+| Install the tools and get the access needed to work on the repo | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start) |
+| Look up a term (`kopiur`, `standing`, `flate`, `head`, …) | [`docs/glossary.md`](docs/glossary.md) |
 
 ## 🎯 Principles
 
@@ -69,7 +51,7 @@ See [`docs/architecture/overview.md`](docs/architecture/overview.md) for the ful
 - [`k8s/README.md`](k8s/README.md) — the `k8s` folder structure (`apps/`, `bootstrap/`, `components/`, `infra/`, `test/`) and the shared `base`/`envs`/`flux` shape every app/infra unit follows.
 - [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) — the helmfile bootstrap phase and handoff to Flux.
 - [`k8s/components/README.md`](k8s/components/README.md) — the shared kustomize DRY layer.
-- [`scripts/README.md`](scripts/README.md) — CI validation entry points, SOPS bulk ops, Terragrunt state cleanup, and kopiur backup/restore scripts.
+- [`scripts/README.md`](scripts/README.md) — the helper scripts by kind: `ci/` validation entry points, `ops/` backup/restore and Proxmox operations behind `just`, `tools/` (SOPS bulk ops, Terragrunt state cleanup) and `agent/`.
 - `AGENTS.md` (symlinked as `CLAUDE.md`) — repo conventions and commands for AI coding agents working in this repo. Humans: the [folder structure](#-folder-structure) below is the map.
 - [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/isejalabs/homelab) — an AI-generated, browsable overview of the implementation that you can ask questions. It is refreshed manually, so it can lag behind the repo; the docs above are authoritative. Its generation is steered by [`.devin/wiki.json`](.devin/wiki.json).
 
@@ -79,17 +61,17 @@ This is the one map of the top-level folders; the `k8s` tree is described once i
 
 ```
 📁 homelab
-├── 📁 terragrunt      # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
-├── 📁 k8s             # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
-├── 📁 scripts         # helper shell scripts (SOPS bulk ops, terragrunt state cleanup, k8s upgrade)
-├── 📁 docs            # cross-cutting architecture docs and task-grouped runbooks: operations, backup, identity, troubleshooting (see docs/README.md)
-├── 📁 .agents         # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
-├── 📁 .commons        # git submodule: AI-agent conventions shared across isejalabs repos
-├── 📁 .github         # issue/PR automation config (labeler, Renovate, Mergify)
-├── 📁 .claude         # Claude Code project skills
-├── 📁 .devin          # DeepWiki generation config (wiki.json)
-├── 📁 .ci             # CI tooling config (prettier, typos)
-└── 📁 _attic          # retired/old material, not part of the active implementation
+├── 📁 terragrunt  # OpenTofu/Terragrunt IaC: provisions Proxmox VMs and installs Talos Linux (see terragrunt/README.md)
+├── 📁 k8s         # cluster bootstrap + the infra/apps Flux reconciles + the shared DRY kustomize components layer (see k8s/README.md)
+├── 📁 scripts     # helper scripts: ci/ checks, ops/ just-wrapped procedures, tools/ run by hand (see scripts/README.md)
+├── 📁 docs        # cross-cutting architecture docs and task-grouped runbooks: operations, backup, identity, troubleshooting (see docs/README.md)
+├── 📁 .agents     # shared agent instructions/skills (YAML sorting conventions, track-branch, port-app)
+├── 📁 .commons    # git submodule: AI-agent conventions shared across isejalabs repos
+├── 📁 .github     # issue/PR automation config (labeler, Renovate, Mergify)
+├── 📁 .claude     # Claude Code project skills
+├── 📁 .devin      # DeepWiki generation config (wiki.json)
+├── 📁 .ci         # CI tooling config (prettier, typos)
+└── 📁 _attic      # retired/old material, not part of the active implementation
 ```
 
 Root-level config files (`.sops.yaml`, `.pre-commit-config.yaml`, `.justfile`, `.minijinja.toml`, `.gitmodules`) wire up SOPS, pre-commit hooks, the `just` command runner and templating.

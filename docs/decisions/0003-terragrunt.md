@@ -1,8 +1,9 @@
+---
+id: ADR 0003
+status: current
+---
+
 # Terragrunt for multi-environment OpenTofu
-
-## Status
-
-current
 
 ## Context
 

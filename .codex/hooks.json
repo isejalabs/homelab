@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent/mink-codex-hook.py\"",
             "statusMessage": "Mink: start session",
             "timeout": 120
           }
@@ -18,7 +18,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent/mink-codex-hook.py\"",
             "statusMessage": "Mink: check file reads and edits",
             "timeout": 120
           }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent/mink-codex-hook.py\"",
             "statusMessage": "Mink: record file activity",
             "timeout": 120
           }
@@ -44,7 +44,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/mink-codex-hook.py\"",
+            "command": "python3 \"$(git rev-parse --show-toplevel)/scripts/agent/mink-codex-hook.py\"",
             "statusMessage": "Mink: summarize session activity",
             "timeout": 120
           }

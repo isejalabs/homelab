@@ -21,11 +21,11 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 
 ```
 📁 terragrunt
-├── root.hcl                       # top-level config, see above
-├── global-secrets.sops.yaml       # secrets merged in at every level (Proxmox, RustFS, 1Password, Checkmk, ...)
-├── global.hcl                     # non-secret values shared by all environments/units (e.g. 1Password vault ID)
-├── .mise.toml                     # opentofu/terragrunt/talosctl versions
-├── 📁 _envcommon                    # one <unit>.hcl per unit type, included by every environment's copy of that unit
+├── root.hcl                   # top-level config, see above
+├── global-secrets.sops.yaml   # secrets merged in at every level (Proxmox, RustFS, 1Password, Checkmk, ...)
+├── global.hcl                 # non-secret values shared by all environments/units (e.g. 1Password vault ID)
+├── .mise.toml                 # opentofu/terragrunt/talosctl versions
+├── 📁 _envcommon              # one <unit>.hcl per unit type, included by every environment's copy of that unit
 │   ├── checkmk-longhorn-monitoring.hcl
 │   ├── checkmk-password.hcl
 │   ├── checkmk-rustfs-monitoring.hcl
@@ -34,25 +34,25 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 │   ├── rustfs-bucket-reader.hcl
 │   ├── rustfs-keycloak-db.hcl
 │   ├── rustfs-kopiur-backup.hcl
-│   ├── talos-proxmox.hcl            # poc only
+│   ├── talos-proxmox.hcl      # poc only
 │   ├── tf-state-read-role.hcl
 │   ├── vehagn-k8s.hcl
-│   ├── 📁 vehagn-k8s                # shared Talos machine-config patches
-│   └── vms.hcl                      # poc only
-├── 📁 non-prod                      # account: dbg, dev, head, poc, qa, rebuild, src environments
+│   ├── 📁 vehagn-k8s          # shared Talos machine-config patches
+│   └── vms.hcl                # poc only
+├── 📁 non-prod                # account: dbg, dev, head, poc, qa, rebuild, src environments
 │   ├── account.hcl
 │   ├── account-secrets.sops.yaml
-│   └── 📁 eu-central-1                # region
+│   └── 📁 eu-central-1        # region
 │       ├── region.hcl
-│       └── 📁 <env>                   # env, e.g. dev, qa, rebuild, ...
+│       └── 📁 <env>           # env, e.g. dev, qa, rebuild, ...
 │           ├── env.hcl
-│           ├── .envrc                   # exports TG_IAM_ASSUME_ROLE, the env's state-read/write role (direnv-loaded)
-│           ├── 📁 <unit>                # one folder per unit, see Units below
+│           ├── .envrc         # exports TG_IAM_ASSUME_ROLE, the env's state-read/write role (direnv-loaded)
+│           ├── 📁 <unit>      # one folder per unit, see Units below
 │           │   └── terragrunt.hcl
 │           └── 📁 vehagn-k8s
 │               ├── terragrunt.hcl
-│               └── 📁 assets            # generated cluster artifacts (Talos schematic, sealed-secrets cert, ...)
-└── 📁 prod                          # account: prod environment only, same account/region/env/unit shape as non-prod
+│               └── 📁 assets  # generated cluster artifacts (Talos schematic, sealed-secrets cert, ...)
+└── 📁 prod                    # account: prod environment only, same account/region/env/unit shape as non-prod
 ```
 
 ### How a unit's configuration is assembled
@@ -73,8 +73,8 @@ Module versions follow the environments' roles ([`docs/architecture/environments
 | `checkmk-password` | Checkmk Password Store entry for that identity | `checkmk-password` | all 8 | [Password Store entries](#password-store-entries-checkmk-password) |
 | `checkmk-rustfs-monitoring` | Checkmk hosts and rules for RustFS quota monitoring | `checkmk-rustfs-monitoring` | `prod` only (one shared unit) | [Host and rules](#host-and-rules-checkmk-rustfs-monitoring) |
 | `checkmk-longhorn-monitoring` | Checkmk hosts and rules for Longhorn capacity monitoring | `checkmk-longhorn-monitoring` | `prod` only (one shared unit) | [Longhorn capacity](#longhorn-capacity-checkmk-longhorn-monitoring) |
-| `keycloak-automation` | Service-account client `terragrunt` in the Keycloak `master` realm, its secret in `keycloak-terragrunt#<env>` | `keycloak-automation` | `dev`, `qa` | [Automation client](#automation-client-keycloak-automation) |
-| `keycloak-realm` | Keycloak realms, LDAP federation to UCS, `groups` scope | `keycloak-realm` | `dev`, `qa` | [Keycloak realms](#keycloak-realms-keycloak-realm) |
+| `keycloak-automation` | Service-account client `terragrunt` in the Keycloak `master` realm, its secret in `keycloak-terragrunt#<env>` | `keycloak-automation` | `dev`, `qa`, `prod` | [Automation client](#automation-client-keycloak-automation) |
+| `keycloak-realm` | Keycloak realms, LDAP federation to UCS, `groups` scope | `keycloak-realm` | `dev`, `qa`, `prod` | [Keycloak realms](#keycloak-realms-keycloak-realm) |
 | `vms`, `talos-proxmox` | experimental standalone VMs / Talos cluster | `vms`, `talos-proxmox` | `poc` only | [`poc`-only units](#poc-only-units-vms-talos-proxmox) |
 
 Modules without an owner prefix are in [`isejalabs/terraform-modules`](https://github.com/isejalabs/terraform-modules/tree/main/modules); each has its own README with the full mechanism. Every unit has its own state, so units are planned and applied one at a time; where one needs another (e.g. `checkmk-password` needs `rustfs-bucket-reader`), the order is stated in its section.
@@ -116,7 +116,7 @@ git add .terraform.lock.hcl
 
 The second command adds the hashes for macOS on Apple silicon and Linux on amd64 (the platforms of the maintainer's machine and of CI) to the lock; it does not change a locked version. It needs no cloud credentials. To move to newer providers, run the first command with `-upgrade` and commit the result. To check that a lock is complete, run `init -backend=false -lockfile=readonly`: it fails instead of changing the file.
 
-CI enforces this: `scripts/terragrunt-validate-all.sh` fails for a `prod` or `qa` unit without a committed lock file and runs `init` on those units with `-lockfile=readonly`, so a lock that lacks a provider, or the hashes for CI's platform, fails the check instead of being extended on the fly. To check a unit the way CI does: `scripts/terragrunt-validate-all.sh terragrunt/prod/eu-central-1/prod/<unit>`.
+CI enforces this: `scripts/ci/terragrunt-validate-all.sh` fails for a `prod` or `qa` unit without a committed lock file and runs `init` on those units with `-lockfile=readonly`, so a lock that lacks a provider, or the hashes for CI's platform, fails the check instead of being extended on the fly. To check a unit the way CI does: `scripts/ci/terragrunt-validate-all.sh terragrunt/prod/eu-central-1/prod/<unit>`.
 
 If an apply leaves a modified or untracked `.terraform.lock.hcl` behind anyway (a provider version or hash that was not in the committed file), commit it through a pull request like any other change. A leftover untracked copy that is identical to a newly committed lock has to be deleted before pulling, as git does not overwrite untracked files.
 
@@ -190,7 +190,7 @@ Before destroying the previous cluster, its volumes' state has to be removed to 
 for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); do terragrunt state rm "$i"; done
 ```
 
-The script [`scripts/tg-state-rm.sh`](../scripts/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction.
+The script [`scripts/tools/tg-state-rm.sh`](../scripts/tools/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction.
 
 ### Cluster end of lifecycle
 
@@ -210,7 +210,7 @@ terragrunt state rm 'module.proxmox_csi_plugin.kubernetes_namespace.csi-proxmox'
 terragrunt state rm 'module.talos.talos_machine_bootstrap.this'
 ```
 
-The script [`scripts/tg-state-rm.sh`](../scripts/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction by deleting the states mentioned above.
+The script [`scripts/tools/tg-state-rm.sh`](../scripts/tools/tg-state-rm.sh) does the job by keeping all Proxmox volumes and shortcutting the cluster destruction by deleting the states mentioned above.
 
 #### Destroy a cluster
 
@@ -269,7 +269,7 @@ Using a created identity is a separate, manual step: copy its access key and sec
 After applying a `rustfs-bucket-reader` unit (and again after a RustFS upgrade, a module change, or when Checkmk reports UNKNOWN), check that the identity reads quota of its own buckets and nothing else:
 
 ```sh
-scripts/rustfs-verify-monitoring.sh -e <env>
+scripts/tools/rustfs-verify-monitoring.sh -e <env>
 ```
 
 It reads the endpoint from `terragrunt/global-secrets.sops.yaml` and the identity's credentials from the `checkmk-monitoring#<env>` 1Password item, then runs only non-mutating requests: quota-stats on each own bucket must return 200, while quota-stats on another environment's bucket, object listing, `GetObject`/`DeleteObject` of a random non-existent key and the admin `info`/`scanner/status` routes must all return 403. It exits non-zero and shows the response body on any deviation. Not for CI: it needs 1Password and network access to the RustFS.
@@ -283,11 +283,11 @@ Pitfalls it already accounts for, in case you query by hand:
 
 ## Keycloak realms (`keycloak-realm`)
 
-`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS and a `groups` claim scope) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev` and `qa`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
+`keycloak-realm` fills a running Keycloak with its realm content (`iseja`, `admin`, each with a read-only LDAP federation to UCS, a `groups` claim scope, an explicit WebAuthn relying-party ID and a second factor after the UCS password, see [`docs/identity/keycloak-mfa.md`](../docs/identity/keycloak-mfa.md)) through the module `keycloak-realm` from `isejalabs/terraform-modules`, pinned to a release tag. Units exist for `dev`, `qa` and `prod`; the directory facts and realm definitions are shared in `_envcommon/keycloak-realm.hcl`, only the Keycloak URL differs per environment. The unit is proven in `dev`, then copied to `qa` and `prod` through a pull request and applied from `main`; prerequisites (UCS groups and bind account, 1Password items, CA trust) are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md).
 
 ### Automation client (`keycloak-automation`)
 
-`keycloak-realm` logs in as a dedicated service-account client `terragrunt` in the Keycloak `master` realm instead of the break-glass administrator. `keycloak-automation` creates that client through the module `keycloak-automation` from `isejalabs/terraform-modules` (also pinned to a release tag) and writes its secret to the 1Password item `keycloak-terragrunt#<env>`. It is the one unit that still logs in with the break-glass administrator (`keycloak-bootstrap-admin#<env>`), and it has to be applied **before** `keycloak-realm` of the same environment; apply order, secret rotation and the restore case are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md#automation-client). Units exist for `dev` and `qa` (the `qa` one with its tracked provider lock); `existing_realms` lists the realms that exist already, empty on a fresh instance.
+`keycloak-realm` logs in as a dedicated service-account client `terragrunt` in the Keycloak `master` realm instead of the break-glass administrator. `keycloak-automation` creates that client through the module `keycloak-automation` from `isejalabs/terraform-modules` (also pinned to a release tag) and writes its secret to the 1Password item `keycloak-terragrunt#<env>`. It is the one unit that still logs in with the break-glass administrator (`keycloak-bootstrap-admin#<env>`), and it has to be applied **before** `keycloak-realm` of the same environment; apply order, secret rotation and the restore case are in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md#automation-client). Units exist for `dev`, `qa` and `prod` (the `qa` and `prod` ones with their tracked provider locks); `existing_realms` lists the realms that exist already, empty on a fresh instance (as in `prod`). `rebuild` is not registered yet. The `prod` units were registered with the `prod` go-live ([#2196](https://github.com/isejalabs/homelab/issues/2196)) and applied from `main` on 2026-11-08, this one first; details in [`docs/identity/keycloak-realms.md`](../docs/identity/keycloak-realms.md#automation-client).
 
 ## Checkmk configuration
 

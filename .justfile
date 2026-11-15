@@ -13,10 +13,10 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 mod bootstrap "k8s/bootstrap"
 
 # App backup/restore maintenance recipes
-mod backup "scripts/backup.just"
+mod backup "scripts/ops/backup.just"
 
 # Proxmox VM snapshot/rollback recipes (#1296)
-mod proxmox "scripts/proxmox.just"
+mod proxmox "scripts/ops/proxmox/mod.just"
 
 [private]
 logstep stage msg:

@@ -27,7 +27,7 @@ Not exposed.
 ## Updates
 
 - **Version**: the release number is in the upstream URL comment of [`base/kustomization.yaml`](base/kustomization.yaml), next to the file under `base/vendor/`.
-- **Flow**: Renovate bumps the URL; run `scripts/vendor-manifests.sh update` on that PR branch to fetch the matching file (the `kustomize-build` check fails until it matches). Details: [`update-handling.md`](../../../../docs/operations/update-handling.md#renovate). No other Renovate rule applies.
+- **Flow**: Renovate bumps the URL; run `scripts/ci/vendor-manifests.sh update` on that PR branch to fetch the matching file (the `kustomize-build` check fails until it matches). Details: [`update-handling.md`](../../../../docs/operations/update-handling.md#renovate). No other Renovate rule applies.
 
 ## Operations
 
@@ -44,8 +44,8 @@ kubectl get csr --context admin@<env>-homelab | grep kubelet-serving
 kubectl logs -n kubelet-serving-cert-approver deploy/kubelet-serving-cert-approver --context admin@<env>-homelab
 
 # fetch the vendored file for the version in the URL comment, then check
-scripts/vendor-manifests.sh update
-scripts/vendor-manifests.sh check
+scripts/ci/vendor-manifests.sh update
+scripts/ci/vendor-manifests.sh check
 ```
 
 ## Upstream

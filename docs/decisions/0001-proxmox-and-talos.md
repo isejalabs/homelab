@@ -1,8 +1,9 @@
+---
+id: ADR 0001
+status: current
+---
+
 # Proxmox + Talos as the virtualization and Kubernetes-node platform
-
-## Status
-
-current
 
 ## Context
 
