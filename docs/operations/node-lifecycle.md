@@ -19,7 +19,7 @@ Every node is provisioned by Terragrunt/the `terraform-proxmox-talos` module (se
 | Steps | [Talos upgrade](#1-talos-os-upgrade), [Kubernetes upgrade](#2-kubernetes-version-upgrade), [node replacement](#3-node-replacement), [scaling](#4-ramping-control-planeworker-node-count-up-or-down), [moving a node](#5-moving-a-node-to-another-proxmox-host), [Proxmox host reset or hang](#6-proxmox-host-unplanned-reset-or-hang). Expected output is recorded where a step has one, for example `0 added, 0 changed, 0 destroyed` after a stale `Node` is deleted |
 | Verify | [Verify the change actually took](#verify-the-change-actually-took) |
 | Rollback | None documented as a procedure. A Talos upgrade is a per-node VM replacement, and a Kubernetes downgrade is not supported ([`k8s-minor-upgrade.md`](k8s-minor-upgrade.md#4-verify)). [If the datastore was flipped in Terraform anyway](#if-the-datastore-was-flipped-in-terraform-anyway) is the one recorded repair |
-| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13). The Proxmox host panic and watchdog settings are applied (2026-11-15) but not yet exercised by a reset |
+| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13). The Proxmox host panic and watchdog settings are applied (2026-11-15) and `iTCO_wdt` binding was seen on a `pve6` reboot, but a reset or panic has not been exercised yet |
 
 ## 1. Talos OS upgrade
 
@@ -259,7 +259,7 @@ What this means in practice:
 
 ### Status and what was not tested
 
-Applied on `pve1`, `pve4`, `pve5` and `pve6` on 2026-11-15. At that date every host still ran `softdog`, because none had rebooted since the setting was written. Not exercised yet, both need a host that can be reset: that `iTCO_wdt` binds at boot and resets a host whose kernel stops feeding it, and that a deliberate panic (`echo c > /proc/sysrq-trigger`) leaves its text in the pstore. Track this in [#2312](https://github.com/isejalabs/homelab/issues/2312) and record the result here.
+Applied on `pve1`, `pve4`, `pve5` and `pve6` on 2026-11-15. `pve6`, the test node (no HA resources, 0 votes), rebooted afterwards and came up with `iTCO_wdt` as the HA watchdog (`dmesg`: `Found a Intel PCH TCO device (Version=6)`, `heartbeat=30 sec`), `watchdog-mux` and `pve-ha-lrm` active, and the sysctl values intact. The other hosts still ran `softdog` at that date, because none had rebooted since the setting was written. Not exercised yet, both need a host that can be reset: that `iTCO_wdt` resets a host whose kernel stops feeding it, and that a deliberate panic (`echo c > /proc/sysrq-trigger`) leaves its text in the pstore. Track this in [#2312](https://github.com/isejalabs/homelab/issues/2312) and record the result here.
 
 `netconsole` to the loghost was tried and does not work here: the Management network is a VLAN on the bridge `vmbr0`, and netpoll cannot send through a bridge whose ports include virtual Ethernet devices (the guests' interfaces). The pstore is the replacement.
 
