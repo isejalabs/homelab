@@ -25,7 +25,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
-| Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](operations/node-lifecycle.md) |
+| Upgrade Talos/Kubernetes, replace a node or handle a Proxmox host reset | [`node-lifecycle.md`](operations/node-lifecycle.md) |
 | Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md) |
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
