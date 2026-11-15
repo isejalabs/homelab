@@ -90,4 +90,4 @@ Amended on 2026-11-11 at the owner's request ([#2284](https://github.com/isejala
 
 Amended on 2026-11-15 at the owner's request ([#2319](https://github.com/isejalabs/homelab/issues/2319)):
 
-- The documentation site stays published and open to search engines. What it contains is governed by this policy, and the guard of [#2286](https://github.com/isejalabs/homelab/issues/2286) (see [`ci.md`](../architecture/ci.md)) checks the pattern classes on every pull request. The statement in the root `README.md` that the site is unpublished pending this decision is removed.
+- The documentation site stays published and open to search engines. What it contains is governed by this policy, and the guard of [#2286](https://github.com/isejalabs/homelab/issues/2286) (see [`ci.md`](../architecture/ci.md#disclosure-guard)) checks the pattern classes on every pull request. The statement in the root `README.md` that the site is unpublished pending this decision is removed.
