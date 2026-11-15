@@ -122,8 +122,8 @@ extra:
   nav_section_links:
     Infrastructure: docs/architecture/workloads.md#infra-k8sinfra
     Apps: docs/architecture/workloads.md#apps-k8sapps
-  # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
-  # go-ahead while the public-disclosure decision (#1601) is still pending.
+  # When true, keeps the site out of search engines (meta tag and robots.txt). Off: the owner decided on
+  # 2026-11-15 to keep the site published and indexable under the public disclosure policy (ADR 0019).
   noindex: false
   social: []
 
@@ -158,6 +158,7 @@ nav:
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
+    - Cluster quorum: docs/operations/proxmox-cluster-quorum.md
   - Identity:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
@@ -169,6 +170,7 @@ nav:
     - OPNsense administrator login: docs/identity/opnsense-auth.md
     - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
+    - Keycloak drain drill: docs/identity/keycloak-drain-drill.md
     - Zigbee2MQTT frontend authentication: docs/identity/zigbee2mqtt-sso.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
@@ -271,6 +273,7 @@ nav:
   - "ADR 0015 · Checkmk configuration as code: Terraform provider, Ansible deferred": docs/decisions/0015-checkmk-configuration-as-code.md
   - "ADR 0016 · Identity and web SSO architecture": docs/decisions/0016-identity-and-web-sso.md
   - "ADR 0017 · Documentation site generator: MkDocs with the Material theme": docs/decisions/0017-docs-site-generator.md
+  - "ADR 0018 · Media source of truth: Lightroom Classic and Immich": docs/decisions/0018-media-source-of-truth.md
   - "ADR 0019 · Public disclosure of homelab details": docs/decisions/0019-public-disclosure-policy.md
   - "ADR 0020 · OPNsense administrator login through OIDC": docs/decisions/0020-opnsense-administrator-login.md
 - Audits and plans (dated snapshots):

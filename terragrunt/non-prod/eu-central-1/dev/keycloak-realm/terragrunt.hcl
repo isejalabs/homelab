@@ -34,12 +34,15 @@ inputs = {
 
   # The Checkmk site dev_k8s (Ultimate, on monitoring1) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
+  # include_email is on for the iseja client: a Checkmk user without an address makes the notification fail (#2294).
+  # Notifications of dev_k8s are switched off in Checkmk where they are not wanted.
   saml_clients = {
     "dev_k8s-iseja" = {
-      realm     = "iseja"
-      client_id = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk dev_k8s (iseja)"
+      realm         = "iseja"
+      client_id     = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
+      acs_url       = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
+      name          = "Checkmk dev_k8s (iseja)"
+      include_email = true
     }
     "dev_k8s-admin" = {
       realm     = "admin"
@@ -58,17 +61,6 @@ inputs = {
       realm         = "admin"
       client_id     = "longhorn"
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
-      pkce          = true
-    }
-
-    # Proof of concept: the OIDC login of the OPNsense gateway gw3 through the community plugin os-sso, which the
-    # firewall needs no Keycloak-side tweaks for beyond this client. The callback is the plugin's fixed path on the
-    # node's own name; a productive login uses the shared name of the HA pair. docs/identity/opnsense-auth.md
-    "opnsense-admin" = {
-      realm         = "admin"
-      client_id     = "opnsense"
-      name          = "OPNsense gw3 (PoC)"
-      redirect_uris = ["https://gw3.home.iseja.net/api/sso/oidc/callback"]
       pkce          = true
     }
   }

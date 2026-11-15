@@ -4,9 +4,9 @@ status: current
 
 # Node lifecycle: Talos/Kubernetes upgrades and node replacement
 
-**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-planeworker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Verify](#verify-the-change-actually-took)
+**On this page:** [Upgrade Talos](#1-talos-os-upgrade) · [Staging a multi-step upgrade on one branch](#staging-a-multi-step-upgrade-on-one-branch) · [Upgrade Kubernetes](#2-kubernetes-version-upgrade) · [Replace a node](#3-node-replacement) · [Scale node count](#4-ramping-control-planeworker-node-count-up-or-down) · [Move a node to another Proxmox host](#5-moving-a-node-to-another-proxmox-host) · [Proxmox host reset or hang](#6-proxmox-host-unplanned-reset-or-hang) · [Verify](#verify-the-change-actually-took)
 
-How to move one environment from one pinned Talos/Kubernetes version to another, replace a single node, scale a node count up or down, or relocate a node to a different Proxmox host — all in an otherwise-healthy cluster. Not a full cluster rebuild — see [`disaster-recovery.md`](../backup/disaster-recovery.md) for that, and [`architecture/environments.md`](../architecture/environments.md) for what each environment is and why `prod` gets stricter rules (`main`-checkout-only applies, no `track-branch` override) than the others.
+How to move one environment from one pinned Talos/Kubernetes version to another, replace a single node, scale a node count up or down, or relocate a node to a different Proxmox host — all in an otherwise-healthy cluster. It also covers what to do after a Proxmox host reset or hung on its own. Not a full cluster rebuild — see [`disaster-recovery.md`](../backup/disaster-recovery.md) for that, and [`architecture/environments.md`](../architecture/environments.md) for what each environment is and why `prod` gets stricter rules (`main`-checkout-only applies, no `track-branch` override) than the others.
 
 Every node is provisioned by Terragrunt/the `terraform-proxmox-talos` module (see [ADR 0001](../decisions/0001-proxmox-and-talos.md)), which has one real consequence for both procedures here: **neither Talos itself nor Kubernetes is upgraded in place the way the upstream tools' own docs describe** — `terraform-provider-talos` doesn't support in-place Talos upgrades at all ([siderolabs/terraform-provider-talos#140](https://redirect.github.com/siderolabs/terraform-provider-talos/issues/140)), and this repo hasn't adopted [tuppr](https://github.com/home-operations/tuppr) yet either (see ADR 0001's Open decisions). What follows is the module's own documented workaround — see the module's [Upgrade Methods](https://github.com/isejalabs/terraform-proxmox-talos/blob/main/docs/upgrade-methods.md) doc for the full, authoritative version (schematic upgrades, VM config changes, module version upgrades, and Cilium/Gateway API/proxmox-csi component upgrades are all covered there too, out of scope for this doc).
 
@@ -16,10 +16,10 @@ Every node is provisioned by Terragrunt/the `terraform-proxmox-talos` module (se
 | --- | --- |
 | When to use | Moving one environment to another pinned Talos or Kubernetes version, replacing a node, scaling the node count, moving a node to another Proxmox host, or changing a node's datastore, in an otherwise-healthy cluster. For a Kubernetes *minor* use [`k8s-minor-upgrade.md`](k8s-minor-upgrade.md); for a lost cluster use [`disaster-recovery.md`](../backup/disaster-recovery.md) |
 | Prerequisites | Terragrunt access for the environment and, for `prod`/`qa`, a `main` checkout (see the [staged-upgrade exception](#staging-a-multi-step-upgrade-on-one-branch)); `talosctl` with a `talosconfig` for the cluster ([`terragrunt/README.md`](../../terragrunt/README.md#talosconfig)); every Longhorn volume `healthy` before a node goes down ([step 4 of the Talos upgrade](#1-talos-os-upgrade)) |
-| Steps | [Talos upgrade](#1-talos-os-upgrade), [Kubernetes upgrade](#2-kubernetes-version-upgrade), [node replacement](#3-node-replacement), [scaling](#4-ramping-control-planeworker-node-count-up-or-down), [moving a node](#5-moving-a-node-to-another-proxmox-host). Expected output is recorded where a step has one, for example `0 added, 0 changed, 0 destroyed` after a stale `Node` is deleted |
+| Steps | [Talos upgrade](#1-talos-os-upgrade), [Kubernetes upgrade](#2-kubernetes-version-upgrade), [node replacement](#3-node-replacement), [scaling](#4-ramping-control-planeworker-node-count-up-or-down), [moving a node](#5-moving-a-node-to-another-proxmox-host), [Proxmox host reset or hang](#6-proxmox-host-unplanned-reset-or-hang). Expected output is recorded where a step has one, for example `0 added, 0 changed, 0 destroyed` after a stale `Node` is deleted |
 | Verify | [Verify the change actually took](#verify-the-change-actually-took) |
 | Rollback | None documented as a procedure. A Talos upgrade is a per-node VM replacement, and a Kubernetes downgrade is not supported ([`k8s-minor-upgrade.md`](k8s-minor-upgrade.md#4-verify)). [If the datastore was flipped in Terraform anyway](#if-the-datastore-was-flipped-in-terraform-anyway) is the one recorded repair |
-| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13) |
+| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13). The Proxmox host panic and watchdog settings are applied (2026-11-15) and `iTCO_wdt` binding was seen on a `pve6` reboot, but the reset test failed (the chipset watchdog does not count down on `pve6`) and the watchdog setting was reverted; a deliberate panic on `pve6` (2026-11-15) rebooted the host and left the panic text in the pstore |
 
 ## 1. Talos OS upgrade
 
@@ -233,6 +233,47 @@ Observed 2026-10-11/13 when the `*-work-03` nodes of `dev`, `qa` and `prod` were
    (the same can be done in the Longhorn UI). Check that `Ready` and `Schedulable` are `True` for the disk.
 6. Longhorn rebuilds the missing replicas onto the new disk. Wait until every volume is `healthy` again (`status.rebuildStatus` of the engine shows the progress) **before moving the next node**.
 7. Housekeeping that showed up: a corrupted cache volume of kopiur (`kopiur-cache-<app>`, filesystem errors at mount) keeps its backup pod in `ContainerCreating`; the cache is disposable. Delete the stuck kopiur `Snapshot` (job, pod and the temporary `<app>-<timestamp>-src` volume go with it), the cache PVC, its retained PV and the Longhorn volume; kopiur recreates the cache and runs the next backup.
+
+## 6. Proxmox host: unplanned reset or hang
+
+The Proxmox hosts `pve1` to `pve6` that run the nodes are not managed from this repository but by Salt ([`sebiklamar/salt-iseja.net`](https://github.com/sebiklamar/salt-iseja.net), the `pve*` block of `base/top.sls`). One state there makes a hard hang of a host recover by itself and leave a trace, after `pve4` froze on 2026-11-14 without a single kernel message ([#2310](https://github.com/isejalabs/homelab/issues/2310), measures in [#2312](https://github.com/isejalabs/homelab/issues/2312)). It applies to every `pve*` host that is up when Salt runs; a host that was down gets it with its next state run.
+
+| State | What it sets | When it takes effect |
+| --- | --- | --- |
+| `apps.proxmox.pve.panic-on-lockup` | `/etc/sysctl.d/90-panic-on-lockup.conf` with `kernel.hardlockup_panic=1`, `kernel.softlockup_panic=1` and `kernel.panic=10` | Immediately (`sysctl -p` of that file) |
+
+What this means in practice (a hardware watchdog for HA was tried too and removed, see [Status and what was not tested](#status-and-what-was-not-tested)):
+
+- A lockup of the kernel becomes a panic and the host reboots after 10 s, with its guests. A soft lockup that would have cleared by itself reboots the host too. That is the intended trade for a host that otherwise stays frozen until someone power-cycles it.
+- The HA watchdog stays `softdog`, which is a kernel timer and dies together with the kernel, so it cannot recover a host whose kernel stopped completely. A hardware watchdog (`iTCO_wdt`) was meant to cover that, but it does not work on `pve6`, see below.
+- `kernel.hung_task_panic` is deliberately not set: a hung task of several minutes was logged on `pve5` on 2026-09-03, so it needs a look at false positives first.
+
+### After an unplanned reset
+
+1. Find out that it happened and when: `last -x reboot | head`, and `uptime -s`. A reboot nobody planned is the signal, there is no alert for it yet ([#2312](https://github.com/isejalabs/homelab/issues/2312)).
+2. Look for the panic text. After a panic the kernel's last messages are in the EFI variable store (`efi_pstore`), which `systemd-pstore` archives to `/var/lib/systemd/pstore/` at boot, or directly in `/sys/fs/pstore/`. The store is small (about 64 KiB were free on `pve4`), so check `df -h /sys/firmware/efi/efivars` now and then. No file there after a reset means the kernel did not get to write a panic, which points to a power or firmware event, or to a hang that never reached a panic (there is no working hardware watchdog to reset such a host, see below).
+3. Check what the watchdog did: `cat /sys/class/watchdog/watchdog0/identity` shows which watchdog the host runs (`iTCO_wdt` or `Software Watchdog`), and `systemctl status watchdog-mux pve-ha-lrm` is healthy. A bound `iTCO_wdt` is no proof that it resets the host, see the status below.
+4. Compare with the other sources, because the local journal loses about the last 50 s of a crash: the central syslog on the loghost (`/var/log/syslog.<date>`, the file dated the day after holds the previous day), the Proxmox RRD data (`pvesh get /nodes/<node>/rrddata`) and the Checkmk graphs for CPU package temperature, throttle count and load.
+5. Before a host is rebooted on purpose (kernel upgrade, test): `pvecm status` must show the cluster quorate without that host. Check this at the time and not from a note, because the expected vote count changes when nodes are removed or added.
+
+### Status and what was not tested
+
+`panic-on-lockup` was applied on `pve1`, `pve4`, `pve5` and `pve6` on 2026-11-15.
+
+**Panic test on `pve6` (2026-11-15): passed.** `echo c > /proc/sysrq-trigger` (sysrq bypasses the sysrq mask when written through `/proc`) panicked the host. `pve6` was unreachable after about 3 s and answered SSH again about 43 s after the trigger, so the 10 s `kernel.panic` delay plus the boot. `last -x reboot` lists the previous boot as `crash`. After the reboot `systemd-pstore` had archived the dump to `/var/lib/systemd/pstore/<timestamp>/001/`: one `dmesg.txt` (about 25 KB, the parts joined) plus the raw `dmesg-efi_pstore-*` parts, containing `Kernel panic - not syncing: sysrq triggered crash` with the call trace and the log lines before it. The local journal of the previous boot ended before the panic and contained none of it, which is why the pstore is the place to look. The EFI store went from 49 to 52 % used and `/sys/fs/pstore` was empty again after archiving.
+
+**Hardware watchdog: tried, failed on `pve6`, removed again (2026-11-15).** A second Salt state set `WATCHDOG_MODULE=iTCO_wdt` in `/etc/default/pve-ha-manager` so that `watchdog-mux` would feed the chipset watchdog instead of `softdog`. It was reverted in [sebiklamar/salt-iseja.net#49](https://github.com/sebiklamar/salt-iseja.net/pull/49) after the reset test on `pve6`, the test node (no HA resources, 0 votes, no running guests). `pve6` rebooted with the setting and came up with `iTCO_wdt` as the HA watchdog (`dmesg`: `Found a Intel PCH TCO device (Version=6)`, `heartbeat=30 sec`), but:
+
+1. `systemctl kill -s KILL watchdog-mux` (unclean close of `/dev/watchdog`): the kernel logs `watchdog did not stop!`, but the host kept running. The watchdog core keeps feeding a running hardware watchdog that is not opened by userspace (`watchdog.handle_boot_enabled=Y`, `watchdog.open_timeout=0`, i.e. no limit). So with `iTCO_wdt` a dead `watchdog-mux` does not fence the host, unlike with `softdog`.
+2. `watchdog-mux` restarted and then frozen with `kill -STOP` (it keeps the device open but stops feeding, the case that matters for HA): no reset after more than 60 s, with a 10 s timeout. The TCO registers (read through `/dev/port`, base `0x400`) show why: `TCO1_CNT.TMR_HLT` is clear and no timeout status is set, but the timer counter (`TCO_RLD`) stays at its reload value of 16 ticks and does not count down, so the timer never expires.
+
+So on `pve6` (BIOS 1.48.0) the driver loads and registers a watchdog that cannot reset the host. `pve1`, `pve4` and `pve5` (BIOS 1.47.0, same hardware otherwise) were not tested; the line was written there but they never rebooted with it, and it was set back to the package default (`#WATCHDOG_MODULE=ipmi_watchdog`, i.e. `softdog`) by hand. `pve6` runs `iTCO_wdt` until its next reboot. No HA resources exist in the cluster at the moment, so there is no fencing at stake today. Before a hardware watchdog is enabled again, test it on a host that can be reset the same way (freeze `watchdog-mux` with `kill -STOP`, expect a reset after the timeout): a bound driver or a `timeleft` value proves nothing.
+
+Not exercised yet: a real lockup (as opposed to a deliberate panic) and the panic settings on `pve1`, `pve4` and `pve5`, whose reboot would take their guests down.
+
+`netconsole` to the loghost was tried and does not work here: the Management network is a VLAN on the bridge `vmbr0`, and netpoll cannot send through a bridge whose ports include virtual Ethernet devices (the guests' interfaces). The pstore is the replacement.
+
+Rollback of the panic settings: remove `/etc/sysctl.d/90-panic-on-lockup.conf` and run `sysctl -w kernel.hardlockup_panic=0 kernel.softlockup_panic=0 kernel.panic=0`. Do it in Salt as well (remove the state from `top.sls`), otherwise the next state run puts the file back.
 
 ## Verify the change actually took
 
