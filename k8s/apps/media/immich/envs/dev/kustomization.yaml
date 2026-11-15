@@ -1,0 +1,40 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/dev
+
+resources:
+  - ../../base
+
+# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them.
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/immich/dev/upload
+    target:
+      kind: PersistentVolume
+      name: immich-upload
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/immich/dev/cache
+    target:
+      kind: PersistentVolume
+      name: immich-cache
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/immich/dev/library
+    target:
+      kind: PersistentVolume
+      name: immich-library
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/immich/dev/renditions
+    target:
+      kind: PersistentVolume
+      name: immich-renditions

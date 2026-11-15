@@ -1,0 +1,111 @@
+---
+# Static NFS volumes on the NAS `fiona` (no CSI driver). The `path` values are placeholders: every environment that
+# runs the unit patches them in `envs/<env>/`. The `capacity` values are nominal, Kubernetes does not enforce them
+# on NFS; the real limit is the ZFS quota of the dataset (see docs/operations/immich-media-storage.md).
+# `claimRef` pins each volume to its PVC in pvc.yaml, so no other claim can take it. `Retain` leaves the data alone
+# when the claim or the volume object is deleted.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: &name immich-upload
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 1Ti
+  claimRef:
+    name: *name
+    namespace: immich
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+    - nconnect=4
+  nfs:
+    path: /mnt/natascha1/immich/ENV/upload
+    server: fiona.home.iseja.net
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
+---
+# Thumbnails and encoded video, regenerable: neither snapshotted nor in the borgbackup. Mounted by the Immich server
+# with subPath `thumbs` and `encoded-video` below `/data`.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: &name immich-cache
+spec:
+  accessModes:
+    - ReadWriteMany
+  capacity:
+    storage: 200Gi
+  claimRef:
+    name: *name
+    namespace: immich
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+    - nconnect=4
+  nfs:
+    path: /mnt/natascha1/immich/ENV/cache
+    server: fiona.home.iseja.net
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
+---
+# The Lightroom Classic library, an external library for Immich (ADR 0018). Read-only on three levels: the NFS share
+# on `fiona`, the `ro` mount option and `nfs.readOnly`, so Immich can neither delete nor rewrite an original.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: &name immich-library
+spec:
+  accessModes:
+    - ReadOnlyMany
+  capacity:
+    storage: 1Ti
+  claimRef:
+    name: *name
+    namespace: immich
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+    - nconnect=4
+    - ro
+  nfs:
+    path: /mnt/natascha1/immich/ENV/library
+    readOnly: true
+    server: fiona.home.iseja.net
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
+---
+# The rendition tree (JPEGs of edited RAWs, written by a Lightroom Classic publish service from the Mac), the second
+# external library. Read-only here like the library.
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: &name immich-renditions
+spec:
+  accessModes:
+    - ReadOnlyMany
+  capacity:
+    storage: 200Gi
+  claimRef:
+    name: *name
+    namespace: immich
+  mountOptions:
+    - nfsvers=4.1
+    - hard
+    - noatime
+    - nconnect=4
+    - ro
+  nfs:
+    path: /mnt/natascha1/immich/ENV/renditions
+    readOnly: true
+    server: fiona.home.iseja.net
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: ""
+  volumeMode: Filesystem
