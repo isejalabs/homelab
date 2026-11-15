@@ -2,7 +2,7 @@
 
 ## Status
 
-planning — draft for [#2143](https://github.com/isejalabs/homelab/issues/2143), Phase 0 of the Immich implementation ([#413](https://github.com/isejalabs/homelab/issues/413)). The options and the proposed decision are based on the current workflow, the owner's answers of 2026-11-02 (see [Owner's input](#owners-input)) and the Immich documentation (checked on 2026-11-02 against the `main` branch of [`immich-app/immich`](https://github.com/immich-app/immich/tree/main/docs/docs)). The owner accepted the decision on 2026-11-02; it still has to hold in the [proof of concept](#proof-of-concept) on the `qa` instance, and the remaining [open questions](#open-questions) are settled there or in the named issues. The ADR is rewritten in place once the PoC is done (the same planning-draft exception as [ADR 0016](0016-identity-and-web-sso.md)) and becomes `current` when the full import ([#2151](https://github.com/isejalabs/homelab/issues/2151)) has run.
+planning — first version, from [#2143](https://github.com/isejalabs/homelab/issues/2143), Phase 0 of the Immich implementation ([#413](https://github.com/isejalabs/homelab/issues/413)). The options and the proposed decision are based on the current workflow, the owner's answers of 2026-11-02 (see [Owner's input](#owners-input)) and the Immich documentation (checked on 2026-11-02 against the `main` branch of [`immich-app/immich`](https://github.com/immich-app/immich/tree/main/docs/docs)). The owner accepted the decision on 2026-11-02. It still has to hold in the [proof of concept](#proof-of-concept), tracked in [#2309](https://github.com/isejalabs/homelab/issues/2309); the remaining [open questions](#open-questions) are settled there or in the named issues. PoC results are added below as dated amendments, and the decision is changed where the PoC shows it is wrong. The ADR becomes `current` when the full import ([#2151](https://github.com/isejalabs/homelab/issues/2151)) has run.
 
 ## Context
 
@@ -131,13 +131,13 @@ Rules that go with it:
 
 ## Open questions
 
-- How people use the `family` account without weakening authorization: logging in to it directly means a shared credential (and it does not fit per-person SSO, [#1768](https://github.com/isejalabs/homelab/issues/1768)); partner sharing from `family` to each person keeps individual logins but loses people/faces again. Options to weigh in [#2150](https://github.com/isejalabs/homelab/issues/2150), together with the notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/).
+- Deferred to [#2150](https://github.com/isejalabs/homelab/issues/2150) (owner, 2026-11-15), not needed for this decision. How people use the `family` account without weakening authorization: logging in to it directly means a shared credential (and it does not fit per-person SSO, [#1768](https://github.com/isejalabs/homelab/issues/1768)); partner sharing from `family` to each person keeps individual logins but loses people/faces again. Options to weigh in [#2150](https://github.com/isejalabs/homelab/issues/2150), together with the notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/).
 - Revisit trigger: if Immich starts sharing people/faces and memories across accounts, re-check whether the historical library should move to a personal owner or stay with `family`.
 - Collection-to-album migration (rule 6): check for an existing community tool that reads the LrC catalog before writing one ("Reuse before you build").
 
 ## Proof of concept
 
-Runs on the `qa` instance ([#2146](https://github.com/isejalabs/homelab/issues/2146)) against a copy of the library, never against the live data. Pass criteria are in brackets.
+Tracked in [#2309](https://github.com/isejalabs/homelab/issues/2309). It runs against copies of the library, never against the live data, in two stages (owner, 2026-11-15): a smoke test in `dev` once the pieces work together there (web UI only, no phone upload, at most 10 photos and videos, because `dev` has small workers), then the steps below as real user scenarios in `qa` ([#2146](https://github.com/isejalabs/homelab/issues/2146)), including phone uploads and NAS imports at a larger scale. Pass criteria are in brackets.
 
 1. **Subset:** copy one year (about 5,000 assets with `.NEF` and `.ARW`, edited and unedited RAWs, HEIC, Live Photos and videos) to a test dataset on `fiona`, together with the matching part of an LrC catalog copy.
 2. **External library, read-only:** index the subset. [All assets appear; counts match the files on disk minus sidecars.]
