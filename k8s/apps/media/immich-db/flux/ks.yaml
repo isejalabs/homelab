@@ -1,0 +1,37 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/kustomize.toolkit.fluxcd.io/kustomization_v1.json
+apiVersion: kustomize.toolkit.fluxcd.io/v1
+kind: Kustomization
+metadata:
+  name: &name immich-db
+spec:
+  # The Cluster reports no kstatus (no observedGeneration, no Reconciling/Stalled condition), so without this
+  # expression a health check would be satisfied the moment the object exists. The operator sets a Ready condition.
+  healthCheckExprs:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      current: status.conditions.exists(e, e.type == 'Ready' && e.status == 'True')
+  healthChecks:
+    - apiVersion: postgresql.cnpg.io/v1
+      kind: Cluster
+      name: *name
+      namespace: &namespace immich
+    - apiVersion: apps/v1
+      kind: Deployment
+      name: immich-valkey
+      namespace: *namespace
+  interval: 1h
+  path: ./k8s/apps/media/immich-db/base
+  prune: true
+  sourceRef:
+    kind: GitRepository
+    name: flux-system
+    namespace: flux-system
+  # The health check times out after spec.timeout, which defaults to the interval (10m in dev and rebuild). A cold
+  # start takes longer: image pulls (the PostgreSQL image is large), initdb and the extensions.
+  timeout: 20m
+  # healthChecks is ignored when wait is true
+  wait: false
+  dependsOn:
+    - name: cloudnative-pg
+    - name: longhorn

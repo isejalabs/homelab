@@ -10,6 +10,7 @@ This directory holds the configuration each unit type shares across the environm
 | `keycloak-automation.hcl` | `keycloak-automation`; the service-account client of `keycloak-realm` |
 | `keycloak-realm.hcl` | `keycloak-realm`; holds the directory facts and realm definitions |
 | `rustfs-bucket-reader.hcl` | `rustfs-bucket-reader` |
+| `rustfs-immich-db.hcl` | `rustfs-immich-db` |
 | `rustfs-keycloak-db.hcl` | `rustfs-keycloak-db` |
 | `rustfs-kopiur-backup.hcl` | `rustfs-kopiur-backup` |
 | `talos-proxmox.hcl` | `talos-proxmox` (`poc` only) |
