@@ -189,7 +189,7 @@ fact_problems() {
         head=$(printf '%s\n' "${cell%%;*}" | sed -E 's/[ \t]+$//')
         want_envs=$(awk -v u="${unit}" '$1 == u { print $2 }' "${WORK}/env_units" | sort | paste -sd ',' -)
         want_set=$(awk -v u="${unit}" '$1 == u { print $2 }' "${WORK}/sets" | sort | paste -sd ',' -)
-        if ! printf '%s\n' "${head}" | grep -qE '^(all [0-9]+ environments|`[a-z]+`(, `[a-z]+`)*) \((Flux set `[a-z]+`|no Flux set, registered in .+)\)$'; then
+        if ! printf '%s\n' "${head}" | grep -qE '^(all [0-9]+ environments|`[a-z]+`(, `[a-z]+`)*) \((Flux set `[a-z-]+`|no Flux set, registered in .+)\)$'; then
             echo "\"Runs in\" row must be \"all N environments\" or a list of environment code spans, then \"(Flux set \`<set>\`)\" or \"(no Flux set, registered in ...)\", then optionally \"; prose\": ${head}"
         else
             case "${head}" in
@@ -205,7 +205,7 @@ fact_problems() {
             esac
             [ "${got_envs}" = "${want_envs}" ] || echo "\"Runs in\" row: environments are \"${got_envs}\", flux/envs/* reach the unit in \"${want_envs}\""
             case "${head}" in
-            *'(Flux set `'*) got_set=$(printf '%s\n' "${head}" | sed -E 's/.*\(Flux set `([a-z]+)`\)$/\1/') ;;
+            *'(Flux set `'*) got_set=$(printf '%s\n' "${head}" | sed -E 's/.*\(Flux set `([a-z-]+)`\)$/\1/') ;;
             *) got_set="" ;;
             esac
             [ "${got_set}" = "${want_set}" ] || echo "\"Runs in\" row: Flux set is \"${got_set:-none}\", sets/ list the unit in \"${want_set:-none}\""

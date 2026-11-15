@@ -7,5 +7,5 @@ components:
 resources:
   - ../../sets
   - ../../sets/standing
+  - ../../sets/qa-soaking
   - ../../../../../infra/longhorn-system/longhorn-auth/flux
-  - ../../../../../apps/media/immich-db/flux

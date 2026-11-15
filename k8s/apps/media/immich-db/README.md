@@ -7,7 +7,7 @@ The PostgreSQL database and the Valkey cache that [Immich](https://immich.app/) 
 | | |
 | --- | --- |
 | Namespace | `immich` (created by this unit, `base/ns.yaml`; the Immich unit uses the same namespace and does not create it) |
-| Runs in | `dev`, `qa`, `rebuild` (no Flux set, registered in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`) |
+| Runs in | `dev`, `qa`, `rebuild` (Flux set `qa-soaking`) |
 | Installed via | Custom resource `Cluster` (CloudNativePG), a `Deployment` and a `Service` for Valkey, a `CronJob` for the database dump, an `ExternalSecret` for the backup credentials; the server is created by the [CloudNativePG operator](../../../infra/cnpg-system/cloudnative-pg/README.md) |
 | Flux Kustomization | `immich-db`, depends on `cloudnative-pg`, `longhorn` |
 
