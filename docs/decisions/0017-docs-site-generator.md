@@ -34,7 +34,7 @@ Status of the candidates, checked on 2026-10-31:
 
 Build the site with MkDocs and the Material theme, versions pinned in [`.ci/mkdocs/requirements.txt`](../../.ci/mkdocs/requirements.txt) and updated by Renovate. The configuration is [`.ci/mkdocs/mkdocs.yml`](../../.ci/mkdocs/mkdocs.yml) (MkDocs refuses a `docs_dir` that contains `mkdocs.yml`, so it cannot sit at the root while the root is the docs directory) and the hooks are [`.ci/mkdocs/hooks.py`](../../.ci/mkdocs/hooks.py). Planned exit: migrate to Zensical once it meets the conditions above, and in any case before the end of life on 2027-05-05, tracked as a follow-up of [#2027](https://github.com/isejalabs/homelab/issues/2027).
 
-Not part of this decision: whether the site is public. That is the owner's call under [#1601](https://github.com/isejalabs/homelab/issues/1601). The site ships with `noindex` and a restrictive `robots.txt`, and the deploy job only runs when the repository variable `DOCS_PAGES_PUBLISH` is `true`.
+Not part of this decision: whether the site is public. That was the owner's call under [#1601](https://github.com/isejalabs/homelab/issues/1601); the owner decided on 2026-11-15 to keep it published and open to search engines, under [ADR 0019](0019-public-disclosure-policy.md) ([#2319](https://github.com/isejalabs/homelab/issues/2319)). The site first shipped with `noindex` and a restrictive `robots.txt` (`extra.noindex` in `mkdocs.yml` brings them back), and the deploy job only runs when the repository variable `DOCS_PAGES_PUBLISH` is `true`.
 
 ## Consequences
 
