@@ -122,8 +122,8 @@ extra:
   nav_section_links:
     Infrastructure: docs/architecture/workloads.md#infra-k8sinfra
     Apps: docs/architecture/workloads.md#apps-k8sapps
-  # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
-  # go-ahead while the public-disclosure decision (#1601) is still pending.
+  # When true, keeps the site out of search engines (meta tag and robots.txt). Off: the owner decided on
+  # 2026-11-15 to keep the site published and indexable under the public disclosure policy (ADR 0019).
   noindex: false
   social: []
 

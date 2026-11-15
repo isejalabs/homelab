@@ -87,3 +87,7 @@ Amended on 2026-11-11 at the owner's request ([#2284](https://github.com/isejala
 
 - The owner's accounts map to fixed placeholders: `bob` for the personal account and `bob-adm` for the administrative one. Documentation shows the placeholder where a real account name would appear, so a reader substitutes their own. The second adult account that appears in worked examples is `alice`; the household rule above is otherwise unchanged, so no further names, no counts and no statement about relationships.
 - The AWS account ID of the Terraform state backend stays public. The tooling needs it in `terragrunt/*/account.hcl` and the per-environment `.envrc` files, so moving it into a SOPS file would not remove it from the repository. The owner accepts the disclosure for now and will reconsider if a separate production AWS account is created.
+
+Amended on 2026-11-15 at the owner's request ([#2319](https://github.com/isejalabs/homelab/issues/2319)):
+
+- The documentation site stays published and open to search engines. What it contains is governed by this policy, and the guard of [#2286](https://github.com/isejalabs/homelab/issues/2286) (see [`ci.md`](../architecture/ci.md)) checks the pattern classes on every pull request. The statement in the root `README.md` that the site is unpublished pending this decision is removed.
