@@ -23,6 +23,8 @@ For resource sizing, reconciliation intervals, domain/naming, and the ID/ASN/LB-
 
 The Keycloak identity provider and its database are in neither set either: they are registered through [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml), which only the standing (permanent) environments `dev`, `qa`, `prod` and `rebuild` include, see [ADR 0016](../decisions/0016-identity-and-web-sso.md). The on-demand environments `dbg`, `head`, `poc` and `src` do not run them; they register in `prod`'s instance. The set only decides which environments run these units, not which versions: `prod` pins its own versions and takes an update only after `qa` has run it, see [Staged rollout: Keycloak and CloudNativePG](../operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
 
+The Immich database and cache ([`immich-db`](../../k8s/apps/media/immich-db/README.md), [#413](https://github.com/isejalabs/homelab/issues/413)) are not in a set either: the unit is registered directly in the compositions of `dev`, `qa` and `rebuild` (like `longhorn-auth`), because Immich runs only where the media test datasets exist and `prod` follows with its own promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
+
 Set membership per environment:
 
 | Environment | Sets included |

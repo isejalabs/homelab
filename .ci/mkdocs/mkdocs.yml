@@ -153,6 +153,7 @@ nav:
     - App data with kopiur: docs/backup/kopiur-backup-restore.md
     - Longhorn snapshots: docs/backup/longhorn-snapshots.md
     - Keycloak database: docs/identity/keycloak-backup-restore.md
+    - Immich database: docs/backup/immich-database.md
     - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
     - Checkmk site backup and restore: docs/backup/checkmk-backup-restore.md
   - Proxmox:
@@ -231,6 +232,7 @@ nav:
     - Actual Budget: k8s/apps/finances/actualbudget/README.md
     - AdGuard: k8s/apps/dns/adguard/README.md
     - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
+    - Immich database: k8s/apps/media/immich-db/README.md
     - Keycloak: k8s/apps/identity/keycloak/README.md
     - metrics-server: k8s/apps/monitoring/metrics-server/README.md
     - PowerDNS: k8s/apps/dns/powerdns/README.md
@@ -247,6 +249,7 @@ nav:
       - Overview: scripts/ops/README.md
       - kopiur: scripts/ops/kopiur/README.md
       - Longhorn snapshots: scripts/ops/longhorn/README.md
+      - Immich restore: scripts/ops/immich/README.md
       - Keycloak restore: scripts/ops/keycloak/README.md
       - Proxmox: scripts/ops/proxmox/README.md
     - Tools: scripts/tools/README.md
