@@ -1,9 +1,10 @@
-# Mink hooks for Codex
+# Agent hooks
 
-Not a repo workflow: the adapter that [`.codex/hooks.json`](../../.codex/hooks.json) runs on Codex hook events, so Codex sessions feed Mink the same file events Claude Code does. This folder is excluded from the documentation site.
+Not a repo workflow: hooks that a coding agent runs, not a workflow or a person. This folder is excluded from the documentation site.
 
 | File | Purpose |
 | --- | --- |
+| [`disclosure-pre-publish.py`](disclosure-pre-publish.py) | Claude Code `PreToolUse` hook on Bash ([`.claude/settings.json`](../../.claude/settings.json)): blocks a `gh` write command, `gh api` call or `git commit`/`git tag` whose text, or `--body-file`/`-F` file, contains a term from the private disclosure list; runs [`check-private-terms.sh`](../tools/check-private-terms.sh), never prints a term; tested by [`test-disclosure-hooks.sh`](../ci/test-disclosure-hooks.sh) |
 | [`mink-codex-hook.py`](mink-codex-hook.py) | translates Codex hook events (`apply_patch`, standalone `cat`/`head`/`tail`/`sed -n` reads) into Mink's Claude-style file events; never executes shell text |
 | [`test-mink-codex-hook.py`](test-mink-codex-hook.py) | unit tests of that translation, run with `python3 scripts/agent/test-mink-codex-hook.py` |
 
