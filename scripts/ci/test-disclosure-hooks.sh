@@ -81,7 +81,16 @@ if [ "${rc}" -ne 1 ]; then
     fail "disclosure-private-terms on a listed term exited ${rc}, expected 1"
 else
     echo "ok: disclosure-private-terms flags a listed term"
-    case "${out}" in *"${TERM_SYNTH}"*) fail "the output repeats a private term" ;; *) echo "ok: the output does not repeat the term" ;; esac
+    # Case-insensitive, because the seeded line spells the term in mixed case.
+    case $(printf '%s' "${out}" | tr '[:upper:]' '[:lower:]') in *"${TERM_SYNTH}"*) fail "the output repeats a private term" ;; *) echo "ok: the output does not repeat the term" ;; esac
+    # A single file makes grep omit the file name; the output must still be file:line, never the line.
+    rc=0
+    out=$(DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" "${ROOT}/scripts/tools/check-private-terms.sh" "${WORK}/repo/private.md" 2>&1) || rc=$?
+    case "${rc}:$(printf '%s' "${out}" | tr '[:upper:]' '[:lower:]')" in
+        1:*"${TERM_SYNTH}"*) fail "the script prints the matching line for a single file" ;;
+        1:*private.md:1:*) echo "ok: a single file reports file:line without the line" ;;
+        *) fail "the script on a single file exited ${rc} with unexpected output" ;;
+    esac
 fi
 rc=0
 (cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private-rx.md >/dev/null 2>&1) || rc=$?
