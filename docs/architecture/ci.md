@@ -10,7 +10,7 @@ There is no application source code in this repo, so CI focuses on infrastructur
 
 | Workflow | Role | Checks | Typical runtime |
 | --- | --- | --- | --- |
-| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | Required validation | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops`) | ~10s |
+| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | Required validation | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops` and the `disclosure-*` guard, see [Disclosure guard](#disclosure-guard)), then `scripts/ci/test-disclosure-hooks.sh`, which seeds one synthetic violation per pattern class and expects the guard to fail on it | ~10s-30s |
 | [`kustomize-build.yml`](../../.github/workflows/kustomize-build.yml) | Required validation | `kustomize build` + `kubeconform` across every `k8s/` overlay, plus a guard that no `flux/ks.yaml` sets `spec.targetNamespace`, a check that every vendored upstream manifest under a `vendor/` directory is byte-identical to the upstream file named in its `kustomization.yaml` (`scripts/ci/vendor-manifests.sh check`) and a check that each `keycloak-realm` Terragrunt unit's `keycloak_url` equals the hostname its environment's Keycloak overlay serves (`scripts/ci/kustomize-build-all.sh`) | ~1m15s-1m30s |
 | [`terragrunt-validate.yml`](../../.github/workflows/terragrunt-validate.yml) | Required validation | `tofu fmt -check`, `terragrunt hcl format --check`, and `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (`scripts/ci/terragrunt-validate-all.sh`); a `prod` or `qa` unit without a committed `.terraform.lock.hcl` fails, and those units are init'd with `-lockfile=readonly`, so an incomplete lock fails too (see [Provider lock files](../../terragrunt/README.md#provider-lock-files)) | ~2m20s-3m0s, occasionally much longer |
 | [`bootstrap-apps-test.yml`](../../.github/workflows/bootstrap-apps-test.yml) | Required validation | the bootstrap `helmfile` "apps" stage against an ephemeral `kind` cluster (`scripts/ci/bootstrap-apps-ci-test.sh`) — the only workflow that actually applies anything, rather than just rendering/linting | ~2m30s-3m55s |
@@ -52,6 +52,50 @@ flowchart LR
 ```
 
 Mergify never looks at CI status itself; the required checks are what stop a merge it requests (see [PR labeling and Mergify](#pr-labeling-and-mergify)).
+
+## Disclosure guard
+
+[ADR 0019](../decisions/0019-public-disclosure-policy.md) keeps personal identifiers out of the repository, and the guard checks it in two parts. Both are hooks of `.pre-commit-config.yaml`, so the required `pre-commit` check enforces the public part on every pull request (no change to `main`'s branch protection) and a local `pre-commit` run enforces both before a commit.
+
+### Public pattern classes
+
+Four `pygrep` hooks (a regular expression per line, built into `pre-commit`, no extra tool) flag a class of values. Only classes are in the repository, never a list of specific strings: such a list would publish exactly what it forbids.
+
+| Hook | Flags | Lets through |
+| --- | --- | --- |
+| `disclosure-email` | an email address | placeholder domains (`example.com`, `example.org`, `example.net` and subdomains), the reserved TLDs `.invalid`, `.test`, `.local`, `.localhost`, `.example`, the local parts `noreply`, `no-reply`, `root` and `git` (bots, `ssh root@host`), `noreply.github.com`, a principal in an uppercase Kerberos realm (`user@REALM.EXAMPLE`), the address inside a `lore.kernel.org`/`lore.proxmox.com` mailing-list URL |
+| `disclosure-mac` | a MAC address with `:` or `-` separators | all-zero, broadcast, `AA:BB:CC:DD:EE:FF`, the RFC 7042 documentation range `00:00:5E:00:53:xx` |
+| `disclosure-public-ip` | an IPv4 literal | private (RFC 1918), loopback, link-local, CGNAT (`100.64.0.0/10`), the three documentation ranges, `0/8`, `224/4` and above (multicast, reserved, netmasks) and the public DNS resolvers of Cloudflare, Google and Quad9 |
+| `disclosure-serial` | `serial`, `serial number`, `S/N`, `SN` or `service tag` followed by `:`, `=`, `#` or `\|` and a value of six or more characters with a digit | a keyword with a short or digit-less value (`serial: 1`, `serial: pending`) |
+
+The exceptions are, in this order of preference:
+
+1. **Write a placeholder** instead: a documentation range or `example.com`.
+2. **A marker on the line**, `disclosure:allow` after a `#` or in an HTML comment, for a value that must stay and is not personal. The marker sits next to what it excuses and shows up in review.
+3. **A file `exclude` of the hook** in `.pre-commit-config.yaml`, for text that is not ours: every hook skips `vendor/` (upstream manifests, byte-identical to upstream by the [vendoring check](kustomize.md#vendored-upstream-manifests)), the IP hook also `*.svg` (path data) and `*.lock`. The email hook also skips the `ClusterIssuer` files of the cert-manager unit until the contact addresses there are settled ([#2288](https://github.com/isejalabs/homelab/issues/2288)); drop that exclude when that issue closes.
+
+What the patterns cannot see: IPv6 addresses, MAC addresses in dotted (`aaaa.bbbb.cccc`) or unseparated form, names, postal addresses and anything that is not a class. Those are what the private list is for. A pattern hit is a candidate, not a verdict: classify it by [ADR 0019](../decisions/0019-public-disclosure-policy.md) and fix the file, not the pattern.
+
+### Private term list (local only)
+
+`disclosure-private-terms` ([`scripts/tools/check-private-terms.sh`](../../scripts/tools/check-private-terms.sh)) fails when a changed file contains a term from a list that lives outside the repository. It is a no-op with the message `skipped, no private term list configured` when no list exists, which is the case in CI and for anyone who is not the owner.
+
+- **Where**: the path in `DISCLOSURE_TERMS_FILE`, else `${XDG_CONFIG_HOME:-~/.config}/homelab/disclosure-terms.txt`. Keep the master copy in the private vault ([ADR 0019](../decisions/0019-public-disclosure-policy.md#private-records-and-enforcement)); the file on the disk is a local copy.
+- **Format**: one term per line, matched as a case-insensitive fixed string, `#` lines and blank lines ignored. Choose terms long enough not to match ordinary words: a substring hit in a file is a failure.
+- **Output**: only `file:line` and that the file contains a term, never the term or the line, so a failing run can be pasted into an issue.
+- **By hand, over the whole tree**: `scripts/tools/check-private-terms.sh --all`.
+
+The hook reads files, not commit messages, branch names or the text of issues and pull requests. Those are checked by hand with the same list (for example `git log --format=%B origin/main..HEAD | grep -i -F -f "$DISCLOSURE_TERMS_FILE"`) and by the sweep of [#2285](https://github.com/isejalabs/homelab/issues/2285).
+
+### Tests and running it
+
+[`scripts/ci/test-disclosure-hooks.sh`](../../scripts/ci/test-disclosure-hooks.sh) runs in the `pre-commit` workflow: in a scratch repository it seeds one violation per class, expects the hook to fail on it, and expects the allowlisted values and the marker to pass. The seeded values are synthetic (a benchmarking-range address, a never-delegated TLD, a locally administered MAC) and assembled from parts, so the repository holds no real string, not even in the test. The same script covers the private hook with a synthetic term in a temporary list.
+
+Run one hook over everything with `pre-commit run disclosure-public-ip --all-files`, or all with `pre-commit run --all-files`.
+
+### Why not an existing scanner
+
+Looked at before writing it (full record in the pull request that introduced it): `gitleaks` (custom rules in TOML, per-rule allowlists, but its pre-commit hook scans only staged changes, so CI would need its own run, a new pinned binary and a separate required check), `trufflehog` (custom regex detectors are alpha and built around verifying secrets), `detect-secrets` (custom plugins are Python code; last release 2024), `semgrep` (a heavy tool for four regexes), and PII scanners (`pdscan`, `pii-scan`, Presidio-based ones, a hosted-API pre-commit hook; they target data stores or need ML or a remote service). `pygrep` needs nothing the `pre-commit` workflow does not already run.
 
 ## Docs checks that don't block a PR
 

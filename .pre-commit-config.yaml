@@ -11,3 +11,90 @@ repos:
   - id: validate-sops
     # Adjust based on your file(s) location and type(s)
     files: '.+\.sops\.(ya?ml|json|env)$'
+# Disclosure guard (ADR 0019, docs/architecture/ci.md#disclosure-guard). Pattern classes only: a list of specific
+# strings is never committed. Every hook skips a line carrying the marker disclosure:allow (after # or in an
+# HTML comment) and a file listed in its own exclude, so an exception is visible next to the thing it excuses.
+- repo: local
+  hooks:
+  - id: disclosure-email
+    name: disclosure guard, email addresses
+    description: Flags email addresses outside the allowlist (placeholder domains, reserved TLDs, noreply/root/git local parts, uppercase Kerberos realms).
+    language: pygrep
+    # allowed: placeholder and reserved domains, noreply/no-reply/root/git local parts (ssh targets, bots),
+    # a principal in an uppercase Kerberos realm, mailing-list archive URLs (third-party message IDs)
+    entry: |
+      (?x)
+      ^(?!.*disclosure:allow)
+      (?!.*\blore\.(?:kernel|proxmox)\.(?:org|com)/)
+      .*?
+      (?<![A-Za-z0-9._%+-])
+      (?!(?:root|git|noreply|no-reply)@)
+      [A-Za-z0-9._%+-]+@
+      (?!
+        (?i:(?:[a-z0-9-]+\.)*(?:example\.(?:com|org|net)|noreply\.github\.com))(?![a-z0-9-]|\.[a-z0-9])
+        |(?i:[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:invalid|test|local|localhost|example))(?![a-z0-9-]|\.[a-z0-9])
+        |(?-i:[A-Z0-9-]+(?:\.[A-Z0-9-]+)+)(?![A-Za-z0-9-]|\.[A-Za-z0-9])
+      )
+      [A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}
+    # vendor/ is upstream text; the cert-manager issuers are the open question of the cert-manager contacts issue
+    exclude: ^(?:.*/vendor/.*|k8s/infra/cert-manager/cert-manager/envs/[^/]+/cluster-issuer\.yaml)$
+    types: [text]
+  - id: disclosure-mac
+    name: disclosure guard, MAC addresses
+    description: Flags MAC addresses (colon or hyphen separated) other than the all-zero, broadcast, example and RFC 7042 documentation ones.
+    language: pygrep
+    entry: |
+      (?x)
+      ^(?!.*disclosure:allow)
+      .*?
+      (?<![0-9A-Fa-f:-])
+      (?!(?i:00[:-]00[:-]00[:-]00[:-]00[:-]00|ff[:-]ff[:-]ff[:-]ff[:-]ff[:-]ff|aa[:-]bb[:-]cc[:-]dd[:-]ee[:-]ff|00[:-]00[:-]5e[:-]00[:-]53[:-][0-9a-f]{2}))
+      (?:[0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}
+      (?![0-9A-Fa-f]|[:-][0-9A-Fa-f])
+    exclude: ^.*/vendor/.*$
+    types: [text]
+  - id: disclosure-public-ip
+    name: disclosure guard, public IPv4 literals
+    description: Flags IPv4 literals outside private, loopback, link-local, CGNAT, documentation, multicast and mask ranges and outside a short list of well-known public DNS resolvers.
+    language: pygrep
+    # allowed: 10/8, 127/8, 0/8, 169.254/16, 192.168/16, 172.16/12, 100.64/10, 192.0.2/24, 198.51.100/24,
+    # 203.0.113/24, 224/4 and above (multicast, reserved, netmasks), and the public DNS resolvers of Cloudflare,
+    # Google and Quad9 (services, not people)
+    entry: |
+      (?x)
+      ^(?!.*disclosure:allow)
+      .*?
+      (?<![0-9.])
+      (?!
+        (?:10|127|0|169\.254|192\.168|172\.(?:1[6-9]|2[0-9]|3[01])|192\.0\.2|198\.51\.100|203\.0\.113
+          |100\.(?:6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])|2(?:2[4-9]|[3-5][0-9]))\.
+        |(?:1\.1\.1\.1|1\.0\.0\.1|8\.8\.8\.8|8\.8\.4\.4|9\.9\.9\.(?:9|10|11|12)|149\.112\.112\.(?:10|11|112))(?![0-9]|\.[0-9])
+      )
+      (?:(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.){3}(?:25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])
+      (?![0-9]|\.[0-9])
+    # svg path data and vendor/ upstream text contain number runs that only look like addresses
+    exclude: ^(?:.*/vendor/.*|.*\.svg|.*\.lock)$
+    types: [text]
+  - id: disclosure-serial
+    name: disclosure guard, serial-like strings
+    description: Flags a serial number, S/N or service tag keyword followed by a value of six or more characters containing a digit.
+    language: pygrep
+    entry: |
+      (?ix)
+      ^(?!.*disclosure:allow)
+      .*?
+      \b(?:serial(?:[\ _-]?(?:number|no\.?|nr\.?|num))?|s/n|sn|service[\ _-]?tag)\b
+      [`"'*]*\s*[:=#|]\s*[`"'*]*
+      (?=[A-Za-z0-9-]*[0-9])
+      [A-Za-z0-9][A-Za-z0-9-]{5,}
+    exclude: ^.*/vendor/.*$
+    types: [text]
+  # Private term list kept outside the repository: a no-op with a message when none is configured.
+  - id: disclosure-private-terms
+    name: disclosure guard, private term list
+    description: Flags any term from a private list read from DISCLOSURE_TERMS_FILE (default ~/.config/homelab/disclosure-terms.txt); never prints a term.
+    entry: scripts/tools/check-private-terms.sh
+    language: script
+    require_serial: true
+    types: [text]
+    verbose: true
