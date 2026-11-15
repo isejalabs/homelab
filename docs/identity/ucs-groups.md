@@ -8,19 +8,19 @@ UCS stays authoritative for users and groups ([ADR 0016](../decisions/0016-ident
 
 ## Naming scheme
 
-Names are lower case, segments separated by `.`, in the form `<kind>.<area>.<name>[.<role>]`. UCS accepts dots in group names (the regular expression of the UDM `name` property allows them, and `fs.onedrive.sebi` already exists).
+Names are lower case, segments separated by `.`, in the form `<kind>.<area>.<name>[.<role>]`. UCS accepts dots in group names (the regular expression of the UDM `name` property allows them, and `fs.onedrive.bob` already exists).
 
 | Group | Kind | Meaning | Read by Keycloak |
 | --- | --- | --- | --- |
 | `sec.idm.users` | access | accounts admitted to the realm `iseja` | user filter of the realm |
 | `sec.idm.admins` | access | `*-adm` accounts admitted to the realm `admin` | user filter of the realm |
 | `sec.app.<app>.<role>`, for example `sec.app.checkmk.admin` | access | one role of one application | group mapper, becomes the `groups` claim |
-| `grp.<name>`, for example `grp.family` | people | a set of people, for file shares, mail and the like | no |
+| `grp.<name>`, for example `grp.household` | people | a set of people, for file shares, mail and the like | no |
 | `fs.<...>` | storage | file-share groups, unchanged | no |
 
 - `sec` stands for security: membership of a `sec.*` group grants access to something, so every change to one is an access decision.
 - The segment `app` is kept on purpose. The group mapper filter is `(cn=sec.app.*)` (in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)), so only application roles end up in the token; the realm groups `sec.idm.*` are not sent to applications.
-- `grp.*` is the naming for groups of people. None exists yet; it is the intended home for "the family" so that it is stated once.
+- `grp.*` is the naming for groups of people. None exists yet; it is the intended home for "the household" so that it is stated once.
 
 ## Nesting
 
@@ -40,7 +40,7 @@ So the Unix group model is compatible with UCS groups; the gap is only for LDAP 
 
 Both ways Keycloak uses a group are direct-membership lookups:
 
-- **Realm admission** is `(memberOf=cn=sec.idm.users,...)`. An account that is only in `grp.family`, with `grp.family` nested in `sec.idm.users`, does not match.
+- **Realm admission** is `(memberOf=cn=sec.idm.users,...)`. An account that is only in `grp.household`, with `grp.household` nested in `sec.idm.users`, does not match.
 - **The `groups` claim** comes from the LDAP group mapper. Its strategy `LOAD_GROUPS_BY_MEMBER_ATTRIBUTE` (the default, used here) asks for the groups whose `uniqueMember` is the user, and `GET_GROUPS_FROM_USER_MEMBEROF_ATTRIBUTE` reads the user's `memberOf`; both are direct. The third strategy, `LOAD_GROUPS_BY_MEMBER_ATTRIBUTE_RECURSIVELY`, is documented in the Keycloak source as "extension specific to Active Directory" that "likely doesn't work on other LDAP servers" (it uses the matching rule `LDAP_MATCHING_RULE_IN_CHAIN`; [`UserRolesRetrieveStrategy.java`](https://github.com/keycloak/keycloak/blob/main/federation/ldap/src/main/java/org/keycloak/storage/ldap/mappers/membership/UserRolesRetrieveStrategy.java)). The federation here talks to UCS OpenLDAP on 7636, not to the Samba AD LDAP.
 - `preserve_group_inheritance` (off here) only imports LDAP nesting as a Keycloak group tree. The mapper returns the groups the user is a member of, not their ancestors ([`GroupLDAPStorageMapper.java`](https://github.com/keycloak/keycloak/blob/main/federation/ldap/src/main/java/org/keycloak/storage/ldap/mappers/membership/group/GroupLDAPStorageMapper.java)), so it does not make `sec.app.*` roles flow down from a parent.
 
@@ -60,7 +60,7 @@ Not needed at the current size (a handful of accounts per group). If it is, in t
 
 ## Migration of the first names
 
-The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They were renamed in the live domain on 2026-11-01 (`dev` and `qa`, steps below; `prod` has no Keycloak yet). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
+The groups were created as `idm-users`, `idm-admins` and `app-checkmk-{admin,operator,readonly}`. They were renamed in the live domain on 2026-11-01 (`dev` and `qa`, steps below; `prod` came up afterwards and uses the new names from the start). The rename is in place: the UDM property `name` can be changed, and the members stay. The commands, as `root` on a domain controller:
 
 ```sh
 BASE="dc=dir,dc=iseja,dc=net"
@@ -74,9 +74,9 @@ done
 Between the rename and the `terragrunt apply` of the realm filters, the filters match nobody, so run them back to back. The local administrator of Checkmk (`cmkadmin`) is the way in meanwhile ([`checkmk-sso.md`](checkmk-sso.md#break-glass)). In this order:
 
 1. **Merge** the pull request that changes the filters in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl) (no apply happens on merge).
-2. **UCS:** rename the groups (above) and check `ldapsearch ... "(uid=sebi)" memberOf` returns `cn=sec.idm.users,...` ([`keycloak-realms.md`](keycloak-realms.md#ucs-setup)).
+2. **UCS:** rename the groups (above) and check `ldapsearch ... "(uid=bob)" memberOf` returns `cn=sec.idm.users,...` ([`keycloak-realms.md`](keycloak-realms.md#ucs-setup)).
 3. **Keycloak:** from `main`, `terragrunt apply` the `keycloak-realm` unit of `dev` and then `qa` ([`keycloak-realms.md`](keycloak-realms.md#apply-and-verify)). In each realm, *User federation → ucs → Mappers → groups → Sync LDAP groups to Keycloak* imports the new names and drops the old ones, then *Sync changed users* (or wait up to an hour, see [`checkmk-sso.md`](checkmk-sso.md#changing-who-has-access)). The group sync is also an admin API call: `POST /admin/realms/<realm>/user-storage/<ucs-provider-id>/mappers/<groups-mapper-id>/sync?direction=fedToKeycloak` (the direction values are `fedToKeycloak` and `keycloakToFed`, not the console's wording); it answered `3 imported groups, 0 updated groups, 3 removed groups` in each of the four realms.
 4. **Checkmk:** in each SAML connection of `dev_k8s` and `qa_k8s` (four in all) replace the group names in the role and contact group mapping by the new ones ([`checkmk-sso.md`](checkmk-sso.md#checkmk-side)). Checkmk 2.5.0p15 has no REST call to change a SAML connection (only `GET`, `POST` and `DELETE`), and deleting one risks its users, which carry `connector: keycloak_iseja`. The change was therefore made in the site's `etc/check_mk/multisite.d/wato/user_connections.mk`, the file the setup page writes, as the site user with a backup copy in the site's `tmp/`; the REST `GET` then returned the new names.
-5. **Verify** a login as `sebi`, `sebi-adm` and `mary` in both sites. Checked: `ldapsearch` shows `memberOf: cn=sec.idm.users,...` for `sebi`, and the Keycloak user groups in `dev` and `qa` are `sebi` → `sec.app.checkmk.operator`, `sebi-adm` → `sec.app.checkmk.admin`, `mary` → `sec.app.checkmk.readonly`. The owner confirmed complete browser logins as `sebi`, `sebi-adm` and `mary` in `dev_k8s` and `qa_k8s` on 2026-11-02.
+5. **Verify** a login as `bob`, `bob-adm` and `alice` in both sites. Checked: `ldapsearch` shows `memberOf: cn=sec.idm.users,...` for `bob`, and the Keycloak user groups in `dev` and `qa` are `bob` → `sec.app.checkmk.operator`, `bob-adm` → `sec.app.checkmk.admin`, `alice` → `sec.app.checkmk.readonly`. The owner confirmed complete browser logins as `bob`, `bob-adm` and `alice` in `dev_k8s` and `qa_k8s` on 2026-11-02.
 
 To roll back, rename the groups back and revert the pull request.

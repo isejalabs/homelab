@@ -7,7 +7,7 @@ The [Keycloak Operator](https://www.keycloak.org/operator/installation) turns a 
 | | |
 | --- | --- |
 | Namespace | `keycloak` (namespace manifest in [`../_ns/`](../_ns/base/ns.yaml)) |
-| Runs in | `dev`, `qa`, `rebuild` (Flux set `soaking`); not yet in `prod` |
+| Runs in | `dev`, `qa`, `prod`, `rebuild` (Flux set `standing`) |
 | Installed via | Upstream release manifests, vendored under [`base/vendor/`](base/vendor/) (CRDs and the operator `Deployment`), with one probe patch |
 | Flux Kustomization | `keycloak-operator`, depends on `infra-ns` |
 
@@ -28,8 +28,8 @@ Not exposed. The operator has no UI; it talks to the API server only.
 
 - **Version**: the release number is in the upstream URL comments of [`base/kustomization.yaml`](base/kustomization.yaml) (`keycloak-k8s-resources/<version>/...`), next to the files under `base/vendor/`. The operator version also selects the Keycloak server version, since the `Keycloak` resource sets no image.
 - **Flow**: Renovate bumps the URLs; run `scripts/ci/vendor-manifests.sh update` on that PR branch to fetch the matching files (the `kustomize-build` check fails until they match). Details: [`update-handling.md`](../../../../docs/operations/update-handling.md#renovate).
-- **Per environment**: `dev`, `qa` and `rebuild` follow `base/`. Once promoted, `prod` needs its own pin, which is an open point because an overlay cannot patch vendored files: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
-- **After every bump**: re-check the startup probe patch in `base/kustomization.yaml` (upstream's own probe kills the operator, which needs about 26 s to start).
+- **Per environment**: `dev`, `qa` and `rebuild` follow `base/`. `prod` carries its own copy of the vendored files under [`envs/prod/vendor/`](envs/prod/vendor/), declared in [`envs/prod/kustomization.yaml`](envs/prod/kustomization.yaml) because an overlay cannot patch vendored files; the startup probe patch is repeated there. A bump of `base/` leaves `prod` as it is, `prod` takes it in its own PR: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
+- **After every bump**: re-check the startup probe patch in `base/kustomization.yaml` and `envs/prod/kustomization.yaml` (upstream's own probe kills the operator, which needs about 26 s to start).
 
 ## Operations
 

@@ -7,7 +7,7 @@
 | | |
 | --- | --- |
 | Namespace | `cnpg-system` (namespace manifest in [`../_ns/`](../_ns/base/ns.yaml)) |
-| Runs in | `dev`, `qa`, `rebuild` (Flux set `soaking`); not yet in `prod` |
+| Runs in | `dev`, `qa`, `prod`, `rebuild` (Flux set `standing`) |
 | Installed via | HelmRelease, chart from the OCI repository `ghcr.io/cloudnative-pg/charts/cloudnative-pg` ([`base/ocirepository.yaml`](base/ocirepository.yaml)); CRDs come with the chart (`crds.create: true`) |
 | Flux Kustomization | `cloudnative-pg`, depends on `infra-ns` |
 
@@ -27,7 +27,7 @@ Not exposed. The operator has no UI. Each database is reachable in-cluster only,
 ## Updates
 
 - **Operator**: chart tag and digest in [`base/ocirepository.yaml`](base/ocirepository.yaml) (`spec.ref`). `dev`, `qa` and `rebuild` follow `base/` through the normal Renovate flow ([`update-handling.md`](../../../../docs/operations/update-handling.md#how-a-renovate-pull-request-gets-merged)).
-- **Once promoted to `prod`**: `prod` pins the chart itself under `envs/prod/` (like [cilium's](../../kube-system/cilium/envs/prod/ocirepository.yaml)) and takes an update only after a 7-day age gate and a manual merge: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg). Until then the pin file does not exist.
+- **`prod`**: pins the chart itself in [`envs/prod/ocirepository.yaml`](envs/prod/ocirepository.yaml) (like [cilium's](../../kube-system/cilium/envs/prod/ocirepository.yaml)) and takes an update only after a 7-day age gate and a manual merge: [Staged rollout: Keycloak and CloudNativePG](../../../../docs/operations/update-handling.md#staged-rollout-keycloak-and-cloudnativepg).
 - **PostgreSQL images** are not set here but in each `Cluster` (`spec.imageName`), pinned on purpose so an operator bump never changes the database version. They are manual PRs: see the `ghcr.io/cloudnative-pg/postgresql` row in [Non-standard update strategies](../../../../docs/operations/update-handling.md#non-standard-update-strategies) and [Upgrading PostgreSQL](../../../../docs/identity/keycloak-backup-restore.md#upgrading-postgresql).
 
 ## Operations

@@ -2,7 +2,7 @@
 # Checks that the catalog tables in docs/architecture/workloads.md agree with the repo: every table row's
 # unit exists with a flux/ folder, every unit under k8s/apps and k8s/infra that has a flux/ folder has a row,
 # and each row's "Flux set" column names the set that lists the unit in k8s/bootstrap/cluster/flux/sets/
-# (minimal, optional, soaking, or "none" if no set lists it). Only the first word of the Flux set cell counts,
+# (minimal, optional, standing, or "none" if no set lists it). Only the first word of the Flux set cell counts,
 # so the explanatory text after it stays free-form.
 #
 # Usage: scripts/ci/check-workloads-catalog.sh [repo-root]

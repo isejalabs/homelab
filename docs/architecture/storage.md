@@ -74,6 +74,7 @@ for i in $(terragrunt state list | grep module.volumes.module.proxmox-volume); d
 
 - `longhorn-core` installs the Helm chart itself ([`base/helmrelease.yaml`](../../k8s/infra/longhorn-system/longhorn-core/base/helmrelease.yaml)): chart `v1.12.1`, `defaultSettings.defaultDataPath: /var/mnt/longhorn`, `defaultReplicaCount: 2`, and a deliberately small footprint (`longhornUI.replicas: 1`, single-replica CSI sidecars) appropriate for a homelab rather than a large production fleet.
 - `longhorn` (`dependsOn: longhorn-core`) carries the custom `StorageClass`es, a `VolumeSnapshotClass`, and backup/trim/snapshot `RecurringJob`s.
+- `longhorn-auth` (`dependsOn: longhorn-core`, registered per environment, `dev` so far) puts a Keycloak login in front of the dashboard, because Longhorn has none: [`longhorn-sso.md`](../identity/longhorn-sso.md).
 
 ### StorageClasses — one driver, several tradeoff profiles
 

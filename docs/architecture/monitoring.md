@@ -8,7 +8,7 @@ How the homelab is monitored today: which Checkmk sites exist and why, how data 
 
 ## Checkmk, outside the clusters
 
-Monitoring runs on [Checkmk](https://checkmk.com/), in two LXC containers on Proxmox (`monitoring1`, `monitoring2`), not inside any Kubernetes cluster — so a broken cluster can still be seen. Each container runs several Checkmk sites. There is no Prometheus/Grafana stack: `k8s/infra/o11y/` only pre-installs CRDs for one (see [`workloads.md`](workloads.md)), and its future is an open question of the [observability plan](../plans/2026-09-observability.md) ([#71](https://github.com/isejalabs/homelab/issues/71)).
+Monitoring runs on [Checkmk](https://checkmk.com/), in two LXC containers on Proxmox (`monitoring1`, `monitoring2`), not inside any Kubernetes cluster — so a broken cluster can still be seen. Each container runs several Checkmk sites. There is no Prometheus/Grafana stack: `k8s/infra/o11y/` only pre-installs CRDs for one (see [`workloads.md`](workloads.md)), and the [observability plan](../plans/2026-11-observability.md) ([#71](https://github.com/isejalabs/homelab/issues/71)) keeps Checkmk for Kubernetes, with Prometheus only as the fallback if Checkmk's service limits become the constraint.
 
 The sites split along two lines:
 
@@ -60,4 +60,4 @@ Notifications are configured per site and never merged across sites. They are no
 - [`reference/monitoring-notifications.md`](../reference/monitoring-notifications.md) — notification settings per site and what is noise vs signal.
 - [`reference/monitoring-thresholds.md`](../reference/monitoring-thresholds.md) — rules tuned against false positives, with their evidence.
 - [`docs/operations/checkmk-automation-user.md`](../operations/checkmk-automation-user.md) — the role of the `terraform` user the Checkmk units use.
-- [`plans/2026-10-checkmk-consolidation.md`](../plans/2026-10-checkmk-consolidation.md) and [`plans/2026-09-observability.md`](../plans/2026-09-observability.md) — where this is heading.
+- [`plans/2026-10-checkmk-consolidation.md`](../plans/2026-10-checkmk-consolidation.md) and [`plans/2026-11-observability.md`](../plans/2026-11-observability.md) — where this is heading.

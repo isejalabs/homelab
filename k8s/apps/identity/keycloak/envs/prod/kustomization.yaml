@@ -6,8 +6,11 @@ components:
 
 resources:
   - ../../base
+  - externalsecret-heartbeat.yaml
 
 patches:
+  - path: cluster.yaml
+  - path: cronjob-dump.yaml
   - patch: |-
       - op: replace
         path: /spec/hostname/hostname

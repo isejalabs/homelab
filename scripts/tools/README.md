@@ -1,6 +1,6 @@
 # Stand-alone tools
 
-Scripts a human runs by hand; nothing wraps them in `just` and no workflow calls them. Each script documents its purpose and usage in a header comment; this README is an index, not a duplicate of that. All of them source [`lib/common.sh`](../lib/common.sh) for logging.
+Scripts a human runs by hand; nothing wraps them in `just` and no workflow calls them (the one script a pre-commit hook also runs is [`check-private-terms.sh`](check-private-terms.sh), see below). Each script documents its purpose and usage in a header comment; this README is an index, not a duplicate of that. All of them except `check-private-terms.sh` (plain POSIX `sh`, so a hook can run it on any machine) source [`lib/common.sh`](../lib/common.sh) for logging.
 
 ## SOPS bulk operations
 
@@ -35,6 +35,14 @@ Needs 1Password and network access to the RustFS, so not for CI — see the "Rus
 | Script | Purpose |
 | --- | --- |
 | [`rustfs-verify-monitoring.sh`](rustfs-verify-monitoring.sh) | verifies one environment's `<env>-checkmk-monitoring` identity reads quota of its own buckets and is denied everything else (non-mutating) |
+
+## Disclosure guard
+
+The local part of the guard of [ADR 0019](../../docs/decisions/0019-public-disclosure-policy.md), run as the `disclosure-private-terms` pre-commit hook; see [Disclosure guard](../../docs/architecture/ci.md#disclosure-guard) for the list format and where it lives.
+
+| Script | Purpose |
+| --- | --- |
+| [`check-private-terms.sh`](check-private-terms.sh) | fails when a file contains a term (literal or regex, whole word, case-insensitive) from the private tab-separated list in `DISCLOSURE_TERMS_FILE` (default `~/.config/homelab/disclosure-terms.tsv`), printing only `file:line`; a no-op with a message when no list is configured; `--all` checks every tracked file |
 
 ## Keycloak availability drill
 

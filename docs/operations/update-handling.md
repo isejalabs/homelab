@@ -116,21 +116,24 @@ Limitations:
 
 #### Staged rollout: Keycloak and CloudNativePG
 
-The units registered through [`sets/soaking`](../../k8s/bootstrap/cluster/flux/sets/soaking/kustomization.yaml) (CloudNativePG operator, Keycloak operator, Keycloak and its database) are gated by `qa` the same way, with a stricter prod step because every SSO login depends on the `prod` instance ([ADR 0016](../decisions/0016-identity-and-web-sso.md), [#1947](https://github.com/isejalabs/homelab/issues/1947)).
+The units registered through [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml) (CloudNativePG operator, Keycloak operator, Keycloak and its database) are gated by `qa` the same way, with a stricter prod step because every SSO login depends on the `prod` instance ([ADR 0016](../decisions/0016-identity-and-web-sso.md), [#1947](https://github.com/isejalabs/homelab/issues/1947)).
 
-What `soaking` does and does not gate: the set only decides **which environments run the units**. It says nothing about **which versions** they run. Without the pins below, a unit that moves into `prod` follows `base/` exactly like `qa`, so a patch or digest update (automerged by Renovate) or a minor update (automerged by mergify) would reach `prod` the moment it lands on `main`, with no `qa` soak in between.
+What `standing` does and does not gate: the set only decides **which environments run the units**. It says nothing about **which versions** they run. Without the pins below, a unit that `prod` runs follows `base/` exactly like `qa`, so a patch or digest update (automerged by Renovate) or a minor update (automerged by mergify) would reach `prod` the moment it lands on `main`, with no `qa` soak in between.
 
-The policy, once a unit is promoted to `prod`:
+The policy for these units in `prod`:
 
 - `base/` keeps taking releases as before, so `dev`, `qa` and `rebuild` run a new version first.
 - `prod` pins every version of the unit itself under `envs/prod/` (see the checklist below). A bump there is its own PR, labeled `env:prod` by the labeler.
 - The [`staged-rollout.json5`](../../.github/renovate/staged-rollout.json5) rule for these `envs/prod/` paths sets `minimumReleaseAge: "7 days"`, `automerge: false` and the `updateStrategy:manual` label. The owner merges the PR after checking the version ran in `qa`.
 
-The rule matches nothing yet: `prod` does not run these units, so there are no pin files. It starts to work when the promotion PR adds them. That PR must, besides moving the unit's line out of `sets/soaking`:
+The pin files exist, so the rule matches. `prod` registers the units through `sets/standing`, and they carry the values `base/` had at that moment:
 
-- [ ] Pin every version source of the unit in `envs/prod/` with the same value `base/` has at that moment: the chart tag and digest of the CloudNativePG `OCIRepository` (as in [cilium's `envs/prod/ocirepository.yaml`](../../k8s/infra/kube-system/cilium/envs/prod/ocirepository.yaml)), the PostgreSQL image of the `Cluster` (once it is pinned, [#1941](https://github.com/isejalabs/homelab/issues/1941)) and of the dump job, and the Keycloak operator release.
-- [ ] Give the Keycloak operator release a prod-owned pin. Its version is part of the upstream URLs in the comments of [`base/kustomization.yaml`](../../k8s/infra/keycloak/keycloak-operator/base/kustomization.yaml), next to the manifests vendored under `base/vendor/`, which an overlay cannot patch, so the promotion PR has to decide how `prod` carries its own copy (for example a `vendor/` directory under `envs/prod/`, declared the same way and kept in sync by `scripts/ci/vendor-manifests.sh`).
-- [ ] Render the `prod` overlay before and after (`kubectl kustomize`) and check the output is unchanged apart from the promotion itself.
+- **CloudNativePG chart**: tag and digest in [`envs/prod/ocirepository.yaml`](../../k8s/infra/cnpg-system/cloudnative-pg/envs/prod/ocirepository.yaml), as in [cilium's `envs/prod/ocirepository.yaml`](../../k8s/infra/kube-system/cilium/envs/prod/ocirepository.yaml).
+- **PostgreSQL image**: `spec.imageName` of the `Cluster` in [`envs/prod/cluster.yaml`](../../k8s/apps/identity/keycloak/envs/prod/cluster.yaml) and the `dump` init container of the dump job in [`envs/prod/cronjob-dump.yaml`](../../k8s/apps/identity/keycloak/envs/prod/cronjob-dump.yaml). Both have to carry the same value (server and `pg_dump` client): the replacement in `base/kustomization.yaml` that keeps them equal runs before the overlay and does not reach the `prod` patch. Renovate bumps both in one PR.
+- **Dump job helper image**: the `aws-cli` image of the `upload` and `fetch-age` containers, in the same `cronjob-dump.yaml`. The `age` release that `fetch-age` downloads is a constant in the script of `base/` and is bumped by hand there, so `prod` follows it at once.
+- **Keycloak operator release** (and with it the Keycloak server version, since the `Keycloak` resource sets no image): `prod` does not include the operator's `base/` but carries its own copy of the vendored files in [`envs/prod/vendor/`](../../k8s/infra/keycloak/keycloak-operator/envs/prod/vendor/), declared in [`envs/prod/kustomization.yaml`](../../k8s/infra/keycloak/keycloak-operator/envs/prod/kustomization.yaml) the same way as in `base/` and kept in sync by `scripts/ci/vendor-manifests.sh`. The startup probe patch of `base/` is repeated there; keep the two in step.
+
+When one of these is bumped in `base/`, the `prod` copy stays; bump it in its own PR with the same steps as a base bump (the vendored files by `scripts/ci/vendor-manifests.sh update`). Check a change to these paths by rendering the `prod` overlay before and after (`kubectl kustomize k8s/<kind>/<category>/<unit>/envs/prod`): the output differs only by the bumped version.
 
 Limitations:
 
@@ -156,7 +159,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 | `@mermaid-js/mermaid-cli` | Pin exact, temporary | Held at `11.12.0` in [`docs/.mise.toml`](../.mise.toml) and [`pin-versions.json5`](../../.github/renovate/pin-versions.json5): 11.17.1 pulls a `chromium-bidi` release that mise's npm backend rejects with a trust-policy error, which made [`docs-mermaid-check`](../../.github/workflows/docs-mermaid-check.yml) fail at install time ([#2070](https://github.com/isejalabs/homelab/issues/2070)). Lift both together. |
 | `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
 | `docker.io/madnuttah/unbound` | Staged, 3-day age gate for prod | `qa` and other environments take new releases from `base/` immediately; prod pins its own image and only gets a PR once the release is 3 days old — see [Staged rollout: unbound](#staged-rollout-unbound). |
-| Keycloak operator, CloudNativePG chart, database and Keycloak images | Staged in `prod` once promoted, manual, 7-day age gate | `dev`, `qa` and `rebuild` take new releases from `base/`; `prod` pins its own versions and gets a separate PR that waits 7 days and needs a manual merge — see [Staged rollout: Keycloak and CloudNativePG](#staged-rollout-keycloak-and-cloudnativepg). |
+| Keycloak operator, CloudNativePG chart, database and Keycloak images | Staged in `prod`, manual, 7-day age gate | `dev`, `qa` and `rebuild` take new releases from `base/`; `prod` pins its own versions and gets a separate PR that waits 7 days and needs a manual merge — see [Staged rollout: Keycloak and CloudNativePG](#staged-rollout-keycloak-and-cloudnativepg). |
 | `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
 
 ### Excluded packages and paths from auto-merging

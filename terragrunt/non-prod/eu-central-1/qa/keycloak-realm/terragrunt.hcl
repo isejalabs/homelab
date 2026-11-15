@@ -49,4 +49,17 @@ inputs = {
       name      = "Checkmk qa_k8s (admin)"
     }
   }
+
+  # OIDC clients, one per application and realm; see docs/identity/keycloak-realms.md#oidc-clients. The Longhorn
+  # dashboard has no login of its own: the oauth2-proxy of k8s/infra/longhorn-system/longhorn-auth logs in with this
+  # client (realm admin, group sec.app.longhorn.admin). The generated secret lands in the 1Password item
+  # keycloak-oidc-longhorn-admin#qa, which an ExternalSecret hands to the proxy.
+  oidc_clients = {
+    "longhorn-admin" = {
+      realm         = "admin"
+      client_id     = "longhorn"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
+      pkce          = true
+    }
+  }
 }

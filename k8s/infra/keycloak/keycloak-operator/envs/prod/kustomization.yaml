@@ -1,8 +1,43 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
+namespace: keycloak
+
 components:
   - ../../../../../components/envs/prod
 
+# prod does not include ../../base: the operator release is part of the vendored files, which an overlay cannot patch, so
+# prod carries its own copy under vendor/ (bumped in its own PR after qa has run the version, docs/operations/update-handling.md,
+# "Staged rollout: Keycloak and CloudNativePG"). The namespace and the startup probe patch below are copies of
+# ../../base/kustomization.yaml and have to be kept in step with it.
 resources:
-  - ../../base
+  # https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.8.1/kubernetes/keycloaks.k8s.keycloak.org-v1.yml
+  - vendor/keycloaks.k8s.keycloak.org-v1.yml
+  # https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.8.1/kubernetes/keycloakoidcclients.k8s.keycloak.org-v1.yml
+  - vendor/keycloakoidcclients.k8s.keycloak.org-v1.yml
+  # https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.8.1/kubernetes/keycloakrealmimports.k8s.keycloak.org-v1.yml
+  - vendor/keycloakrealmimports.k8s.keycloak.org-v1.yml
+  # https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.8.1/kubernetes/keycloaksamlclients.k8s.keycloak.org-v1.yml
+  - vendor/keycloaksamlclients.k8s.keycloak.org-v1.yml
+  # https://raw.githubusercontent.com/keycloak/keycloak-k8s-resources/26.8.1/kubernetes/kubernetes.yml
+  - vendor/kubernetes.yml
+
+patches:
+  # Upstream's startup probe (5 s delay, 3 x 10 s) kills the operator, which needs ~26 s to start
+  # (more when CPU-throttled). Allow up to 5 s + 30 x 5 s. Re-check on every operator version bump.
+  - target:
+      kind: Deployment
+      name: keycloak-operator
+    patch: |-
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: keycloak-operator
+      spec:
+        template:
+          spec:
+            containers:
+              - name: keycloak-operator
+                startupProbe:
+                  failureThreshold: 30
+                  periodSeconds: 5

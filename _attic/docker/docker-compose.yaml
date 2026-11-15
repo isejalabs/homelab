@@ -27,7 +27,7 @@ services:
       - PUID=1000
       - PGID=1000
       - TZ=Europe/London
-      - PUBLIC_KEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMtsiX2u7WAVQ/x/P6m/VZbgwO4lr6qRgtzxhbCVaEX4 sebi@tabea #optional
+      - PUBLIC_KEY=ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMtsiX2u7WAVQ/x/P6m/VZbgwO4lr6qRgtzxhbCVaEX4 bob@tabea #optional
       - PUBLIC_KEY_FILE=/root/.ssh/authorized_keys #optional
   #    - PUBLIC_KEY_DIR=/path/to/directory/containing/_only_/pubkeys #optional
   #    - PUBLIC_KEY_URL=https://github.com/username.keys #optional

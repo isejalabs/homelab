@@ -24,7 +24,7 @@ repo_units() {
 # the name of the directory the listing file is in (apps/minimal -> minimal). A unit listed in more than one
 # set gets one line per set, which then shows up as a mismatch in the callers.
 sets_listing() {
-    for f in "${SETS}"/apps/minimal "${SETS}"/apps/optional "${SETS}"/infra/minimal "${SETS}"/infra/optional "${SETS}"/soaking; do
+    for f in "${SETS}"/apps/minimal "${SETS}"/apps/optional "${SETS}"/infra/minimal "${SETS}"/infra/optional "${SETS}"/standing; do
         set_name=$(basename "$f")
         sed -E -n 's#^ *- *(\.\./)*(apps|infra)/([^/]+)/([^/]+)/flux *$#\2/\3/\4#p' "$f/kustomization.yaml" |
             while read -r unit || [ -n "$unit" ]; do
