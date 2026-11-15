@@ -58,7 +58,7 @@ scripts/tools/sops-encrypt-all.sh    # re-encrypt all *.sops.yaml under current 
 scripts/tools/sops-decrypt-all.sh
 ```
 
-Pre-commit hooks (`.pre-commit-config.yaml`) enforce: no unencrypted secrets committed (`forbid-secrets`, with a single deliberate exception at `k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml`) and valid SOPS encryption on `*.sops.{yaml,json,env}` files (`validate-sops`).
+Pre-commit hooks (`.pre-commit-config.yaml`) enforce: no unencrypted secrets committed (`forbid-secrets`, with a single deliberate exception at `k8s/bootstrap/kustomize/personal/external-secrets/s3cr3t.yaml`) and valid SOPS encryption on `*.sops.{yaml,json,env}` files (`validate-sops`). The `disclosure-*` hooks guard [ADR 0019](docs/decisions/0019-public-disclosure-policy.md) (email addresses, MAC addresses, public IPv4 literals and serial-like strings by pattern class; a private term list read from outside the repository, local only): see [Disclosure guard](docs/architecture/ci.md#disclosure-guard) before adding an exception, and write a placeholder rather than a real value in anything you commit.
 
 Eleven validation workflows run on every pull request and push to `main` (ten of them are required checks, see PR discipline); a separate `labeler` workflow runs on `pull_request_target`. See [`docs/architecture/ci.md`](docs/architecture/ci.md) for the full workflow inventory, which checks are required on `main`, typical runtimes, shared tool provisioning, and the PR-labeling/Mergify automation built on top of it.
 
