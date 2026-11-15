@@ -54,7 +54,7 @@ Immich renders a RAW file on its own, from the RAW data or, with "Prefer embedde
 
 ### Users and sharing
 
-- An external library has exactly one owner. [Partner sharing](https://docs.immich.app/features/partner-sharing) is one-way, and it does **not** include people and facial recognition data or the partner's existing albums; it can also show duplicates on the timeline. A family member who sees the historical library through partner sharing therefore cannot browse it by person.
+- An external library has exactly one owner. [Partner sharing](https://docs.immich.app/features/partner-sharing) is one-way, and it does **not** include people and facial recognition data or the partner's existing albums; it can also show duplicates on the timeline. A household member who sees the historical library through partner sharing therefore cannot browse it by person.
 - Faces, albums, favourites, shares and the archive flag exist only in the Immich database, whichever library type the asset is in. They survive only as long as the asset keeps its path (external) or is not deleted (upload).
 - Thumbnails and transcoded videos add 10–20 % to the library size ([requirements](https://docs.immich.app/install/requirements)); they are regenerable.
 
@@ -73,7 +73,7 @@ Phone media are uploaded to Immich and imported by LrC from there instead of fro
 
 Each asset has exactly one master, decided by where it came from and visible from its folder:
 
-- **Phone media** (new uploads): Immich upload library on `fiona`, laid out by the storage template with one storage label per person, for example `upload/sebi/2026/2026-11-02/IMG_1234.HEIC`. Immich is the master; the creator is the uploading account. LrC does not catalog them; for a rare edit, LrC reads the file from a read-only share and the result goes back to Immich through the plugin.
+- **Phone media** (new uploads): Immich upload library on `fiona`, laid out by the storage template with one storage label per person, for example `upload/bob/2026/2026-11-02/IMG_1234.HEIC`. Immich is the master; the creator is the uploading account. LrC does not catalog them; for a rare edit, LrC reads the file from a read-only share and the result goes back to Immich through the plugin.
 - **Camera media and the existing library** (including the phone media imported into LrC so far): LrC folders on `fiona`, indexed by Immich as a read-only external library. LrC is the master and writes metadata to XMP; Immich only shows it.
 
 - Pro: Upload assets are permanent in Immich, so quick shares and albums keep working. No duplicates by construction, because nothing is in both trees.
@@ -115,7 +115,7 @@ Answers of 2026-11-02:
 4. **RAW:** `.NEF` (Nikon) and `.ARW` (Sony; first given as `.CRW`, corrected by the owner the same day). RAWs stay visible; there is mostly no JPEG next to them, and Immich does not apply LrC develop settings.
 5. **Pick flags, colour labels:** not needed. **Collections** should become Immich albums, otherwise they are lost.
 6. **Renditions:** in a separate rendition tree, not next to the RAWs, kept current by an LrC publish service.
-7. **Owner of the historical library:** a dedicated shared `family` account, not a personal one (first given as `sebi`, revised the same day). People/faces and memories belong to the account that owns the assets, and partner sharing does not carry them, so a shared account is the only way for the whole family to browse the historical library by person today. New media stay with the individual accounts. The owner hopes that a later Immich release shares people/faces and memories across accounts.
+7. **Owner of the historical library:** a dedicated shared `household` account, not a personal one (first given as `bob`, revised the same day). People/faces and memories belong to the account that owns the assets, and partner sharing does not carry them, so a shared account is the only way for everyone in the household to browse the historical library by person today. New media stay with the individual accounts. The owner hopes that a later Immich release shares people/faces and memories across accounts.
 
 ## Decision
 
@@ -125,19 +125,19 @@ It is the only option in which quick sharing, one master per asset and the exist
 
 Rules that go with it:
 
-1. The LrC library is mounted **read-only** into every Immich environment ([#2144](https://github.com/isejalabs/homelab/issues/2144)) as one external library, owned by the shared `family` account. Immich never deletes or rewrites a file LrC owns. New media (phone uploads) belong to the individual accounts; the creator of a new asset is its owner.
+1. The LrC library is mounted **read-only** into every Immich environment ([#2144](https://github.com/isejalabs/homelab/issues/2144)) as one external library, owned by the shared `household` account. Immich never deletes or rewrites a file LrC owns. New media (phone uploads) belong to the individual accounts; the creator of a new asset is its owner.
 2. LrC keeps writing metadata to XMP automatically, so ratings, keywords and captions reach Immich on the next rescan. Metadata for these assets is edited in LrC, not in Immich.
 3. LrC does not move or rename folders or files once Immich has indexed them; a reorganisation counts as a migration and is planned like one, because it drops Immich albums and faces for the moved assets.
 4. Phone media live only in the Immich upload library, one storage label per person. LrC does not catalog them.
 5. **Creator as keyword:** LrC assigns a keyword such as `Creator|<name>` to every photo, derived once from the IPTC creator field (and the per-person collections where the field is empty) and kept up for new imports. Immich shows it as a tag, which is searchable and works for every viewer.
 6. **Collections become albums once:** the existing LrC collections are turned into Immich albums of the external-library assets, by matching each collection's file paths to Immich assets through the API, not by publishing copies. After that, albums are made in Immich, for both kinds of media.
-7. **RAW renditions only where needed, in a separate tree:** an unedited RAW is shown as Immich renders it. A RAW with LrC adjustments (an LrC smart collection "has adjustments") gets a rendered JPEG exported by LrC into a rendition tree that mirrors the library's folders (`renditions/YEAR/MONTH/DAY-Title/<name>.jpg`), so LrC's own folders stay unchanged and the RAW's sidecar is never next to a JPEG of the same name. The tree is a second read-only external library, also owned by `family`, so a rendition and its RAW belong to the same account; each rendition is stacked with its RAW in Immich, rendition on top, matched by folder and base name. The tree is filled and kept current by an LrC **publish service** (LrC's "Hard Drive" service or a plugin), so a later edit re-exports the rendition without a manual step. The PoC checks that the service can keep the folder layout; if it cannot, renditions are matched to their RAWs by file name and capture time instead.
+7. **RAW renditions only where needed, in a separate tree:** an unedited RAW is shown as Immich renders it. A RAW with LrC adjustments (an LrC smart collection "has adjustments") gets a rendered JPEG exported by LrC into a rendition tree that mirrors the library's folders (`renditions/YEAR/MONTH/DAY-Title/<name>.jpg`), so LrC's own folders stay unchanged and the RAW's sidecar is never next to a JPEG of the same name. The tree is a second read-only external library, also owned by `household`, so a rendition and its RAW belong to the same account; each rendition is stacked with its RAW in Immich, rendition on top, matched by folder and base name. The tree is filled and kept current by an LrC **publish service** (LrC's "Hard Drive" service or a plugin), so a later edit re-exports the rendition without a manual step. The PoC checks that the service can keep the folder layout; if it cannot, renditions are matched to their RAWs by file name and capture time instead.
 8. Deletes happen in the master: LrC for camera media, Immich for phone media.
 
 ## Open questions
 
-- Deferred to [#2150](https://github.com/isejalabs/homelab/issues/2150) (owner, 2026-11-15), not needed for this decision. How people use the `family` account without weakening authorization: logging in to it directly means a shared credential (and it does not fit per-person SSO, [#1768](https://github.com/isejalabs/homelab/issues/1768)); partner sharing from `family` to each person keeps individual logins but loses people/faces again. Options to weigh in [#2150](https://github.com/isejalabs/homelab/issues/2150), together with the notes from [this thread on family setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/).
-- Revisit trigger: if Immich starts sharing people/faces and memories across accounts, re-check whether the historical library should move to a personal owner or stay with `family`.
+- Deferred to [#2150](https://github.com/isejalabs/homelab/issues/2150) (owner, 2026-11-15), not needed for this decision. How people use the `household` account without weakening authorization: logging in to it directly means a shared credential (and it does not fit per-person SSO, [#1768](https://github.com/isejalabs/homelab/issues/1768)); partner sharing from `household` to each person keeps individual logins but loses people/faces again. Options to weigh in [#2150](https://github.com/isejalabs/homelab/issues/2150), together with the notes from [this thread on shared setups](https://www.reddit.com/r/immich/comments/1t81o6c/family_immich_setup_own_library_per_user_or/).
+- Revisit trigger: if Immich starts sharing people/faces and memories across accounts, re-check whether the historical library should move to a personal owner or stay with `household`.
 - Collection-to-album migration (rule 6): check for an existing community tool that reads the LrC catalog before writing one ("Reuse before you build").
 
 ## Proof of concept
