@@ -36,8 +36,8 @@ repos:
         |(?-i:[A-Z0-9-]+(?:\.[A-Z0-9-]+)+)(?![A-Za-z0-9-]|\.[A-Za-z0-9])
       )
       [A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}
-    # vendor/ is upstream text; the cert-manager issuers are the open question of the cert-manager contacts issue
-    exclude: ^(?:.*/vendor/.*|k8s/infra/cert-manager/cert-manager/envs/[^/]+/cluster-issuer\.yaml)$
+    # vendor/ is upstream text; the prod cert-manager issuer is the open question of the cert-manager contacts issue
+    exclude: ^(?:.*/vendor/.*|k8s/infra/cert-manager/cert-manager/envs/prod/cluster-issuer\.yaml)$
     types: [text]
   - id: disclosure-mac
     name: disclosure guard, MAC addresses

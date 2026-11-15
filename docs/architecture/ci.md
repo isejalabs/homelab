@@ -72,7 +72,7 @@ The exceptions are, in this order of preference:
 
 1. **Write a placeholder** instead: a documentation range or `example.com`.
 2. **A marker on the line**, `disclosure:allow` after a `#` or in an HTML comment, for a value that must stay and is not personal. The marker sits next to what it excuses and shows up in review.
-3. **A file `exclude` of the hook** in `.pre-commit-config.yaml`, for text that is not ours: every hook skips `vendor/` (upstream manifests, byte-identical to upstream by the [vendoring check](kustomize.md#vendored-upstream-manifests)), the IP hook also `*.svg` (path data) and `*.lock`. The email hook also skips the `ClusterIssuer` files of the cert-manager unit until the contact addresses there are settled ([#2288](https://github.com/isejalabs/homelab/issues/2288)); drop that exclude when that issue closes.
+3. **A file `exclude` of the hook** in `.pre-commit-config.yaml`, for text that is not ours: every hook skips `vendor/` (upstream manifests, byte-identical to upstream by the [vendoring check](kustomize.md#vendored-upstream-manifests)), the IP hook also `*.svg` (path data) and `*.lock`. The email hook also skips the `prod` `ClusterIssuer` of the cert-manager unit until its contact address is settled ([#2288](https://github.com/isejalabs/homelab/issues/2288)); drop that exclude when that issue closes.
 
 What the patterns cannot see: IPv6 addresses, MAC addresses in dotted (`aaaa.bbbb.cccc`) or unseparated form, names, postal addresses and anything that is not a class. Those are what the private list is for. A pattern hit is a candidate, not a verdict: classify it by [ADR 0019](../decisions/0019-public-disclosure-policy.md) and fix the file, not the pattern.
 
