@@ -92,7 +92,7 @@ repos:
   # Private term list kept outside the repository: a no-op with a message when none is configured.
   - id: disclosure-private-terms
     name: disclosure guard, private term list
-    description: Flags any term from a private list read from DISCLOSURE_TERMS_FILE (default ~/.config/homelab/disclosure-terms.txt); never prints a term.
+    description: Flags any term from a private list read from DISCLOSURE_TERMS_FILE (default ~/.config/homelab/disclosure-terms.tsv); never prints a term.
     entry: scripts/tools/check-private-terms.sh
     language: script
     require_serial: true

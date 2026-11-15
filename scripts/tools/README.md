@@ -42,4 +42,4 @@ The local part of the guard of [ADR 0019](../../docs/decisions/0019-public-discl
 
 | Script | Purpose |
 | --- | --- |
-| [`check-private-terms.sh`](check-private-terms.sh) | fails when a file contains a term from the private list in `DISCLOSURE_TERMS_FILE` (default `~/.config/homelab/disclosure-terms.txt`), printing only `file:line`; a no-op with a message when no list is configured; `--all` checks every tracked file |
+| [`check-private-terms.sh`](check-private-terms.sh) | fails when a file contains a term (literal or regex, whole word, case-insensitive) from the private tab-separated list in `DISCLOSURE_TERMS_FILE` (default `~/.config/homelab/disclosure-terms.tsv`), printing only `file:line`; a no-op with a message when no list is configured; `--all` checks every tracked file |

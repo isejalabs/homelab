@@ -80,9 +80,9 @@ What the patterns cannot see: IPv6 addresses, MAC addresses in dotted (`aaaa.bbb
 
 `disclosure-private-terms` ([`scripts/tools/check-private-terms.sh`](../../scripts/tools/check-private-terms.sh)) fails when a changed file contains a term from a list that lives outside the repository. It is a no-op with the message `skipped, no private term list configured` when no list exists, which is the case in CI and for anyone who is not the owner.
 
-- **Where**: the path in `DISCLOSURE_TERMS_FILE`, else `${XDG_CONFIG_HOME:-~/.config}/homelab/disclosure-terms.txt`. Keep the master copy in the private vault ([ADR 0019](../decisions/0019-public-disclosure-policy.md#private-records-and-enforcement)); the file on the disk is a local copy.
-- **Format**: one term per line, matched as a case-insensitive fixed string, `#` lines and blank lines ignored. Choose terms long enough not to match ordinary words: a substring hit in a file is a failure.
-- **Output**: only `file:line` and that the file contains a term, never the term or the line, so a failing run can be pasted into an issue.
+- **Where**: the path in `DISCLOSURE_TERMS_FILE`, else `${XDG_CONFIG_HOME:-~/.config}/homelab/disclosure-terms.tsv`. Keep the master copy in the private vault ([ADR 0019](../decisions/0019-public-disclosure-policy.md#private-records-and-enforcement)); the file on the disk is a local copy.
+- **Format**: tab-separated, one entry per line: `category`, `kind` (`literal` or `regex`), `term`. The term is matched case-insensitively and as a whole word; a `regex` is an extended regular expression. The category is a label for the owner only, `#` lines (the first row documents the format) and blank lines are ignored, and a line with a single column counts as a literal term. 
+- **Output**: only `file:line` and that the file contains a term, never the term, the regex or the line, so a failing run can be pasted into an issue. A regex that does not compile fails the hook with its entry number only.
 - **By hand, over the whole tree**: `scripts/tools/check-private-terms.sh --all`.
 
 The hook reads files, not commit messages, branch names or the text of issues and pull requests. Those are checked by hand with the same list (for example `git log --format=%B origin/main..HEAD | grep -i -F -f "$DISCLOSURE_TERMS_FILE"`) and by the sweep of [#2285](https://github.com/isejalabs/homelab/issues/2285).

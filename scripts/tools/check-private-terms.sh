@@ -3,11 +3,13 @@
 # that must not be published are never committed, so they cannot be checked by a rule in the repo). Run by the
 # disclosure-private-terms pre-commit hook on the changed files, or by hand.
 #
-# The list is a plain text file, one term per line, matched as a case-insensitive fixed string; blank lines and
-# lines starting with # are ignored. Its path comes from DISCLOSURE_TERMS_FILE, else from
-# ${XDG_CONFIG_HOME:-$HOME/.config}/homelab/disclosure-terms.txt. With neither the check is a no-op that says so
-# and exits 0 (CI, other contributors). It never prints a term or the matching line, only file:line, so its output
-# is safe to paste. A hit exits 1.
+# The list is a tab-separated file, one entry per line: category<TAB>kind<TAB>term. kind is "literal" (a fixed
+# string) or "regex" (an extended regular expression); the term is matched case-insensitively and as a whole word.
+# The category is only a label for the owner. Blank lines and lines starting with # (the first row documents the
+# format) are ignored, and a line with a single column is read as a literal term. The path comes from
+# DISCLOSURE_TERMS_FILE, else from ${XDG_CONFIG_HOME:-$HOME/.config}/homelab/disclosure-terms.tsv. With neither the
+# check is a no-op that says so and exits 0 (CI, other contributors). It never prints a term, a regex or the
+# matching line, only file:line, so its output is safe to paste. A hit exits 1, an unusable list exits 2.
 #
 # Usage: scripts/tools/check-private-terms.sh <file>...
 #        scripts/tools/check-private-terms.sh --all     # every file tracked by git, from the repo root
@@ -20,7 +22,7 @@ terms_path() {
         printf '%s\n' "${DISCLOSURE_TERMS_FILE}"
         return
     fi
-    default="${XDG_CONFIG_HOME:-${HOME:-}/.config}/homelab/disclosure-terms.txt"
+    default="${XDG_CONFIG_HOME:-${HOME:-}/.config}/homelab/disclosure-terms.tsv"
     if [ -f "${default}" ]; then
         printf '%s\n' "${default}"
     fi
@@ -39,12 +41,31 @@ fi
 WORK=$(mktemp -d)
 trap 'rm -rf "${WORK}"' EXIT
 
-# One term per line without comments and blank lines: an empty pattern would match every line.
-grep -v -e '^[[:space:]]*#' -e '^[[:space:]]*$' "${TERMS}" > "${WORK}/terms" || true
-if [ ! -s "${WORK}/terms" ]; then
+# Split the list into literal terms and regexes. An empty pattern would match every line, so empty terms are dropped.
+awk -F'\t' -v lit="${WORK}/literals" -v rx="${WORK}/regexes" '
+    /^[ \t]*#/ || /^[ \t]*$/ { next }
+    NF == 1 { if ($1 != "") print $1 > lit; next }
+    $3 == "" { next }
+    tolower($2) == "regex" { print $3 > rx; next }
+    { print $3 > lit }
+' "${TERMS}"
+touch "${WORK}/literals" "${WORK}/regexes"
+if [ ! -s "${WORK}/literals" ] && [ ! -s "${WORK}/regexes" ]; then
     echo "disclosure-private-terms: skipped, the term list has no terms"
     exit 0
 fi
+
+# A regex that grep cannot compile makes the whole list unusable: say which entry number, never what it is.
+n=0
+while IFS= read -r re; do
+    n=$((n + 1))
+    rc=0
+    printf '' | grep -E -w -i -e "${re}" > /dev/null 2>&1 || rc=$?
+    if [ "${rc}" -ge 2 ]; then
+        echo "disclosure-private-terms: regex entry ${n} of the term list is not a valid extended regular expression" >&2
+        exit 2
+    fi
+done < "${WORK}/regexes"
 
 if [ "$#" -eq 0 ]; then
     exit 0
@@ -56,8 +77,14 @@ else
 fi
 
 # -I skips binary files; cut drops the matching line so a term never reaches the output.
-hits=$(xargs -0 grep -I -n -i -F -f "${WORK}/terms" -- < "${WORK}/files0" | cut -d: -f1,2 || true)
-if [ -n "${hits}" ]; then
-    printf '%s\n' "${hits}" | sed 's/$/: contains a term from the private list/'
+: > "${WORK}/hits"
+if [ -s "${WORK}/literals" ]; then
+    xargs -0 grep -I -n -i -w -F -f "${WORK}/literals" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
+fi
+if [ -s "${WORK}/regexes" ]; then
+    xargs -0 grep -I -n -i -w -E -f "${WORK}/regexes" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
+fi
+if [ -s "${WORK}/hits" ]; then
+    sort -u "${WORK}/hits" | sed 's/$/: contains a term from the private list/'
     exit 1
 fi

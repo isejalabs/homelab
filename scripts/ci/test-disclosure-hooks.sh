@@ -70,19 +70,24 @@ expect_clean disclosure-serial serial-ok.md "serial: 1, S/N <number>, Serial num
 
 # The private term list: flagged with a list, a no-op without one, and the term never reaches the output.
 TERM_SYNTH="zzq-synthetic-""term"
-printf '# comment\n\n%s\n' "${TERM_SYNTH}" > "${WORK}/terms.txt"
+RX_SYNTH="zzq-rx-"
+printf '# category\tkind(literal|regex)\tterm ; whole-word, case-insensitive\n\nsynthetic\tliteral\t%s\nsynthetic\tregex\t%s[0-9]+\n' "${TERM_SYNTH}" "${RX_SYNTH}" > "${WORK}/terms.tsv"
 printf 'text with ZZQ-Synthetic-Term inside\n' > "${WORK}/repo/private.md"
-printf 'clean\n' > "${WORK}/repo/private-ok.md"
+printf 'a code zzq-rx-4711 here\n' > "${WORK}/repo/private-rx.md"
+printf 'clean\nsynthetic literal regex\nxzzq-synthetic-termx zzq-rx-\n' > "${WORK}/repo/private-ok.md"
 rc=0
-out=$(cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.txt" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private.md 2>&1) || rc=$?
+out=$(cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private.md 2>&1) || rc=$?
 if [ "${rc}" -ne 1 ]; then
     fail "disclosure-private-terms on a listed term exited ${rc}, expected 1"
 else
     echo "ok: disclosure-private-terms flags a listed term"
     case "${out}" in *"${TERM_SYNTH}"*) fail "the output repeats a private term" ;; *) echo "ok: the output does not repeat the term" ;; esac
 fi
-if (cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.txt" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private-ok.md >/dev/null 2>&1); then
-    echo "ok: disclosure-private-terms allows a clean file"
+rc=0
+(cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private-rx.md >/dev/null 2>&1) || rc=$?
+if [ "${rc}" -eq 1 ]; then echo "ok: disclosure-private-terms flags a regex entry"; else fail "a regex entry exited ${rc}, expected 1"; fi
+if (cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private-ok.md >/dev/null 2>&1); then
+    echo "ok: disclosure-private-terms allows a clean file (category and kind labels, a term inside a longer word, a partial regex match)"
 else
     fail "disclosure-private-terms flagged a clean file"
 fi
