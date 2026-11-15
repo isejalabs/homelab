@@ -29,7 +29,7 @@ Not exposed. The issuer is the `ClusterIssuer` `cloudflare-cluster-issuer`.
 | `dev`, `prod`, `qa`, `rebuild` | production (`acme-v02`), trusted by browsers |
 | `dbg`, `head`, `poc`, `src` | staging (`acme-staging-v02`), **not trusted** by browsers |
 
-The base issuer selects staging; the four environments with production override it in `envs/<env>/cluster-issuer.yaml` (which also sets the account email). Rate limits, notably for repeatedly rebuilt `rebuild`: [`network.md`](../../../../docs/architecture/network.md#lets-encrypt-production-limits-and-rebuild).
+The base issuer selects staging; the four environments with production override it in `envs/<env>/cluster-issuer.yaml`. The ACME account has no contact address (`spec.acme.email` is left out on purpose): Let's Encrypt has [stopped sending expiration emails and no longer stores contacts](https://letsencrypt.org/2025/06/26/expiration-notification-service-has-ended), and an address in the issuer would only be republished in a public repository ([ADR 0019](../../../../docs/decisions/0019-public-disclosure-policy.md)). Rate limits, notably for repeatedly rebuilt `rebuild`: [`network.md`](../../../../docs/architecture/network.md#lets-encrypt-production-limits-and-rebuild).
 
 ## Updates
 
