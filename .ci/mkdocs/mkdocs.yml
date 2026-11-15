@@ -170,6 +170,7 @@ nav:
     - OPNsense administrator login: docs/identity/opnsense-auth.md
     - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
+    - Keycloak drain drill: docs/identity/keycloak-drain-drill.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
   - Overview: docs/architecture/overview.md

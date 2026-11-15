@@ -43,3 +43,11 @@ The local part of the guard of [ADR 0019](../../docs/decisions/0019-public-discl
 | Script | Purpose |
 | --- | --- |
 | [`check-private-terms.sh`](check-private-terms.sh) | fails when a file contains a term (literal or regex, whole word, case-insensitive) from the private tab-separated list in `DISCLOSURE_TERMS_FILE` (default `~/.config/homelab/disclosure-terms.tsv`), printing only `file:line`; a no-op with a message when no list is configured; `--all` checks every tracked file |
+
+## Keycloak availability drill
+
+Disrupts the cluster, needs a kubecontext and network access to Keycloak, so not for CI — see [`docs/identity/keycloak-drain-drill.md`](../../docs/identity/keycloak-drain-drill.md) for the procedure, the probes and how to read the report.
+
+| Script | Purpose |
+| --- | --- |
+| [`keycloak-drain-drill.sh`](keycloak-drain-drill.sh) | drains the node of the Keycloak database (or, with `--observe`, only measures while something else disturbs it) and reports the login outage windows, a pod-event timeline and the image pull times; checks the control plane first and refuses `prod` |
