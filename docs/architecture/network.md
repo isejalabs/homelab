@@ -148,7 +148,7 @@ Let’s Encrypt documents [staging limits](https://letsencrypt.org/docs/staging-
 ```yaml
 spec:
   acme:
-    server: https://acme-staging-v02.api.letsencrypt.org./directory  # base; some envs override
+    server: https://acme-staging-v02.api.letsencrypt.org/directory  # base; some envs override
     solvers:
       - dns01:
           cloudflare:
