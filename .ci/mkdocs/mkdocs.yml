@@ -158,6 +158,7 @@ nav:
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
+    - Cluster quorum: docs/operations/proxmox-cluster-quorum.md
   - Identity:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
