@@ -12,4 +12,3 @@ spec:
         path: "k8s/bootstrap/cluster/flux/envs/dev"
         # Uncomment f. line to use a specific branch for this environment
         # ref: "refs/heads/issue/123_XY-branch"
-        ref: "refs/heads/issue/2288_acme-contact-removal"
