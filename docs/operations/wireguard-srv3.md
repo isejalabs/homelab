@@ -110,7 +110,7 @@ H=$(nft --echo --handle insert rule inet filter input udp dport 51820 counter | 
 sleep 60; nft list chain inet filter input | grep counter; nft delete rule inet filter input handle $H
 ```
 
-`insert` is required: with `add` the rule lands behind the accept rule and never counts. On `gw4`, `wg show <instance> transfer` twice 60 s apart shows whether it sends (handshake attempts are 148 bytes each); `tcpdump -ni <wan-interface> udp and host 185.228.136.229` shows whether the packets leave. If `gw4` sends and `srv3` receives nothing, change the listen port on `gw4`.
+`insert` is required: with `add` the rule lands behind the accept rule and never counts. On `gw4`, `wg show <instance> transfer` twice 60 s apart shows whether it sends (handshake attempts are 148 bytes each); `tcpdump -ni <wan-interface> udp and host <srv3-public-address>` shows whether the packets leave. If `gw4` sends and `srv3` receives nothing, change the listen port on `gw4`.
 
 ## Roll back
 
