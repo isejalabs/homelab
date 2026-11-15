@@ -20,7 +20,7 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 | --- | --- |
 | Provision or bootstrap a cluster | [`terragrunt/README.md`](terragrunt/README.md) to provision VMs and install Talos, then [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) to install foundational services and hand off to Flux |
 | Diagnose a live issue | [`docs/README.md`'s troubleshooting paths](docs/README.md#finding-what-you-need) |
-| Upgrade Talos/Kubernetes or replace a node | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
+| Upgrade Talos/Kubernetes, replace a node or handle a Proxmox host reset | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 | Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
 | Install the tools and get the access needed to work on the repo | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start) |
