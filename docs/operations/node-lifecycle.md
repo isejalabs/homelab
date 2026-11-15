@@ -19,7 +19,7 @@ Every node is provisioned by Terragrunt/the `terraform-proxmox-talos` module (se
 | Steps | [Talos upgrade](#1-talos-os-upgrade), [Kubernetes upgrade](#2-kubernetes-version-upgrade), [node replacement](#3-node-replacement), [scaling](#4-ramping-control-planeworker-node-count-up-or-down), [moving a node](#5-moving-a-node-to-another-proxmox-host), [Proxmox host reset or hang](#6-proxmox-host-unplanned-reset-or-hang). Expected output is recorded where a step has one, for example `0 added, 0 changed, 0 destroyed` after a stale `Node` is deleted |
 | Verify | [Verify the change actually took](#verify-the-change-actually-took) |
 | Rollback | None documented as a procedure. A Talos upgrade is a per-node VM replacement, and a Kubernetes downgrade is not supported ([`k8s-minor-upgrade.md`](k8s-minor-upgrade.md#4-verify)). [If the datastore was flipped in Terraform anyway](#if-the-datastore-was-flipped-in-terraform-anyway) is the one recorded repair |
-| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13). The Proxmox host panic and watchdog settings are applied (2026-11-15) and `iTCO_wdt` binding was seen on a `pve6` reboot, but a reset or panic has not been exercised yet |
+| Last exercised | Dated per procedure in the sections below: the Talos rollout `v1.13.11` (2026-10-14), a control-plane move on `dbg` (2026-10-11), `rebuild` and `dev` (2026-10-13), `dev` again (2026-10-29), datastore changes (2026-10-13 to 2026-10-17), Longhorn disk re-registration (2026-10-11 to 2026-10-13). The Proxmox host panic and watchdog settings are applied (2026-11-15) and `iTCO_wdt` binding was seen on a `pve6` reboot, but the reset test failed (the chipset watchdog does not count down on `pve6`) and no panic test has run |
 
 ## 1. Talos OS upgrade
 
@@ -246,20 +246,29 @@ The Proxmox hosts `pve1` to `pve6` that run the nodes are not managed from this 
 What this means in practice:
 
 - A lockup of the kernel becomes a panic and the host reboots after 10 s, with its guests. A soft lockup that would have cleared by itself reboots the host too. That is the intended trade for a host that otherwise stays frozen until someone power-cycles it.
-- With `iTCO_wdt`, the HA watchdog can reset a host whose kernel stopped completely, which `softdog` cannot. `softdog` is a kernel timer and dies together with the kernel.
+- The intent of `iTCO_wdt` is an HA watchdog that can reset a host whose kernel stopped completely, which `softdog` cannot, because `softdog` is a kernel timer and dies together with the kernel. **This is not confirmed to work**: on `pve6` the chipset watchdog binds but did not reset the host, see [Status and what was not tested](#status-and-what-was-not-tested). Until it is shown to work on a host, treat `softdog` as the only HA watchdog that is known to fire.
 - `kernel.hung_task_panic` is deliberately not set: a hung task of several minutes was logged on `pve5` on 2026-09-03, so it needs a look at false positives first.
 
 ### After an unplanned reset
 
 1. Find out that it happened and when: `last -x reboot | head`, and `uptime -s`. A reboot nobody planned is the signal, there is no alert for it yet ([#2312](https://github.com/isejalabs/homelab/issues/2312)).
 2. Look for the panic text. After a panic the kernel's last messages are in the EFI variable store (`efi_pstore`), which `systemd-pstore` archives to `/var/lib/systemd/pstore/` at boot, or directly in `/sys/fs/pstore/`. The store is small (about 64 KiB were free on `pve4`), so check `df -h /sys/firmware/efi/efivars` now and then. No file there after a reset means the kernel did not get to write a panic, which points to a watchdog reset or a power or firmware event.
-3. Check what the watchdog did: `cat /sys/class/watchdog/watchdog0/identity` shows the chipset watchdog (not `Software Watchdog`) once the host has rebooted with the new setting, and `systemctl status watchdog-mux pve-ha-lrm` is healthy.
+3. Check what the watchdog did: `cat /sys/class/watchdog/watchdog0/identity` shows which watchdog the host runs (`iTCO_wdt` or `Software Watchdog`), and `systemctl status watchdog-mux pve-ha-lrm` is healthy. A bound `iTCO_wdt` is no proof that it resets the host, see the status below.
 4. Compare with the other sources, because the local journal loses about the last 50 s of a crash: the central syslog on the loghost (`/var/log/syslog.<date>`, the file dated the day after holds the previous day), the Proxmox RRD data (`pvesh get /nodes/<node>/rrddata`) and the Checkmk graphs for CPU package temperature, throttle count and load.
 5. Before a host is rebooted on purpose (kernel upgrade, test): `pvecm status` must show the cluster quorate without that host. Check this at the time and not from a note, because the expected vote count changes when nodes are removed or added.
 
 ### Status and what was not tested
 
-Applied on `pve1`, `pve4`, `pve5` and `pve6` on 2026-11-15. `pve6`, the test node (no HA resources, 0 votes), rebooted afterwards and came up with `iTCO_wdt` as the HA watchdog (`dmesg`: `Found a Intel PCH TCO device (Version=6)`, `heartbeat=30 sec`), `watchdog-mux` and `pve-ha-lrm` active, and the sysctl values intact. The other hosts still ran `softdog` at that date, because none had rebooted since the setting was written. Not exercised yet, both need a host that can be reset: that `iTCO_wdt` resets a host whose kernel stops feeding it, and that a deliberate panic (`echo c > /proc/sysrq-trigger`) leaves its text in the pstore. Track this in [#2312](https://github.com/isejalabs/homelab/issues/2312) and record the result here.
+Applied on `pve1`, `pve4`, `pve5` and `pve6` on 2026-11-15. `pve6`, the test node (no HA resources, 0 votes, no running guests), rebooted afterwards and came up with `iTCO_wdt` as the HA watchdog (`dmesg`: `Found a Intel PCH TCO device (Version=6)`, `heartbeat=30 sec`), `watchdog-mux` and `pve-ha-lrm` active, and the sysctl values intact. The other hosts still ran `softdog` at that date, because none had rebooted since the setting was written.
+
+**Reset test on `pve6` (2026-11-15): failed, the chipset watchdog did not reset the host.** The sequence and what it showed:
+
+1. `systemctl kill -s KILL watchdog-mux` (unclean close of `/dev/watchdog`): the kernel logs `watchdog did not stop!`, but the host kept running. The watchdog core keeps feeding a running hardware watchdog that is not opened by userspace (`watchdog.handle_boot_enabled=Y`, `watchdog.open_timeout=0`, i.e. no limit). So with `iTCO_wdt` a dead `watchdog-mux` does not fence the host, unlike with `softdog`.
+2. `watchdog-mux` restarted and then frozen with `kill -STOP` (it keeps the device open but stops feeding, the case that matters for HA): no reset after more than 60 s, with a 10 s timeout. The TCO registers (read through `/dev/port`, base `0x400`) show why: `TCO1_CNT.TMR_HLT` is clear and no timeout status is set, but the timer counter (`TCO_RLD`) stays at its reload value of 16 ticks and does not count down, so the timer never expires.
+
+So on `pve6` (BIOS 1.48.0) the driver loads and registers a watchdog that cannot reset the host. It is not known whether `pve1`, `pve4` and `pve5` (BIOS 1.47.0, same hardware otherwise) behave the same; that needs the same test on each, which resets the host and its guests. `pve1`, `pve4` and `pve5` carry `WATCHDOG_MODULE=iTCO_wdt` but still run `softdog`, so nothing changes for them until their next reboot. No HA resources exist in the cluster at the moment, so there is no fencing at stake today.
+
+Not exercised yet: that a deliberate panic (`echo c > /proc/sysrq-trigger`) leaves its text in the pstore and reboots the host after 10 s.
 
 `netconsole` to the loghost was tried and does not work here: the Management network is a VLAN on the bridge `vmbr0`, and netpoll cannot send through a bridge whose ports include virtual Ethernet devices (the guests' interfaces). The pstore is the replacement.
 
