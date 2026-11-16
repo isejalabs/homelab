@@ -19,7 +19,7 @@ spec:
   # base/kustomization.yaml copies this value into the dump job, so the server and the pg_dump client stay equal;
   # raise the major version only along docs/identity/keycloak-backup-restore.md#upgrading-postgresql (it triggers an
   # offline pg_upgrade). Renovate tracks the line (customManagers in .github/renovate.json5).
-  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:348997438269fddc0e2825e00594367ad61751adb08a7698a0a14f793b0dc2ce
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.6-system-trixie@sha256:48a0038fdd9672d12853d5300666b2592f97f9d34a993ea42e3ecb5a9a5e43e3
   instances: 1
   # Single instance without replicas and without archiving: keep only what crash recovery and checkpoints need.
   # CloudNativePG defaults would retain 512MB of WAL (wal_keep_size) on this 1Gi volume.
