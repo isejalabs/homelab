@@ -31,7 +31,7 @@ Realm membership (`sec.idm.users`, `sec.idm.admins`) only admits an account to a
 | `alice` | `iseja` | `sec.app.checkmk.readonly` | `guest` |
 
 - The built-in role `user` can acknowledge and run commands but only sees hosts of its contact groups, so `bob` is mapped into the contact group `all`, which exists on `dev_k8s`, `qa_k8s` and `prod_k8s`. `bob-adm` stays out of `all`. No custom role is created.
-- The mail rule notifies all contacts of an object, so membership of `all` plus an e-mail address makes a user a recipient. The e-mail attribute is therefore only sent where notifications are on: the `iseja` client of `qa_k8s` (`include_email`), not `dev_k8s` and not `prod_k8s` (notifications there are not enabled yet, [#1901](https://github.com/isejalabs/homelab/issues/1901)). See [`monitoring-notifications.md`](../reference/monitoring-notifications.md).
+- The mail rule notifies all contacts of an object, so membership of `all` plus an e-mail address makes a user a recipient, and a contact **without** an address makes the notification fail. The e-mail address is therefore a decision per site, see [E-mail address and notifications](#e-mail-address-and-notifications). See [`monitoring-notifications.md`](../reference/monitoring-notifications.md).
 - `alice` is in `sec.idm.users` (added 2026-11-02, see [Changing who has access](#changing-who-has-access)): membership of that group grants access to the `iseja` realm, so adding an account there is a decision of its own.
 
 ## UCS groups
@@ -58,7 +58,7 @@ The unit creates, per site, one client in `iseja` and one in `admin`, with the e
 | `https://iseja.net/claims/userid` | the username |
 | `https://iseja.net/claims/alias` | the username |
 | `https://iseja.net/claims/groups` | the names of the user's `sec.app.*` groups, multi-valued |
-| `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` |
+| `https://iseja.net/claims/email` | the e-mail address, only for clients with `include_email` (the `iseja` clients of `dev_k8s`, `qa_k8s` and `prod_k8s`) |
 
 The `https://iseja.net/claims/` prefix is only a namespace that makes the attribute names unique, like an XML namespace: nothing is ever fetched from it, it need not resolve, and it is the same in every environment (it is not replaced by `dev-auth.dev.iseja.net` or any other host). It has to be a URL because Checkmk insists on a user ID attribute name that starts with `http`. It is the default of `saml_claims` in the module and can be overridden there, but the Keycloak mappers and the Checkmk connection must use the same names.
 
@@ -77,7 +77,7 @@ Per site, once for `iseja` and once for `admin`, in *Setup → Users → SAML au
 | Signing certificate | built-in | built-in |
 | User ID attribute | `https://iseja.net/claims/userid` | same |
 | Full name attribute | `https://iseja.net/claims/alias` | same |
-| E-mail attribute | `https://iseja.net/claims/email` on `qa_k8s` only (not `prod_k8s`) | not set |
+| E-mail attribute | `https://iseja.net/claims/email` on `dev_k8s`, `qa_k8s` and `prod_k8s` | not set |
 | Roles | attribute `https://iseja.net/claims/groups`: `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` | `sec.app.checkmk.admin` → `admin` |
 | Contact groups | type "map" on the same attribute: `sec.app.checkmk.operator` → `all` | none |
 
@@ -89,8 +89,8 @@ The connections were accepted with the Ultimate sites in the free licence state,
 
 The Ultimate site `prod_k8s` (on `monitoring2`, 2.5.0p15, Apache port 5088, agent receiver port 8088) was set up in two stages on 2026-11-08 ([#2108](https://github.com/isejalabs/homelab/issues/2108)). Stage 1 connected it to the **qa** Keycloak as a rehearsal, because the Keycloak of `prod` was not applied yet. Stage 2 switched it to the **prod** Keycloak.
 
-- **Keycloak:** the clients `prod_k8s-iseja` and `prod_k8s-admin` are in the `saml_clients` of the **prod** unit ([`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)). Entity ID `https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py`, no e-mail attribute. The temporary clients in the qa unit were removed again after the switch.
-- **Checkmk:** `keycloak_iseja` and `keycloak_admin` as in the [table above](#checkmk-side), with the metadata URLs `https://auth.iseja.net/realms/<realm>/protocol/saml/descriptor`, server URL `https://monitoring2.home.iseja.net`, and the same mapping as `qa_k8s` (without e-mail). Before creating them, `monitoring2` was checked to reach the URLs and the site's Python to trust the certificate.
+- **Keycloak:** the clients `prod_k8s-iseja` and `prod_k8s-admin` are in the `saml_clients` of the **prod** unit ([`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)). Entity ID `https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py`. The `prod_k8s-iseja` client sends the e-mail attribute since [#2294](https://github.com/isejalabs/homelab/issues/2294) (it did not at first, see [E-mail address and notifications](#e-mail-address-and-notifications)). The temporary clients in the qa unit were removed again after the switch.
+- **Checkmk:** `keycloak_iseja` and `keycloak_admin` as in the [table above](#checkmk-side), with the metadata URLs `https://auth.iseja.net/realms/<realm>/protocol/saml/descriptor`, server URL `https://monitoring2.home.iseja.net`, and the same mapping as `qa_k8s`; the e-mail attribute of the `iseja` connection was added later, see [E-mail address and notifications](#e-mail-address-and-notifications). Before creating them, `monitoring2` was checked to reach the URLs and the site's Python to trust the certificate.
 - **Accounts:** the realms of qa and prod are federated to the same UCS, so the same accounts and groups apply. The users the site created are `bob` (`user`, contact group `all`), `bob-adm` (`admin`, no contact group) and `alice` (`guest`). They stay the same across the switch as long as the user IDs (usernames) are the same in both identity providers.
 - **Switch method:** the connections were created through the REST API as the `terraform` user. For the switch the REST `PUT` answered 405, so `etc/check_mk/multisite.d/wato/user_connections.mk` was edited as the site user: backup `user_connections.mk.bak-2108-stage2` kept next to it, the two metadata URLs and the connection comments changed, the file parse-checked and written atomically, the result read back with the REST `GET`. To roll back, copy the backup file over `user_connections.mk`.
 - **Login tests (owner, 2026-11-08), against qa and again against prod:** `bob` through *Iseja*, `bob-adm` through *Admin*, `alice` through *Iseja*, a user without a `sec.app.checkmk.*` group refused, `cmkadmin` through the local form. All passed.
@@ -105,7 +105,7 @@ Done on 2026-11-08 ([#2109](https://github.com/isejalabs/homelab/issues/2109), p
 | --- | --- |
 | Bind account | UCS user `checkmk-ro` (ordinary user in `Domain Users`, no `sec.*` group), created with `udm users/user create` like `keycloak-ro` in [`keycloak-realms.md`](keycloak-realms.md#ucs-setup). Password in 1Password, `monitoring2/prod#checkmk-ro` (vault `IT Infrastructure`); in the site it is the password-store entry `checkmk_ro_ucs` |
 | Connection `ucs` | Type OpenLDAP, server `baerbel.dir.iseja.net`, failover `adelheid.dir.iseja.net`, LDAPS port 7636, certificate verified against the trusted CAs, sync every 5 minutes, users created at sync (not at login, because the header route never checks a password) |
-| Users | Base `cn=users,dc=dir,dc=iseja,dc=net`, filter `(&(objectClass=person)(\|(memberOf=<sec.app.checkmk.admin>)(memberOf=<sec.app.checkmk.operator>)(memberOf=<sec.app.checkmk.readonly>)))` with the full group DNs, user ID `uid`, alias from `displayName`, no e-mail (notifications are not enabled on `prod`) |
+| Users | Base `cn=users,dc=dir,dc=iseja,dc=net`, filter `(&(objectClass=person)(\|(memberOf=<sec.app.checkmk.admin>)(memberOf=<sec.app.checkmk.operator>)(memberOf=<sec.app.checkmk.readonly>)))` with the full group DNs, user ID `uid`, alias from `displayName`, e-mail from `mail` (added with [#2294](https://github.com/isejalabs/homelab/issues/2294), see [E-mail address and notifications](#e-mail-address-and-notifications)) |
 | Groups | Base `cn=groups,dc=dir,dc=iseja,dc=net`, filter `(objectClass=univentionGroup)`, member attribute `uniqueMember` |
 | Roles | `sec.app.checkmk.admin` → `admin`, `sec.app.checkmk.operator` → `user`, `sec.app.checkmk.readonly` → `guest` (group DNs, a bare CN is rejected) |
 | Contact group | `sec.app.checkmk.operator` → the contact group of the **same name**, see below |
@@ -163,6 +163,27 @@ Done on 2026-11-10 ([#2109](https://github.com/isejalabs/homelab/issues/2109), p
 **Break-glass for `prod`:** the local `omdadmin` on the site's own Apache, reached through an SSH tunnel (`ssh -L 5001:127.0.0.1:5001 root@monitoring2.home.iseja.net`, then `http://127.0.0.1:5001/prod/`). That Apache has no OIDC configuration, so the login form works there. With the header setting on, anyone with a shell on `monitoring2` can also send the header to port 5001 themselves, which is why the host stays root-only.
 
 **Not covered:** distributed monitoring between the sites uses Livestatus TLS (6601) and the agent receiver (8001), which do not pass through the Apache; both ports still listen, but a connection test between the sites was not run. Registering a real host was not run either. A Checkmk crash report on 2026-11-10 shows a stored dashboard with the widget type `average_scatterplot`, which Community does not know; it is a dashboard configuration problem and independent of the login.
+
+## E-mail address and notifications
+
+Checkmk notifies a *contact* by mail at the address of the user, and the default mail rule picks every contact of the object. A user that Checkmk created from a login has an address only if the connection maps one: the alias is not enough. Without it the user is still a contact (through the contact group `all`, or `sec.app.checkmk.operator` on `prod`), and the notification for that contact fails. That was the state of `prod_k8s` and `prod` until [#2294](https://github.com/isejalabs/homelab/issues/2294): the address was left out on purpose while notifications were off, and was not added when they were planned to go live ([#2158](https://github.com/isejalabs/homelab/issues/2158)).
+
+Keycloak already has the address (the LDAP federation maps UCS `mail` to the user's e-mail), so only the hand-off to Checkmk differs per site:
+
+| Site | Hand-off | Status |
+| --- | --- | --- |
+| `qa_k8s` | SAML attribute `https://iseja.net/claims/email`, `include_email` on the client | live since 2026-11-02 |
+| `prod_k8s` | the same: `include_email` on `prod_k8s-iseja` (code, [`prod/keycloak-realm`](../../terragrunt/prod/eu-central-1/prod/keycloak-realm/terragrunt.hcl)) **and** the e-mail attribute in the Checkmk connection `keycloak_iseja` | code in [#2294](https://github.com/isejalabs/homelab/issues/2294); the Checkmk side is a manual step, see below |
+| `prod` (Community) | LDAP: the e-mail attribute `mail` in the user settings of the connection `ucs`, filled by the next sync | manual step, see below |
+| `dev_k8s` | the same as `prod_k8s`: `include_email` on `dev_k8s-iseja` and the attribute in `keycloak_iseja`. The address makes `bob` a recipient, so notifications of `dev_k8s` are switched off in Checkmk where they are not wanted (owner decision, 2026-11-11) | code in [#2294](https://github.com/isejalabs/homelab/issues/2294); the Checkmk side is a manual step |
+
+Only the `iseja` realm sends it. The `admin` accounts are in no contact group, so they are never notified and the `admin` clients and connections stay without an address (as on `qa_k8s`).
+
+**Apply order for `prod_k8s` and `dev_k8s`:** 1. apply the Keycloak unit from `main` (changes only the mapper of one client); 2. set the e-mail attribute of `keycloak_iseja` to `https://iseja.net/claims/email` (UI, or `user_connections.mk` as in [Changing a connection later](#checkmk-side), because the REST API cannot update a connection); 3. the user logs in once, since Checkmk takes the attributes over at each login. Step 2 before step 1 would point the connection at an attribute that Keycloak does not send yet, and Checkmk refuses a login whose mapped attribute is missing for the roles (`Configured user attribute cannot be found in response`); whether it does for the e-mail attribute too was not tried, so keep the order.
+
+**Apply for `prod`:** open the connection `ucs` (*Setup → Users → LDAP & Active Directory*), enable the *Email address* attribute with the LDAP attribute `mail`, save and *Synchronize now*; the REST API (`GET`, then `PUT` of the whole connection on Community) does the same, read the body of the `GET` first. The sync is a change to the users, so look at the pending changes before activating, see [First login and activation](#first-login-and-activation).
+
+**Check:** the user list of the site shows an address for `bob`, and *Setup → Notifications → Test* or the notification log shows the mail going to that address. The address is personal data: it is never written in the repository, an issue or a pull request (ADR 0019); read it in the site only.
 
 ## First login and activation
 

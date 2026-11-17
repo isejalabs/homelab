@@ -1,0 +1,12 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: flux-system
+
+# Units that soak in qa before they reach prod: only dev, qa and rebuild name this set. prod and the on-demand
+# environments (dbg, head, poc, src) do not run them. A unit leaves this set for ../standing (or prod's own
+# composition) once it has run in qa and the owner promotes it to prod.
+# Currently: the Immich database (#2145).
+resources:
+  - ../../../../../apps/media/immich-db/flux

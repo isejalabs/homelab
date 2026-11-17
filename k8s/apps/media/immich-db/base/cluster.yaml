@@ -1,0 +1,57 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/postgresql.cnpg.io/cluster_v1.json
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: immich-db
+  annotations:
+    # No WAL archiving: the database is backed up by a daily pg_dump (cronjob-dump.yaml), so a failing backup
+    # target can never make WAL pile up on the volume (docs/backup/immich-database.md). Sets archive_mode=off.
+    cnpg.io/skipWalArchiving: enabled
+spec:
+  bootstrap:
+    initdb:
+      dataChecksums: true
+      database: immich
+      owner: immich
+      # Both extensions are what Immich needs (VectorChord for smart search and faces, earthdistance for places).
+      # Without superuser Immich could not create them itself, with superuser this only saves it the first start.
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vchord CASCADE
+        - CREATE EXTENSION IF NOT EXISTS earthdistance CASCADE
+  # a single PostgreSQL instance; scale to 2 once drains during upgrades become a nuisance
+  enablePDB: false
+  # Pinned on purpose, never left to the operator's built-in default. The image is PostgreSQL <major>.<minor> plus
+  # VectorChord <x.y.z> (<major>.<minor>-<vectorchord>), built on the CloudNativePG system image. Supported by Immich:
+  # PostgreSQL >= 14 and < 20, VectorChord >= 0.3 and < 2.0 (docs/backup/immich-database.md#upgrading). base/kustomization.yaml
+  # copies this value into the dump job, so the server and the pg_dump client stay equal. Renovate tracks the line.
+  imageName: ghcr.io/tensorchord/cloudnative-vectorchord:18.6-1.1.1@sha256:c7672bc011351a587cc292a94aac7eeebb593ed2e120077bd9c9944c9467db93
+  instances: 1
+  # Immich logs in as a superuser on purpose (docs/backup/immich-database.md#why-a-superuser): its automatic database
+  # dumps use pg_dumpall, and it keeps the extensions up to date itself. The database serves Immich only.
+  managed:
+    roles:
+      - name: immich
+        ensure: present
+        login: true
+        superuser: true
+  postgresql:
+    parameters:
+      max_wal_size: 1GB
+      min_wal_size: 80MB
+      wal_compression: "on"
+      wal_keep_size: 64MB
+      wal_level: replica
+    shared_preload_libraries:
+      - vchord.so
+  # Immich documents at least 2 GB of RAM for the database when limits are set (small test environments override this)
+  resources:
+    limits:
+      memory: 2Gi
+    requests:
+      cpu: 100m
+      memory: 1Gi
+  # on Longhorn, never on a network share; sized from the load test (#2147), the database of a large library is 1-3 GB
+  storage:
+    size: 10Gi
+    storageClass: longhorn-ha

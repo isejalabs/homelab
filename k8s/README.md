@@ -10,13 +10,14 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 finances          # personal finance: actualbudget
 │   ├── 📁 home-automation   # smart home: zigbee2mqtt
 │   ├── 📁 identity          # identity provider: keycloak
+│   ├── 📁 media             # photo archive: immich-db
 │   ├── 📁 monitoring        # monitoring: checkmk-agent, metrics-server
 │   └── 📁 network           # network management: unifi-controller, unifi-mongodb
 ├── 📁 bootstrap             # second bootstrap phase: helmfile, then the hand-off to Flux (see bootstrap/README.md)
 │   ├── 📁 cluster           # what Flux reconciles, composed per environment
 │   │   └── 📁 flux          # the Flux sets and the per-environment compositions
 │   │       ├── 📁 envs      # one folder per environment: picks its sets and applies components/envs/<env>
-│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal and standing
+│   │       └── 📁 sets      # infra and apps (each with minimal/optional), plus minimal, standing and qa-soaking
 │   ├── 📁 helmfile          # helmfile definitions for the foundational CRDs and infra
 │   │   ├── 📁 apps          # the foundational infra releases: cilium, sealed-secrets, cert-manager, ..., flux
 │   │   ├── 📁 base          # shared defaults: environments, helm defaults, kube context, release templates

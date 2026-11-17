@@ -1,0 +1,204 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/batch/cronjob_v1.json
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: immich-db-dump
+spec:
+  concurrencyPolicy: Forbid
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+            - name: upload
+              image: public.ecr.aws/aws-cli/aws-cli:2.40.3@sha256:33a16c53ea442e918b58df67301ad76a8fb57082c39f7e78753b898c3f3e87c2
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  # Encrypts the verified dump to the age public key(s) in AGE_RECIPIENTS, so the private key never needs
+                  # to be in the cluster, uploads it and keeps the newest 14 dumps. A plaintext dump is never uploaded.
+                  # HEARTBEAT_URL (optional) is pinged after the whole run, and on failure with /fail appended.
+                  ping() {
+                    [ -n "${HEARTBEAT_URL:-}" ] || return 0
+                    curl -fsS -m 10 --retry 3 -o /dev/null "${HEARTBEAT_URL}$1" || echo "heartbeat ping failed" >&2
+                  }
+                  trap 'rc=$?; [ "${rc}" -eq 0 ] || ping /fail' EXIT
+                  case "${AGE_RECIPIENTS}" in
+                    age1*) ;;
+                    *) echo "AGE_RECIPIENTS must hold at least one age public key (age1...), see docs/backup/immich-database.md" >&2; exit 1 ;;
+                  esac
+                  set --
+                  for recipient in ${AGE_RECIPIENTS}; do set -- "$@" -r "${recipient}"; done
+                  name="immich-$(date -u +%Y-%m-%dT%H%M%SZ).dump.age"
+                  test -s /dump/immich.dump
+                  /age/age "$@" -o /dump/immich.dump.age /dump/immich.dump
+                  rm /dump/immich.dump
+                  test -s /dump/immich.dump.age
+                  aws s3 cp /dump/immich.dump.age "s3://${BUCKET}/${name}" --only-show-errors
+                  aws s3 ls "s3://${BUCKET}/${name}"
+                  # Only immich-* objects are candidates for pruning, and the dump just uploaded is skipped by name, so a
+                  # clock or sort problem can never delete it.
+                  old=$(aws s3api list-objects-v2 --bucket "${BUCKET}" --prefix immich- --query 'sort_by(Contents,&LastModified)[:-14].Key' --output text)
+                  for key in $old; do
+                    [ "$key" = "None" ] && break
+                    [ "$key" = "${name}" ] && continue
+                    aws s3 rm "s3://${BUCKET}/${key}" --only-show-errors
+                  done
+                  ping ""
+              env:
+                - name: AGE_RECIPIENTS
+                  # space separated age public keys (not secret); the private key is kept outside the cluster
+                  value: age1fzc0z67lmmd24dzrkj8s7kh9vu67tnt5stcvsnys64ygqssmw3zqp6073n
+                - name: AWS_ACCESS_KEY_ID
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-backup
+                      key: AWS_ACCESS_KEY_ID
+                - name: AWS_DEFAULT_REGION
+                  value: default
+                - name: AWS_ENDPOINT_URL
+                  value: https://fiona.home.iseja.net:9000
+                - name: AWS_REQUEST_CHECKSUM_CALCULATION
+                  value: when_required
+                - name: AWS_RESPONSE_CHECKSUM_VALIDATION
+                  value: when_required
+                - name: AWS_SECRET_ACCESS_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-backup
+                      key: AWS_SECRET_ACCESS_KEY
+                - name: BUCKET
+                  # bucket name is rewritten per environment (<env>-immich-db)
+                  value: base-immich-db
+                - name: HEARTBEAT_URL
+                  # healthchecks.io ping URL; only the environments that register a check deliver the Secret
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-heartbeat
+                      key: HEARTBEAT_URL
+                      optional: true
+                - name: HOME
+                  value: /tmp
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: age
+                  mountPath: /age
+                  readOnly: true
+                - name: dump
+                  mountPath: /dump
+          initContainers:
+            - name: dump
+              # overwritten with the Cluster's spec.imageName by the replacement in kustomization.yaml; this copy only
+              # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
+              image: ghcr.io/tensorchord/cloudnative-vectorchord:18.6-1.1.1@sha256:c7672bc011351a587cc292a94aac7eeebb593ed2e120077bd9c9944c9467db93
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  pg_dump --format=custom --file=/dump/immich.dump
+                  # pg_restore must be able to read the table of contents, else the job fails before anything is uploaded
+                  pg_restore --list /dump/immich.dump > /dev/null
+              env:
+                - name: PGDATABASE
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-app
+                      key: dbname
+                - name: PGHOST
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-app
+                      key: host
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-app
+                      key: password
+                - name: PGUSER
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-app
+                      key: username
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: dump
+                  mountPath: /dump
+            - name: fetch-age
+              # the aws-cli image is already pulled for the upload step and has curl and python3, but no tar and no age
+              image: public.ecr.aws/aws-cli/aws-cli:2.40.3@sha256:33a16c53ea442e918b58df67301ad76a8fb57082c39f7e78753b898c3f3e87c2
+              command:
+                - /bin/sh
+                - -ec
+                - |
+                  # No image we use ships age, so the pinned release is fetched and checked before it is used. Bump
+                  # version and sha256 together by hand (the GitHub release asset's digest): Renovate cannot update the hash.
+                  version=v1.3.2
+                  sha256=cbe24006683f8eb669266162894b9a522a1af52f2665fbc63a4bb032ed26ac10
+                  test "$(uname -m)" = x86_64
+                  curl -fsSL --retry 3 -o /tmp/age.tar.gz "https://github.com/FiloSottile/age/releases/download/${version}/age-${version}-linux-amd64.tar.gz"
+                  echo "${sha256}  /tmp/age.tar.gz" | sha256sum -c -
+                  python3 -c 'import tarfile; open("/age/age", "wb").write(tarfile.open("/tmp/age.tar.gz").extractfile("age/age").read())'
+                  chmod 0755 /age/age
+                  /age/age --version
+              env:
+                - name: HOME
+                  value: /tmp
+              resources:
+                limits:
+                  memory: 256Mi
+                requests:
+                  cpu: 10m
+                  memory: 64Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+              volumeMounts:
+                - name: age
+                  mountPath: /age
+          restartPolicy: Never
+          securityContext:
+            fsGroup: 26
+            runAsGroup: 26
+            runAsNonRoot: true
+            runAsUser: 26
+            seccompProfile:
+              type: RuntimeDefault
+          volumes:
+            - name: age
+              emptyDir:
+                sizeLimit: 32Mi
+            - name: dump
+              # the plain dump and its encrypted copy exist side by side for a moment; a large library needs more
+              # (sized from the load test, #2147)
+              emptyDir:
+                sizeLimit: 4Gi
+  schedule: 0 2 * * *
+  successfulJobsHistoryLimit: 3
+  timeZone: Europe/Berlin

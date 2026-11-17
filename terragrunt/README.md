@@ -6,7 +6,7 @@ This folder holds only the *live* configuration (which module, which version, wh
 
 **Common tasks:** [plan/apply a unit](#plan-and-apply-a-unit) · [reconnect cluster access after bootstrap](#cluster-bootstrap) · [import a Proxmox volume](#import-proxmox-volume) · [clean up state or destroy a cluster](#cluster-end-of-lifecycle) · [snapshot or power-cycle VMs](#proxmox-vm-snapshots-and-power) · [rebuild a whole cluster](../docs/backup/disaster-recovery.md#full-cluster-rebuild).
 
-**On this page:** [Prerequisites](#prerequisites) · [Folder structure](#folder-structure) · [Units](#units) · [Plan and apply a unit](#plan-and-apply-a-unit) · [Provider lock files](#provider-lock-files) · [Cluster (`vehagn-k8s`)](#cluster-vehagn-k8s) · [`poc`-only units](#poc-only-units-vms-talos-proxmox) · [State access role](#state-access-role-tf-state-read-role) · [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) · [RustFS monitoring identity](#rustfs-monitoring-identity) · [Keycloak realms](#keycloak-realms-keycloak-realm) · [Automation client](#automation-client-keycloak-automation) · [Checkmk configuration](#checkmk-configuration)
+**On this page:** [Prerequisites](#prerequisites) · [Folder structure](#folder-structure) · [Units](#units) · [Plan and apply a unit](#plan-and-apply-a-unit) · [Provider lock files](#provider-lock-files) · [Cluster (`vehagn-k8s`)](#cluster-vehagn-k8s) · [`poc`-only units](#poc-only-units-vms-talos-proxmox) · [State access role](#state-access-role-tf-state-read-role) · [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db-rustfs-immich-db) · [RustFS monitoring identity](#rustfs-monitoring-identity) · [Keycloak realms](#keycloak-realms-keycloak-realm) · [Automation client](#automation-client-keycloak-automation) · [Checkmk configuration](#checkmk-configuration)
 
 ## Prerequisites
 
@@ -32,6 +32,7 @@ Structure is `terragrunt/<non-prod|prod>/<account>/<region>/<env>/<unit>`. `root
 │   ├── keycloak-automation.hcl
 │   ├── keycloak-realm.hcl
 │   ├── rustfs-bucket-reader.hcl
+│   ├── rustfs-immich-db.hcl
 │   ├── rustfs-keycloak-db.hcl
 │   ├── rustfs-kopiur-backup.hcl
 │   ├── talos-proxmox.hcl      # poc only
@@ -67,8 +68,9 @@ Module versions follow the environments' roles ([`docs/architecture/environments
 | --- | --- | --- | --- | --- |
 | `vehagn-k8s` | the cluster: Proxmox VMs, Talos install and bootstrap, sealed-secrets key, proxmox-csi credentials, Proxmox volumes | `terraform-proxmox-talos` | all 8 | [Cluster](#cluster-vehagn-k8s) |
 | `tf-state-read-role` | the environment's IAM role for its Terraform state | `cisagov/terraform-state-read-role-tf-module` | all 8 | [State access role](#state-access-role-tf-state-read-role) |
-| `rustfs-kopiur-backup` | RustFS bucket + user for kopiur app backups, `kopiur-backup#<env>` 1Password item | `rustfs-kopiur-backup` | all 8 | [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) |
-| `rustfs-keycloak-db` | RustFS bucket + user for the Keycloak database backup, `keycloak-db#<env>` 1Password item | `rustfs-kopiur-backup` | `dev`, `qa`, `rebuild`, `prod` | [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db) |
+| `rustfs-kopiur-backup` | RustFS bucket + user for kopiur app backups, `kopiur-backup#<env>` 1Password item | `rustfs-kopiur-backup` | all 8 | [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db-rustfs-immich-db) |
+| `rustfs-keycloak-db` | RustFS bucket + user for the Keycloak database backup, `keycloak-db#<env>` 1Password item | `rustfs-kopiur-backup` | `dev`, `qa`, `rebuild`, `prod` | [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db-rustfs-immich-db) |
+| `rustfs-immich-db` | RustFS bucket + user for the Immich database backup, `immich-db#<env>` 1Password item | `rustfs-kopiur-backup` | `dev`, `qa`, `rebuild` | [RustFS buckets/users](#rustfs-bucketsusers-rustfs-kopiur-backup-rustfs-keycloak-db-rustfs-immich-db) |
 | `rustfs-bucket-reader` | read-only RustFS identity for capacity monitoring, `checkmk-monitoring#<env>` 1Password item | `rustfs-bucket-reader` | all 8 | [RustFS monitoring identity](#rustfs-monitoring-identity) |
 | `checkmk-password` | Checkmk Password Store entry for that identity | `checkmk-password` | all 8 | [Password Store entries](#password-store-entries-checkmk-password) |
 | `checkmk-rustfs-monitoring` | Checkmk hosts and rules for RustFS quota monitoring | `checkmk-rustfs-monitoring` | `prod` only (one shared unit) | [Host and rules](#host-and-rules-checkmk-rustfs-monitoring) |
@@ -248,13 +250,15 @@ j=700813; for i in {5..1}; do echo -n "processing VM $j$i "; qm snapshot $j$i wi
 
 Each environment's `tf-state-read-role` unit creates the IAM role that the environment's `.envrc` exports as `TG_IAM_ASSUME_ROLE` (e.g. `dev-non-prod-homelab-eu-central-1-tf-state-<account-id>-RW-Role`). Despite the module's name the role is read/write (`read_only = false`), scoped to that environment's state objects (`<account>/<region>/<env>/*/tf.tfstate*`) in the account's state bucket. Creating the role and the state bucket for a new environment before any state exists is the bootstrapping problem tracked in [#195](https://github.com/isejalabs/homelab/issues/195).
 
-## RustFS buckets/users (`rustfs-kopiur-backup`, `rustfs-keycloak-db`)
+## RustFS buckets/users (`rustfs-kopiur-backup`, `rustfs-keycloak-db`, `rustfs-immich-db`)
 
 `rustfs-kopiur-backup` provisions, per environment, a RustFS bucket, a policy scoped to it, and a dedicated user via [`rustfs-bucket-user`](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-bucket-user), and writes the resulting credentials (plus a generated `KOPIA_PASSWORD`) into a `kopiur-backup#<env>` 1Password item via [`onepassword-item`](https://github.com/isejalabs/terraform-modules/tree/main/modules/onepassword-item) -- see [`rustfs-kopiur-backup`'s README](https://github.com/isejalabs/terraform-modules/tree/main/modules/rustfs-kopiur-backup) for the full mechanism and current caveats. Requires both a `rustfs` and an `onepassword` entry in `global-secrets.sops.yaml`.
 
 Units exist for all 8 environments. Only `dev`/`qa`/`rebuild`/`prod` have an active kopiur backup schedule on the Kubernetes side (see [isejalabs/homelab#1121](https://github.com/isejalabs/homelab/issues/1121)); `dbg`/`head`/`poc`/`src` still get a real bucket and 1Password item so their `ClusterRepository` has something valid to connect to, but nothing writes to it on a schedule.
 
 `rustfs-keycloak-db` reuses the same module with `name = "keycloak-db"` to give the Keycloak CloudNativePG cluster its own bucket and scoped user (`<env>-keycloak-db`) and a `keycloak-db#<env>` 1Password item (its extra `KOPIA_PASSWORD` field is unused). Units exist for `dev`, `qa`, `rebuild` and `prod`; only `dev` has been applied so far, `qa` and `prod` are applied from `main` as usual. See [isejalabs/homelab#1826](https://github.com/isejalabs/homelab/issues/1826).
+
+`rustfs-immich-db` does the same with `name = "immich-db"` for the Immich CloudNativePG cluster (`<env>-immich-db`, `immich-db#<env>`). Units exist for `dev`, `qa` and `rebuild`; `prod` follows with the `prod` promotion of Immich. See [isejalabs/homelab#2145](https://github.com/isejalabs/homelab/issues/2145).
 
 ## RustFS monitoring identity
 
