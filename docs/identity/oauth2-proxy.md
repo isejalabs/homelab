@@ -36,7 +36,7 @@ browser ──https──► Gateway (HTTPRoute) ──► oauth2-proxy ──ht
 
 The checklist for a new user; the component README has the field-level details.
 
-1. **Group.** Name `sec.app.<app>.admin` per [`ucs-groups.md`](ucs-groups.md); creating it and adding `sebi-adm` needs the owner's go (UCS).
+1. **Group.** Name `sec.app.<app>.admin` per [`ucs-groups.md`](ucs-groups.md); creating it and adding `bob-adm` needs the owner's go (UCS).
 2. **Keycloak client.** An OIDC client in the realm `admin`: confidential, PKCE on (`pkce = true`; the proxy sends `S256`), the `groups` scope as a default scope, redirect URI `https://<hostname>/oauth2/callback`, web origin the same host. Registered in the `oidc_clients` of the `keycloak-realm` unit of each environment ([`keycloak-realms.md`](keycloak-realms.md)). Terragrunt writes its client ID and secret to the 1Password item `keycloak-oidc-<app>-admin#<env>`; the `cookie-secret` is a separate hand-made item `oauth2-proxy-<app>#<env>`.
 3. **Unit.** A unit `<app>-auth` (or a part of the application's own unit when it has a Flux Kustomization of its own) that includes the component, with the three Flux variables and the per-environment issuer and 1Password key patches; the `CiliumNetworkPolicy` for the application's pods; the `backendRef` of the route changed to `oauth2-proxy`. [`longhorn-auth`](../../k8s/infra/longhorn-system/longhorn-auth/) is the worked example.
 4. **Machine access.** Anything that calls the application without a browser (monitoring, scripts) cannot do the login. Find it before the switch (see the inventory in [`longhorn-sso.md`](longhorn-sso.md#who-talks-to-the-ui-and-the-api)) and give it a path that does not depend on SSO: either a `skip-auth-route` for exactly the read it needs, or a separate credential ([#1714](https://github.com/isejalabs/homelab/issues/1714)). Machine access stays out of human SSO.
@@ -46,7 +46,7 @@ The checklist for a new user; the component README has the field-level details.
 ## Limits and things to know
 
 - **One provider per proxy.** OAuth2 Proxy runs one OIDC provider (the alpha configuration has a `providers` list, but its documentation says multiple providers are "not yet working"). An application that must accept the realms `iseja` and `admin` both needs a second proxy on a second hostname. Every application of this pattern starts with `admin` only.
-- **Authorization is coarse.** The proxy knows "in the group or not". It cannot say "may read, may not delete": a role split needs a layer behind the proxy that looks at the request, see the finding for Longhorn in [`longhorn-sso.md`](longhorn-sso.md#operator-and-read-only-for-sebi-and-mary).
+- **Authorization is coarse.** The proxy knows "in the group or not". It cannot say "may read, may not delete": a role split needs a layer behind the proxy that looks at the request, see the finding for Longhorn in [`longhorn-sso.md`](longhorn-sso.md#operator-and-read-only-for-bob-and-alice).
 - **Startup needs Keycloak.** The proxy fetches the discovery document of the issuer when it starts and exits if that fails, so it restarts until Keycloak answers. An already running proxy keeps serving sessions while Keycloak is down, but cannot start a login. That is why break-glass must not go through the proxy.
 - **Reserved paths.** `/oauth2/*` on the application's hostname belongs to the proxy.
 - **WebSockets** pass through the proxy.

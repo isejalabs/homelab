@@ -75,3 +75,34 @@ Run this `kubectl apply -k` for every environment being switched. `admin@<env>-h
 ## 4. Reverting later
 
 Once testing is done and before merging the branch, the override must be undone so the environment falls back to tracking `main`. Just `git revert` the `tmp(<env>): ...` commit from step 2 — this restores the commented placeholder form exactly, needs no wording decision, and keeps the throwaway nature of the change visible in history (still on the feature branch, not `main`; push it same as the original commit). Then re-run the same `kubectl apply -k ... --context admin@<env>-homelab` from step 3 so the live cluster actually flips back to `main` immediately rather than waiting to merge.
+
+### Resources that exist only on the branch (a new app)
+
+**Do not use the plain revert above when the branch adds something `main` does not have yet** (a new app or infra unit, a new Flux `Kustomization`, a new PVC). As soon as the environment follows `main` again, `main` has no Flux `Kustomization` for it, so Flux prunes the unit and everything in it that is not protected from pruning, including the PVC and its data, and it stays gone until the pull request is merged. The revert alone is enough to trigger this, also without the `kubectl apply -k`: the environment still follows the branch, so it reconciles the reverted overlay from there and flips itself back to `main`. The gap is not short either, because the push of the revert restarts CI and the merge has to wait several minutes for the required checks. This was hit while landing [PR #1684](https://github.com/isejalabs/homelab/pull/1684).
+
+Safe sequence, with the revert and the merge as close together as possible:
+
+1. Suspend the environment's `flux-instance` Kustomization **before** pushing the revert, so the live `HelmRelease` keeps the branch ref:
+
+   ```sh
+   flux suspend ks flux-instance -n flux-system --context admin@<env>-homelab
+   ```
+
+2. `git revert` the `tmp(<env>): ...` commit and push it. Skip the `kubectl apply -k` from above: it would flip the environment to `main` right away.
+3. Wait for CI on the revert, then merge the pull request (the usual checks and confirmations apply). Do nothing else in between.
+4. Once `main` contains the change, resume:
+
+   ```sh
+   flux resume ks flux-instance -n flux-system --context admin@<env>-homelab
+   ```
+
+5. Confirm that the environment is back on `main` and that nothing was pruned:
+
+   ```sh
+   kubectl get gitrepository flux-system -n flux-system --context admin@<env>-homelab -o jsonpath='{.spec.ref}'
+   flux get ks -A --context admin@<env>-homelab
+   ```
+
+   Expect `{"name":"refs/heads/main"}` and the new unit's Kustomization still present and `Ready`. If the ref still names the branch (for example because the branch was deleted on merge before the environment fetched the revert), run the `kubectl apply -k` from step 3 on a checkout of `main`.
+
+If the pull request cannot be merged soon after all, leave the environment on the branch (do not revert yet) rather than leaving `flux-instance` suspended: while it is suspended, the environment gets no change to its Flux instance from Git.

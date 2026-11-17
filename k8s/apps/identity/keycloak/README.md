@@ -22,7 +22,7 @@ One place that knows who may sign in to what. UCS stays the authoritative direct
   - the `keycloak-db` PostgreSQL cluster in the same namespace (CloudNativePG, volume on `longhorn-ha`);
   - the `internal` Gateway in `gateway-api` (TLS ends there, Keycloak speaks plain HTTP on 8080);
   - the UCS domain controllers on LDAPS `7636` and the UCS CA, mounted from the Secret `keycloak-ucs-ca`;
-  - External Secrets and 1Password for the bootstrap admin, the database dump credentials, the dump heartbeat URL (`qa`) and the CA;
+  - External Secrets and 1Password for the bootstrap admin, the database dump credentials, the dump heartbeat URL (`qa`, `prod`) and the CA;
   - RustFS on `fiona` (the S3-compatible NAS) for the daily dump, bucket `<env>-keycloak-db`.
 
 ## Access
@@ -138,6 +138,7 @@ Done once per environment, **before the Flux units `cloudnative-pg`, `keycloak-o
 | 3 | 1Password item `ucs-ca` with the property `ca.pem` | Exists once for all environments (step 3 below) | no, shared |
 | 4 | DNS name of the Keycloak URL | `dev`, `qa`, `rebuild`: created by `external-dns`. `prod` only: `auth.iseja.net` is outside the zone `external-dns` manages and is created by hand (step 4 below) | `prod` only |
 | 5 | 1Password item `keycloak-ldap-bind#<env>` | Needed only by the Terragrunt unit `keycloak-realm`, not by the workload: [`keycloak-realms.md`](../../../../docs/identity/keycloak-realms.md#prerequisites) | yes |
+| 6 | healthchecks.io check and the 1Password item `keycloak-db-heartbeat#<env>` | Only for an environment whose overlay registers the heartbeat (`qa`, `prod`; `dev` and `rebuild` have none on purpose). Without it the dump still runs, but nothing alerts when it fails: [`keycloak-backup-restore.md`](../../../../docs/identity/keycloak-backup-restore.md#alerting), steps 1 and 2 | yes, where registered |
 
 ### 1. Bucket, user and database-dump credentials
 

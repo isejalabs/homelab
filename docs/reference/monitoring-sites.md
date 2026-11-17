@@ -4,7 +4,7 @@ status: current
 
 # Monitoring sites
 
-**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-10-30. Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
+**Status:** current as of 2026-10-29 for `prod_k8s` and `core` (ping-only hosts in `prod_k8s`, `core` stopped, see [below](#ping-only-hosts-in-prod_k8s)) and for `prod` and `free` (`free` merged into `prod` and stopped, see [below](#change-of-2026-10-29-free-merged-into-prod)); check intervals and licence state as of 2026-10-20 (the `prod_k8s` rows updated 2026-10-28, the `free` row re-read after the phase 1 change on 2026-10-28); earlier sections as of 2026-10-19; the [root filesystem section](#root-filesystem-growth) as of 2026-11-10; the service counts in the [licence state](#licence-state) table re-read on 2026-11-11 ([`2026-11-proxmox-capacity-phase4.md`](../audits/2026-11-proxmox-capacity-phase4.md)). Site roles and representative host assignments were checked against the live Checkmk configuration over read-only SSH on this date. **Tracking:** [#1843](https://github.com/isejalabs/homelab/issues/1843), [#2157](https://github.com/isejalabs/homelab/issues/2157), [#1780](https://github.com/isejalabs/homelab/issues/1780), [#1783](https://github.com/isejalabs/homelab/issues/1783), [#1782](https://github.com/isejalabs/homelab/issues/1782), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
 Authoritative inventory of the Checkmk containers and sites. Container and version details were read from the live hosts on 2026-10-18; site roles and representative host assignments were checked on 2026-10-19. Earlier point-in-time statements in [`2026-09-observability.md`](../audits/2026-09-observability.md) and its siblings are superseded where they conflict with this page; those audits stay unedited (see [`audits/README.md`](../audits/README.md)). The corrections are listed in [`2026-10-monitoring-container-oom.md`](../audits/2026-10-monitoring-container-oom.md#corrections-to-the-september-2026-audits).
 
@@ -91,10 +91,10 @@ All four Ultimate sites (`prod_k8s`, `core`, `qa_k8s`, `dev_k8s`) report **`Lice
 
 | Site | Services | Headroom to 750 |
 | --- | --- | --- |
-| `prod_k8s` | 599 (679 before 2026-10-21, 589 before 2026-10-28) | 151 (80% used) |
+| `prod_k8s` | 650 on 2026-11-11 (599 on 2026-10-29, 679 before 2026-10-21, 589 before 2026-10-28) | 100 (87% used, 25 below the WARN level of 675) |
 | `core` (stopped 2026-10-29) | 636 | 114 |
-| `qa_k8s` | 616 | 134 |
-| `dev_k8s` | not read | |
+| `qa_k8s` | 665 on 2026-11-11 (616 on 2026-10-20) | 85 (10 below the WARN level of 675) |
+| `dev_k8s` | 581 on 2026-11-11 | 169 |
 
 The Community site `prod` has no limit (`free` is stopped).
 
@@ -112,7 +112,7 @@ Since 2026-10-28 (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-
 | `gw2.home.iseja.net` | 10.7.0.2 | 1 s | |
 | `gw3.home.iseja.net` | 10.7.0.3 | 1 s | |
 | `gw4.home.iseja.net` | 192.168.8.4 | 1 s | test host of 2026-10-28 |
-| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
+| `gw-kdg.home.iseja.net` | the WAN public address | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
 | `google-dns` | 8.8.8.8 | 1 s | tag `networking: wan` |
 | `sw01.home.iseja.net` | 10.7.10.50 | 1 s | alias `switch-kueche.home.iseja.net` |
 | `core-switch.home.iseja.net` | 10.7.20.150 | 1 s | |
@@ -149,7 +149,7 @@ Both set the service name `PING` and the command line `$USER1$/check_icmp -n 6 -
 
 - **Same service name.** The service stays `PING`, so its history and the 5-minute interval rule for `/ping-only` in `prod_k8s` carry over. The implicit `PING` service of ping-only hosts disappears by itself once the host has another service, so the service count does not change.
 - **Thresholds are in the command line.** The `networking: wan` rule of `ping_levels` (80% warning, 100% critical) does not apply to this service. With 6 packets one lost packet is 17%, so 20% is WARN from the second lost packet on and 50% is CRIT from the third. The rule of `ping_levels` still applies to the host check of `gw-kdg` in `prod` (default packet size).
-- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and `188.195.100.252` lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
+- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and the public address of the WAN gateway lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
 - **Result after activation (2026-10-30):** `prod_k8s` was CRITICAL ("lost 83% > 50%") on its first run and `prod` OK ("lost 0%"), which fits a loss that comes and goes.
 - **Roll back:** delete the two rules and activate; the implicit `PING` service with the default packet size comes back.
 
@@ -207,3 +207,17 @@ Read-only, eight days after the cleanup (live `Filesystem /` service state via `
 - **journald is the largest identified source on `monitoring2`.** The journal was vacuumed to 30 MB on 2026-10-22 and is 233 MB again, about 25 MB/day, while it is 9 MB on `monitoring1`. Since the vacuum it holds about 190,000 `init.scope`, 150,000 `cron.service` and 3 × 93,000 `user@<site uid>.service` entries, in the current hour mostly `pam_unix(cron:session)` opened/closed lines and `su` sessions of the site users, plus a user manager start/stop for each of them. That is the every-minute site crontabs plus the Checkmk agent's per-site `su` runs. No `SystemMaxUse` is set in `journald.conf` or its drop-ins, so the default cap (10 % of the filesystem, about 1.1 GiB here) applies and the journal keeps growing toward it.
 - **Still unidentified:** the other roughly 25 MiB/day on `monitoring2`. Candidates are unchanged: `prod_k8s` core history (35 MB, written today), `wato_audit.log` (44 MB) and the `rrdcached` journal of `prod`.
 - **Not applied:** capping journald on `monitoring2` (for example `SystemMaxUse=100M`). It is a persistent change to the host and is left for a decision on [#1843](https://github.com/isejalabs/homelab/issues/1843).
+
+### Reading of 2026-11-10
+
+Read-only, via Livestatus (`lq` on the `prod` site) and `rrdtool fetch` of `Filesystem___fs_used.rrd` for both hosts, 32 days of history at 12-hour resolution.
+
+| Container | Used | Checkmk's "time left" | Real growth, last 7 days (RRD fit) | State |
+| --- | --- | --- | --- | --- |
+| `monitoring1` | 3.75 GiB (34.1 %) | 63 d 10 h | about 4 MiB/day | CRIT |
+| `monitoring2` | 5.62 GiB (51.1 %) | 72 d 7 h | about 5–7 MiB/day | WARN |
+
+- **journald was capped on both containers on 2026-10-30**, closing the "not applied" item above: [`sebiklamar/salt-iseja.net#39`](https://github.com/sebiklamar/salt-iseja.net/pull/39) adds `SystemMaxUse=100M`/`RuntimeMaxUse=10M`. Confirmed live: `journalctl --disk-usage` reports 101 MiB on `monitoring2` and 9.3 MiB on `monitoring1`, both well under the cap, and the drop-in `/etc/systemd/journald.conf.d/journald-global.conf` is present on both hosts.
+- **The remaining growth is one-off steps, not a steady source.** The 32-day RRD series on both hosts shows the same shape: a jump around the 2.5 package install (10-11), a drop at the `omd update` (10-18/19), a jump/drop pair around the `free`→`prod` RRD migration and site deletion (10-29 to 11-01), then a flat or very slowly rising line from about 11-02 onward. No new RRD files were created on either host in the last 7 days (`find /omd/sites/*/var -name '*.rrd' -newerBt '-7 days'` returns none), so the metric count itself isn't growing.
+- **Checkmk's own "time left" forecast is still catching up.** It is an exponentially-weighted trend (about 21-day half-life) that is still dominated by the October jumps, which is why it reads 63–72 days rather than the "years" the current 4–7 MiB/day growth implies. Both values are already above the 70-day CRIT threshold or close to it (`monitoring2` crossed into WARN between the 2026-10-30 and this reading); both are expected to clear the 105-day WARN threshold and reach OK within the next one to two weeks as the window moves past the October changes, with no further action needed.
+- **Conclusion for [#1843](https://github.com/isejalabs/homelab/issues/1843):** the acceptance criterion ("at least 90 days of forecast headroom") is not yet met by Checkmk's own number, but the underlying cause is identified (one-off steps plus, previously, uncapped journald) and already addressed; no steady, unbounded growth source remains on either host. The trend alarm is expected to clear on its own; if it has not reached WARN by about 2026-11-24, re-open the investigation rather than re-acknowledging the alert indefinitely.

@@ -39,14 +39,16 @@ inputs = {
 
   # The Checkmk site prod_k8s (Ultimate, on monitoring2) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
-  # include_email stays off: notifications on prod_k8s are not enabled yet (#1901), and the e-mail attribute plus the
-  # contact group "all" would make the user a mail recipient. The Community site prod is not set up.
+  # include_email is on for the iseja client only: the e-mail attribute plus the contact group "all" makes the user a
+  # mail recipient, and a Checkmk user without an address makes the notification fail (#2294). The admin accounts are in
+  # no contact group, so that client sends none. Notifications themselves are still off on prod_k8s until #1901.
   saml_clients = {
     "prod_k8s-iseja" = {
-      realm     = "iseja"
-      client_id = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk prod_k8s (iseja)"
+      realm         = "iseja"
+      client_id     = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_metadata.py"
+      acs_url       = "https://monitoring2.home.iseja.net/prod_k8s/check_mk/saml_acs.py?acs"
+      name          = "Checkmk prod_k8s (iseja)"
+      include_email = true
     }
     "prod_k8s-admin" = {
       realm     = "admin"
@@ -56,10 +58,19 @@ inputs = {
     }
   }
 
+  # OIDC clients. The secret of each goes to the 1Password item keycloak-oidc-<key>#prod (oidc_secret_item_title_format in
+  # _envcommon/keycloak-realm.hcl).
+  #
   # Proxmox VE (cluster ISEJA-Lab, four nodes) signs in humans through OpenID Connect, one client per realm because a
   # Proxmox OpenID realm trusts a single issuer. Proxmox sends the address the browser used as the redirect URI, so every
   # node FQDN is listed, with and without a trailing slash. The Proxmox side (realms, groups, ACLs) is the unit
   # proxmox-access, see docs/identity/proxmox-sso.md.
+  #
+  # The Community site prod (monitoring2) has neither SAML nor OIDC. The system Apache in front of it signs humans in with
+  # mod_auth_openidc and hands the user name to Checkmk in a header, see docs/identity/checkmk-sso.md. One client per
+  # realm and entry point, because Checkmk is reached under two host names: monitoring2.home.iseja.net (realm iseja) and
+  # monitoring.home.iseja.net (realm admin, for the WebAuthn-protected administrators). Salt reads the secrets from the
+  # 1Password items for the Apache.
   oidc_clients = {
     "proxmox-iseja" = {
       realm     = "iseja"
@@ -79,6 +90,43 @@ inputs = {
         [for n in local.proxmox_nodes : "https://${n}.home.iseja.net:8006/"],
       )
     }
+    "checkmk-prod-iseja" = {
+      realm                     = "iseja"
+      name                      = "Checkmk prod (iseja)"
+      redirect_uris             = ["https://monitoring2.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring2.home.iseja.net/*"]
+    }
+    "checkmk-prod-admin" = {
+      realm                     = "admin"
+      name                      = "Checkmk prod (admin)"
+      redirect_uris             = ["https://monitoring.home.iseja.net/prod/oidc-redirect"]
+      post_logout_redirect_uris = ["https://monitoring.home.iseja.net/*"]
+    }
+
+    # The Longhorn dashboard has no login of its own: the oauth2-proxy of k8s/infra/longhorn-system/longhorn-auth logs in
+    # with this client (realm admin, group sec.app.longhorn.admin), see docs/identity/longhorn-sso.md.
+    "longhorn-admin" = {
+      realm         = "admin"
+      client_id     = "longhorn"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
+      pkce          = true
+    }
+
+    # The OPNsense gateways gw2 and gw3 are configured by hand; the os-sso plugin on each box logs the administrators in
+    # with this client (realm admin, group sec.app.opnsense.admin), see docs/identity/opnsense-auth.md and ADR 0020. Each
+    # box is reached by its own name, so both callbacks are listed. The secret lands in the item
+    # keycloak-oidc-opnsense-admin#prod, which is read by hand when the server entry is added on the box.
+    "opnsense-admin" = {
+      realm     = "admin"
+      client_id = "opnsense"
+      name      = "OPNsense (admin)"
+      redirect_uris = [
+        "https://gw2.home.iseja.net/api/sso/oidc/callback",
+        "https://gw3.home.iseja.net/api/sso/oidc/callback",
+      ]
+      pkce = true
+    }
+
     # Zigbee2MQTT has no login of its own; the unit zigbee2mqtt-auth puts an oauth2-proxy (realm admin, group
     # sec.app.zigbee2mqtt.admin) in front of it, see docs/identity/zigbee2mqtt-sso.md. Zigbee2MQTT runs in prod only,
     # hence no entry in the dev and qa units. The generated secret lands in the 1Password item

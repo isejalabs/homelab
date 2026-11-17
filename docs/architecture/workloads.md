@@ -17,6 +17,7 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 | <img src="../assets/icons/actual-budget.png" width="20" height="20" alt=""> [`actualbudget`](../../k8s/apps/finances/actualbudget/) | `finances` | [Actual Budget](https://github.com/actualbudget/actual) — personal finance/budgeting app | optional |
 | <img src="../assets/icons/adguard-home.svg" width="20" height="20" alt=""> [`adguard`](../../k8s/apps/dns/adguard/) | `dns` | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) — LAN DNS filtering/ad-blocking (see [`network.md`](network.md#dns-adguard--unbound)) | optional |
 | <img src="../assets/icons/checkmk.svg" width="20" height="20" alt=""> [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/) | `monitoring` | [Checkmk](https://checkmk.com/) Kubernetes monitoring agent (cluster + node collectors) | minimal |
+| 🖼️ [`immich-db`](../../k8s/apps/media/immich-db/) | `media` | Database and cache of [Immich](https://immich.app/) ([#413](https://github.com/isejalabs/homelab/issues/413)): a [CloudNativePG](https://cloudnative-pg.io/) cluster with VectorChord (1 instance, no WAL archiving; daily encrypted `pg_dump` to RustFS, see [`immich-database.md`](../backup/immich-database.md)) and Valkey without persistence | `qa-soaking` ³ |
 | <img src="../assets/icons/keycloak.svg" width="20" height="20" alt=""> [`keycloak`](../../k8s/apps/identity/keycloak/) | `identity` | [Keycloak](https://www.keycloak.org/) identity provider (single replica) with its [CloudNativePG](https://cloudnative-pg.io/) database (1 instance, no WAL archiving; daily `pg_dump` to RustFS, see [`keycloak-backup-restore.md`](../identity/keycloak-backup-restore.md)) — [#1826](https://github.com/isejalabs/homelab/issues/1826) | `standing` ¹ |
 | 📊 [`metrics-server`](../../k8s/apps/monitoring/metrics-server/) | `monitoring` | Kubernetes [`metrics-server`](https://github.com/kubernetes-sigs/metrics-server) (resource metrics for `kubectl top`/HPA) | minimal |
 | <img src="../assets/icons/powerdns.png" width="20" height="20" alt=""> [`powerdns`](../../k8s/apps/dns/powerdns/) | `dns` | [PowerDNS](https://www.powerdns.com/) — authoritative nameserver for the environment's own `<env>.iseja.net` zone (and PTR), dynamically populated by `external-dns` below (see [`network.md`](network.md#dns-authoritative-zones-powerdns)) | minimal |
@@ -29,6 +30,8 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 ¹ `keycloak` is registered in `dev`, `qa`, `prod` and `rebuild` only, see [`sets/standing`](../../k8s/bootstrap/cluster/flux/sets/standing/kustomization.yaml).
 
 ² `zigbee2mqtt` is registered in `prod` only, because there is a single physical coordinator.
+
+³ `immich-db` is registered in `dev`, `qa` and `rebuild` only, see [`sets/qa-soaking`](../../k8s/bootstrap/cluster/flux/sets/qa-soaking/kustomization.yaml); `prod` follows with the Immich promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
 
 ## Infra (`k8s/infra/`)
 
@@ -52,7 +55,7 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | <img src="../assets/icons/kopiur.svg" width="20" height="20" alt=""> [`kopiur-repository`](../../k8s/infra/kopiur-system/kopiur-repository/) | `kopiur-system` | `fiona`, kopiur's `ClusterRepository` pointing at this cluster's S3-compatible NAS, one bucket per environment | no | optional |
 | ✅ [`kubelet-serving-cert-approver`](../../k8s/infra/kube-system/kubelet-serving-cert-approver/) | `kube-system` | [alex1989hu/kubelet-serving-cert-approver](https://github.com/alex1989hu/kubelet-serving-cert-approver), raw manifest from a GitHub release | no | minimal |
 | <img src="../assets/icons/longhorn.svg" width="20" height="20" alt=""> [`longhorn`](../../k8s/infra/longhorn-system/longhorn/) | `longhorn-system` | Longhorn's `StorageClass`es, `VolumeSnapshotClass`, and backup/trim/snapshot jobs — companion to `longhorn-core` | no | optional |
-| <img src="../assets/icons/longhorn.svg" width="20" height="20" alt=""> [`longhorn-auth`](../../k8s/infra/longhorn-system/longhorn-auth/) | `longhorn-system` | Login for the Longhorn dashboard: [OAuth2 Proxy](https://oauth2-proxy.github.io/oauth2-proxy/) against Keycloak plus a `CiliumNetworkPolicy` (see [`longhorn-sso.md`](../identity/longhorn-sso.md)) | no | none ³ |
+| <img src="../assets/icons/longhorn.svg" width="20" height="20" alt=""> [`longhorn-auth`](../../k8s/infra/longhorn-system/longhorn-auth/) | `longhorn-system` | Login for the Longhorn dashboard: [OAuth2 Proxy](https://oauth2-proxy.github.io/oauth2-proxy/) against Keycloak plus a `CiliumNetworkPolicy` (see [`longhorn-sso.md`](../identity/longhorn-sso.md)) | no | none ⁴ |
 | <img src="../assets/icons/longhorn.svg" width="20" height="20" alt=""> [`longhorn-core`](../../k8s/infra/longhorn-system/longhorn-core/) | `longhorn-system` | [Longhorn](https://longhorn.io/) distributed block storage engine (see [`storage.md`](storage.md)) | no | optional |
 | 🗂️ [`ns`](../../k8s/infra/common/ns/) | `common` | Namespace-registration aggregator — creates the namespaces every other infra unit deploys into (`_ns/` folders throughout `k8s/infra/` are inputs to this one unit, not standalone entries) | no | minimal |
 | <img src="../assets/icons/1password.svg" width="20" height="20" alt=""> [`onepassword-connect`](../../k8s/infra/external-secrets/onepassword-connect/) | `external-secrets` | [1Password Connect](https://developer.1password.com/docs/connect/) server backing the `ClusterSecretStore` (see [`secrets.md`](secrets.md)) | yes | minimal |
@@ -60,7 +63,7 @@ Every environment gets the **full** infra set — both `minimal` and `optional` 
 | <img src="../assets/icons/sealed-secrets.png" width="20" height="20" alt=""> [`sealed-secrets`](../../k8s/infra/sealed-secrets/sealed-secrets/) | `sealed-secrets` | [Bitnami Sealed Secrets](https://github.com/bitnami-labs/sealed-secrets) controller (see [`secrets.md`](secrets.md)) | yes | minimal |
 | 📸 [`snapshot-controller`](../../k8s/infra/kube-system/snapshot-controller/) | `kube-system` | [`snapshot-controller`](https://github.com/kubernetes-csi/external-snapshotter) (VolumeSnapshot CRDs/controller) | CRDs only | minimal |
 
-³ `longhorn-auth` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev` only so far: an environment joins once its Keycloak client for the Longhorn proxy exists, see [`longhorn-sso.md`](../identity/longhorn-sso.md#rollout).
+⁴ `longhorn-auth` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev`, `prod` and `qa`: an environment joins once its Keycloak client for the Longhorn proxy exists, see [`longhorn-sso.md`](../identity/longhorn-sso.md#rollout).
 
 ### CRDs-only, not actually deployed
 
