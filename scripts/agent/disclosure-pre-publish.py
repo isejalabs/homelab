@@ -5,7 +5,7 @@ Runs as a Claude Code PreToolUse hook on Bash (see .claude/settings.json). The d
 pre-commit hook only reads files, so the text of issues, pull requests, comments and commit messages was
 never checked (ADR 0019, issue 2332). This hook closes that gap at the moment of publishing: for a gh
 write command, a gh api call or git commit/tag, it checks the command text and the files the command
-names with --body-file, --file or -F through scripts/tools/check-private-terms.sh, the same script and
+names with --body-file, --notes-file, --file or -F through scripts/tools/check-private-terms.sh, the same script and
 list as the pre-commit hook. A hit exits 2, which blocks the command and shows the reason to the agent.
 
 The reason only names where the hit is, never the term: check-private-terms.sh prints file:line only. A
@@ -31,8 +31,8 @@ PUBLISHING = re.compile(
     r"|git\s+(?:-\S+\s+)*(?:commit|tag)"
     r")\b"
 )
-# Files whose content is posted: --body-file, --file, -F (gh) and -F, --file (git commit).
-TEXT_FILE = re.compile(r"(?:--body-file|--file|-F)(?:\s+|=)(?:'([^']+)'|\"([^\"]+)\"|(\S+))")
+# Files whose content is posted: --body-file, --notes-file, --file, -F (gh) and -F, --file (git commit).
+TEXT_FILE = re.compile(r"(?:--body-file|--notes-file|--file|-F)(?:\s+|=)(?:'([^']+)'|\"([^\"]+)\"|(\S+))")
 MAX_BYTES = 1_000_000
 
 

@@ -142,6 +142,7 @@ EOF
 )\"" "blocks a heredoc issue body with a listed term"
 expect_pre_publish 2 list "gh pr create --body-file ${WORK}/body-bad.md" "blocks a --body-file that contains a listed term"
 expect_pre_publish 2 list "git commit -F ${WORK}/body-bad.md" "blocks a git commit -F file that contains a listed term"
+expect_pre_publish 2 list "gh release create v1 --notes-file ${WORK}/body-bad.md" "blocks a release --notes-file that contains a listed term"
 expect_pre_publish 0 list "gh pr create --body-file ${WORK}/body-ok.md" "allows a clean --body-file"
 expect_pre_publish 0 list "git commit -m 'fix: clean message'" "allows a clean commit message"
 expect_pre_publish 0 list "echo ${TERM_SYNTH} | wc -c" "ignores a command that publishes nothing"
