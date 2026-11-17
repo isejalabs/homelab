@@ -23,6 +23,8 @@ Every node is provisioned by Terragrunt/the `terraform-proxmox-talos` module (se
 
 ## 1. Talos OS upgrade
 
+> Rolling a Talos version out to the fleet? Follow [`talos-upgrade.md`](talos-upgrade.md): it covers the compatibility checks, the Kubernetes window, the version pins and the rollout order around the steps below.
+
 A Talos version bump isn't applied in place — each node's `terraform-proxmox-talos` module config has a per-node `update` flag (`optional(bool, false)`); flipping it to `true` and applying makes that node's VM boot from a newly-downloaded image at the new version, which **destroys and recreates the Talos VM** for that node. A separate "data VM" (holding `EPHEMERAL` and other data disks) is untouched by this, so node-local data survives — conceptually the same guarantee as `talosctl upgrade --preserve=true`, achieved a different way because the provider can't do an in-place upgrade at all.
 
 Every environment's `vehagn-k8s/terragrunt.hcl` already has this flag present-but-commented on every node (e.g. [`terragrunt/non-prod/eu-central-1/dev/vehagn-k8s/terragrunt.hcl`](../../terragrunt/non-prod/eu-central-1/dev/vehagn-k8s/terragrunt.hcl)):

@@ -27,6 +27,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
 | Upgrade Talos/Kubernetes, replace a node or handle a Proxmox host reset | [`node-lifecycle.md`](operations/node-lifecycle.md) |
 | Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md) |
+| Roll out a Talos version (compatibility, Kubernetes window, rollout order) | [`talos-upgrade.md`](operations/talos-upgrade.md) |
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
 | Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](operations/checkmk-automation-user.md) |
@@ -141,7 +142,7 @@ Rules for filling it in:
 - Put destructive or order-sensitive steps in a GitHub alert: `> [!WARNING]` for an order or precondition that breaks the procedure when ignored, `> [!CAUTION]` for a step that destroys data or can't be undone, `> [!NOTE]` for a detail that is easy to miss but harmless. The alert text is the rule, not a new rule: it must say what the surrounding procedure already says. Alerts render on github.com and map to admonitions if a docs site is added ([#2027](https://github.com/isejalabs/homelab/issues/2027)).
 - Lead with the rule, then the reason.
 
-Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-lifecycle.md`](operations/node-lifecycle.md), [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md), [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md) and [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md), the highest-impact runbooks. Other runbooks adopt it when they are next edited; it is not a retrofit target.
+Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-lifecycle.md`](operations/node-lifecycle.md), [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md), [`talos-upgrade.md`](operations/talos-upgrade.md), [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md) and [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md), the highest-impact runbooks. Other runbooks adopt it when they are next edited; it is not a retrofit target.
 
 ### Status labels
 
