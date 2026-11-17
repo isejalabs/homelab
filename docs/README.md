@@ -62,6 +62,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
 | Sign in to OPNsense with the UCS account, or recover when UCS is down | [`opnsense-auth.md`](identity/opnsense-auth.md) |
 | Measure how long logins are interrupted when a node is drained | [`keycloak-drain-drill.md`](identity/keycloak-drain-drill.md) |
+| Protect the Zigbee2MQTT web frontend, or see why it uses a proxy | [`zigbee2mqtt-sso.md`](identity/zigbee2mqtt-sso.md) |
 
 ### Troubleshoot
 
@@ -88,7 +89,7 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
   - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, Proxmox cluster quorum, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, the Immich database, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative).
+  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative); and the authentication of the Zigbee2MQTT frontend.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
