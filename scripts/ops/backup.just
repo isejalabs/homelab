@@ -8,3 +8,6 @@ mod longhorn-snapshot "longhorn/mod.just"
 
 # Keycloak database restore recipes (#1938)
 mod keycloak "keycloak/mod.just"
+
+# Immich database restore recipes (#2145)
+mod immich "immich/mod.just"

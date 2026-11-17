@@ -2,6 +2,14 @@
   $schema: "https://docs.renovatebot.com/renovate-schema.json",
   packageRules: [
     {
+      description: 'Immich database image <postgres major>.<minor>-<vectorchord>: stay on PostgreSQL 18 (a major is a pg_upgrade, done by hand) and on VectorChord 1.x (Immich supports >= 0.3 and < 2.0)',
+      allowedVersions: '/^18\\.\\d+-1\\.\\d+\\.\\d+$/',
+      matchPackageNames: [
+        'ghcr.io/tensorchord/cloudnative-vectorchord',
+      ],
+      versioning: 'regex:^(?<major>\\d+)\\.(?<minor>\\d+)-(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$',
+    },
+    {
       description: 'keep cilium at an older version due to checkmk',
       allowedVersions: '<=1.19',
       matchPackageNames: [
