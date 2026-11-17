@@ -6,7 +6,7 @@ status: draft
 
 Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-17):** rolled out in `dev`. The client, the 1Password item and the UCS group exist, the operator runs with the OIDC config, and the UI requires a login. A browser login of the admin account is still to be recorded (second factor, group sync); `qa` and `prod` follow.
+**Status (2026-11-17):** rolled out in `dev`. The client, the 1Password item and the UCS group exist, the operator runs with the OIDC config, the UI requires a login, and the owner logged in to the UI as `bob-adm` through the realm `admin`. Still open: the refused logins (no group, missing claim) and the MFA behaviour of the realm; `qa` and `prod` follow.
 
 ## How it works
 
@@ -50,7 +50,7 @@ Flux Operator **0.62.1** (chart and app, pinned in [`ocirepository.yaml`](../../
 
 | env | Config | Applied | Verified |
 | --- | --- | --- | --- |
-| `dev` | yes | yes (2026-11-17) | RBAC, redirect to the realm login and Flux health; browser login pending |
+| `dev` | yes | yes (2026-11-17) | RBAC, redirect to the realm login, Flux health; browser login of the admin account confirmed by the owner |
 | `qa` | no | no | no |
 | `prod` | no | no | no |
 
@@ -62,6 +62,6 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 ## Open points
 
-- Record a browser login of the admin account in `dev` (second factor, group sync), the refused logins (no group, missing claim), then roll out `qa` and `prod` (apply `keycloak-realm` from `main`).
+- Record the refused logins (no group, missing claim) and the MFA behaviour of the realm `admin` in `dev`, then roll out `qa` and `prod` (apply `keycloak-realm` from `main`).
 - MFA behaviour of the realm `admin` is recorded after the first real login.
 - Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
