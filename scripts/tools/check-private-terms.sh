@@ -76,13 +76,14 @@ else
     printf '%s\0' "$@" > "${WORK}/files0"
 fi
 
+# -H keeps the file name even for a single file (grep omits it then and cut would print the line itself);
 # -I skips binary files; cut drops the matching line so a term never reaches the output.
 : > "${WORK}/hits"
 if [ -s "${WORK}/literals" ]; then
-    xargs -0 grep -I -n -i -w -F -f "${WORK}/literals" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
+    xargs -0 grep -H -I -n -i -w -F -f "${WORK}/literals" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
 fi
 if [ -s "${WORK}/regexes" ]; then
-    xargs -0 grep -I -n -i -w -E -f "${WORK}/regexes" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
+    xargs -0 grep -H -I -n -i -w -E -f "${WORK}/regexes" -- < "${WORK}/files0" 2>/dev/null | cut -d: -f1,2 >> "${WORK}/hits" || true
 fi
 if [ -s "${WORK}/hits" ]; then
     sort -u "${WORK}/hits" | sed 's/$/: contains a term from the private list/'
