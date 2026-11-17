@@ -13,7 +13,7 @@ Like the first pass, this was produced from repository evidence, issue history, 
 ## Summary
 
 - **Select the IdP now: upstream Keycloak, run in Kubernetes, federating UCS read-only.** It is the only candidate that covers OIDC, SAML, LDAP/AD federation, Kerberos SPNEGO, conditional MFA and passkeys in one product, and it is the IdP inside Nubus, so it is also the migration path. The live UCS inventory changes integration details, not this choice.
-- **Two realms, not one:** an everyday realm (`iseja`) with Kerberos SPNEGO for `bob` and family, and an admin realm (`admin`) for `*-adm` accounts only, no Kerberos, UCS password plus a WebAuthn authenticator (passkey or YubiKey), TOTP as fallback. This is what makes `bob` and `bob-adm` work side by side in one browser.
+- **Two realms, not one:** an everyday realm (`iseja`) with Kerberos SPNEGO for `bob` and a household account, and an admin realm (`admin`) for `*-adm` accounts only, no Kerberos, UCS password plus a WebAuthn authenticator (passkey or YubiKey), TOTP as fallback. This is what makes `bob` and `bob-adm` work side by side in one browser.
 - **Decouple from Cilium 1.20.** Native OIDC covers most services; the two or three that have no auth of their own (Longhorn, Zigbee2MQTT, AdGuard) get oauth2-proxy as a plain reverse proxy, which works on the Cilium 1.18 that `prod` runs today. Gateway `ExternalAuth` becomes an optional later consolidation, not a prerequisite.
 - **Placement is a design decision the first pass skipped:** the authoritative IdP runs in `prod`; `qa` runs its own instance as the upgrade gate; `rebuild` runs one to rehearse IdP recovery; other non-prod environments use the `prod` IdP (non-prod depending on prod is the acceptable direction).
 - **Availability is concrete, not open:** 2 Keycloak replicas, CloudNativePG with 1 instance (2 optional), sessions persisted in the database, nightly database backups to S3, realm configuration in Git. Target: 1 h to restore, at most 24 h of MFA enrollments lost. Every core infrastructure service keeps a local login that does not depend on the IdP, Kubernetes, or UCS.
@@ -102,7 +102,7 @@ One stable issuer hostname per instance, for example `auth.iseja.net` (prod) and
 
 Authorization stays in UCS groups, so there is one place to grant and audit access:
 
-- `sec.idm.users`: everyday accounts allowed into the `iseja` realm (family included).
+- `sec.idm.users`: everyday accounts allowed into the `iseja` realm (household accounts included).
 - `sec.idm.admins`: `*-adm` accounts only; the `admin` realm's LDAP filter admits nothing else.
 - Per-app role groups, for example `sec.app.immich.users`, `sec.app.longhorn.admins`, `sec.app.proxmox.admins`, `sec.app.k8s.admins`, `sec.app.k8s.viewers`. Keycloak passes them in a `groups` claim; each app maps them to its roles.
 
@@ -190,7 +190,7 @@ Levels 2 and 3 require the service to authenticate through Keycloak (OIDC, SAML,
 
 - UCS version and patch level; which IdP serves `ucs-sso.dir.iseja.net` (Univention Keycloak app vs. SimpleSAMLphp); every Keycloak/PostgreSQL component from the PoC on both DCs; what depends on it (portal, UMC, any SAML client).
 - Kerberos: realm, KDCs, how Windows and Mac clients obtain tickets, whether an `HTTP/` SPN can be added for a non-`dir.iseja.net` hostname.
-- Account model: existing groups, `bob` / `bob-adm` membership, family accounts.
+- Account model: existing groups, `bob` / `bob-adm` membership, household accounts.
 - Deployed versions/editions: Proxmox, Checkmk edition, RustFS, OPNsense, TrueNAS, actualbudget, Flux Operator.
 
 Acceptance: a written inventory in #1715; D9 resolved; D11 rows confirmed.

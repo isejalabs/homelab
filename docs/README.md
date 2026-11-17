@@ -25,13 +25,15 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Go from nothing to a running cluster | [`zero-to-cluster.md`](zero-to-cluster.md) |
 | Provision VMs and install Talos | [`terragrunt/README.md`](../terragrunt/README.md#plan-and-apply-a-unit) |
 | Bootstrap or re-sync foundational cluster services | [`k8s/bootstrap/README.md`](../k8s/bootstrap/README.md#cluster-deployment-with-just-and-flux-cd) |
-| Upgrade Talos/Kubernetes or replace a node | [`node-lifecycle.md`](operations/node-lifecycle.md) |
+| Upgrade Talos/Kubernetes, replace a node or handle a Proxmox host reset | [`node-lifecycle.md`](operations/node-lifecycle.md) |
 | Upgrade Kubernetes to the next minor (compatibility, pin, rollout) | [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md) |
+| Roll out a Talos version (compatibility, Kubernetes window, rollout order) | [`talos-upgrade.md`](operations/talos-upgrade.md) |
 | Understand how automated dependency updates flow | [`update-handling.md`](operations/update-handling.md) |
 | Look up app storage variables (`STORAGE_*`, `PUID`, `PGID`) | [`app-storage.md`](operations/app-storage.md) |
 | Create the Checkmk `terraform` automation user | [`checkmk-automation-user.md`](operations/checkmk-automation-user.md) |
 | Reach the homelab through the WireGuard hub on `srv3`, or move `gw4` and a client to it | [`wireguard-srv3.md`](operations/wireguard-srv3.md) |
 | Run or script Proxmox VM power and snapshot actions | [`proxmox-vm-power.md`](operations/proxmox-vm-power.md), [`proxmox-vm-snapshots.md`](operations/proxmox-vm-snapshots.md) |
+| Change which Proxmox nodes count towards corosync quorum, or add a worker node | [`proxmox-cluster-quorum.md`](operations/proxmox-cluster-quorum.md) |
 | Know what a project board status means | [`project-board.md`](operations/project-board.md) |
 
 ### Back up and restore
@@ -59,6 +61,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Put a login in front of a web UI that has none (OAuth2 Proxy) | [`oauth2-proxy.md`](identity/oauth2-proxy.md) |
 | Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
 | Sign in to OPNsense with the UCS account, or recover when UCS is down | [`opnsense-auth.md`](identity/opnsense-auth.md) |
+| Measure how long logins are interrupted when a node is drained | [`keycloak-drain-drill.md`](identity/keycloak-drain-drill.md) |
 
 ### Troubleshoot
 
@@ -83,9 +86,9 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`architecture/`](architecture)** — cross-cutting, conceptual docs for maintainers: how a mechanism that spans the whole repo actually works (e.g. how kustomize composes 8 environments from one `base`). These change rarely and don't belong to any single app/infra folder.
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
-  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
+  - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, Proxmox cluster quorum, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
   - **[`backup/`](backup)** — backup and restore of app data, the Immich database, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative).
+  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative).
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
@@ -140,7 +143,7 @@ Rules for filling it in:
 - Put destructive or order-sensitive steps in a GitHub alert: `> [!WARNING]` for an order or precondition that breaks the procedure when ignored, `> [!CAUTION]` for a step that destroys data or can't be undone, `> [!NOTE]` for a detail that is easy to miss but harmless. The alert text is the rule, not a new rule: it must say what the surrounding procedure already says. Alerts render on github.com and map to admonitions if a docs site is added ([#2027](https://github.com/isejalabs/homelab/issues/2027)).
 - Lead with the rule, then the reason.
 
-Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-lifecycle.md`](operations/node-lifecycle.md), [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md), [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md) and [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md), the highest-impact runbooks. Other runbooks adopt it when they are next edited; it is not a retrofit target.
+Applied so far to [`disaster-recovery.md`](backup/disaster-recovery.md), [`node-lifecycle.md`](operations/node-lifecycle.md), [`k8s-minor-upgrade.md`](operations/k8s-minor-upgrade.md), [`talos-upgrade.md`](operations/talos-upgrade.md), [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md) and [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md), the highest-impact runbooks. Other runbooks adopt it when they are next edited; it is not a retrofit target.
 
 ### Status labels
 
@@ -186,7 +189,7 @@ Each folder keeps its own index, with a status per doc: [`architecture/README.md
 
 ## Documentation site
 
-The Markdown in this repo is also built into a searchable, navigable site with [MkDocs](https://www.mkdocs.org/) and the Material theme (choice and trade-offs: [ADR 0017](decisions/0017-docs-site-generator.md)). The Markdown stays the single source of truth and stays readable on github.com; the site is a rendering of it, with nothing copied or moved. It is published at <https://isejalabs.github.io/homelab/> and open to search engines; the owner accepted that while the public-disclosure decision ([#1601](https://github.com/isejalabs/homelab/issues/1601)) is still pending. To hide it again, set `extra.noindex: true` in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml), which adds a `noindex` meta tag and a `robots.txt` that disallows everything.
+The Markdown in this repo is also built into a searchable, navigable site with [MkDocs](https://www.mkdocs.org/) and the Material theme (choice and trade-offs: [ADR 0017](decisions/0017-docs-site-generator.md)). The Markdown stays the single source of truth and stays readable on github.com; the site is a rendering of it, with nothing copied or moved. It is published at <https://isejalabs.github.io/homelab/> and open to search engines; the owner decided on 2026-11-15 to keep it that way under the [public disclosure policy](decisions/0019-public-disclosure-policy.md) ([#2319](https://github.com/isejalabs/homelab/issues/2319)). To hide it again, set `extra.noindex: true` in [`mkdocs.yml`](../.ci/mkdocs/mkdocs.yml), which adds a `noindex` meta tag and a `robots.txt` that disallows everything.
 
 What the build does on top of plain MkDocs, in [`.ci/mkdocs/`](../.ci/mkdocs):
 

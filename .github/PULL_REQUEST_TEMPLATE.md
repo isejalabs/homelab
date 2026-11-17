@@ -1,3 +1,5 @@
+<!-- This repository is public: describe categories, never instances. No personal identifiers (addresses, emails, serial numbers, MACs, public IPs, household details) in this text, in comments or in screenshots -- see docs/decisions/0019-public-disclosure-policy.md. -->
+
 ## Summary
 
 <!-- What changed and why. If this closes an issue, say so on its own line using GitHub's closing

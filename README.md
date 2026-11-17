@@ -12,7 +12,7 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 - **Environments**: `dbg`, `dev`, `head`, `poc`, `prod`, `qa`, `rebuild`, `src` — see [`environments.md`](docs/architecture/environments.md) for what each one is for.
 - **Status**: prod has been live since 9/2025; still in its foundation phase — see [history](#-a-bit-of-history) below.
 - **Where to go next**: the [architecture overview](docs/architecture/overview.md) for the full stack diagram, or [`docs/README.md`](docs/README.md) for the documentation index.
-- **Documentation site**: the same Markdown is built into a searchable site (see [how it is built](docs/README.md#documentation-site)); it is not published yet, pending the public-disclosure decision.
+- **Documentation site**: the same Markdown is built into a searchable site (see [how it is built](docs/README.md#documentation-site)); it is published at <https://isejalabs.github.io/homelab/> and open to search engines. What it may contain is set by the [public disclosure policy](docs/decisions/0019-public-disclosure-policy.md), which a [guard in CI](docs/architecture/ci.md#disclosure-guard) checks.
 
 ## 🧭 I need to…
 
@@ -20,7 +20,7 @@ The diagram is hand-drawn; its source of truth is the [architecture overview](do
 | --- | --- |
 | Provision or bootstrap a cluster | [`terragrunt/README.md`](terragrunt/README.md) to provision VMs and install Talos, then [`k8s/bootstrap/README.md`](k8s/bootstrap/README.md) to install foundational services and hand off to Flux |
 | Diagnose a live issue | [`docs/README.md`'s troubleshooting paths](docs/README.md#finding-what-you-need) |
-| Upgrade Talos/Kubernetes or replace a node | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
+| Upgrade Talos/Kubernetes, replace a node or handle a Proxmox host reset | [`docs/operations/node-lifecycle.md`](docs/operations/node-lifecycle.md) |
 | Restore app data, a VM/LXC, or rebuild a cluster | [`docs/README.md`'s recovery paths](docs/README.md#finding-what-you-need) |
 | Go from nothing to a running cluster | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md) |
 | Install the tools and get the access needed to work on the repo | [`docs/zero-to-cluster.md`](docs/zero-to-cluster.md#0-before-you-start) |

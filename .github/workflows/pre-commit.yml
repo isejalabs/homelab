@@ -20,3 +20,4 @@ jobs:
         path: ~/.cache/pre-commit
         key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
     - run: pre-commit run --show-diff-on-failure --color=always --all-files
+    - run: scripts/ci/test-disclosure-hooks.sh

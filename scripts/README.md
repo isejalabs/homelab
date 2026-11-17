@@ -7,7 +7,7 @@ Helper scripts that don't belong to a single `k8s/`/`terragrunt/` unit, grouped 
 | [`ci/`](ci/README.md) | validation entry points and the helpers they need (`requirements.txt`, tool installers) | the `.github/workflows/*.yml` on every PR and push to `main`; also runnable locally |
 | [`ops/`](ops/README.md) | operational scripts per domain (`kopiur`, `longhorn`, `keycloak`, `proxmox`) with the `just` module that wraps them as `mod.just` | `just <module>::<recipe>`, mostly not directly |
 | [`tools/`](tools/README.md) | stand-alone scripts: SOPS bulk operations, Terragrunt state cleanup, Checkmk and RustFS checks | a human, by hand |
-| [`agent/`](agent/README.md) | the Mink hook adapter for Codex and its tests | Codex, through `.codex/hooks.json` |
+| [`agent/`](agent/README.md) | the Mink hook adapter for Codex and its tests, and the Claude Code hook that blocks publishing a private-list term | Codex, through `.codex/hooks.json`; Claude Code, through `.claude/settings.json` |
 | [`lib/`](lib/README.md) | shell code shared by the scripts above | sourced by them, never run |
 
 ## Where a new script goes

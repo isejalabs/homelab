@@ -161,7 +161,7 @@ Some packages have a non-standard update strategy — see the table below. Two e
 | `docker.io/mongo` | Pin minor | Pinned to `<=8.0` for unifi-controller compatibility (and to avoid noisy no-op minor bumps); `head`/`poc` track `>=8.0`. |
 | `docker.io/madnuttah/unbound` | Staged, 3-day age gate for prod | `qa` and other environments take new releases from `base/` immediately; prod pins its own image and only gets a PR once the release is 3 days old — see [Staged rollout: unbound](#staged-rollout-unbound). |
 | Keycloak operator, CloudNativePG chart, database and Keycloak images | Staged in `prod`, manual, 7-day age gate | `dev`, `qa` and `rebuild` take new releases from `base/`; `prod` pins its own versions and gets a separate PR that waits 7 days and needs a manual merge — see [Staged rollout: Keycloak and CloudNativePG](#staged-rollout-keycloak-and-cloudnativepg). |
-| `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. |
+| `siderolabs/talos` | Manual | No automated updates — applied manually via terragrunt, same reasoning as the Terraform module above. To roll out a version, follow [`talos-upgrade.md`](talos-upgrade.md). |
 
 ### Excluded packages and paths from auto-merging
 
