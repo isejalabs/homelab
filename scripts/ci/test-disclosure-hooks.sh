@@ -81,7 +81,16 @@ if [ "${rc}" -ne 1 ]; then
     fail "disclosure-private-terms on a listed term exited ${rc}, expected 1"
 else
     echo "ok: disclosure-private-terms flags a listed term"
-    case "${out}" in *"${TERM_SYNTH}"*) fail "the output repeats a private term" ;; *) echo "ok: the output does not repeat the term" ;; esac
+    # Case-insensitive, because the seeded line spells the term in mixed case.
+    case $(printf '%s' "${out}" | tr '[:upper:]' '[:lower:]') in *"${TERM_SYNTH}"*) fail "the output repeats a private term" ;; *) echo "ok: the output does not repeat the term" ;; esac
+    # A single file makes grep omit the file name; the output must still be file:line, never the line.
+    rc=0
+    out=$(DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" "${ROOT}/scripts/tools/check-private-terms.sh" "${WORK}/repo/private.md" 2>&1) || rc=$?
+    case "${rc}:$(printf '%s' "${out}" | tr '[:upper:]' '[:lower:]')" in
+        1:*"${TERM_SYNTH}"*) fail "the script prints the matching line for a single file" ;;
+        1:*private.md:1:*) echo "ok: a single file reports file:line without the line" ;;
+        *) fail "the script on a single file exited ${rc} with unexpected output" ;;
+    esac
 fi
 rc=0
 (cd "${WORK}/repo" && DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" pre-commit run --config "${CONFIG}" disclosure-private-terms --files private-rx.md >/dev/null 2>&1) || rc=$?
@@ -96,5 +105,48 @@ if out=$(cd "${WORK}/repo" && XDG_CONFIG_HOME="${WORK}/no-config-dir" DISCLOSURE
 else
     fail "disclosure-private-terms failed without a configured list"
 fi
+
+# The PreToolUse hook that stops a command from publishing a listed term (scripts/agent/disclosure-pre-publish.py).
+PRE_PUBLISH="${ROOT}/scripts/agent/disclosure-pre-publish.py"
+printf 'body with %s\n' "${TERM_SYNTH}" > "${WORK}/body-bad.md"
+printf 'a clean body\n' > "${WORK}/body-ok.md"
+
+# Feeds one Bash command to the hook as a PreToolUse event; sets rc and out. $1 the command, $2 "list" or "nolist".
+run_pre_publish() {
+    event=$(python3 -I -c 'import json, sys; print(json.dumps({"tool_name": "Bash", "tool_input": {"command": sys.argv[1]}}))' "$1")
+    rc=0
+    if [ "$2" = "list" ]; then
+        out=$(printf '%s' "${event}" | DISCLOSURE_TERMS_FILE="${WORK}/terms.tsv" python3 "${PRE_PUBLISH}" 2>&1) || rc=$?
+    else
+        out=$(printf '%s' "${event}" | XDG_CONFIG_HOME="${WORK}/no-config-dir" DISCLOSURE_TERMS_FILE="" python3 "${PRE_PUBLISH}" 2>&1) || rc=$?
+    fi
+}
+
+# Expects the hook to exit $1 for command $3 (list mode $2) and its output never to repeat the term. $4 labels the case.
+expect_pre_publish() {
+    run_pre_publish "$3" "$2"
+    if [ "${rc}" -ne "$1" ]; then
+        fail "pre-publish hook: $4 exited ${rc}, expected $1"
+        return
+    fi
+    case $(printf '%s' "${out}" | tr '[:upper:]' '[:lower:]') in
+        *"${TERM_SYNTH}"*) fail "pre-publish hook: $4 repeats the term" ;;
+        *) echo "ok: pre-publish hook $4" ;;
+    esac
+}
+
+expect_pre_publish 2 list "git commit -m 'fix: about ${TERM_SYNTH}'" "blocks a git commit message with a listed term"
+expect_pre_publish 2 list "gh issue create --title t --body \"\$(cat <<'EOF'
+text ${TERM_SYNTH}
+EOF
+)\"" "blocks a heredoc issue body with a listed term"
+expect_pre_publish 2 list "gh pr create --body-file ${WORK}/body-bad.md" "blocks a --body-file that contains a listed term"
+expect_pre_publish 2 list "git commit -F ${WORK}/body-bad.md" "blocks a git commit -F file that contains a listed term"
+expect_pre_publish 2 list "gh release create v1 --notes-file ${WORK}/body-bad.md" "blocks a release --notes-file that contains a listed term"
+expect_pre_publish 0 list "gh pr create --body-file ${WORK}/body-ok.md" "allows a clean --body-file"
+expect_pre_publish 0 list "git commit -m 'fix: clean message'" "allows a clean commit message"
+expect_pre_publish 0 list "echo ${TERM_SYNTH} | wc -c" "ignores a command that publishes nothing"
+expect_pre_publish 0 list "gh issue view 1" "ignores a read-only gh command"
+expect_pre_publish 0 nolist "git commit -m 'fix: about ${TERM_SYNTH}'" "is a no-op without a private list"
 
 exit "${FAILED}"
