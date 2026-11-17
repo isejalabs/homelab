@@ -49,6 +49,15 @@
             "command": "mink pre-write"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/scripts/agent/disclosure-pre-publish.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
