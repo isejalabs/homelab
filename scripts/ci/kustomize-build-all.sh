@@ -76,6 +76,7 @@ status=0
 # the unit's base/kustomization.yaml (and Flux's one silently wins), so it's banned in every flux/ks.yaml (see
 # AGENTS.md "Adding/changing a k8s app or infra component", #1896). Checked up front, not per overlay below,
 # since ks.yaml lives in flux/ rather than in a built overlay.
+# shellcheck disable=SC2044 # paths under k8s/ contain no whitespace
 for ks in $(find k8s -path '*/flux/ks.yaml'); do
     if grep -q '^  targetNamespace:' "$ks"; then
         log error "spec.targetNamespace is not allowed, set namespace: in base/kustomization.yaml instead" "file" "$ks"
