@@ -29,7 +29,7 @@ Why it is built this way is decided in [ADR 0018](../decisions/0018-media-source
   | --- | --- | --- | --- | --- |
   | `upload` | read-write | originals of phone uploads (`upload/`, `library/`, `profile/`), Immich's own database dumps (`backups/`) | yes | yes, `prod` only |
   | `cache` | read-write | thumbnails and encoded video (regenerable) | no | no |
-  | `library` | **read-only** | the Lightroom Classic library (the `orig` folder), `YEAR/MONTH/DAY-Title` | the owner's existing rules | already part of the `fiona` backup |
+  | `library` | **read-only** | the Lightroom Classic library (the folder `Pictures/orig`), `YEAR/MONTH/DAY-Title` | the owner's existing rules | already part of the `fiona` backup |
   | `export` | **read-only** | JPEG renditions of edited RAWs, same folder layout, written by Lightroom Classic from the Mac | the owner's existing rules | already part of the `fiona` backup |
 
 - A read-only external library means Immich can neither delete nor rewrite an original: a delete in Immich comes back after the trash is emptied, and metadata edits are not possible (see [ADR 0018](../decisions/0018-media-source-of-truth.md#what-immich-does-with-a-library)). A writable mount would let Immich delete the original when the trash is emptied. So the library is read-only on three levels: the NFS share, the `ro` mount option and `nfs.readOnly` in the `PersistentVolume`.
@@ -46,17 +46,17 @@ The NFS export of a dataset or folder is always its mount path `/mnt/<dataset>`:
 | --- | --- | --- |
 | `upload` | `natascha1/data/srv/immich` (`prod`), `fiona2/gamma/srv/immich/<env>/upload` (directory of the dataset `fiona2/gamma/srv/immich/<env>`) | `dev`, `qa`, `rebuild`, `prod` |
 | `cache` | `fiona2/gamma/srv/immich/<env>/cache` (directory of the same dataset) | `dev`, `qa`, `rebuild`, `prod` |
-| `library` (`pictures`) | `natascha1/gamma/srv/immich-copy/<env>/orig` | `dev`, `qa`, `rebuild`: **copies** |
-| non-prod `export` (renditions) | `natascha1/gamma/srv/immich-copy/<env>/export` | `dev`, `qa`, `rebuild`: **copies** |
+| `library` (`pictures`) | `natascha1/gamma/srv/immich-copy/<env>/Pictures/orig` | `dev`, `qa`, `rebuild`: **copies** |
+| non-prod `export` (renditions) | `natascha1/gamma/srv/immich-copy/<env>/Pictures/export` | `dev`, `qa`, `rebuild`: **copies** |
 | `prod` `library` | the existing Lightroom library, the folder `natascha1/data/media/Pictures/orig` | `prod`: the live library, exported only |
-| `prod` `export` | the folder `natascha1/data/media/export` | `prod`: written from the Mac, exported read-only |
+| `prod` `export` | the folder `natascha1/data/media/Pictures/export` | `prod`: written from the Mac, exported read-only |
 | videos-only library | `natascha1/data/media/Videos/` | postponed, not part of the proof of concept yet |
 | renditions of the videos-only library | | postponed, not part of the proof of concept yet |
 
 Notes on the table:
 
 - **`upload` and `cache`** are directories of one dataset per environment, `fiona2/gamma/srv/immich/<env>`, not datasets of their own. So snapshots and a quota apply to the two together (the cache is regenerable and is snapshotted along, which only costs space). The `prod` `upload` path is `natascha1/data/srv/immich`, a child of `natascha1/data` on purpose: it is then inside the tree the existing backup already covers, see [borgbackup](#borgbackup); whether it is a dataset of its own or a folder decides whether it gets its own snapshot rule (*verify*, see [snapshots](#snapshots)).
-- **`orig` and `export` of the copies** are *folders* of a cloned dataset, see [Copies of the library](#copies-of-the-library-for-non-prod). On the live side the `prod` library and the `prod` export are folders of the dataset `natascha1/data/media` as well, not datasets of their own, and the NFS shares are made on these folders.
+- **`Pictures/orig` and `Pictures/export` of the copies** are *folders* of a cloned dataset (the clone mirrors `natascha1/data/media`: `Music`, `Pictures`, `Videos`, `clipart`, `fonts`), see [Copies of the library](#copies-of-the-library-for-non-prod). On the live side the `prod` library and the `prod` export are folders of the dataset `natascha1/data/media` as well, not datasets of their own, and the NFS shares are made on these folders.
 - The copies sit in their own hierarchy, `immich-copy`, apart from `immich`, so that a clone can be thrown away and made again without touching the `upload` and `cache` data of the same environment.
 
 Created for `dev` and `qa` by the owner on 2026-11-18, the same commands apply to `rebuild` and `prod` (for `prod` only the `cache` directory, the `upload` path is the one in the table):
@@ -77,7 +77,7 @@ How Immich uses its volume, for the [Immich unit](../../k8s/apps/media/immich/RE
 
 The account `immich` is a central one (UCS user management), with **UID `10004`**; the Immich pods run with the same user ID, see the [unit README](../../k8s/apps/media/immich/README.md#media-volumes). It has no shell. Access to the media runs through the ACL group **`fs.media-rw`**, which the account is a member of.
 
-- `upload` and `cache`: owner `immich:fs.media-rw`, set with `chown -R` as in the [datasets](#datasets) section. The NFS share maps every client to `immich` (**Mapall user `immich`, group `fs.media-rw`**), so it does not matter which user ID a container runs as, and files on `fiona` are always owned by `immich`.
+- `upload` and `cache`: owner `immich:fs.media-rw`, set with `chown -R` as in the [datasets](#datasets) section. With the recommended NFS option **Mapall user `immich`, group `fs.media-rw`** every client is mapped to `immich`, so it does not matter which user ID a container runs as, and files on `fiona` are always owned by `immich`. Without it, the pods have to run as that user.
 - `library` and `export`: they are folders of the dataset `natascha1/data/media`, and the group `fs.media-rw` grants **write** access on that whole dataset. So `immich` can read them through the group, but there is no read-only on the filesystem level: the **NFS share option read-only** (plus the `ro` mount option and `nfs.readOnly` in the `PersistentVolume`) is what keeps Immich from changing them. The Mac keeps writing the `prod` export as its own user. TrueNAS 25.10 reports ignored group entries for Mapall users, see [this forum thread](https://forums.truenas.com/t/nfsv4-acl-group-based-permissions-not-honored-for-mapall-user-nfs-exports-on-scale/68097) (*verify*; the read check in [Verify](#verify) decides).
 - ACL type: a thread on 25.10 reports ownership problems on datasets with the `SMB/NFSv4` ACL type ([forum](https://forums.truenas.com/t/permissions-for-user-group-from-nfsv4-acls-are-ignored-when-mounting-shares-via-nfsv4/64362)); the new `fiona2` datasets are plain ZFS datasets with the default ACL type. If the read-only SMB share of the `prod` upload path (see [SMB](#smb-for-the-mac)) does not work, use the `SMB/NFSv4` type and a named-user entry for `immich`, and re-run the write check. The existing datasets keep their ACL type.
 
@@ -85,7 +85,7 @@ The account `immich` is a central one (UCS user management), with **UID `10004`*
 
 Services → NFS: enable **NFSv4** (NFSv3 is not needed). Talos mounts NFS from its kubelet image, so no system extension is required ([Talos storage guide](https://docs.siderolabs.com/kubernetes-guides/csi/storage): "The NFS client is part of the kubelet image maintained by the Talos team"); NFSv4 does not use the separate lock daemon that NFSv3 needs (*verify* on the first mount). The `PersistentVolume`s mount with `nfsvers=4.1,hard,noatime,nconnect=4`: `hard` so that a NAS outage stalls the pod instead of returning I/O errors to Immich in the middle of a write, `nconnect=4` for parallel connections (*verify* that the node kernel accepts it; drop it if the mount fails). The server name in the volumes is `fiona.home.iseja.net`, which the nodes have to resolve through their DNS (*verify*).
 
-One share per path in the [datasets table](#datasets), Shares → NFS → Add, path `/mnt/<dataset>` (for the library and the export of the copies the folder inside the cloned dataset). Settings that are the same for every share: **Security `SYS`**, **Maproot** empty, **Mapall user `immich` and group `fs.media-rw`**, share enabled. The clients are listed as **Hosts**, never as a whole network: an export lists exactly the worker nodes of one environment (a pod only ever runs on a worker, and the kubelet of that node does the mount).
+One share per path in the [datasets table](#datasets), Shares → NFS → Add, path `/mnt/<dataset>` (for the library and the export the folder `Pictures/orig` or `Pictures/export`, inside the cloned dataset for the copies). Settings that are the same for every share: **Security `SYS`**, **Maproot** empty, **Mapall user `immich` and group `fs.media-rw`** (recommended; the `dev` and `qa` shares as created have no mapping yet, see [open owner inputs](#open-owner-inputs)), share enabled. The clients are listed as **Hosts**, never as a whole network: an export lists exactly the worker nodes of one environment (a pod only ever runs on a worker, and the kubelet of that node does the mount).
 
 | Environment | Hosts (worker nodes) | `upload`, `cache` | `library`, `export` |
 | --- | --- | --- | --- |
@@ -165,7 +165,7 @@ zfs clone natascha1/data/media@2144_immich-clone natascha1/gamma/srv/immich-copy
 zfs clone natascha1/data/media@2144_immich-clone natascha1/gamma/srv/immich-copy/qa
 ```
 
-The NFS shares are folders of the clones, `/mnt/natascha1/gamma/srv/immich-copy/<env>/orig` and `.../export`, see [NFS](#nfs). Confirm that these two folders are at the top of the clone: the live paths are `Pictures/orig` for the library and `export` for the export, so if the folder `orig` sits inside `Pictures` in the clone too, the shares and the `PersistentVolume` paths need that segment (`ls /mnt/natascha1/gamma/srv/immich-copy/dev`).
+The NFS shares are folders of the clones, `/mnt/natascha1/gamma/srv/immich-copy/<env>/Pictures/orig` and `.../Pictures/export`, the same relative paths as the live ones, see [NFS](#nfs).
 
 Re-establishing a copy: destroy the clone (`zfs destroy natascha1/gamma/srv/immich-copy/<env>`), then make a new snapshot and clone it; the old snapshot can only be destroyed when no clone uses it any more. Because the copies live apart from `fiona2/gamma/srv/immich/<env>`, this never touches the data Immich wrote in that environment. The paths in Immich stay the same, so the external libraries keep their assets.
 
@@ -213,7 +213,7 @@ These are the acceptance criteria of [#2144](https://github.com/isejalabs/homela
 
 These are not guessed in the repository. The dataset layout above is the owner's decision; what is left is to confirm it against `fiona`:
 
-1. **Folder paths in the clones:** that `orig` and `export` are folders at the top of `natascha1/gamma/srv/immich-copy/<env>`, as the shares and the `PersistentVolume`s assume (see [copies](#copies-of-the-library-for-non-prod)), while the live paths are `natascha1/data/media/Pictures/orig` and `natascha1/data/media/export`.
+1. **User mapping of the shares:** the exports of `dev` and `qa` as created (`/etc/exports`) carry `sec=sys` and `subtree_check` only, with `rw` on `upload` and `cache` and the default `ro` on the library and export, and no user mapping. The runbook recommends Mapall (user `immich`, group `fs.media-rw`); without it the user ID of the pod counts, so the pods have to run as `10004` and that user must have access through `fs.media-rw`. Decide, and the read check in [Verify](#verify) will show whether it works.
 2. **Which protocols the Mac uses** for the library today (SMB or NFS) and so which one the export share and the read-only upload share should use.
 3. **Pool capacity** of `natascha1` (`prod` upload growth, snapshots, the origin snapshot pinned by the clones); `fiona2` has about 1.8 TB, which is enough (see the warning under [quotas](#quotas-and-capacity)).
 4. **The group ID of `fs.media-rw`**, for the Immich pods' `fsGroup` or `runAsGroup`, if they need it ([#2146](https://github.com/isejalabs/homelab/issues/2146)); the NFS shares map every client to the account and group anyway.

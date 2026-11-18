@@ -35,7 +35,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/data/media/export
+        value: /mnt/natascha1/data/media/Pictures/export
     target:
       kind: PersistentVolume
       name: immich-export

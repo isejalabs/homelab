@@ -56,7 +56,7 @@ Static `PersistentVolume`s, pinned to their claims by `claimRef` and `volumeName
 | `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich` (non-prod: the directory `upload` of `fiona2/gamma/srv/immich/<env>`) |
 | `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | the directory `cache` of `fiona2/gamma/srv/immich/<env>` (all environments) |
 | `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library `natascha1/data/media/Pictures/orig` (non-prod: the folder `orig` of a ZFS clone of `natascha1/data/media` under `natascha1/gamma/srv/immich-copy/<env>`) |
-| `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | the folder `natascha1/data/media/export`, written from the Mac (non-prod: the folder `export` of the clone) |
+| `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | the folder `natascha1/data/media/Pictures/export`, written from the Mac (non-prod: the folder `export` of the clone) |
 
 The export path of a volume is always `/mnt/<path>`. The full dataset table, per environment, is in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md#datasets); the videos-only library is not part of the proof of concept yet.
 

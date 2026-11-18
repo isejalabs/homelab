@@ -28,14 +28,14 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/orig
+        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/Pictures/orig
     target:
       kind: PersistentVolume
       name: immich-library
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/export
+        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/Pictures/export
     target:
       kind: PersistentVolume
       name: immich-export
