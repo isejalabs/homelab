@@ -62,7 +62,7 @@ The export path of a volume is always `/mnt/<path>`. The full dataset table, per
 
 For [#2146](https://github.com/isejalabs/homelab/issues/2146), who wires the pods:
 
-- Run the Immich pods as **UID `10004`**, the user ID of the `immich` account (central user management); its group is `fs.media-rw`, whose ID is an [open input](../../../../docs/operations/immich-media-storage.md#open-owner-inputs). The NFS shares map every client to that account and group, so this only keeps what `ls` shows consistent. Verify that the images work as non-root.
+- Run the Immich pods as **UID `10004`** and **GID `20002`**, the `immich` account (central user management) and its group `fs.media-rw`. The NFS shares map every client to them (`all_squash`), so this only keeps what `ls` shows consistent. Verify that the images work as non-root.
 - Mount the two external libraries with `readOnly: true` as well, and never at another path later: Immich stores the path of every asset, a moved path is a deleted asset plus a new one.
 - Immich writes a hidden `.immich` file into each of its folders and reports a missing mount; do not set `IMMICH_IGNORE_MOUNT_CHECK_ERRORS`.
 - The unit is not in `prod` yet: with [#2149](https://github.com/isejalabs/homelab/issues/2149) it moves from `qa-soaking` into `prod`'s own composition ([`envs/prod`](envs/prod/kustomization.yaml) already has the real paths).
