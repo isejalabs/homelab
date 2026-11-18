@@ -1,15 +1,15 @@
 # Immich
 
-Immich is the photo and video archive that replaces Lightroom Mobile for phone uploads. So far this unit holds only its media storage: namespace, static NFS volumes on the NAS `fiona` and their claims; the application itself follows in [#2146](https://github.com/isejalabs/homelab/issues/2146).
+Immich is the photo and video archive that replaces Lightroom Mobile for phone uploads. So far this unit holds only its media storage: static NFS volumes on the NAS `fiona` and their claims; the application itself follows in [#2146](https://github.com/isejalabs/homelab/issues/2146).
 
 ## At a glance
 
 | | |
 | --- | --- |
 | Namespace | `immich` |
-| Runs in | `dev`, `qa`, `rebuild` (no Flux set, registered in [`flux/envs`](../../../bootstrap/cluster/flux/envs) of each); `prod` follows with the promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)) |
-| Installed via | raw manifests: a `Namespace`, four static NFS `PersistentVolume`s and their `PersistentVolumeClaim`s (no CSI driver) |
-| Flux Kustomization | `immich`, no `dependsOn` |
+| Runs in | `dev`, `qa`, `rebuild` (Flux set `qa-soaking`); `prod` follows with the promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)), which moves the unit out of that set |
+| Installed via | raw manifests: four static NFS `PersistentVolume`s and their `PersistentVolumeClaim`s (no CSI driver); the namespace comes from [`immich-db`](../immich-db/README.md) |
+| Flux Kustomization | `immich`, depends on `immich-db` |
 
 ## Purpose
 
@@ -51,19 +51,21 @@ flux --context admin@dev-homelab get ks immich
 
 Static `PersistentVolume`s, pinned to their claims by `claimRef` and `volumeName` (`storageClassName: ""`, so no dynamic provisioning), reclaim policy `Retain`, mounted with `nfsvers=4.1,hard,noatime,nconnect=4`. The server is `fiona.home.iseja.net`. The capacity on the objects is nominal; the limit is the ZFS quota of the dataset.
 
-| Claim | Mode | Mount in the Immich pod | Dataset |
+| Claim | Mode | Mount in the Immich pod | Dataset (`prod`; non-prod in the runbook) |
 | --- | --- | --- | --- |
-| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/immich/<env>/upload` |
-| `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | `natascha1/immich/<env>/cache` |
-| `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library (`prod`), a copy elsewhere |
-| `immich-renditions` | **read-only** | a fixed path such as `/external/renditions`, the second external library | a rendition dataset (`prod`), a copy elsewhere |
+| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich` (non-prod: `fiona2/gamma/srv/immich/<env>/upload`) |
+| `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | `fiona2/gamma/srv/immich/<env>/cache` (all environments) |
+| `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library `natascha1/data/media/Pictures/orig` (non-prod: a ZFS clone under `natascha1/gamma/srv/immich-copy/<env>/orig`) |
+| `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | `natascha1/data/media/export`, written from the Mac (non-prod: `.../immich-copy/<env>/export`) |
+
+The export path of a volume is always `/mnt/<dataset>`. The full dataset table, per environment, is in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md#datasets); the videos-only library is not part of the proof of concept yet.
 
 For [#2146](https://github.com/isejalabs/homelab/issues/2146), who wires the pods:
 
 - Run the Immich pods as **UID and GID `3100`**, the numbers of the `immich` account on `fiona`. The NFS shares map every client to that account, so this only keeps what `ls` shows consistent. Verify that the images work as non-root.
 - Mount the two external libraries with `readOnly: true` as well, and never at another path later: Immich stores the path of every asset, a moved path is a deleted asset plus a new one.
 - Immich writes a hidden `.immich` file into each of its folders and reports a missing mount; do not set `IMMICH_IGNORE_MOUNT_CHECK_ERRORS`.
-- Register the unit in `prod` only with [#2149](https://github.com/isejalabs/homelab/issues/2149), after replacing the two placeholder paths in [`envs/prod`](envs/prod/kustomization.yaml) with the real datasets.
+- The unit is not in `prod` yet: with [#2149](https://github.com/isejalabs/homelab/issues/2149) it moves from `qa-soaking` into `prod`'s own composition ([`envs/prod`](envs/prod/kustomization.yaml) already has the real paths).
 
 ## Upstream
 

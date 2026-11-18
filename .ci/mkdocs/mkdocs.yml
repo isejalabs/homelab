@@ -122,8 +122,8 @@ extra:
   nav_section_links:
     Infrastructure: docs/architecture/workloads.md#infra-k8sinfra
     Apps: docs/architecture/workloads.md#apps-k8sapps
-  # When true, keeps the site out of search engines (meta tag and robots.txt). Switched off with the owner's
-  # go-ahead while the public-disclosure decision (#1601) is still pending.
+  # When true, keeps the site out of search engines (meta tag and robots.txt). Off: the owner decided on
+  # 2026-11-15 to keep the site published and indexable under the public disclosure policy (ADR 0019).
   noindex: false
   social: []
 
@@ -138,6 +138,7 @@ nav:
   - Bootstrap a cluster: k8s/bootstrap/README.md
   - Upgrade Talos or Kubernetes, replace a node: docs/operations/node-lifecycle.md
   - Upgrade Kubernetes to the next minor: docs/operations/k8s-minor-upgrade.md
+  - Roll out a Talos version: docs/operations/talos-upgrade.md
   - Automated dependency updates: docs/operations/update-handling.md
   - App storage variables: docs/operations/app-storage.md
   - Immich media storage on fiona: docs/operations/immich-media-storage.md
@@ -154,22 +155,27 @@ nav:
     - App data with kopiur: docs/backup/kopiur-backup-restore.md
     - Longhorn snapshots: docs/backup/longhorn-snapshots.md
     - Keycloak database: docs/identity/keycloak-backup-restore.md
+    - Immich database: docs/backup/immich-database.md
     - Manually managed VMs and LXCs: docs/backup/proxmox-backup-restore.md
     - Checkmk site backup and restore: docs/backup/checkmk-backup-restore.md
   - Proxmox:
     - VM snapshots: docs/operations/proxmox-vm-snapshots.md
     - VM power: docs/operations/proxmox-vm-power.md
+    - Cluster quorum: docs/operations/proxmox-cluster-quorum.md
   - Identity:
     - Keycloak realms: docs/identity/keycloak-realms.md
     - Keycloak break-glass login: docs/identity/keycloak-break-glass.md
     - Second factor in the Keycloak realms: docs/identity/keycloak-mfa.md
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
+    - Flux Operator Web UI SSO: docs/identity/flux-operator-sso.md
     - Longhorn human SSO: docs/identity/longhorn-sso.md
     - Proxmox human SSO: docs/identity/proxmox-sso.md
     - OPNsense administrator login: docs/identity/opnsense-auth.md
     - OAuth2 Proxy in front of a web UI: docs/identity/oauth2-proxy.md
     - UCS groups for single sign-on: docs/identity/ucs-groups.md
+    - Keycloak drain drill: docs/identity/keycloak-drain-drill.md
+    - Zigbee2MQTT frontend authentication: docs/identity/zigbee2mqtt-sso.md
   - Checkmk automation user: docs/operations/checkmk-automation-user.md
 - Architecture:
   - Overview: docs/architecture/overview.md
@@ -233,6 +239,7 @@ nav:
     - AdGuard: k8s/apps/dns/adguard/README.md
     - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
     - Immich: k8s/apps/media/immich/README.md
+    - Immich database: k8s/apps/media/immich-db/README.md
     - Keycloak: k8s/apps/identity/keycloak/README.md
     - metrics-server: k8s/apps/monitoring/metrics-server/README.md
     - PowerDNS: k8s/apps/dns/powerdns/README.md
@@ -249,6 +256,7 @@ nav:
       - Overview: scripts/ops/README.md
       - kopiur: scripts/ops/kopiur/README.md
       - Longhorn snapshots: scripts/ops/longhorn/README.md
+      - Immich restore: scripts/ops/immich/README.md
       - Keycloak restore: scripts/ops/keycloak/README.md
       - Proxmox: scripts/ops/proxmox/README.md
     - Tools: scripts/tools/README.md
@@ -295,6 +303,7 @@ nav:
     - "2026-10 · Moving monitoring1 to pve1 instead of dev-ctrl-03": docs/audits/2026-10-monitoring1-placement.md
     - "2026-10 · Proxmox memory and CPU capacity": docs/audits/2026-10-proxmox-capacity.md
     - "2026-10 · RustFS bucket capacity check — implementation decision": docs/audits/2026-10-rustfs-capacity.md
+    - "2026-11 · Implementation assessment": docs/audits/2026-11-implementation.md
     - "2026-11 · Proxmox capacity, phase 4 readings (Checkmk containers and nodes)": docs/audits/2026-11-proxmox-capacity-phase4.md
   - Plans:
     - "2026-09 · Observability implementation plan — independent pass": docs/plans/2026-09-observability-claude.md

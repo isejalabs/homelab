@@ -15,12 +15,12 @@ Names are lower case, segments separated by `.`, in the form `<kind>.<area>.<nam
 | `sec.idm.users` | access | accounts admitted to the realm `iseja` | user filter of the realm |
 | `sec.idm.admins` | access | `*-adm` accounts admitted to the realm `admin` | user filter of the realm |
 | `sec.app.<app>.<role>`, for example `sec.app.checkmk.admin` | access | one role of one application | group mapper, becomes the `groups` claim |
-| `grp.<name>`, for example `grp.family` | people | a set of people, for file shares, mail and the like | no |
+| `grp.<name>`, for example `grp.household` | people | a set of people, for file shares, mail and the like | no |
 | `fs.<...>` | storage | file-share groups, unchanged | no |
 
 - `sec` stands for security: membership of a `sec.*` group grants access to something, so every change to one is an access decision.
 - The segment `app` is kept on purpose. The group mapper filter is `(cn=sec.app.*)` (in [`keycloak-realm.hcl`](../../terragrunt/_envcommon/keycloak-realm.hcl)), so only application roles end up in the token; the realm groups `sec.idm.*` are not sent to applications.
-- `grp.*` is the naming for groups of people. None exists yet; it is the intended home for "the family" so that it is stated once.
+- `grp.*` is the naming for groups of people. None exists yet; it is the intended home for "the household" so that it is stated once.
 
 ## Nesting
 
@@ -40,7 +40,7 @@ So the Unix group model is compatible with UCS groups; the gap is only for LDAP 
 
 Both ways Keycloak uses a group are direct-membership lookups:
 
-- **Realm admission** is `(memberOf=cn=sec.idm.users,...)`. An account that is only in `grp.family`, with `grp.family` nested in `sec.idm.users`, does not match.
+- **Realm admission** is `(memberOf=cn=sec.idm.users,...)`. An account that is only in `grp.household`, with `grp.household` nested in `sec.idm.users`, does not match.
 - **The `groups` claim** comes from the LDAP group mapper. Its strategy `LOAD_GROUPS_BY_MEMBER_ATTRIBUTE` (the default, used here) asks for the groups whose `uniqueMember` is the user, and `GET_GROUPS_FROM_USER_MEMBEROF_ATTRIBUTE` reads the user's `memberOf`; both are direct. The third strategy, `LOAD_GROUPS_BY_MEMBER_ATTRIBUTE_RECURSIVELY`, is documented in the Keycloak source as "extension specific to Active Directory" that "likely doesn't work on other LDAP servers" (it uses the matching rule `LDAP_MATCHING_RULE_IN_CHAIN`; [`UserRolesRetrieveStrategy.java`](https://github.com/keycloak/keycloak/blob/main/federation/ldap/src/main/java/org/keycloak/storage/ldap/mappers/membership/UserRolesRetrieveStrategy.java)). The federation here talks to UCS OpenLDAP on 7636, not to the Samba AD LDAP.
 - `preserve_group_inheritance` (off here) only imports LDAP nesting as a Keycloak group tree. The mapper returns the groups the user is a member of, not their ancestors ([`GroupLDAPStorageMapper.java`](https://github.com/keycloak/keycloak/blob/main/federation/ldap/src/main/java/org/keycloak/storage/ldap/mappers/membership/group/GroupLDAPStorageMapper.java)), so it does not make `sec.app.*` roles flow down from a parent.
 

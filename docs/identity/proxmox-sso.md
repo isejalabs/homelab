@@ -98,7 +98,7 @@ Applied on 2026-11-09 from `main` ([PR 2259](https://github.com/isejalabs/homela
 | `bob` through `kc-iseja` | Signs in; exactly the 10 privileges of `Operator` on every path | owner's confirmation; `pveum user permissions bob@kc-iseja` |
 | `alice` through `kc-iseja` | Signs in; exactly the 7 privileges of `PVEAuditor` on every path | owner's confirmation; `pveum user permissions alice@kc-iseja` |
 | Operator cannot manage users, realms, permissions or open a node shell | `Operator` has none of `User.Modify`, `Group.Allocate`, `Realm.*`, `Permissions.Modify`, `Sys.Console`, `Sys.Modify`. A token cannot exceed its owner's rights, so it cannot carry more | `pveum user permissions` as above |
-| An account outside the groups gets no rights | `toni@kc-iseja` was autocreated at its first login and has no permission on any path | `pveum user permissions toni@kc-iseja` |
+| An account outside the groups gets no rights | `adam@kc-iseja` was autocreated at its first login and has no permission on any path | `pveum user permissions adam@kc-iseja` |
 | AD login and `root@pam` still work | Confirmed by the owner. The apply changed neither realm | owner's confirmation; apply result |
 | API tokens and automation unaffected | The unit's own `terragrunt plan` with the `terraform@pve` token after the apply reports no changes | `terragrunt plan` on 2026-11-10 |
 | Proxmox asks no second factor for OpenID Connect logins | No TFA entry exists for any OpenID Connect user, and they signed in | `pveum user tfa list` |

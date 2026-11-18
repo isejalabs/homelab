@@ -4,6 +4,7 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: &name immich
+  # registered through the Flux set `qa-soaking` (k8s/bootstrap/cluster/flux/sets/qa-soaking), not per environment
 spec:
   interval: 1h
   path: ./k8s/apps/media/immich/base
@@ -13,3 +14,6 @@ spec:
     name: flux-system
     namespace: flux-system
   wait: true
+  # the namespace `immich` is created by immich-db, which this unit shares it with
+  dependsOn:
+    - name: immich-db

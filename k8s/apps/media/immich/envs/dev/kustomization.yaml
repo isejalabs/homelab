@@ -8,33 +8,34 @@ components:
 resources:
   - ../../base
 
-# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them.
+# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
+# ZFS-clone copies of the live Lightroom library, never the live one.
 patches:
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/immich/dev/upload
+        value: /mnt/fiona2/gamma/srv/immich/dev/upload
     target:
       kind: PersistentVolume
       name: immich-upload
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/immich/dev/cache
+        value: /mnt/fiona2/gamma/srv/immich/dev/cache
     target:
       kind: PersistentVolume
       name: immich-cache
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/immich/dev/library
+        value: /mnt/natascha1/gamma/srv/immich-copy/dev/orig
     target:
       kind: PersistentVolume
       name: immich-library
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/immich/dev/renditions
+        value: /mnt/natascha1/gamma/srv/immich-copy/dev/export
     target:
       kind: PersistentVolume
-      name: immich-renditions
+      name: immich-export

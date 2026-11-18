@@ -1,6 +1,6 @@
 ---
 # Static NFS volumes on the NAS `fiona` (no CSI driver). The `path` values are placeholders: every environment that
-# runs the unit patches them in `envs/<env>/`. The `capacity` values are nominal, Kubernetes does not enforce them
+# runs the unit patches them in `envs/<env>/`. The NFS export is always `/mnt/<dataset or folder>`. The `capacity` values are nominal, Kubernetes does not enforce them
 # on NFS; the real limit is the ZFS quota of the dataset (see docs/operations/immich-media-storage.md).
 # `claimRef` pins each volume to its PVC in pvc.yaml, so no other claim can take it. `Retain` leaves the data alone
 # when the claim or the volume object is deleted.
@@ -22,7 +22,7 @@ spec:
     - noatime
     - nconnect=4
   nfs:
-    path: /mnt/natascha1/immich/ENV/upload
+    path: /mnt/PLACEHOLDER/upload
     server: fiona.home.iseja.net
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
@@ -48,7 +48,7 @@ spec:
     - noatime
     - nconnect=4
   nfs:
-    path: /mnt/natascha1/immich/ENV/cache
+    path: /mnt/PLACEHOLDER/cache
     server: fiona.home.iseja.net
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
@@ -75,19 +75,19 @@ spec:
     - nconnect=4
     - ro
   nfs:
-    path: /mnt/natascha1/immich/ENV/library
+    path: /mnt/PLACEHOLDER/library
     readOnly: true
     server: fiona.home.iseja.net
   persistentVolumeReclaimPolicy: Retain
   storageClassName: ""
   volumeMode: Filesystem
 ---
-# The rendition tree (JPEGs of edited RAWs, written by a Lightroom Classic publish service from the Mac), the second
-# external library. Read-only here like the library.
+# The export tree (JPEG renditions of edited RAWs, written by a Lightroom Classic publish service from the Mac), the
+# second external library. Read-only here like the library.
 apiVersion: v1
 kind: PersistentVolume
 metadata:
-  name: &name immich-renditions
+  name: &name immich-export
 spec:
   accessModes:
     - ReadOnlyMany
@@ -103,7 +103,7 @@ spec:
     - nconnect=4
     - ro
   nfs:
-    path: /mnt/natascha1/immich/ENV/renditions
+    path: /mnt/PLACEHOLDER/export
     readOnly: true
     server: fiona.home.iseja.net
   persistentVolumeReclaimPolicy: Retain

@@ -7,4 +7,4 @@ components:
 resources:
   - ../../sets
   - ../../sets/standing
-  - ../../../../../apps/media/immich/flux
+  - ../../sets/qa-soaking

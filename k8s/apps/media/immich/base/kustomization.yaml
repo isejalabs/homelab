@@ -6,6 +6,5 @@ kind: Kustomization
 namespace: immich
 
 resources:
-  - ns.yaml
   - pv.yaml
   - pvc.yaml
