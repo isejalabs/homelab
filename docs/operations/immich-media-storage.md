@@ -17,6 +17,7 @@ Why it is built this way is decided in [ADR 0018](../decisions/0018-media-source
 | Steps | [Datasets](#datasets), [permissions](#users-and-permissions), [NFS](#nfs), [SMB](#smb-for-the-mac), [snapshots](#snapshots), [quotas](#quotas-and-capacity), [borgbackup](#borgbackup), [copies of the library](#copies-of-the-library-for-non-prod) |
 | Verify | [Verify](#verify): a pod mounts upload and cache read-write and library and export read-only, a deleted file comes back from a snapshot, a file comes back from the off-site borg repository |
 | Rollback | Disable the NFS share (nothing mounts it any more) or destroy a non-prod dataset. A prod dataset is never destroyed by this procedure; the claims use `Retain`, so deleting Kubernetes objects leaves the data. No other rollback is documented |
+| State | 2026-11-18: the clones, the `upload`/`cache` datasets and the NFS shares for `dev` are created by the owner; `qa`, `rebuild` and `prod` follow. Nothing is verified from a pod yet |
 | Last exercised | Not exercised yet. The values were derived from the repository, the Immich documentation and the [September 2026 TrueNAS audit](../audits/2026-09-observability-phase0-truenas-k8s-claude.md); anything marked *verify* has to be confirmed on `fiona` |
 
 ## Design in short
@@ -34,6 +35,7 @@ Why it is built this way is decided in [ADR 0018](../decisions/0018-media-source
 - A read-only external library means Immich can neither delete nor rewrite an original: a delete in Immich comes back after the trash is emptied, and metadata edits are not possible (see [ADR 0018](../decisions/0018-media-source-of-truth.md#what-immich-does-with-a-library)). A writable mount would let Immich delete the original when the trash is emptied. So the library is read-only on three levels: the NFS share, the `ro` mount option and `nfs.readOnly` in the `PersistentVolume`.
 - Non-prod environments only ever see **copies** of the library (ZFS clones, see [below](#copies-of-the-library-for-non-prod)), never the live library, and no non-prod environment can reach `prod` data: every export lists only the worker nodes of one environment.
 - Two pools carry the data: the important data (`prod` upload, the live library and its export) is on `natascha1`, everything of less value (all non-prod upload and cache, and the `prod` cache) on `fiona2`. The copies of the library have to be on `natascha1`, because a ZFS clone lives in the pool of its origin.
+- Read-only is enforced by the NFS share options (and, as a second and third level, the `ro` mount option and `nfs.readOnly`), **not** by filesystem permissions: the group that Immich's account belongs to has write access on the whole `natascha1/data/media` dataset, so the library and export folders are writable on the filesystem level. A path to these folders that is not the read-only share would be a path with write access.
 - The database never goes on NFS ([Immich requirements](https://docs.immich.app/install/requirements)).
 
 ## Datasets
@@ -42,43 +44,52 @@ The NFS export of a dataset or folder is always its mount path `/mnt/<dataset>`:
 
 | Volume | Dataset | Environments |
 | --- | --- | --- |
-| `upload` | `natascha1/data/srv/immich` (`prod`), `fiona2/gamma/srv/immich/<env>/upload` | `dev`, `qa`, `rebuild`, `prod` |
-| `cache` | `fiona2/gamma/srv/immich/<env>/cache` | `dev`, `qa`, `rebuild`, `prod` |
+| `upload` | `natascha1/data/srv/immich` (`prod`), `fiona2/gamma/srv/immich/<env>/upload` (directory of the dataset `fiona2/gamma/srv/immich/<env>`) | `dev`, `qa`, `rebuild`, `prod` |
+| `cache` | `fiona2/gamma/srv/immich/<env>/cache` (directory of the same dataset) | `dev`, `qa`, `rebuild`, `prod` |
 | `library` (`pictures`) | `natascha1/gamma/srv/immich-copy/<env>/orig` | `dev`, `qa`, `rebuild`: **copies** |
 | non-prod `export` (renditions) | `natascha1/gamma/srv/immich-copy/<env>/export` | `dev`, `qa`, `rebuild`: **copies** |
-| `prod` `library` | the existing Lightroom library dataset: `natascha1/data/media/Pictures/orig` | `prod`: the live library, exported only |
-| `prod` `export` | a rendition dataset next to the library: `natascha1/data/media/export` | `prod`: written from the Mac, exported read-only |
+| `prod` `library` | the existing Lightroom library, the folder `natascha1/data/media/Pictures/orig` | `prod`: the live library, exported only |
+| `prod` `export` | the folder `natascha1/data/media/export` | `prod`: written from the Mac, exported read-only |
 | videos-only library | `natascha1/data/media/Videos/` | postponed, not part of the proof of concept yet |
 | renditions of the videos-only library | | postponed, not part of the proof of concept yet |
 
 Notes on the table:
 
-- **`upload` and `cache`** are real datasets of their own, created for Immich. Create the parent datasets without a share (`fiona2/gamma/srv/immich`, `fiona2/gamma/srv/immich/<env>`), and `natascha1/data/srv` if it does not exist (*verify*), then the datasets themselves. The `prod` upload dataset is a child of `natascha1/data` on purpose: it is then inside the tree the existing backup already covers, see [borgbackup](#borgbackup).
-- **`orig` and `export` of the copies** are *folders* of a cloned dataset, not datasets of their own, see [Copies of the library](#copies-of-the-library-for-non-prod). On the live side `natascha1/data/media/Pictures` has no child datasets for the sub-folders `orig` and `export` either; the `prod` library is the folder `Pictures/orig`, shared as such.
-- **The `prod` export** is a new dataset next to the library (a sibling of `Pictures`, not a child: a child dataset is a separate filesystem that an NFS export of its parent does not include, and nested shares of one tree are fragile).
+- **`upload` and `cache`** are directories of one dataset per environment, `fiona2/gamma/srv/immich/<env>`, not datasets of their own. So snapshots and a quota apply to the two together (the cache is regenerable and is snapshotted along, which only costs space). The `prod` `upload` path is `natascha1/data/srv/immich`, a child of `natascha1/data` on purpose: it is then inside the tree the existing backup already covers, see [borgbackup](#borgbackup); whether it is a dataset of its own or a folder decides whether it gets its own snapshot rule (*verify*, see [snapshots](#snapshots)).
+- **`orig` and `export` of the copies** are *folders* of a cloned dataset, see [Copies of the library](#copies-of-the-library-for-non-prod). On the live side the `prod` library and the `prod` export are folders of the dataset `natascha1/data/media` as well, not datasets of their own, and the NFS shares are made on these folders.
 - The copies sit in their own hierarchy, `immich-copy`, apart from `immich`, so that a clone can be thrown away and made again without touching the `upload` and `cache` data of the same environment.
 
-Dataset properties for the new datasets (`upload`, `cache`, the `prod` export): `compression=lz4` (photos hardly compress, but it costs nothing), `recordsize=1M` (large files), `atime=off`, `sync=standard`, `copies=1`. ACL type: see [permissions](#users-and-permissions). Do not enable deduplication.
+Created for `dev` and `qa` by the owner on 2026-11-18, the same commands apply to `rebuild` and `prod` (for `prod` only the `cache` directory, the `upload` path is the one in the table):
+
+```sh
+zfs create fiona2/gamma/srv/immich/dev
+zfs create fiona2/gamma/srv/immich/qa
+mkdir -p /mnt/fiona2/gamma/srv/immich/dev/upload /mnt/fiona2/gamma/srv/immich/dev/cache
+mkdir -p /mnt/fiona2/gamma/srv/immich/qa/upload /mnt/fiona2/gamma/srv/immich/qa/cache
+chown -R immich:fs.media-rw /mnt/fiona2/gamma/srv/immich/
+```
+
+Dataset properties for the new datasets (`fiona2/gamma/srv/immich/<env>`): `compression=lz4` (photos hardly compress, but it costs nothing), `recordsize=1M` (large files), `atime=off`, `sync=standard`, `copies=1`. ACL type: see [permissions](#users-and-permissions). Do not enable deduplication.
 
 How Immich uses its volume, for the [Immich unit](../../k8s/apps/media/immich/README.md): the upload volume is `/data` (`IMMICH_MEDIA_LOCATION`, the default), the cache volume is mounted into it with `subPath: thumbs` and `subPath: encoded-video`, so Immich sees its usual folder layout while the regenerable parts live on a dataset of their own. Immich checks each of its folders for a hidden `.immich` file and reports a missing mount ([system integrity](https://docs.immich.app/administration/system-integrity)), so a volume that fails to mount is noticed, not silently replaced by an empty folder. The mount points of the two external libraries, and the import paths set in Immich for them, must stay the same for good: Immich stores the path of every asset, and a moved path is a deleted asset plus a new one (ADR 0018, rule 3).
 
 ## Users and permissions
 
-One local account `immich` (user and group) on `fiona`, with **UID and GID `3100`** (proposed; any free ID works, but the Immich pod runs with the same numbers, see the [unit README](../../k8s/apps/media/immich/README.md#media-volumes)). It has no password and no shell.
+The account `immich` is a central one (UCS user management), with **UID `10004`**; the Immich pods run with the same user ID, see the [unit README](../../k8s/apps/media/immich/README.md#media-volumes). It has no shell. Access to the media runs through the ACL group **`fs.media-rw`**, which the account is a member of.
 
-- `upload` and `cache`: owner `immich:immich`, mode `0755`. The NFS share maps every client to `immich` (**Mapall user and group `immich`**), so it does not matter which user ID a container runs as, and files on `fiona` are always owned by `immich`.
-- `library` and `export`: keep the owner they have; the mapped user `immich` only needs **read** access. Either the files are world-readable (the usual `0644`/`0755`), or the dataset gets a named-user ACL entry for `immich` with read and traverse, inherited. A *group* entry is not enough: TrueNAS 25.10 reports ignored group entries for Mapall users, see [this forum thread](https://forums.truenas.com/t/nfsv4-acl-group-based-permissions-not-honored-for-mapall-user-nfs-exports-on-scale/68097) (*verify*; the read check in [Verify](#verify) decides). The Mac keeps writing the `prod` export as its own user.
-- ACL type: **POSIX** for `upload` and `cache`. A thread on 25.10 reports ownership problems on datasets with the `SMB/NFSv4` ACL type ([forum](https://forums.truenas.com/t/permissions-for-user-group-from-nfsv4-acls-are-ignored-when-mounting-shares-via-nfsv4/64362)). If the read-only SMB share of the `prod` upload dataset (see [SMB](#smb-for-the-mac)) does not work on a POSIX dataset, use the `SMB/NFSv4` type and a named-user entry for `immich`, and re-run the write check. The existing library datasets keep their ACL type.
+- `upload` and `cache`: owner `immich:fs.media-rw`, set with `chown -R` as in the [datasets](#datasets) section. The NFS share maps every client to `immich` (**Mapall user `immich`, group `fs.media-rw`**), so it does not matter which user ID a container runs as, and files on `fiona` are always owned by `immich`.
+- `library` and `export`: they are folders of the dataset `natascha1/data/media`, and the group `fs.media-rw` grants **write** access on that whole dataset. So `immich` can read them through the group, but there is no read-only on the filesystem level: the **NFS share option read-only** (plus the `ro` mount option and `nfs.readOnly` in the `PersistentVolume`) is what keeps Immich from changing them. The Mac keeps writing the `prod` export as its own user. TrueNAS 25.10 reports ignored group entries for Mapall users, see [this forum thread](https://forums.truenas.com/t/nfsv4-acl-group-based-permissions-not-honored-for-mapall-user-nfs-exports-on-scale/68097) (*verify*; the read check in [Verify](#verify) decides).
+- ACL type: a thread on 25.10 reports ownership problems on datasets with the `SMB/NFSv4` ACL type ([forum](https://forums.truenas.com/t/permissions-for-user-group-from-nfsv4-acls-are-ignored-when-mounting-shares-via-nfsv4/64362)); the new `fiona2` datasets are plain ZFS datasets with the default ACL type. If the read-only SMB share of the `prod` upload path (see [SMB](#smb-for-the-mac)) does not work, use the `SMB/NFSv4` type and a named-user entry for `immich`, and re-run the write check. The existing datasets keep their ACL type.
 
 ## NFS
 
 Services → NFS: enable **NFSv4** (NFSv3 is not needed). Talos mounts NFS from its kubelet image, so no system extension is required ([Talos storage guide](https://docs.siderolabs.com/kubernetes-guides/csi/storage): "The NFS client is part of the kubelet image maintained by the Talos team"); NFSv4 does not use the separate lock daemon that NFSv3 needs (*verify* on the first mount). The `PersistentVolume`s mount with `nfsvers=4.1,hard,noatime,nconnect=4`: `hard` so that a NAS outage stalls the pod instead of returning I/O errors to Immich in the middle of a write, `nconnect=4` for parallel connections (*verify* that the node kernel accepts it; drop it if the mount fails). The server name in the volumes is `fiona.home.iseja.net`, which the nodes have to resolve through their DNS (*verify*).
 
-One share per path in the [datasets table](#datasets), Shares → NFS → Add, path `/mnt/<dataset>` (for the library and the export of the copies the folder inside the cloned dataset). Settings that are the same for every share: **Security `SYS`**, **Maproot** empty, **Mapall user and group `immich`**, share enabled. The clients are listed as **Hosts**, never as a whole network: an export lists exactly the worker nodes of one environment (a pod only ever runs on a worker, and the kubelet of that node does the mount).
+One share per path in the [datasets table](#datasets), Shares → NFS → Add, path `/mnt/<dataset>` (for the library and the export of the copies the folder inside the cloned dataset). Settings that are the same for every share: **Security `SYS`**, **Maproot** empty, **Mapall user `immich` and group `fs.media-rw`**, share enabled. The clients are listed as **Hosts**, never as a whole network: an export lists exactly the worker nodes of one environment (a pod only ever runs on a worker, and the kubelet of that node does the mount).
 
 | Environment | Hosts (worker nodes) | `upload`, `cache` | `library`, `export` |
 | --- | --- | --- | --- |
-| `dev` | `10.7.8.134`, `10.7.8.135`, `10.7.8.136` | read-write | **Read-only** |
+| `dev` | `10.7.8.134`, `10.7.8.135`, `10.7.8.136` | read-write | **Read-only** (shares created 2026-11-18) |
 | `qa` | `10.7.8.124`, `10.7.8.125`, `10.7.8.126` | read-write | **Read-only** |
 | `rebuild` | `10.7.8.174`, `10.7.8.175`, `10.7.8.176` | read-write | **Read-only** |
 | `prod` | `10.7.8.184`, `10.7.8.185`, `10.7.8.186` | read-write | **Read-only** |
@@ -96,7 +107,7 @@ Network: TCP 2049 has to pass from the node VLAN to `fiona`. Kopiur already reac
 ## SMB for the Mac
 
 - **`prod` upload, read-only:** an SMB share `immich-upload` on `natascha1/data/srv/immich` with **Read Only** enabled and access for the Mac's own account only, for the rare edit of a phone photo in Lightroom Classic (the edited copy goes back to Immich through the plugin, never into this share). The Mac reads as "other", so mode `0755`/`0644` is enough. Check that no existing share of `natascha1/data` already covers this path with write access.
-- **`prod` export, read-write for the Mac:** the Lightroom Classic publish service writes the renditions from the Mac. The protocol the Mac uses for the library today decides how this share is made, see [open owner inputs](#open-owner-inputs); SMB is assumed here. It is a share of `natascha1/data/media/export` with write access for the Mac's account only. The NFS export of the same dataset stays read-only.
+- **`prod` export, read-write for the Mac:** the Lightroom Classic publish service writes the renditions from the Mac. The protocol the Mac uses for the library today decides how this share is made, see [open owner inputs](#open-owner-inputs); SMB is assumed here. It is a share of the folder `natascha1/data/media/export` with write access for the Mac's account only. The NFS export of the same dataset stays read-only.
 - The live library: no change. Whatever the Mac uses today stays; the NFS exports above do not touch it.
 
 ## Snapshots
@@ -107,30 +118,26 @@ Data Protection → Periodic Snapshot Tasks. Snapshots are the undo for an accid
 | --- | --- | --- | --- |
 | `prod` upload (`natascha1/data/srv/immich`) | hourly | 2 days | `auto-hourly-%Y%m%d-%H%M` |
 | `prod` upload | daily | 30 days | `auto-daily-%Y%m%d-%H%M` |
-| `prod` library (`natascha1/data/media/Pictures`) | hourly / daily | 2 days / 30 days, unless the owner's existing tasks already cover it | same two schemas |
-| `prod` export (`natascha1/data/media/export`) | daily (optional) | 7 days | `auto-daily-%Y%m%d-%H%M` |
-| `qa` upload (`fiona2/gamma/srv/immich/qa/upload`) | daily | 7 days | `auto-daily-%Y%m%d-%H%M` |
-| `cache`, `dev` and `rebuild` upload, the copies | none | | |
+| `prod` library and export (the dataset `natascha1/data/media`) | hourly / daily | 2 days / 30 days, unless the owner's existing tasks already cover it | same two schemas |
+| `qa` (the dataset `fiona2/gamma/srv/immich/qa`, upload and cache) | daily | 7 days | `auto-daily-%Y%m%d-%H%M` |
+| `dev`, `rebuild`, the clones of the library | none | | |
 
-Before creating the `prod` tasks, look at the existing tasks of `natascha1/data`: a recursive task there may already cover `srv/immich` (*verify*), and then a second one only needs to exist if the retention is meant to differ.
+Before creating the `prod` tasks, look at the existing tasks of `natascha1/data` and `natascha1/data/media` (the library has its own rules today): a recursive task there may already cover `srv/immich` (*verify*), and then a second one only needs to exist if the retention is meant to differ.
 
 The `qa` task exists so the snapshot restore can be exercised outside `prod`. The 30 days match Immich's own trash retention (30 days by default): a delete in Immich is first undone by the trash, a delete outside Immich by the snapshots. Snapshots live in the same pool, so they protect against deletion and bad upgrades, not against a pool failure; that is what the borgbackup is for.
 
 ## Quotas and capacity
 
-A quota keeps a runaway import from filling the pool (set `quota`, which counts snapshots too, not `refquota`). Proposed starting values; every one is a cap, not a reservation, and can be raised:
+A quota keeps a runaway import from filling the pool (set `quota`, which counts snapshots too, not `refquota`). Because `upload` and `cache` are directories of one dataset per environment, the quota is one value for both, set on `fiona2/gamma/srv/immich/<env>`. Proposed starting values; every one is a cap, not a reservation, and can be raised:
 
-| Dataset | `dev` | `qa` | `rebuild` | `prod` |
+| Dataset | `dev` | `qa` | `rebuild` | `prod` (cache dataset) |
 | --- | --- | --- | --- | --- |
-| `upload` | 20 GiB | 200 GiB | 20 GiB | from the inventory, see below |
-| `cache` | 10 GiB | 60 GiB | 10 GiB | 10 to 20 % of library plus upload |
+| `fiona2/gamma/srv/immich/<env>` | 30 GiB | 260 GiB | 30 GiB | 10 to 20 % of library plus upload |
 
-The copies of the library need no quota: a clone shares its blocks with the origin and is exported read-only.
-
-For `prod`, size the upload quota as: expected phone uploads for the first year (4,000 to 10,000 assets a year across photos and videos, times the average size from the library inventory in [#2309](https://github.com/isejalabs/homelab/issues/2309)) plus 30 days of snapshot churn plus headroom, and revisit it after the [size test](https://github.com/isejalabs/homelab/issues/2147). The cache grows with library and uploads by 10 to 20 %.
+The `prod` upload path has its own limit (the dataset it is in, or none), sized as: expected phone uploads for the first year (4,000 to 10,000 assets a year across photos and videos, times the average size from the library inventory in [#2309](https://github.com/isejalabs/homelab/issues/2309)) plus 30 days of snapshot churn plus headroom, revisited after the [size test](https://github.com/isejalabs/homelab/issues/2147). The cache grows with library and uploads by 10 to 20 %. The clones of the library need no quota: they share their blocks with the origin. The `refquota=100G` set on the parent `natascha1/gamma/srv/immich-copy` limits only that dataset itself, not the clones below it.
 
 > [!WARNING]
-> The pool `natascha1` had **1.40 TiB free of 5.45 TiB** in the audit of 2026-09-30. It takes the `prod` upload and its snapshots, and it also takes the **origin snapshot of the copies**: while a clone exists, the snapshot of `natascha1/data/media/Pictures` it was made from cannot be destroyed and pins every block that Lightroom changes or deletes afterwards. Read the current free space (`zpool list natascha1 fiona2`, `zfs list -o space natascha1`) before creating anything, and destroy clones and origin snapshots that are not needed. This is an open owner input.
+> `fiona2` has about 1.8 TB, which is ample for all non-prod data and the `prod` cache. The pool `natascha1` had **1.40 TiB free of 5.45 TiB** in the audit of 2026-09-30. It takes the `prod` upload and its snapshots, and the **origin snapshot of the clones**: while a clone exists, the snapshot `natascha1/data/media@2144_immich-clone` cannot be destroyed and pins every block of `natascha1/data/media` that is changed or deleted afterwards. Read the current free space (`zpool list natascha1 fiona2`) before creating anything, and destroy clones and the snapshot when they are not needed.
 
 ## borgbackup
 
@@ -145,21 +152,22 @@ The audit of 2026-09-30 found `borgmatic` as a container on `fiona` with `/mnt/f
 
 ## Copies of the library for non-prod
 
-Non-prod environments get **ZFS clones** of the live library dataset, never the live data. `dev` needs at most 10 photos and videos, `qa` one year (about 5,000 assets, with edited and unedited `.NEF` and `.ARW`, HEIC, Live Photos and videos; the choice of the year follows the inventory of [#2309](https://github.com/isejalabs/homelab/issues/2309)), `rebuild` the same as `dev`. A clone costs no space until it differs from its origin, and it is made in seconds. The cost is that a clone covers the **whole dataset** `natascha1/data/media/Pictures` (all folders, including `db` and `Sync` next to `orig` and `export`), because the dataset is the unit of a clone, not a sub-folder. The clone has to be in the same pool as its origin, so it is on `natascha1`, not on `fiona2`.
+Non-prod environments get **ZFS clones** of the dataset `natascha1/data/media`, never the live data. A clone costs no space until it differs from its origin and is made in seconds. The cost is that a clone is the **whole dataset** (every folder in it, not only the library and its export), because the dataset is the unit of a clone, not a sub-folder. The clone has to be in the same pool as its origin, so it is on `natascha1`, not on `fiona2`. Nothing is deleted from the clones: the environments simply see the full data, read-only through the NFS share. To keep a test environment small, limit what Immich scans (the import path and the exclusion patterns of the external library in Immich, [#2146](https://github.com/isejalabs/homelab/issues/2146)), not the files on `fiona`.
 
-Per environment, on `fiona`, once the parent `natascha1/gamma/srv/immich-copy` exists (no share):
+Made by the owner on 2026-11-18 for `dev` and `qa`; `rebuild` gets the same, `prod` needs none:
 
 ```sh
-# the origin snapshot, named so that no periodic snapshot task owns or expires it
-zfs snapshot natascha1/data/media/Pictures@immich-copy-<yyyymmdd>
-zfs clone natascha1/data/media/Pictures@immich-copy-<yyyymmdd> natascha1/gamma/srv/immich-copy/<env>
+# one origin snapshot for all clones, named so that no periodic snapshot task owns or expires it
+zfs snapshot natascha1/data/media@2144_immich-clone
+zfs create natascha1/gamma/srv/immich-copy
+zfs set refquota=100G natascha1/gamma/srv/immich-copy
+zfs clone natascha1/data/media@2144_immich-clone natascha1/gamma/srv/immich-copy/dev
+zfs clone natascha1/data/media@2144_immich-clone natascha1/gamma/srv/immich-copy/qa
 ```
 
-The clone is the dataset `natascha1/gamma/srv/immich-copy/<env>`; the NFS shares are its folders `orig` and `export`, see [NFS](#nfs). Then, as the owner decides for that environment:
+The NFS shares are folders of the clones, `/mnt/natascha1/gamma/srv/immich-copy/<env>/orig` and `.../export`, see [NFS](#nfs). Confirm that these two folders are at the top of the clone: the live paths are `Pictures/orig` for the library and `export` for the export, so if the folder `orig` sits inside `Pictures` in the clone too, the shares and the `PersistentVolume` paths need that segment (`ls /mnt/natascha1/gamma/srv/immich-copy/dev`).
 
-- Delete what the environment does not need **inside the clone**: the `db` and `Sync` folders, and for `dev` and `qa` all years except the test subset (`YEAR/MONTH/DAY-Title`). The clone is its own copy-on-write filesystem, so deleting there does not touch the origin.
-- Optionally `zfs set readonly=on natascha1/gamma/srv/immich-copy/<env>` afterwards, as one more guard on top of the read-only share.
-- Re-establishing a copy: unmount and destroy the clone (`zfs destroy natascha1/gamma/srv/immich-copy/<env>`), destroy its origin snapshot if no other clone uses it, make a new snapshot and clone. Because the copies live apart from `immich/<env>/{upload,cache}`, this never touches the data Immich wrote in that environment. The paths in Immich stay the same, so the external libraries keep their assets.
+Re-establishing a copy: destroy the clone (`zfs destroy natascha1/gamma/srv/immich-copy/<env>`), then make a new snapshot and clone it; the old snapshot can only be destroyed when no clone uses it any more. Because the copies live apart from `fiona2/gamma/srv/immich/<env>`, this never touches the data Immich wrote in that environment. The paths in Immich stay the same, so the external libraries keep their assets.
 
 The Lightroom catalog copy for the proof of concept stays on the Mac; it is not part of any export.
 
@@ -176,14 +184,14 @@ These are the acceptance criteria of [#2144](https://github.com/isejalabs/homela
    ```
 
    Expected: `OK` for `upload` and `cache` writable, and for `library` and `export` both `read-only` and `readable`, and the `mount` lines show `nfs4` with `ro` on the two read-only ones. A `FAIL ... not readable` on a read-only volume means the mapped user `immich` cannot read the files: see [permissions](#users-and-permissions). A pod stuck in `ContainerCreating` is a mount problem: `kubectl describe pod` shows the NFS error (export hosts, firewall, name resolution).
-2. **Restore a deleted file from a snapshot.** On `fiona`, with a `qa` snapshot task running (or a manual snapshot):
+2. **Restore a deleted file from a snapshot.** On `fiona`, with a `qa` snapshot task running (or a manual snapshot); the snapshot is of the dataset `fiona2/gamma/srv/immich/qa`, so the file is found below `upload/` in it:
 
    ```sh
    echo canary > /mnt/fiona2/gamma/srv/immich/qa/upload/snapshot-test.txt
-   zfs snapshot fiona2/gamma/srv/immich/qa/upload@manual-test
+   zfs snapshot fiona2/gamma/srv/immich/qa@manual-test
    rm /mnt/fiona2/gamma/srv/immich/qa/upload/snapshot-test.txt
-   cp /mnt/fiona2/gamma/srv/immich/qa/upload/.zfs/snapshot/manual-test/snapshot-test.txt /mnt/fiona2/gamma/srv/immich/qa/upload/
-   zfs destroy fiona2/gamma/srv/immich/qa/upload@manual-test
+   cp /mnt/fiona2/gamma/srv/immich/qa/.zfs/snapshot/manual-test/upload/snapshot-test.txt /mnt/fiona2/gamma/srv/immich/qa/upload/
+   zfs destroy fiona2/gamma/srv/immich/qa@manual-test
    rm /mnt/fiona2/gamma/srv/immich/qa/upload/snapshot-test.txt
    ```
 
@@ -205,10 +213,10 @@ These are the acceptance criteria of [#2144](https://github.com/isejalabs/homela
 
 These are not guessed in the repository. The dataset layout above is the owner's decision; what is left is to confirm it against `fiona`:
 
-1. **Library and export on `prod`:** that `natascha1/data/media/Pictures/orig` is the `YEAR/MONTH/DAY-Title` library (a folder in the dataset `Pictures`, not a dataset of its own), and where the rendition tree goes: the new dataset `natascha1/data/media/export` is a sibling of `Pictures`, while the copies hold their `export` as a folder inside the clone of `Pictures`. If the live renditions are to be written to the new dataset, the clone has no matching `export` source; either the copies' `export` is filled separately (a second clone of `natascha1/data/media/export`, which then cannot be a folder `export` of the first clone) or from the folder `Pictures/export`, if that exists. Decide before the first clone.
+1. **Folder paths in the clones:** that `orig` and `export` are folders at the top of `natascha1/gamma/srv/immich-copy/<env>`, as the shares and the `PersistentVolume`s assume (see [copies](#copies-of-the-library-for-non-prod)), while the live paths are `natascha1/data/media/Pictures/orig` and `natascha1/data/media/export`.
 2. **Which protocols the Mac uses** for the library today (SMB or NFS) and so which one the export share and the read-only upload share should use.
-3. **Pool capacity:** current free space of `natascha1` (`prod` upload growth, snapshots, the origin snapshot pinned by the clones) and of `fiona2` (all non-prod upload and cache and the `prod` cache); and whether `fiona2/gamma` exists with the `srv/immich` tree or has to be created (see the warning under [quotas](#quotas-and-capacity)).
-4. **UID/GID `3100`** for the `immich` account: confirm it is free on `fiona`, or name another.
+3. **Pool capacity** of `natascha1` (`prod` upload growth, snapshots, the origin snapshot pinned by the clones); `fiona2` has about 1.8 TB, which is enough (see the warning under [quotas](#quotas-and-capacity)).
+4. **The group ID of `fs.media-rw`**, for the Immich pods' `fsGroup` or `runAsGroup`, if they need it ([#2146](https://github.com/isejalabs/homelab/issues/2146)); the NFS shares map every client to the account and group anyway.
 5. **`borgmatic` configuration** of the on-site and the off-site repository: that `natascha1/data/srv/immich` is covered, including as a child dataset (see [borgbackup](#borgbackup)).
 
 ## Related

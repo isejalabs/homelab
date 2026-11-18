@@ -51,18 +51,18 @@ flux --context admin@dev-homelab get ks immich
 
 Static `PersistentVolume`s, pinned to their claims by `claimRef` and `volumeName` (`storageClassName: ""`, so no dynamic provisioning), reclaim policy `Retain`, mounted with `nfsvers=4.1,hard,noatime,nconnect=4`. The server is `fiona.home.iseja.net`. The capacity on the objects is nominal; the limit is the ZFS quota of the dataset.
 
-| Claim | Mode | Mount in the Immich pod | Dataset (`prod`; non-prod in the runbook) |
+| Claim | Mode | Mount in the Immich pod | Path on `fiona` (`prod`; non-prod in the runbook) |
 | --- | --- | --- | --- |
-| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich` (non-prod: `fiona2/gamma/srv/immich/<env>/upload`) |
-| `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | `fiona2/gamma/srv/immich/<env>/cache` (all environments) |
-| `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library `natascha1/data/media/Pictures/orig` (non-prod: a ZFS clone under `natascha1/gamma/srv/immich-copy/<env>/orig`) |
-| `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | `natascha1/data/media/export`, written from the Mac (non-prod: `.../immich-copy/<env>/export`) |
+| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich` (non-prod: the directory `upload` of `fiona2/gamma/srv/immich/<env>`) |
+| `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | the directory `cache` of `fiona2/gamma/srv/immich/<env>` (all environments) |
+| `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library `natascha1/data/media/Pictures/orig` (non-prod: the folder `orig` of a ZFS clone of `natascha1/data/media` under `natascha1/gamma/srv/immich-copy/<env>`) |
+| `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | the folder `natascha1/data/media/export`, written from the Mac (non-prod: the folder `export` of the clone) |
 
-The export path of a volume is always `/mnt/<dataset>`. The full dataset table, per environment, is in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md#datasets); the videos-only library is not part of the proof of concept yet.
+The export path of a volume is always `/mnt/<path>`. The full dataset table, per environment, is in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md#datasets); the videos-only library is not part of the proof of concept yet.
 
 For [#2146](https://github.com/isejalabs/homelab/issues/2146), who wires the pods:
 
-- Run the Immich pods as **UID and GID `3100`**, the numbers of the `immich` account on `fiona`. The NFS shares map every client to that account, so this only keeps what `ls` shows consistent. Verify that the images work as non-root.
+- Run the Immich pods as **UID `10004`**, the user ID of the `immich` account (central user management); its group is `fs.media-rw`, whose ID is an [open input](../../../../docs/operations/immich-media-storage.md#open-owner-inputs). The NFS shares map every client to that account and group, so this only keeps what `ls` shows consistent. Verify that the images work as non-root.
 - Mount the two external libraries with `readOnly: true` as well, and never at another path later: Immich stores the path of every asset, a moved path is a deleted asset plus a new one.
 - Immich writes a hidden `.immich` file into each of its folders and reports a missing mount; do not set `IMMICH_IGNORE_MOUNT_CHECK_ERRORS`.
 - The unit is not in `prod` yet: with [#2149](https://github.com/isejalabs/homelab/issues/2149) it moves from `qa-soaking` into `prod`'s own composition ([`envs/prod`](envs/prod/kustomization.yaml) already has the real paths).
