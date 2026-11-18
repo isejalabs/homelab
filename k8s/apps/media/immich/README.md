@@ -30,7 +30,7 @@ Nothing is versioned here. The export paths are in [`envs/<env>/kustomization.ya
 
 ## Operations
 
-- TrueNAS settings, snapshots, borgbackup, restore checks: [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md).
+- TrueNAS settings, snapshots, borgbackup, restore checks: [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md); the ACL entry that lets the mapped user read the library and export is under [users and permissions](../../../../docs/operations/immich-media-storage.md#users-and-permissions).
 - Mount and permission check: [`test-nfs-immich-media.yaml`](../../../test/storage/test-nfs-immich-media.yaml), described under [Verify](../../../../docs/operations/immich-media-storage.md#verify).
 - The volumes are not backed up by kopiur (it snapshots CSI volumes, not NFS): protection is ZFS snapshots and the borgbackup of the `prod` upload dataset on `fiona`.
 
