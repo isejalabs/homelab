@@ -112,7 +112,7 @@ Since 2026-10-28 (phase 2b of the [consolidation plan](../plans/2026-10-checkmk-
 | `gw2.home.iseja.net` | 10.7.0.2 | 1 s | |
 | `gw3.home.iseja.net` | 10.7.0.3 | 1 s | |
 | `gw4.home.iseja.net` | 192.168.8.4 | 1 s | test host of 2026-10-28 |
-| `gw-kdg.home.iseja.net` | 188.195.100.252 | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
+| `gw-kdg.home.iseja.net` | the WAN public address | 1 s | tag `networking: wan`; its `PING` service sends 1500-byte packets, see [below](#large-packet-ping-for-gw-kdg) |
 | `google-dns` | 8.8.8.8 | 1 s | tag `networking: wan` |
 | `sw01.home.iseja.net` | 10.7.10.50 | 1 s | alias `switch-kueche.home.iseja.net` |
 | `core-switch.home.iseja.net` | 10.7.20.150 | 1 s | |
@@ -149,7 +149,7 @@ Both set the service name `PING` and the command line `$USER1$/check_icmp -n 6 -
 
 - **Same service name.** The service stays `PING`, so its history and the 5-minute interval rule for `/ping-only` in `prod_k8s` carry over. The implicit `PING` service of ping-only hosts disappears by itself once the host has another service, so the service count does not change.
 - **Thresholds are in the command line.** The `networking: wan` rule of `ping_levels` (80% warning, 100% critical) does not apply to this service. With 6 packets one lost packet is 17%, so 20% is WARN from the second lost packet on and 50% is CRIT from the third. The rule of `ping_levels` still applies to the host check of `gw-kdg` in `prod` (default packet size).
-- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and `188.195.100.252` lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
+- **Same packets as `ping -M do -s 1472`.** Sniffed on monitoring2 on 2026-10-30: `check_icmp -b 1472` sends 1500-byte IP packets with the DF flag set. Interleaved runs of six packets against `8.8.8.8` and the public address of the WAN gateway lost 16 to 83% with `check_icmp -b 1472`, 33 to 67% with `ping -M do -s 1472` and 0% with `check_icmp` at the default size.
 - **Result after activation (2026-10-30):** `prod_k8s` was CRITICAL ("lost 83% > 50%") on its first run and `prod` OK ("lost 0%"), which fits a loss that comes and goes.
 - **Roll back:** delete the two rules and activate; the implicit `PING` service with the default packet size comes back.
 

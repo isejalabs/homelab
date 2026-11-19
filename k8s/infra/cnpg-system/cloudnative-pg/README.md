@@ -17,7 +17,7 @@ Runs the database of workloads that need PostgreSQL. It was introduced for Keycl
 
 ## Where it is used
 
-- **Used by**: one `Cluster`, `keycloak-db` in namespace `keycloak` ([`apps/identity/keycloak`](../../../apps/identity/keycloak/README.md)): one instance, 1 Gi on `longhorn-ha`, no WAL archiving; backed up by a daily `pg_dump` instead of CloudNativePG backups. Find all clusters with the first command in the [cheat sheet](#cheat-sheet).
+- **Used by**: two `Cluster`s. `immich-db` in namespace `immich` ([`apps/media/immich-db`](../../../apps/media/immich-db/README.md)): one instance with VectorChord, 10 Gi on `longhorn-ha` (3 Gi in `dev`), no WAL archiving, daily encrypted `pg_dump`. And `keycloak-db` in namespace `keycloak` ([`apps/identity/keycloak`](../../../apps/identity/keycloak/README.md)): one instance, 1 Gi on `longhorn-ha`, no WAL archiving; backed up by a daily `pg_dump` instead of CloudNativePG backups. Find all clusters with the first command in the [cheat sheet](#cheat-sheet).
 - **Depends on**: nothing at runtime beyond the API server. The volumes of the databases it manages come from [Longhorn](../../longhorn-system/longhorn-core/base/) in the clusters that use it ([`storage.md`](../../../../docs/architecture/storage.md)).
 
 ## Access

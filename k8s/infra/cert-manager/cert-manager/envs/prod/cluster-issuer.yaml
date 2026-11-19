@@ -4,5 +4,4 @@ metadata:
   name: cloudflare-cluster-issuer
 spec:
   acme:
-    email: prod-certmanager@iseja.net
-    server: https://acme-v02.api.letsencrypt.org./directory
+    server: https://acme-v02.api.letsencrypt.org/directory

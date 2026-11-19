@@ -6,3 +6,19 @@ components:
 
 resources:
   - ../../base
+  - clusterrole.yaml
+  - clusterrolebinding.yaml
+  - externalsecret.yaml
+
+patches:
+  - path: helmrelease.yaml
+  - patch: |-
+      - op: replace
+        path: /spec/values/web/config/authentication/oauth2/issuerURL
+        value: https://dev-auth.dev.iseja.net/realms/admin
+      - op: replace
+        path: /spec/values/web/config/baseURL
+        value: https://dev-flux.dev.iseja.net
+    target:
+      kind: HelmRelease
+      name: flux-operator

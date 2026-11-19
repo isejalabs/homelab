@@ -34,12 +34,15 @@ inputs = {
 
   # The Checkmk site dev_k8s (Ultimate, on monitoring1) signs in humans through SAML, one client per realm because a
   # Checkmk SAML connection trusts a single realm. The Checkmk side is configured by hand, see docs/identity/checkmk-sso.md.
+  # include_email is on for the iseja client: a Checkmk user without an address makes the notification fail (#2294).
+  # Notifications of dev_k8s are switched off in Checkmk where they are not wanted.
   saml_clients = {
     "dev_k8s-iseja" = {
-      realm     = "iseja"
-      client_id = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
-      acs_url   = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
-      name      = "Checkmk dev_k8s (iseja)"
+      realm         = "iseja"
+      client_id     = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_metadata.py"
+      acs_url       = "https://monitoring1.home.iseja.net/dev_k8s/check_mk/saml_acs.py?acs"
+      name          = "Checkmk dev_k8s (iseja)"
+      include_email = true
     }
     "dev_k8s-admin" = {
       realm     = "admin"
@@ -52,8 +55,15 @@ inputs = {
   # OIDC clients, one per application and realm; see docs/identity/keycloak-realms.md#oidc-clients. The Longhorn
   # dashboard has no login of its own: the oauth2-proxy of k8s/infra/longhorn-system/longhorn-auth logs in with this
   # client (realm admin, group sec.app.longhorn.admin). The generated secret lands in the 1Password item
-  # keycloak-oidc-longhorn-admin#dev, which an ExternalSecret hands to the proxy.
+  # keycloak-oidc-longhorn-admin#dev, which an ExternalSecret hands to the proxy. The Flux Operator Web UI has native OIDC
+  # (k8s/infra/flux-system/flux-operator): realm admin, group sec.app.flux-operator.admin, secret in the item
+  # keycloak-oidc-flux-operator-admin#dev, read by an ExternalSecret.
   oidc_clients = {
+    "flux-operator-admin" = {
+      realm         = "admin"
+      client_id     = "flux-operator"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "flux")}/oauth2/callback"]
+    }
     "longhorn-admin" = {
       realm         = "admin"
       client_id     = "longhorn"

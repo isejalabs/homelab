@@ -7,3 +7,4 @@ components:
 resources:
   - ../../sets
   - ../../sets/standing
+  - ../../sets/qa-soaking
