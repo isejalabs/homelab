@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::https://github.com/isejalabs/terraform-proxmox-talos.git?ref=v7.6.0"
+  source = "git::https://github.com/isejalabs/terraform-proxmox-talos.git?ref=v7.7.0"
 }
 
 locals {
@@ -40,6 +40,7 @@ locals {
   ctrl_datastore      = include.envcommon.locals.ctrl_datastore
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
+  ctrl_startup        = include.envcommon.locals.ctrl_startup
   datastore           = include.envcommon.locals.datastore
   dns                 = include.envcommon.locals.dns
   domain              = include.envcommon.locals.domain
@@ -48,6 +49,7 @@ locals {
   work_cpu            = include.envcommon.locals.work_cpu
   work_disk_size      = include.envcommon.locals.work_disk_size-medium
   work_ram            = include.envcommon.locals.work_ram-medium
+  work_startup        = include.envcommon.locals.work_startup
 
   # Set some values specific to this environment
   storage_vmid = 9813
@@ -106,6 +108,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
+      startup       = local.ctrl_startup
       vlan_id       = local.vlan_id
       # update        = true
     }
@@ -119,6 +122,7 @@ inputs = {
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
+    #   startup       = local.ctrl_startup
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
@@ -132,6 +136,7 @@ inputs = {
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
+    #   startup       = local.ctrl_startup
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
@@ -146,6 +151,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
       # update        = true
     }
@@ -160,6 +166,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
       # update        = true
     }
@@ -174,6 +181,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
       # update        = true
     }
