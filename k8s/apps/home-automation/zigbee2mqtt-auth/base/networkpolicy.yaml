@@ -1,0 +1,26 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/cilium.io/ciliumnetworkpolicy_v2.json
+# The Zigbee2MQTT frontend has no login of its own, and its websocket accepts every command (restart, permit_join,
+# device set) as an MQTT publish. Once this policy selects the Zigbee2MQTT pod, it accepts connections from the
+# oauth2-proxy of this namespace only, on the port the Service targets. Nothing reaches it around the proxy: not the
+# Gateway, not a pod of another namespace, not another pod of this one. The pod only makes outgoing connections
+# (MQTT broker, serial device), which an ingress rule does not touch. kubelet probes and `kubectl port-forward`
+# (break-glass) are not policy-checked ingress and keep working.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: zigbee2mqtt-only-from-oauth2-proxy
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/instance: zigbee2mqtt
+      app.kubernetes.io/name: zigbee2mqtt
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/instance: oauth2-proxy
+            app.kubernetes.io/name: oauth2-proxy
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
