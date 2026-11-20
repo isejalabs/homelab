@@ -10,7 +10,7 @@ There is no application source code in this repo, so CI focuses on infrastructur
 
 | Workflow | Role | Checks | Typical runtime |
 | --- | --- | --- | --- |
-| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | Required validation | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops` and the `disclosure-*` guard, see [Disclosure guard](#disclosure-guard)), then `scripts/ci/test-disclosure-hooks.sh`, which seeds one synthetic violation per pattern class and expects the guard to fail on it | ~10s-30s |
+| [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) | Required validation | the repo's own `pre-commit` hooks (`.pre-commit-config.yaml`: `forbid-secrets`, `validate-sops` and the `disclosure-*` guard, see [Disclosure guard](#disclosure-guard)), then `scripts/ci/test-disclosure-hooks.sh`, which seeds one synthetic violation per pattern class and expects the guard to fail on it. A second job, `script-lint`, is advisory and not required: `shellcheck` and `just --fmt --check` (see [Script lint](#script-lint-advisory)) | ~10s-30s |
 | [`kustomize-build.yml`](../../.github/workflows/kustomize-build.yml) | Required validation | `kustomize build` + `kubeconform` across every `k8s/` overlay, plus a guard that no `flux/ks.yaml` sets `spec.targetNamespace`, a check that every vendored upstream manifest under a `vendor/` directory is byte-identical to the upstream file named in its `kustomization.yaml` (`scripts/ci/vendor-manifests.sh check`) and a check that each `keycloak-realm` Terragrunt unit's `keycloak_url` equals the hostname its environment's Keycloak overlay serves (`scripts/ci/kustomize-build-all.sh`) | ~1m15s-1m30s |
 | [`terragrunt-validate.yml`](../../.github/workflows/terragrunt-validate.yml) | Required validation | `tofu fmt -check`, `terragrunt hcl format --check`, and `terragrunt init -backend=false` + `validate` across every `terragrunt/` unit (`scripts/ci/terragrunt-validate-all.sh`); a `prod` or `qa` unit without a committed `.terraform.lock.hcl` fails, and those units are init'd with `-lockfile=readonly`, so an incomplete lock fails too (see [Provider lock files](../../terragrunt/README.md#provider-lock-files)) | ~2m20s-3m0s, occasionally much longer |
 | [`bootstrap-apps-test.yml`](../../.github/workflows/bootstrap-apps-test.yml) | Required validation | the bootstrap `helmfile` "apps" stage against an ephemeral `kind` cluster (`scripts/ci/bootstrap-apps-ci-test.sh`) — the only workflow that actually applies anything, rather than just rendering/linting | ~2m30s-3m55s |
@@ -35,12 +35,12 @@ The diagram shows which workflows a pull request triggers and where the merge de
 ```mermaid
 flowchart LR
     accTitle: Pull request path through CI, labeling and Mergify
-    accDescr: A pull request triggers the 11 validation workflows and the docs mermaid check on the pull_request event, and the labeler workflow on pull_request_target. Ten of the validation workflows are required status checks, while docs-build, docs-mermaid-check and spell-check are not. The labeler adds area and env labels that Mergify reads to decide whether it may merge a Renovate pull request. A human or Mergify can request the merge, and branch protection on main withholds it until every required check has passed.
+    accDescr: A pull request triggers the 11 validation workflows and the docs mermaid check on the pull_request event, and the labeler workflow on pull_request_target. Ten of the validation workflows are required status checks, while docs-build, docs-mermaid-check, spell-check and the script-lint job of the pre-commit workflow are not. The labeler adds area and env labels that Mergify reads to decide whether it may merge a Renovate pull request. A human or Mergify can request the merge, and branch protection on main withholds it until every required check has passed.
 
     pr["Pull request opened or updated"]
 
     pr -->|"pull_request"| required["10 required checks<br/>pre-commit, kustomize-build, terragrunt-validate,<br/>bootstrap-apps-test, helmfile-template, flate-test,<br/>renovate-config-validate, check-sorting, actionlint,<br/>docs-link-check"]
-    pr -->|"pull_request"| optional["not required<br/>docs-build, docs-mermaid-check, spell-check"]
+    pr -->|"pull_request"| optional["not required<br/>docs-build, docs-mermaid-check, spell-check,<br/>script-lint"]
     pr -->|"pull_request_target"| labeler["labeler.yml<br/>adds area and env labels"]
 
     labeler --> mergify["Mergify<br/>reads pr-type, updateType, updateStrategy<br/>and env labels"]
@@ -123,6 +123,14 @@ HTTP 429 counts as alive (a rate limit says nothing about the link); the `iseja.
 - **Version**: pinned in the workflow (`typos==1.51.1` through `pipx run`), not in `.mise.toml`. A tool added there needs `mise.lock` checksums and is installed by every workflow that runs `mise-action` without `install_args`, for a check that only this workflow uses.
 - **Run it locally**: `git ls-files -z '*.md' | xargs -0 pipx run --spec typos==1.51.1 typos --config .ci/typos/typos.toml --force-exclude --format brief`.
 - **What it does not catch**: `typos` flags known misspellings, it does not check against a full dictionary and it does not read grammar. A word that is a misspelling of nothing known (such as `whigh` in `k8s/bootstrap/README.md`) or a dropped letter that leaves a valid word (`t is the law`) passes. A full-dictionary checker would catch the first, but it flagged about 270 words of this repo's vocabulary (Kubernetes kinds, tool and host names) even with inline code ignored, so it was not adopted.
+
+### Script lint (advisory)
+
+The `script-lint` job of [`pre-commit.yml`](../../.github/workflows/pre-commit.yml) runs two hooks of [`.pre-commit-config.yaml`](../../.pre-commit-config.yaml) over all files: `shellcheck` for the shell scripts and `just-fmt` (`just --fmt --check`) for `.justfile` and the `*.just` modules. Both hooks are in the `manual` stage, so neither `git commit` nor the required `pre-commit` job runs them, and the job is its own status check, which is not required: a hit shows red on the PR and blocks nothing. To make them binding, remove `stages: [manual]` from the two hooks (the required `pre-commit` job then runs them and the `script-lint` job can go); that is a decision for the repository owner.
+
+- **Run it locally**: `pre-commit run --hook-stage manual shellcheck --all-files` and `pre-commit run --hook-stage manual just-fmt --all-files`. Fix a formatting hit with `just --fmt --justfile <file>`.
+- **`shellcheck` scope and settings**: every file `pre-commit` identifies as shell (by extension or shebang), except the two classes in the hook's `exclude`: a script template that is not plain shell, and the `.envrc` files. [`.shellcheckrc`](../../.shellcheckrc) makes it follow sourced files (`scripts/lib/*.sh`) and disables two codes repo-wide that only flag intended idioms here, with the reason next to each. Anything else is silenced where it occurs, with `# shellcheck disable=SC<n> # <reason>` on the line above.
+- **Versions**: `shellcheck` comes from the [`shellcheck-py`](https://github.com/shellcheck-py/shellcheck-py) hook, which brings its own binary, so the version is the hook's `rev` and nothing is added to `.mise.toml`. `just` is the one pinned in [`.mise.toml`](../../.mise.toml); the formatter's output can change between `just` versions, so a `just` update may need a `just --fmt` pass in the same PR.
 
 ## Tool provisioning
 

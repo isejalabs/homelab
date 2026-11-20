@@ -13,40 +13,40 @@ set shell := ['bash', '-euo', 'pipefail', '-c']
 default *args:
     {{ just_executable() }} --justfile {{ source_file() }} --list
 
+[arg('environment', long='environment', short='e')]
 [doc('List the Proxmox VMs of an environment via the Proxmox API (-e/--environment required)')]
-[arg('environment', short='e', long='environment')]
 list environment:
     "{{ justfile_directory() }}/scripts/ops/proxmox/vm-list.sh" -e {{ environment }}
 
-[doc('Start every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; safe, never prompts)')]
-[arg('environment', short='e', long='environment')]
+[arg('environment', long='environment', short='e')]
 [arg('vmid', long='vmid')]
+[doc('Start every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; safe, never prompts)')]
 start environment vmid="":
     "{{ justfile_directory() }}/scripts/ops/proxmox/vm-power.sh" --action start -e {{ environment }} \
         {{ if vmid != "" { "--vmid " + vmid } else { "" } }}
 
-[doc('Gracefully shut down every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
-[arg('environment', short='e', long='environment')]
+[arg('environment', long='environment', short='e')]
 [arg('vmid', long='vmid')]
-[arg('yes', short='y', long='yes', value='true')]
+[arg('yes', long='yes', short='y', value='true')]
+[doc('Gracefully shut down every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
 shutdown environment vmid="" yes="false":
     "{{ justfile_directory() }}/scripts/ops/proxmox/vm-power.sh" --action shutdown -e {{ environment }} \
         {{ if vmid != "" { "--vmid " + vmid } else { "" } }} \
         {{ if yes == "true" { "--yes" } else { "" } }}
 
-[doc('Hard-stop every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
-[arg('environment', short='e', long='environment')]
+[arg('environment', long='environment', short='e')]
 [arg('vmid', long='vmid')]
-[arg('yes', short='y', long='yes', value='true')]
+[arg('yes', long='yes', short='y', value='true')]
+[doc('Hard-stop every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
 stop environment vmid="" yes="false":
     "{{ justfile_directory() }}/scripts/ops/proxmox/vm-power.sh" --action stop -e {{ environment }} \
         {{ if vmid != "" { "--vmid " + vmid } else { "" } }} \
         {{ if yes == "true" { "--yes" } else { "" } }}
 
-[doc('Hard-reset every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
-[arg('environment', short='e', long='environment')]
+[arg('environment', long='environment', short='e')]
 [arg('vmid', long='vmid')]
-[arg('yes', short='y', long='yes', value='true')]
+[arg('yes', long='yes', short='y', value='true')]
+[doc('Hard-reset every VM in an environment, or just one with --vmid, via the Proxmox API (-e/--environment required; destructive -- prompts for confirmation unless --yes or --vmid is given)')]
 reset environment vmid="" yes="false":
     "{{ justfile_directory() }}/scripts/ops/proxmox/vm-power.sh" --action reset -e {{ environment }} \
         {{ if vmid != "" { "--vmid " + vmid } else { "" } }} \
