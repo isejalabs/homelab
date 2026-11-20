@@ -11,21 +11,33 @@ set shell := ['sh', '-euo', 'pipefail', '-c']
 cluster env: (core env) (apps env)
     just log info "Deployed cluster" "env" "{{ env }}"
 
-# Apply the core configuration (CRDs)
+# Apply the core configuration: namespaces, personal credentials and CRDs, in this order
 [private]
-core env:
+core env: && (namespaces env) (personal-credentials env) (crds env)
     just log info "Running stage..." "stage" "{{ recipe_name() }}"
-    just logstep "{{ recipe_name() }}" "namespace creation"
+
+# Create the namespaces (step of the core stage, also callable on its own)
+[private]
+namespaces env:
+    just logstep "core" "namespace creation"
     if ! kustomize build {{ source_directory() }}/../infra/common/ns/envs/{{env}} | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
-        just log fatal "Failed to create namespaces" "stage" "{{ recipe_name() }}"
+        just log fatal "Failed to create namespaces" "stage" "core"
     fi
-    just logstep "{{ recipe_name() }}"  "personal credentials injection"
+
+# Inject the personal credentials via `op inject` (step of the core stage, also callable on its own)
+[private]
+personal-credentials env:
+    just logstep "core"  "personal credentials injection"
     if ! kustomize build {{ source_directory() }}/kustomize/personal | just template - | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
-        just log fatal "Failed to apply personal manifests" "stage" "{{ recipe_name() }}"
+        just log fatal "Failed to apply personal manifests" "stage" "core"
     fi
-    just logstep "{{ recipe_name() }}" "CRDs installation"
+
+# Render and apply the CRDs from the crds helmfile (step of the core stage, also callable on its own)
+[private]
+crds env:
+    just logstep "core" "CRDs installation"
     if ! helmfile -f "{{ source_directory() }}/helmfile/crds" template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
-        just log fatal "Failed to apply base crds" "stage" "{{ recipe_name() }}"
+        just log fatal "Failed to apply base crds" "stage" "core"
     fi
 
 # Install applications
