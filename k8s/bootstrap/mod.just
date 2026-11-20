@@ -20,7 +20,7 @@ core env: && (namespaces env) (personal-credentials env) (crds env)
 [private]
 namespaces env:
     just logstep "core" "namespace creation"
-    if ! kustomize build {{ source_directory() }}/../infra/common/ns/envs/{{env}} | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
+    if ! kustomize build {{ source_directory() }}/../infra/common/ns/envs/{{env}} | just bootstrap::kubectl-apply {{env}}; then
         just log fatal "Failed to create namespaces" "stage" "core"
     fi
 
@@ -28,7 +28,7 @@ namespaces env:
 [private]
 personal-credentials env:
     just logstep "core"  "personal credentials injection"
-    if ! kustomize build {{ source_directory() }}/kustomize/personal | just template - | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
+    if ! kustomize build {{ source_directory() }}/kustomize/personal | just template - | just bootstrap::kubectl-apply {{env}}; then
         just log fatal "Failed to apply personal manifests" "stage" "core"
     fi
 
@@ -36,9 +36,15 @@ personal-credentials env:
 [private]
 crds env:
     just logstep "core" "CRDs installation"
-    if ! helmfile -f "{{ source_directory() }}/helmfile/crds" template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -; then
+    if ! helmfile -f "{{ source_directory() }}/helmfile/crds" template -q | yq ea -r -e 'select(.kind == "CustomResourceDefinition")' | just bootstrap::kubectl-apply {{env}}; then
         just log fatal "Failed to apply base crds" "stage" "core"
     fi
+
+# Server-side apply the manifests on stdin to the cluster of an environment. The one place in this module that
+# knows the kubecontext naming ("admin@<env>-homelab", same as kube_context in scripts/lib/common.sh).
+[private]
+kubectl-apply env:
+    kubectl --context admin@{{env}}-homelab apply --server-side --force-conflicts -f -
 
 # Install applications
 [private]
