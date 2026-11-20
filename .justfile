@@ -20,7 +20,7 @@ mod proxmox "scripts/ops/proxmox/mod.just"
 
 [private]
 logstep stage msg:
-    just log debug "Running step... {{msg}}" "stage" "{{ stage }}"
+    just log debug "Running step... {{ msg }}" "stage" "{{ stage }}"
 
 [private]
 log lvl msg *args:

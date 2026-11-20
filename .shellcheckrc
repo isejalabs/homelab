@@ -1,0 +1,8 @@
+# Settings for the shellcheck pre-commit hook (docs/architecture/ci.md#script-lint-advisory).
+# Follow sourced files, and resolve `. "${SCRIPTS_DIR}/lib/<file>.sh"` against scripts/ (run from the repo root).
+external-sources=true
+source-path=scripts
+# SC1007: `CDPATH= cd -- ...` is the intended idiom for an empty assignment in front of a command.
+# SC2016: single-quoted text with backticks or a dollar sign is literal on purpose here (Markdown code spans in
+#         grep/sed patterns, a script body passed to a remote shell).
+disable=SC1007,SC2016

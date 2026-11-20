@@ -6,6 +6,7 @@
       matchPackageNames: [
         "quay.io/cilium/charts/cilium",
         "ghcr.io/cloudnative-pg/postgresql",
+        "ghcr.io/tensorchord/cloudnative-vectorchord",
         "ghcr.io/koenkk/zigbee2mqtt",
         "github.com/isejalabs/terraform-proxmox-talos",
         "kubernetes/kubernetes",

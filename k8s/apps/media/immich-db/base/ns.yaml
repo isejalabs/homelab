@@ -1,0 +1,8 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/_definitions.json
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: immich
+  annotations:
+    kustomize.toolkit.fluxcd.io/prune: disabled

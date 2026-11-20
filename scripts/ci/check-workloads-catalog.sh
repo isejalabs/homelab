@@ -2,7 +2,7 @@
 # Checks that the catalog tables in docs/architecture/workloads.md agree with the repo: every table row's
 # unit exists with a flux/ folder, every unit under k8s/apps and k8s/infra that has a flux/ folder has a row,
 # and each row's "Flux set" column names the set that lists the unit in k8s/bootstrap/cluster/flux/sets/
-# (minimal, optional, standing, or "none" if no set lists it). Only the first word of the Flux set cell counts,
+# (minimal, optional, standing, qa-soaking, or "none" if no set lists it). Only the first word of the Flux set cell counts,
 # so the explanatory text after it stays free-form.
 #
 # Usage: scripts/ci/check-workloads-catalog.sh [repo-root]
@@ -48,7 +48,7 @@ doc_rows() {
             unit = $2; cat = $3; set = $(NF - 1)
             gsub(/[ `]/, "", cat)
             sub(/^[^[]*\[`/, "", unit); sub(/`\].*$/, "", unit)
-            gsub(/`/, "", set); sub(/^ */, "", set); sub(/[^a-z].*$/, "", set)
+            gsub(/`/, "", set); sub(/^ */, "", set); sub(/[^a-z-].*$/, "", set)
             print kind "/" cat "/" unit, set
         }' "${DOC}"
 }
@@ -70,6 +70,7 @@ cut -d' ' -f1 "${WORK}/doc" | sort | uniq -d | while read -r u; do
 done
 if [ -n "$(cut -d' ' -f1 "${WORK}/doc" | sort | uniq -d)" ]; then status=1; fi
 
+# shellcheck disable=SC2013 # unit paths contain no whitespace, one per word is intended
 for u in $(cut -d' ' -f1 "${WORK}/doc" | sort -u); do
     if ! grep -qFx "$u" "${WORK}/units"; then
         log error "workloads.md row has no matching k8s unit with a flux/ folder" "unit" "$u"
@@ -78,6 +79,7 @@ for u in $(cut -d' ' -f1 "${WORK}/doc" | sort -u); do
 done
 
 # Every unit with a flux/ folder needs a row, and a row's set must match what the sets list.
+# shellcheck disable=SC2013 # unit paths contain no whitespace, one per word is intended
 for u in $(cat "${WORK}/units"); do
     row_set=$(awk -v u="$u" '$1 == u { print $2 }' "${WORK}/doc")
     if [ -z "${row_set}" ]; then
@@ -95,6 +97,7 @@ done
 
 # Every unit a set lists must exist as a unit (a dangling set entry is flate-test's job, but a listed unit with
 # no row is caught above only if its flux/ folder exists).
+# shellcheck disable=SC2013 # unit paths contain no whitespace, one per word is intended
 for u in $(cut -d' ' -f1 "${WORK}/sets" | sort -u); do
     if ! grep -qFx "$u" "${WORK}/units"; then
         log error "a Flux set lists a unit with no flux/ folder" "unit" "$u"

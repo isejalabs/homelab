@@ -5,21 +5,21 @@ set quiet
 set script-interpreter := ['bash', '-euo', 'pipefail']
 set shell := ['bash', '-euo', 'pipefail', '-c']
 
+[arg('all_namespaces', long='all-namespaces', short='A', value='true')]
+[arg('environment', long='environment', short='e')]
+[arg('namespace', long='namespace', short='n')]
 [doc('List kopiur snapshots, for one app or every app in scope (-n <ns>|-A required; app optional; -e/--environment optional, defaults to the current kubecontext)')]
-[arg('environment', short='e', long='environment')]
-[arg('namespace', short='n', long='namespace')]
-[arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 list app="" environment="" namespace="" all_namespaces="false":
     "{{ justfile_directory() }}/scripts/ops/kopiur/list.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \
         {{ if namespace != "" { "-n" } else { "" } }} {{ namespace }} \
         {{ if all_namespaces == "true" { "-A" } else { "" } }}
 
-[doc('Trigger a manual kopiur backup: one named app, or every app in scope with --all (-n <ns>|-A required; -e/--environment optional, defaults to the current kubecontext)')]
-[arg('environment', short='e', long='environment')]
-[arg('namespace', short='n', long='namespace')]
-[arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 [arg('all', long='all', value='true')]
+[arg('all_namespaces', long='all-namespaces', short='A', value='true')]
+[arg('environment', long='environment', short='e')]
+[arg('namespace', long='namespace', short='n')]
+[doc('Trigger a manual kopiur backup: one named app, or every app in scope with --all (-n <ns>|-A required; -e/--environment optional, defaults to the current kubecontext)')]
 create app="" environment="" namespace="" all_namespaces="false" all="false":
     "{{ justfile_directory() }}/scripts/ops/kopiur/create.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \

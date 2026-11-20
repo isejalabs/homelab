@@ -42,6 +42,7 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | --- | --- |
 | Restore app data | [`kopiur-backup-restore.md`](backup/kopiur-backup-restore.md#daily-tasks), or [`longhorn-snapshots.md`](backup/longhorn-snapshots.md#restore-an-app-to-a-snapshot) for Longhorn local snapshots |
 | Restore the Keycloak database | [`keycloak-backup-restore.md`](identity/keycloak-backup-restore.md#restore) |
+| Restore the Immich database, or update Immich, PostgreSQL or VectorChord | [`immich-database.md`](backup/immich-database.md) |
 | Restore a manually managed VM/LXC | [`proxmox-backup-restore.md`](backup/proxmox-backup-restore.md#restore-procedures) |
 | Restore a Checkmk site's own backup | [`checkmk-backup-restore.md`](backup/checkmk-backup-restore.md#restore-into-an-isolated-site) |
 | Rebuild a whole cluster | [`disaster-recovery.md`](backup/disaster-recovery.md#full-cluster-rebuild) |
@@ -55,12 +56,14 @@ This is the single index of the documentation, grouped by task. Each folder's ow
 | Sign in when UCS or the realms are down | [`keycloak-break-glass.md`](identity/keycloak-break-glass.md) |
 | Check what can reach Keycloak and which headers it trusts | [`keycloak-exposure.md`](identity/keycloak-exposure.md) |
 | Sign in to the Checkmk sites with the identity provider | [`checkmk-sso.md`](identity/checkmk-sso.md) |
+| Sign in to the Flux Operator Web UI with the identity provider | [`flux-operator-sso.md`](identity/flux-operator-sso.md) |
 | Sign in to Proxmox with the identity provider (inventory, design, roles) | [`proxmox-sso.md`](identity/proxmox-sso.md) |
 | Name a UCS group that grants access, or nest groups | [`ucs-groups.md`](identity/ucs-groups.md) |
 | Put a login in front of a web UI that has none (OAuth2 Proxy) | [`oauth2-proxy.md`](identity/oauth2-proxy.md) |
 | Sign in to the Longhorn dashboard, or reach it without Keycloak | [`longhorn-sso.md`](identity/longhorn-sso.md) |
 | Sign in to OPNsense with the UCS account, or recover when UCS is down | [`opnsense-auth.md`](identity/opnsense-auth.md) |
 | Measure how long logins are interrupted when a node is drained | [`keycloak-drain-drill.md`](identity/keycloak-drain-drill.md) |
+| Protect the Zigbee2MQTT web frontend, or see why it uses a proxy | [`zigbee2mqtt-sso.md`](identity/zigbee2mqtt-sso.md) |
 
 ### Troubleshoot
 
@@ -86,8 +89,8 @@ Current repository truth lives in the architecture, reference and procedural doc
 - **[`reference/`](reference)** — authoritative current-state factual material (specific values, tables, inventories) split out from the conceptual doc that explains it, where that split genuinely helps scanning (see [`reference/README.md`](reference/README.md)). Not every conceptual doc needs a reference sibling — only split one out where a dense lookup table would otherwise interrupt prose.
 - **Procedural docs, one folder per task** — runbooks, operational recipes and incident-response guides that span multiple areas but aren't really "architecture". Which file covers what is listed once, in [Finding what you need](#finding-what-you-need); there is deliberately no second per-file list here.
   - **[`operations/`](operations)** — upgrades and node lifecycle, automated updates, app storage variables, Proxmox VM power and snapshots, Proxmox cluster quorum, the Checkmk automation user, the WireGuard hub on `srv3`, project board statuses.
-  - **[`backup/`](backup)** — backup and restore of app data, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
-  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative).
+  - **[`backup/`](backup)** — backup and restore of app data, the Immich database, Longhorn snapshots, manually managed VMs/LXCs, and the full cluster rebuild.
+  - **[`identity/`](identity)** — Keycloak: realms, the second factor, the UCS group naming and nesting rules, break-glass login, exposure, the node-drain availability drill, and database backup/restore; and the sign-in of the Checkmk sites and of Proxmox through it; and the administrator login of OPNsense (OIDC through a plugin, proven on one gateway, with LDAP as the alternative); and the authentication of the Zigbee2MQTT frontend.
   - **[`troubleshooting/`](troubleshooting)** — incident-response runbooks for Flux, DNS, storage and stale Terraform state.
 - **This folder, top level** — orientation pages that belong to no single task folder: [`glossary.md`](glossary.md) (one line per term, each linking to its owner doc) and [`zero-to-cluster.md`](zero-to-cluster.md) (the ordered path to a running cluster, linking the owning docs and stating each step's expected result).
 - **[`decisions/`](decisions)** — lightweight Architecture Decision Records: one file per significant, non-obvious architectural choice likely to be revisited later. Not a log of every decision made in the repo, only the ones whose *why* would otherwise be lost to git-log archaeology (see [`decisions/README.md`](decisions/README.md) for the format).
