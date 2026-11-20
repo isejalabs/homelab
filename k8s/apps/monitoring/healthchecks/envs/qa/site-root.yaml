@@ -1,0 +1,15 @@
+---
+# The public URL of this environment, the hostname of the HTTPRoute (the domain transformers do not reach HelmRelease
+# values, see #2280). Ping URLs and links in alert mails are built from it.
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: healthchecks
+spec:
+  values:
+    controllers:
+      main:
+        containers:
+          main:
+            env:
+              SITE_ROOT: https://qa-healthchecks.qa.iseja.net

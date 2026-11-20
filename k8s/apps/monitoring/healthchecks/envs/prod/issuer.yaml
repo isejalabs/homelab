@@ -1,0 +1,4 @@
+---
+- op: replace
+  path: /spec/values/extraArgs/oidc-issuer-url
+  value: https://auth.iseja.net/realms/admin
