@@ -4,7 +4,7 @@ status: current
 
 # Monitoring notifications
 
-**Status:** current as of 2026-11-11. First read from the live Checkmk configuration and alert history over read-only SSH on 2026-10-25 (`monitoring1`: `qa_k8s`; `monitoring2`: `prod_k8s`, `prod`), re-read on 2026-11-09 for stream B ([below](#stream-b-notifications-live)); rules applied through the REST API on 2026-11-11, see [Rules applied](#rules-applied-to-prod_k8s-and-prod-2026-11-11). The settings are click-ops in the Checkmk UI except where this page says they were done through the API, so this page is the only written record; if it and the live site disagree, the site wins and this page is stale.
+**Status:** current as of 2026-11-20. First read from the live Checkmk configuration and alert history over read-only SSH on 2026-10-25 (`monitoring1`: `qa_k8s`; `monitoring2`: `prod_k8s`, `prod`), re-read on 2026-11-09 for stream B ([below](#stream-b-notifications-live)); rules applied through the REST API on 2026-11-11 and 2026-11-20, see [Rules applied](#rules-applied-to-prod_k8s-and-prod-2026-11-11). Push is live via Pushover as of 2026-11-20 (owner confirmed delivery); the outage test could not be run with local `iptables` on `monitoring2`, see [below](#controlled-outage-test-blocked-locally). The settings are click-ops in the Checkmk UI except where this page says they were done through the API or by direct file edit (`qa_k8s`, no REST-capable automation user there), so this page is the only written record; if it and the live site disagree, the site wins and this page is stale.
 
 **Tracking:** [#1893](https://github.com/isejalabs/homelab/issues/1893) (this page), [#1892](https://github.com/isejalabs/homelab/issues/1892) (`unifi` namespace fix), [#2158](https://github.com/isejalabs/homelab/issues/2158) (stream B, notifications live), umbrella [#71](https://github.com/isejalabs/homelab/issues/71).
 
@@ -16,12 +16,12 @@ What fires a notification, when, and why that is (not yet) a good signal-to-nois
 
 | Site | Notifications | Service notification delay | Notification period | Periodic discovery |
 | --- | --- | --- | --- | --- |
-| `qa_k8s` | **on** (mail and Slack) | 15 min for all services (rule "Delay all service notifications by 15m"); 60 min for `Check_MK Discovery`, none for `Check_MK HW/SW Inventory` (since 2026-10-25, [#1900](https://github.com/isejalabs/homelab/issues/1900)) | none (24x7) | every 5 min, auto-rediscovery after 15 min grouping |
+| `qa_k8s` | **on** (mail and Slack); its Talos nodes stopped notifying 2026-11-20 (D2, moved to `prod`) | 15 min for all services (rule "Delay all service notifications by 15m"); 60 min for `Check_MK Discovery`, none for `Check_MK HW/SW Inventory` (since 2026-10-25, [#1900](https://github.com/isejalabs/homelab/issues/1900)) | none (24x7) | every 5 min, auto-rediscovery after 15 min grouping |
 | `dev_k8s` | off in effect: default mail rule, but the contact has no mail address, so every mail fails | none | none | |
-| `prod_k8s` | off in effect: default mail rule, but the contact has no mail address, so every mail fails | delays and ownership rules applied 2026-11-11 (same shape as `qa_k8s`, plus the 2 min Smart Ping host delay and the Talos-node disable); still fails to send until a method exists | none | every 33 min, auto-rediscovery after 15 min grouping |
-| `prod` | off: no notification rule, and the contact `bob` has notifications disabled | delays and the Smart Ping host-disable rule applied 2026-11-11; still off until the contact gets a method | `p5-22` (05:00–22:00, every day) for hosts and services; `APT Updates` uses `p_reg_wo_apt` (11:20–22:00) | every 125 min for `tcp`-tagged hosts, adds new services only |
+| `prod_k8s` | **on** (mail: the pre-existing default rule, host `d`/`r`/service `c`/`w`/`r`, now has a working address — confirmed, one real send 2026-11-20; **push**: Pushover, Smart Ping host DOWN/UP only, since 2026-11-20) | delays and ownership rules applied 2026-11-11 (same shape as `qa_k8s`, plus the 2 min Smart Ping host delay and the Talos-node disable) | none | every 33 min, auto-rediscovery after 15 min grouping |
+| `prod` | **push live** (Pushover, capacity CRIT/recovery only, since 2026-11-20, narrowed from a broader rule that had already paged on interface flaps — see [below](#the-pushover-rule-had-no-service-filter-and-already-paged-2026-11-20)); no mail rule exists, so an address on the contact has no effect yet | delays, the Smart Ping host-disable and the Kubernetes-object disable rules applied 2026-11-11/2026-11-20 | `p5-22` (05:00–22:00, every day) for hosts and services; `APT Updates` uses `p_reg_wo_apt` (11:20–22:00) | every 125 min for `tcp`-tagged hosts, adds new services only |
 
-"Off" is not the global switch: the core's `enable_notifications` is on in every site. On `dev_k8s` and `prod_k8s` the raw notifications reach the mail rule and fail there (`notify.log`: "Cannot send HTML email: empty destination email address", 411 times on `dev_k8s` in the 14 days to 2026-11-09). Setting a mail address or a push rule on one of these contacts is now safe to do in any order: the delay and ownership rules are live on both `prod_k8s` and `prod` as of 2026-11-11, before either contact can send anything.
+"Off" is not the global switch: the core's `enable_notifications` is on in every site. `dev_k8s`'s only rule still fails (`notify.log`: "Cannot send HTML email: empty destination email address", 411 times in the 14 days to 2026-11-09) — `prod_k8s` had the identical failure until an address was added to the contact at some point before 2026-11-20 (found while re-verifying this page, not something done as part of this stream's changes). No backlog risk: checked live, 0 hosts/services were in a non-OK, notification-eligible state at the time. `prod`'s contact also now has an address, but `prod` has no mail rule at all, so it has no effect there yet.
 
 Details that are easy to get wrong:
 
@@ -110,7 +110,7 @@ Matched by host name across `prod`, `prod_k8s`, `qa_k8s` and `dev_k8s` (`core` i
 | Talos nodes | `prod-ctrl-01..03`, `prod-work-01..03`; `qa-ctrl-02`, `qa-work-01..03`; `dev-ctrl-01`, `dev-work-01..03` | `prod`, plus the cluster's `*_k8s` site | `prod` |
 | Kubernetes objects | 24 namespaces and Deployments (15 of `prod`, 7 of `dev`, 2 of `qa`), plus the three cluster collector hosts | `prod`, plus the cluster's `*_k8s` site | The cluster's `*_k8s` site, decided 2026-11-11, see [below](#where-kubernetes-objects-notify-from-d2) |
 
-`qa_k8s` notifies today for its Talos nodes (confirmed live: `qa-ctrl-02`, `qa-work-01..03` carry the same `cmk/kubernetes/object:node` label as `prod_k8s`'s nodes); D2 moves them to `prod`. `prod_k8s`'s own node-disable rule is applied (see [below](#rules-applied-to-prod_k8s-and-prod-2026-11-11)); `qa_k8s`'s matching rule is deliberately held back until `prod` can actually notify for Talos nodes, so applying it now would leave `qa`'s nodes notifying from neither site.
+`qa_k8s` notified for its Talos nodes until 2026-11-20 (confirmed live: `qa-ctrl-02`, `qa-work-01..03` carry the same `cmk/kubernetes/object:node` label as `prod_k8s`'s nodes); D2 moves them to `prod`. All three node-disable rules (`prod_k8s`, `qa_k8s`, and `prod`'s Kubernetes-object/cluster-collector rule) are now applied — D2 is fully enforced, see [below](#rules-applied-to-prod_k8s-and-prod-2026-11-11).
 
 ### Where Kubernetes objects notify from (D2)
 
@@ -139,46 +139,51 @@ Applied through the Checkmk REST API as each site's own `terraform`/`automation`
 | Enable/disable notifications for services | service `Check_MK HW/SW Inventory$` | disable | `prod_k8s`, `prod` | rule in place; no matching service exists on `prod` today to check against live, `qa_k8s` precedent confirms the mechanism |
 | Enable/disable notifications for hosts and for services | host label `cmk/kubernetes/object:node` | disable | `prod_k8s` (D2) | yes, `notifications_enabled=0` on `prod-ctrl-01`'s host |
 | Enable/disable notifications for hosts | the ten Smart Ping hosts that also exist in `prod` | disable | `prod` (D2) | yes, `notifications_enabled=0` on `gw-kdg`'s host |
-| Delay host notifications | the twelve Smart Ping hosts | 2 min (owner, 2026-11-11) | `prod_k8s` | rule in place (`first_notification_delay=2` on the host chain); not yet exercised by a real outage |
+| Delay host notifications | the twelve Smart Ping hosts | 2 min (owner, 2026-11-11) | `prod_k8s` | yes, `first_notification_delay=2` on `gw-kdg`'s host, confirmed 2026-11-20; not exercised by a real outage (see [below](#controlled-outage-test-blocked-locally)) |
+| Enable/disable notifications for hosts and for services | host label `cmk/kubernetes/object:node` | disable | `qa_k8s` (D2, applied 2026-11-20) | yes, `notifications_enabled=0` on `qa-ctrl-02`'s host |
+| Enable/disable notifications for hosts and for services | host label `cmk/kubernetes:yes` and not `cmk/kubernetes/object:node` | disable | `prod` (D2, applied 2026-11-20) | yes, `notifications_enabled=0` on `namespace_prod-homelab_whoami`'s host and all its services, and on the `cmk-k8s-cluster-collector.prod.iseja.net` host; `prod-ctrl-01` (a Talos node) unaffected at `notifications_enabled=1` |
 
 The capacity delay of 0 min is cheap: 12 capacity episodes on `prod` in 14 days, all longer than 15 min. Mind that five `Filesystem /` services of Talos nodes and `monitoring2`'s are CRIT right now through the time-left levels (60 days left, CRIT below 70), so they push as soon as a push method exists ([#1908](https://github.com/isejalabs/homelab/issues/1908), [#1843](https://github.com/isejalabs/homelab/issues/1843)).
 
-**Held back, deliberately, not applied yet:**
+`qa_k8s`'s node-disable rule (2026-11-20) was applied by direct `rules.mk` edit over SSH, backed up first (`~/rules.mk.bak-2158-20261120` in the site's home on `monitoring1`) and validated as parsing Python before `cmk -O` reloaded the core — the same precedent as [#1900](https://github.com/isejalabs/homelab/issues/1900), since `qa_k8s` has no REST-capable automation user (only `agent_registration`, role-limited, and admins with no stored automation secret). `prod`'s Kubernetes-object rule used the REST API as usual; the label condition (`cmk/kubernetes:yes AND NOT cmk/kubernetes/object:node`) was confirmed live against a namespace, a Deployment and the cluster-collector host before writing the rule, and does not touch the Talos nodes (which keep notifying from `prod`).
 
-- **`qa_k8s`'s Talos-node disable rule.** It only makes sense once `prod` actually notifies for Talos nodes (a mail address or push rule on `prod`'s contact, not merely the rules existing) — applying it now would leave `qa`'s nodes notifying from neither site. Apply it in the same change as giving `prod`'s contact a working method.
-- **`prod`'s Kubernetes-object/cluster-collector folder rule.** The D2 decision also has `prod` turn off notifications for its `k8s/ends` (namespaces, Deployments) and `k8s/piggys` (cluster collector) hosts, but unlike the Talos-node rule above this has no `cmk/kubernetes/object:node`-style label to condition on cleanly from the root folder — it needs either a rule placed directly in each of those two folders (relying on Checkmk's folder-recursion scoping, unverified live) or a label-group condition combining "is a Kubernetes object" and "is not a node", which I have not verified against the live label set. Not applied to avoid a half-verified write to a live site; `prod`'s own contact is still off today, so there is no live exposure from leaving this open. Needs the same care (dry run, live read-back) as the rules above before it goes in.
+### Pushover rules (applied 2026-11-20)
 
-Both gaps are inert today: `prod`'s contact has no working notification method yet, so nothing from either folder notifies from `prod` regardless of these rules.
+| Rule | Conditions | Site | Notes |
+| --- | --- | --- | --- |
+| Pushover: Smart Ping host DOWN/UP | host-only (no service matching at all); the twelve Smart Ping hosts; 24x7 | `prod_k8s` | New rule, created via the REST API, reusing the same Pushover credentials as the `prod` rule below. |
+| Pushover notification | service-only (no host matching at all); `Filesystem`/`zpool`/`Storage Pool`/`Proxmox VE Storage`/`RustFS bucket`/`Longhorn disk`/`PVC `; CRIT and CRIT→OK recovery only (not WARN); 24x7 | `prod` | Narrowed from the owner's original manual rule — see below. |
 
-Pushover and mail rules themselves still need to be created once the account and 1Password item exist (see [Steps for the owner](#steps-for-the-owner)):
+Both were verified against the actual written `notifications.mk`, not just the REST API's response: Checkmk's notification-rule schema silently fills in a *"match everything"* default for an omitted event-type condition rather than *"no restriction of this type"*, so the first version of the `prod_k8s` rule came back with `match_service_event` still present (`?r`, `?w`, `?c`) despite the host-only intent — caught by reading `rules.mk`, fixed by explicitly setting that condition's state to `disabled` rather than omitting it, and reconfirmed in the file afterward.
 
-1. **Push:** method Pushover, contact `bob`; host events DOWN and UP of the Smart Ping hosts (`prod_k8s`); service events to CRIT and back of the capacity services above (both sites). Priority high for problems, normal for recoveries.
-2. **Mail:** the existing default HTML mail rule (host `d`/`r`, service `c`/`w`/`r`), with the address set on contact `bob`.
+#### The Pushover rule had no service filter and already paged (2026-11-20)
+
+The rule the owner created by hand in the UI (`prod`, id `f8fee61f-...`) had **no service condition at all** and matched every host DOWN/UP plus every service CRITICAL/WARNING/OK transition, restricted only to `p5-22` (05:00–22:00). Checking `notify.log`/the site's notification log confirmed it had already fired for real, not just in the test: `Interface wifi1ap4`/`wifi1ap5` CRITICAL/OK flaps on `ap-wozi` and `ap-kueche`, and a `Filesystem /` WARNING on `prod-ctrl-02`, all pushed to the phone on 2026-11-12 between 08:38 and 09:39. Narrowed via the REST API (read the live rule, keep the Pushover credentials, add the `match_services` condition with the capacity list, restrict `match_service_event_type` to CRIT/CRIT→OK only, and disable `match_host_event_type` and the time-period restriction entirely so push covers CRIT 24x7 per D11) and re-verified against `notifications.mk`.
 
 ### `prod` is not ready for service notifications
 
 Replayed against the rules above, `prod` would send about 600 notifications in 14 days (outside the `p5-22` period fewer). The largest sources: host checks of the external probes in folder `external_sites` (`www.heise.de`, `mailbox.rollernet.us`, `gw-kdg`, `google-dns`: about 9 short DOWNs a day each; the last two are covered by Smart Ping), `Interface wifi1ap5` (87), `APT Updates` (69), the host checks in folder `misc` (57, mostly `pi3` and `pi4`), `NTP Time` (43), `Systemd Service Summary` (26, the failed `borgmatic` unit on `pve1`/`pve4`), `Memory` and `Temperature Zone 8` on physical hosts (17 each) and `Check_MK` on Talos nodes (21). That clean-up is the `prod` counterpart of [#1901](https://github.com/isejalabs/homelab/issues/1901) and comes before switching the contact on.
 
+### Controlled outage test: blocked locally
+
+Attempted on 2026-11-20 against `google-dns` (8.8.8.8) from `monitoring2`, reversible and local, as originally planned. Neither local `iptables` approach worked, for two different reasons, and both were fully reverted (confirmed: `iptables -S | grep 8.8.8.8` empty, host back to `state=0`, `is_flapping=0`):
+
+1. **`iptables -I OUTPUT -d 8.8.8.8 -p icmp -j DROP`** (the originally documented approach): the Checkmk `icmpsender` process logged repeated `Could not send 64 bytes of ICMP data to 8.8.8.8: Operation not permitted` (`cmc.log`) — a netfilter DROP on a modern Linux "ping socket" surfaces as `EPERM` to the sender rather than a silent drop. That induced genuine check-level flapping (`HOST FLAPPING ALERT` fired on `google-dns`), and **Checkmk suppresses notifications while a host is flapping** — confirmed in `notify.log`: no `Got raw notification (google-dns)` entry appeared in the 7+ minutes the host stayed hard-DOWN, well past the 2 min delay, even though the `HOST ALERT` itself was logged correctly by the core.
+2. **`iptables -I INPUT -s 8.8.8.8 -p icmp --icmp-type echo-reply -j DROP`** (blocking the reply instead, to avoid the `EPERM`): packets were confirmed matched and dropped (`iptables -L INPUT -n -v` showed a growing counter), yet the host kept reporting `state=0` with a fresh `last_check` throughout. Smart Ping's receive side almost certainly uses a raw `AF_PACKET` capture (the way `tcpdump`-style tools work), which taps packets at the device level *before* any `iptables` table — `raw`, `mangle` or `filter` — ever sees them, so no local netfilter rule on the `INPUT` side can affect what it sees either.
+
+Neither approach exercises the real "no reply, ever" condition the Smart Ping check is actually built to detect; both local workarounds should be abandoned rather than refined further, since the next attempt would again be poking at the same raw-socket/packet-capture internals from inside the thing being tested. The task brief's own fallback applies: block at the real firewall instead, upstream of the monitoring container, where the packet never reaches `monitoring2` at all.
+
+**Procedure for the owner to run on OPNsense** (safer and more realistic than anything local): temporarily add a firewall rule on the WAN-facing gateway blocking ICMP to `8.8.8.8` from `monitoring2`'s address (or block the return path from `8.8.8.8`), confirm the DOWN push arrives within the 2 min delay, remove the rule, confirm the UP push arrives. This also exercises the real network path the Smart Ping check depends on, which the local test never did anyway.
+
 ### Steps for the owner
 
-The delay and ownership rules above are already live on `prod_k8s` and `prod` (2026-11-11), so these steps are safe to do in any order from here:
+The delay and ownership rules above are live on `prod_k8s` and `prod`; Pushover push is confirmed working (owner, 2026-11-20). Remaining:
 
-1. Pushover: create the account (30-day trial, then USD 4.99 per platform), install the app, create an application named Checkmk. Store the API key and the user key in a 1Password item — see [1Password item format](#1password-item-format) below for the exact item/field names expected when wiring the keys into the push rule.
-2. Create the push rule on `prod_k8s` and `prod` (Pushover, contact `bob`) and set the mail address on contact `bob` (`qa_k8s` already has it).
-3. Test the delivery with Setup > Notifications > Test notifications (host `google-dns`, state DOWN): the push must arrive on the phone.
-4. Controlled outage of one WAN target, reversible and local to `monitoring2`: as root in the container, `iptables -I OUTPUT -d 8.8.8.8 -p icmp -j DROP`; wait for the DOWN push (seconds plus the 2 min host delay); `iptables -D OUTPUT -d 8.8.8.8 -p icmp -j DROP`; wait for the UP push. Only ICMP from the monitoring container to that address is dropped; DNS uses the internal resolvers.
-5. Once `prod`'s contact has a working method, apply `qa_k8s`'s held-back Talos-node disable rule and `prod`'s held-back Kubernetes-object/cluster-collector folder rule (both described [above](#rules-applied-to-prod_k8s-and-prod-2026-11-11)).
-
-#### 1Password item format
-
-The 1Password CLI was not signed into the agent session, so this was not checked against the vault directly — check by hand that `checkmk-pushover` doesn't already exist before creating it. Following the `K8S` vault's existing `<thing>#<env>` naming for Checkmk-adjacent items (`checkmk-monitoring#<env>`, see [`terragrunt/README.md`](../../terragrunt/README.md#verifying-a-rustfs-monitoring-identity)) minus the `#<env>` suffix, since one Pushover destination serves every site, not one per environment:
-
-| Item | Field | Value |
-| --- | --- | --- |
-| `checkmk-pushover` in vault `K8S` | `API_KEY` | the Pushover application's API token (30-40 alphanumeric characters) |
-| | `RECIPIENT_KEY` | the Pushover user or group key to receive the notifications (30-40 alphanumeric characters) — named to match Checkmk's own `recipient_key` rule parameter |
-
-The mail address for contact `bob` is a separate question: `qa_k8s` already has one set, so it likely already exists somewhere as a 1Password item rather than needing a new one — check what `qa_k8s`'s contact uses today before creating an `EMAIL` field on the item above or elsewhere. Never written into this file, an issue, a PR or a plan: only the item/field names above, never the key or address values themselves.
+1. ~~Pushover account, keys in 1Password~~ — done; keys read live from the existing rule, reused to build the `prod_k8s` host rule above without re-entering them.
+2. ~~Create the push rule on `prod_k8s` and `prod`~~ — done (narrowed on `prod`, created new on `prod_k8s`, see above).
+3. ~~Test notification~~ — confirmed delivered (owner, 2026-11-20).
+4. ~~Mail on `prod_k8s`~~ — already live (default rule, address on the contact, one real send confirmed in `notify.log`). `prod` has no mail rule yet, and shouldn't get one until the noise clean-up below happens, since its default rule would match the ~600/14d replay unchanged.
+5. The controlled outage test: run via OPNsense per the procedure above, since the local attempts are a dead end (see above).
 
 ## Open questions
 
