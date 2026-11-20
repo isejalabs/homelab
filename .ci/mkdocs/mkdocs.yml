@@ -141,6 +141,7 @@ nav:
   - Roll out a Talos version: docs/operations/talos-upgrade.md
   - Automated dependency updates: docs/operations/update-handling.md
   - App storage variables: docs/operations/app-storage.md
+  - Immich media storage on fiona: docs/operations/immich-media-storage.md
   - Project board statuses: docs/operations/project-board.md
   - WireGuard hub on srv3: docs/operations/wireguard-srv3.md
 - Runbooks:
@@ -237,6 +238,7 @@ nav:
     - Actual Budget: k8s/apps/finances/actualbudget/README.md
     - AdGuard: k8s/apps/dns/adguard/README.md
     - Checkmk agent: k8s/apps/monitoring/checkmk-agent/README.md
+    - Immich: k8s/apps/media/immich/README.md
     - Immich database: k8s/apps/media/immich-db/README.md
     - Keycloak: k8s/apps/identity/keycloak/README.md
     - metrics-server: k8s/apps/monitoring/metrics-server/README.md
