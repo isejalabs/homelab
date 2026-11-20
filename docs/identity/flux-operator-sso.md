@@ -6,7 +6,7 @@ status: draft
 
 Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-09):** prepared for `dev`, as code only. The client is declared in the `dev` `keycloak-realm` unit but not applied, and nothing is applied to a cluster. `oidc_clients` exists since [#2227](https://github.com/isejalabs/homelab/issues/2227).
+**Status (2026-11-17):** rolled out in `dev`. The client, the 1Password item and the UCS group exist, the operator runs with the OIDC config, the UI requires a login, and the owner logged in to the UI as `bob-adm` through the realm `admin`. Still open: the refused logins (no group, missing claim) and the MFA behaviour of the realm; `qa` and `prod` follow.
 
 ## How it works
 
@@ -50,7 +50,7 @@ Flux Operator **0.62.1** (chart and app, pinned in [`ocirepository.yaml`](../../
 
 | env | Config | Applied | Verified |
 | --- | --- | --- | --- |
-| `dev` | prepared | no | no |
+| `dev` | yes | yes (2026-11-17) | RBAC, redirect to the realm login, Flux health; browser login of the admin account confirmed by the owner |
 | `qa` | no | no | no |
 | `prod` | no | no | no |
 
@@ -62,6 +62,6 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 ## Open points
 
-- Apply the `dev` `keycloak-realm` unit (the owner's go; plan must only add the client, its default scopes and the 1Password item), then roll out the overlay with the `track-branch` skill.
+- Record the refused logins (no group, missing claim) and the MFA behaviour of the realm `admin` in `dev`, then roll out `qa` and `prod` (apply `keycloak-realm` from `main`).
 - MFA behaviour of the realm `admin` is recorded after the first real login.
 - Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
