@@ -2,19 +2,6 @@
 
 lockfile_version = 2
 
-[[tools.1password-cli]]
-version = "2.42.0"
-backend = "vfox:1password-cli"
-specifiers = ["2.42.0"]
-
-[tools.1password-cli."platforms.linux-x64"]
-checksum = "sha256:261fe3844a43e7e83a3d85e8a9f36411729436a1d3add1dc7dd46cbbceebe9e5"
-url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_linux_amd64_v2.42.0.zip"
-
-[tools.1password-cli."platforms.macos-arm64"]
-checksum = "sha256:216e86c6db491c752ccb7819b3b1851cc8456ea015a1f7c8a58dd103ef0a474e"
-url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_darwin_arm64_v2.42.0.zip"
-
 [[tools.age]]
 version = "1.3.2"
 backend = "aqua:FiloSottile/age"
@@ -31,6 +18,19 @@ checksum = "sha256:e2020b073c44f692685a24d6abc378817eb81ffaaf49fd0531ef8565f767f
 url = "https://github.com/FiloSottile/age/releases/download/v1.3.2/age-v1.3.2-darwin-arm64.tar.gz"
 url_api = "https://api.github.com/repos/FiloSottile/age/releases/assets/535541897"
 provenance = "github-attestations"
+
+[[tools."aqua:1password/cli"]]
+version = "2.42.0"
+backend = "aqua:1password/cli"
+specifiers = ["2.42.0"]
+
+[tools."aqua:1password/cli"."platforms.linux-x64"]
+checksum = "sha256:261fe3844a43e7e83a3d85e8a9f36411729436a1d3add1dc7dd46cbbceebe9e5"
+url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_linux_amd64_v2.42.0.zip"
+
+[tools."aqua:1password/cli"."platforms.macos-arm64"]
+checksum = "sha256:216e86c6db491c752ccb7819b3b1851cc8456ea015a1f7c8a58dd103ef0a474e"
+url = "https://cache.agilebits.com/dist/1P/op2/pkg/v2.42.0/op_darwin_arm64_v2.42.0.zip"
 
 [[tools."github:home-operations/flate"]]
 version = "0.8.0"
