@@ -126,5 +126,14 @@ inputs = {
       ]
       pkce = true
     }
+
+    # The Flux Operator Web UI signs in with this client (realm admin, group sec.app.flux-operator.admin); its overlay in
+    # k8s/infra/flux-system/flux-operator reads the secret from the item keycloak-oidc-flux-operator-admin#prod, see
+    # docs/identity/flux-operator-sso.md.
+    "flux-operator-admin" = {
+      realm         = "admin"
+      client_id     = "flux-operator"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "flux")}/oauth2/callback"]
+    }
   }
 }
