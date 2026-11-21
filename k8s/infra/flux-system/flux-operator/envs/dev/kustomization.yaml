@@ -3,15 +3,19 @@ kind: Kustomization
 
 components:
   - ../../../../../components/envs/dev
+  - ../../../../../components/apps/flux-operator-sso
 
 resources:
   - ../../base
-  - clusterrole.yaml
-  - clusterrolebinding.yaml
-  - externalsecret.yaml
 
 patches:
-  - path: helmrelease.yaml
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-oidc-flux-operator-admin#dev
+    target:
+      kind: ExternalSecret
+      name: flux-operator-oidc
   - patch: |-
       - op: replace
         path: /spec/values/web/config/authentication/oauth2/issuerURL

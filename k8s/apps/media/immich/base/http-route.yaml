@@ -1,0 +1,30 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/gateway.networking.k8s.io/httproute_v1.json
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: immich
+spec:
+  hostnames:
+    - immich.example.com
+  parentRefs:
+    - kind: Gateway
+      name: internal
+      namespace: gateway-api
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - kind: Service
+          name: immich-server
+          group: ""
+          port: 2283
+          weight: 1
+      # Large videos: the gateway must neither cut a long upload nor a long download (Immich FAQ: videos fail behind a
+      # proxy with a size limit or a short timeout). 0s turns the request timeout off; Envoy has no body size limit
+      # unless one is configured, and none is.
+      timeouts:
+        request: 0s

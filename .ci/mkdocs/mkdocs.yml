@@ -199,6 +199,7 @@ nav:
 - Components and apps:
   - Index: k8s/README.md
   - Shared components: k8s/components/README.md
+  - Flux Operator SSO component: k8s/components/apps/flux-operator-sso/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
   - Storage component: k8s/components/apps/storage/README.md

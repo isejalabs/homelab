@@ -10,6 +10,15 @@
       versioning: 'regex:^(?<major>\\d+)\\.(?<minor>\\d+)-(?<patch>\\d+)\\.(?<build>\\d+)\\.(?<revision>\\d+)$',
     },
     {
+      description: 'Immich server and machine learning must run the same version: one pull request for both images (the chart does not follow every Immich release, so the image tags in the HelmRelease are tracked separately, #2146)',
+      groupName: 'immich',
+      matchDatasources: ['docker'],
+      matchPackageNames: [
+        'ghcr.io/immich-app/immich-machine-learning',
+        'ghcr.io/immich-app/immich-server',
+      ],
+    },
+    {
       description: 'keep cilium at an older version due to checkmk',
       allowedVersions: '<=1.19',
       matchPackageNames: [

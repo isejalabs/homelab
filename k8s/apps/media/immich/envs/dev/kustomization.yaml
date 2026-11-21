@@ -39,3 +39,72 @@ patches:
     target:
       kind: PersistentVolume
       name: immich-export
+  # `dev` has 4 GiB workers that are mostly full (docs/architecture/environments.md): a unit-test sized Immich for the web
+  # UI and at most 10 photos and videos, with one job of each kind at a time. Everything above the qa values is
+  # patched down here; phone uploads and bulk jobs belong in qa.
+  - patch: |-
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      metadata:
+        name: immich
+      spec:
+        values:
+          immich:
+            configuration:
+              job:
+                backgroundTask:
+                  concurrency: 1
+                metadataExtraction:
+                  concurrency: 1
+                thumbnailGeneration:
+                  concurrency: 1
+          machine-learning:
+            controllers:
+              main:
+                containers:
+                  main:
+                    env:
+                      MACHINE_LEARNING_MODEL_TTL: "60"
+                      MACHINE_LEARNING_REQUEST_THREADS: "1"
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1536Mi
+                      requests:
+                        cpu: 50m
+                        memory: 512Mi
+          server:
+            controllers:
+              main:
+                containers:
+                  main:
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1536Mi
+                      requests:
+                        cpu: 50m
+                        memory: 512Mi
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/limits/0/max/memory
+        value: 1536Mi
+    target:
+      kind: LimitRange
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 6Gi
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "1"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 2560Mi
+    target:
+      kind: ResourceQuota
+      name: immich

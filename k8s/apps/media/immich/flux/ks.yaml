@@ -13,6 +13,15 @@ spec:
     kind: GitRepository
     name: flux-system
     namespace: flux-system
+  postBuild:
+    substitute:
+      # names the machine learning model cache (components/apps/storage/pvc-no-backup); the model download is
+      # regenerable, 5Gi holds the default models several times over
+      APP: immich-ml-cache
+      STORAGE_CAPACITY: 5Gi
+  # The first start pulls two images of 1.5 GB or more and runs Immich's database migrations. The health wait ends
+  # after spec.timeout, which defaults to the interval (10m in dev and rebuild).
+  timeout: 20m
   wait: true
   # the namespace `immich` is created by immich-db, which this unit shares it with
   dependsOn:
