@@ -1,0 +1,14 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/scheduling.k8s.io/priorityclass_v1.json
+# Immich is a batch-heavy workload (thumbnails, machine learning, transcoding) that must never take the place of
+# anything else. The value is below the default of 0 that every other workload has, so the scheduler places Immich
+# only where there is room and preempts it first; `Never` means it does not evict anyone itself. Used by the server and
+# machine learning pods (helmrelease.yaml); the database and Valkey of immich-db keep the default, a preempted
+# database would be an outage of its own.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: immich
+description: Immich server and machine learning, below every other workload
+preemptionPolicy: Never
+value: -100

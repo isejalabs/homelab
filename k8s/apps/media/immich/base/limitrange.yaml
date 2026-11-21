@@ -1,0 +1,22 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/core/limitrange_v1.json
+# Defaults for containers that name no resources (the dump job's helpers, CloudNativePG's initdb pod, the kopiur
+# restore pod of the machine learning cache) and a ceiling for the memory of any single container. Without defaults the
+# ResourceQuota below would refuse such a pod. There is deliberately no CPU limit in the defaults and no CPU ceiling:
+# the database has none either, and a default of its own would throttle it. The ceiling is patched per environment in
+# envs/<env>/.
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: immich
+spec:
+  limits:
+    - default:
+        cpu: 500m
+        memory: 256Mi
+      defaultRequest:
+        cpu: 10m
+        memory: 64Mi
+      max:
+        memory: 3Gi
+      type: Container

@@ -1,0 +1,17 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/source.toolkit.fluxcd.io/ocirepository_v1.json
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: OCIRepository
+metadata:
+  name: immich
+spec:
+  interval: 1h
+  layerSelector:
+    mediaType: application/vnd.cncf.helm.chart.content.v1.tar+gzip
+    operation: copy
+  ref:
+    # The official chart, published only as OCI and signed with cosign (keyless, from the chart repository's release
+    # workflow). The chart does not follow every Immich release: the image tags are set in helmrelease.yaml.
+    digest: sha256:9957cfe69ed64f4d4550f39b369c6cf3b2b040bb4d9a5abdced9a60c1153093f
+    tag: 0.13.4
+  url: oci://ghcr.io/immich-app/immich-charts/immich
