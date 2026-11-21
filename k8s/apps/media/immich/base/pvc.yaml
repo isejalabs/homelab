@@ -1,0 +1,54 @@
+---
+# Claims for the static volumes in pv.yaml, bound by `volumeName`. `storageClassName: ""` keeps the cluster's default
+# class from provisioning a Longhorn volume instead.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-upload
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
+  volumeName: immich-upload
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-cache
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: ""
+  volumeName: immich-cache
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-library
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 1Ti
+  storageClassName: ""
+  volumeName: immich-library
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: immich-export
+spec:
+  accessModes:
+    - ReadOnlyMany
+  resources:
+    requests:
+      storage: 200Gi
+  storageClassName: ""
+  volumeName: immich-export
