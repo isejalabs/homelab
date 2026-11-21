@@ -1,0 +1,186 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: &name immich
+spec:
+  chartRef:
+    kind: OCIRepository
+    name: *name
+  interval: 1h
+  # the first install waits for two large image pulls and the database migrations (Helm's default is 5m)
+  timeout: 20m
+  # The sizes below are the ones of qa; envs/dev patches them down to the small workers there.
+  values:
+    # Shared by the server and the machine learning pod (the chart applies top-level values to both).
+    defaultPodOptions:
+      automountServiceAccountToken: false
+      priorityClassName: immich
+      # The `immich` account on fiona (central user management) and its group `fs.media-rw`: the NFS shares map every
+      # client to them, so this only keeps what `ls` shows consistent (docs/operations/immich-media-storage.md).
+      securityContext:
+        fsGroup: 20002
+        fsGroupChangePolicy: OnRootMismatch
+        runAsGroup: 20002
+        runAsNonRoot: true
+        runAsUser: 10004
+        seccompProfile:
+          type: RuntimeDefault
+
+    immich:
+      # What the Immich server mounts at /data (IMMICH_MEDIA_LOCATION, the default): the upload dataset on fiona.
+      # Thumbnails and encoded video come from the cache volume, see `server.persistence` below.
+      persistence:
+        library:
+          existingClaim: immich-upload
+
+      # Immich's system settings as a file. Setting IMMICH_CONFIG_FILE locks the whole settings page of the web UI
+      # (Administration > Settings is read-only), so every change goes through git. Keys not listed keep Immich's default.
+      configuration:
+        # Immich's own database dump: daily 02:00, the last 14 kept, in UPLOAD_LOCATION/backups on the upload dataset
+        # on fiona. This is the second copy next to the unit immich-db's dump (docs/backup/immich-database.md); the
+        # two are explicit here so that a changed default can never turn it off.
+        backup:
+          database:
+            cronExpression: 0 02 * * *
+            enabled: true
+            keepLastAmount: 14
+        # Low on purpose: the server has 1.5 cores and the machine learning pod shares the node with other workloads
+        # (docs/architecture/workloads.md). The size test (#2147) raises them deliberately.
+        job:
+          backgroundTask:
+            concurrency: 2
+          faceDetection:
+            concurrency: 1
+          library:
+            concurrency: 1
+          metadataExtraction:
+            concurrency: 2
+          migration:
+            concurrency: 1
+          notifications:
+            concurrency: 1
+          ocr:
+            concurrency: 1
+          search:
+            concurrency: 1
+          sidecar:
+            concurrency: 1
+          smartSearch:
+            concurrency: 1
+          thumbnailGeneration:
+            concurrency: 2
+          videoConversion:
+            concurrency: 1
+        # The external libraries are on NFS and read-only: no file watcher (it "likely won't work" on a network
+        # share), only the nightly scan.
+        library:
+          scan:
+            cronExpression: 0 0 * * *
+            enabled: true
+          watch:
+            enabled: false
+        # Interim authentication until proper SSO (#1768): local accounts with a password. Registration of the first
+        # admin is open until it is done, so do it right after the first start (README, "Interim authentication").
+        passwordLogin:
+          enabled: true
+        # Enabled before the first upload: a later change needs the storage template migration job. The template is
+        # <storage label>/<year>/<year>-<month>-<day>/<file name> below the upload dataset, one storage label per
+        # person (set on each user, ADR 0018 rule 4).
+        storageTemplate:
+          enabled: true
+          hashVerificationEnabled: true
+          template: "{{y}}/{{y}}-{{MM}}-{{dd}}/{{filename}}"
+
+    # Valkey is the one of the unit immich-db (service immich-valkey), not the chart's own (`valkey.enabled` stays
+    # false). The chart's default REDIS_HOSTNAME is `<release>-valkey`, which is that service's name.
+
+    machine-learning:
+      controllers:
+        main:
+          containers:
+            main:
+              env:
+                # one inference thread per CPU limit, and models leave memory five minutes after the last request
+                MACHINE_LEARNING_MODEL_INTRA_OP_THREADS: "1"
+                MACHINE_LEARNING_MODEL_TTL: "300"
+                MACHINE_LEARNING_REQUEST_THREADS: "2"
+              image:
+                repository: ghcr.io/immich-app/immich-machine-learning
+                tag: v3.4.2@sha256:739405742a79bd7447227c553bb62ed5491aa36acf00bc667af7f9c93b6fae91
+              resources:
+                limits:
+                  cpu: 1500m
+                  memory: 3Gi
+                requests:
+                  cpu: 250m
+                  memory: 1Gi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          # one replica on a ReadWriteOnce volume: a rolling update would wait for the old pod on the same volume
+          strategy: Recreate
+      # the downloaded models, regenerable: a Longhorn volume without backup (kustomization.yaml, flux/ks.yaml)
+      persistence:
+        cache:
+          existingClaim: immich-ml-cache
+          type: persistentVolumeClaim
+
+    server:
+      controllers:
+        main:
+          containers:
+            main:
+              env:
+                DB_URL:
+                  valueFrom:
+                    secretKeyRef:
+                      name: immich-db-app
+                      key: uri
+              image:
+                repository: ghcr.io/immich-app/immich-server
+                tag: v3.4.2@sha256:fc880c1bf665b4aab1e74c15e56ab871225989cd546536e6b77e771869af06bd
+              resources:
+                limits:
+                  cpu: 1500m
+                  memory: 2Gi
+                requests:
+                  cpu: 250m
+                  memory: 768Mi
+              securityContext:
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop:
+                    - ALL
+          # a second server pod during an upgrade would count against the namespace quota; a short outage is accepted
+          strategy: Recreate
+      # The chart mounts the upload dataset (immich.persistence.library above) at /data. On top of it: thumbnails and
+      # encoded video from the cache dataset (regenerable, not snapshotted, not in the borgbackup), and the two
+      # external libraries, read-only and at fixed paths for good: Immich stores the path of every asset, a moved
+      # path is a deleted asset plus a new one (ADR 0018). Never set IMMICH_IGNORE_MOUNT_CHECK_ERRORS.
+      persistence:
+        cache:
+          advancedMounts:
+            main:
+              main:
+                - path: /data/thumbs
+                  subPath: thumbs
+                - path: /data/encoded-video
+                  subPath: encoded-video
+          existingClaim: immich-cache
+          type: persistentVolumeClaim
+        export:
+          existingClaim: immich-export
+          globalMounts:
+            - path: /external/export
+              readOnly: true
+          type: persistentVolumeClaim
+        library:
+          existingClaim: immich-library
+          globalMounts:
+            - path: /external/library
+              readOnly: true
+          type: persistentVolumeClaim
