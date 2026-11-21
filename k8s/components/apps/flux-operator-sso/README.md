@@ -23,4 +23,4 @@ components:
 
 ## Used by
 
-[`flux-operator`](../../../infra/flux-system/flux-operator/README.md) in `dev` and `qa`; `prod` follows once `qa` is checked.
+[`flux-operator`](../../../infra/flux-system/flux-operator/README.md) in `dev`, `qa` and `prod`.
