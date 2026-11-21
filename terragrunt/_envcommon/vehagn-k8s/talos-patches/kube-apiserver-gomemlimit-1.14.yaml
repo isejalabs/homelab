@@ -1,0 +1,12 @@
+# Soft memory limit for the kube-apiserver Go runtime. Without it the garbage collector (GOGC=100) lets the heap grow to
+# twice the live data, so a single control-plane node sits at about 1.9 GiB RSS where about 1.2 GiB of live data would do.
+# GOMEMLIMIT makes the collector run harder as the heap nears the limit; it is not a hard limit and never kills the process.
+# Cost: more GC work (estimated a few percent of one core) and one restart of the apiserver static pod when applied.
+# Do not go much below 1 GiB: the live heap is about 0.95 GiB and the collector would then run almost constantly.
+# See https://github.com/isejalabs/homelab/issues/2216 for the measurements and the estimate behind the value.
+#
+# Talos 1.14+ document (KubeAPIServerConfig); not available as cluster.apiServer.env on older Talos versions.
+apiVersion: v1alpha1
+kind: KubeAPIServerConfig
+env:
+  GOMEMLIMIT: 1280MiB
