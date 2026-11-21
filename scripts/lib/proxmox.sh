@@ -178,6 +178,7 @@ proxmox_wait_task() {
     local node="$1" upid="$2"
     local status_json task_status exitstatus i
 
+    # shellcheck disable=SC2034 # i only counts the attempts
     for i in $(seq 1 200); do
         status_json=$(proxmox_curl GET "/nodes/${node}/tasks/${upid}/status") || return 1
         task_status=$(jq -r '.status' <<<"${status_json}")

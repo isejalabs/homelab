@@ -231,7 +231,7 @@ resources:
 
 ## Vendored upstream manifests
 
-A `kustomization.yaml` never lists an `https://` resource: Flux runs `kustomize build` inside the cluster, so a remote resource makes the unit fail whenever the internet (or cluster DNS) is down, and every unit that `dependsOn` it waits too. Upstream manifests without a chart are copied byte-identically into a `vendor/` directory of the unit instead (Gateway API CRDs, kubelet-serving-cert-approver, the Keycloak operator, Longhorn's uninstall job). The URL they came from stays in a comment directly above the `vendor/` entry:
+A `kustomization.yaml` never lists an `https://` resource: Flux runs `kustomize build` inside the cluster, so a remote resource makes the unit fail whenever the internet (or cluster DNS) is down, and every unit that `dependsOn` it waits too. The `kustomize-build` check fails on such an entry in any `kustomization.yaml` under `k8s/` (a URL in a comment, as in the example below, is fine). Upstream manifests without a chart are copied byte-identically into a `vendor/` directory of the unit instead (Gateway API CRDs, kubelet-serving-cert-approver, the Keycloak operator, Longhorn's uninstall job). The URL they came from stays in a comment directly above the `vendor/` entry:
 
 ```yaml
 resources:
