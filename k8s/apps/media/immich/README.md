@@ -66,9 +66,9 @@ Immich must not starve other workloads, in `dev` with workers of 4 GiB (about 3.
 
 | | `qa` | `dev` |
 | --- | --- | --- |
-| Server | requests 250m, 768Mi; limits 1500m, 2Gi | requests 50m, 384Mi; limits 1 CPU, 1Gi |
+| Server | requests 250m, 768Mi; limits 1500m, 2Gi | requests 50m, 512Mi; limits 1 CPU, 1536Mi |
 | Machine learning | requests 250m, 1Gi; limits 1500m, 3Gi | requests 50m, 512Mi; limits 1 CPU, 1536Mi |
-| Quota | requests 2 CPU, 4Gi; memory limits 9Gi | requests 1 CPU, 2Gi; memory limits 5Gi |
+| Quota | requests 2 CPU, 4Gi; memory limits 9Gi | requests 1 CPU, 2560Mi; memory limits 6Gi |
 | Largest container | 3Gi | 1536Mi |
 
 Server and machine learning use the `Recreate` strategy: one replica each, the model cache is a ReadWriteOnce volume, and a second pod during an upgrade would count against the quota. An upgrade is a short outage, accepted for `dev` and `qa`; `prod` revisits it ([#2149](https://github.com/isejalabs/homelab/issues/2149)).

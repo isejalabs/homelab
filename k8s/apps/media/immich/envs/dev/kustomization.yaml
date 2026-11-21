@@ -81,10 +81,10 @@ patches:
                     resources:
                       limits:
                         cpu: "1"
-                        memory: 1Gi
+                        memory: 1536Mi
                       requests:
                         cpu: 50m
-                        memory: 384Mi
+                        memory: 512Mi
     target:
       kind: HelmRelease
       name: immich
@@ -98,13 +98,13 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/hard/limits.memory
-        value: 5Gi
+        value: 6Gi
       - op: replace
         path: /spec/hard/requests.cpu
         value: "1"
       - op: replace
         path: /spec/hard/requests.memory
-        value: 2Gi
+        value: 2560Mi
     target:
       kind: ResourceQuota
       name: immich
