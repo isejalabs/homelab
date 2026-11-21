@@ -193,6 +193,10 @@ inputs = {
 
   talos_config_patches = [
     {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/kube-apiserver-gomemlimit-1.14.yaml"
+      machine_type = "controlplane"
+    },
+    {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
     },
