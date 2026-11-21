@@ -14,7 +14,7 @@ patches:
   - patch: |-
       - op: replace
         path: /spec/nfs/path
-        value: /mnt/natascha1/data/srv/immich
+        value: /mnt/natascha1/data/srv/immich/upload
     target:
       kind: PersistentVolume
       name: immich-upload

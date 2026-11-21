@@ -18,7 +18,7 @@ Immich becomes the online archive for all family photos and videos, kept on the 
 ## Where it is used
 
 - **Used by**: the Immich server and its jobs, once [#2146](https://github.com/isejalabs/homelab/issues/2146) adds them to this unit. Until then only the [mount test](../../../test/storage/test-nfs-immich-media.yaml) uses the claims.
-- **Depends on**: the TrueNAS side on `fiona` (datasets, NFS exports restricted to the environment's worker nodes, quotas, snapshots, borgbackup), which is configured by hand and documented in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md); the nodes' own NFS client (part of the Talos kubelet image, no extension).
+- **Depends on**: the TrueNAS side on `fiona` (datasets, NFS exports restricted to the environment's worker nodes, snapshots, borgbackup), which is configured by hand and documented in [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md); the nodes' own NFS client (part of the Talos kubelet image, no extension).
 
 ## Access
 
@@ -53,7 +53,7 @@ Static `PersistentVolume`s, pinned to their claims by `claimRef` and `volumeName
 
 | Claim | Mode | Mount in the Immich pod | Path on `fiona` (`prod`; non-prod in the runbook) |
 | --- | --- | --- | --- |
-| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich` (non-prod: the directory `upload` of `fiona2/gamma/srv/immich/<env>`) |
+| `immich-upload` | read-write | `/data` (`IMMICH_MEDIA_LOCATION`, the default) | `natascha1/data/srv/immich/upload` (non-prod: the directory `upload` of `fiona2/gamma/srv/immich/<env>`) |
 | `immich-cache` | read-write | `/data/thumbs` with `subPath: thumbs` and `/data/encoded-video` with `subPath: encoded-video` | the directory `cache` of `fiona2/gamma/srv/immich/<env>` (all environments) |
 | `immich-library` | **read-only** | a fixed path such as `/external/library`, set as the import path of the external library | the live Lightroom library `natascha1/data/media/Pictures/orig` (non-prod: the folder `orig` of a ZFS clone of `natascha1/data/media` under `natascha1/gamma/srv/immich-copy/<env>`) |
 | `immich-export` | **read-only** | a fixed path such as `/external/export`, the second external library | the folder `natascha1/data/media/Pictures/export`, written from the Mac (non-prod: the folder `export` of the clone) |
