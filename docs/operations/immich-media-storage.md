@@ -17,7 +17,7 @@ Why it is built this way is decided in [ADR 0018](../decisions/0018-media-source
 | Steps | [Datasets](#datasets), [permissions](#users-and-permissions), [NFS](#nfs), [Mac access](#access-from-the-mac), [snapshots](#snapshots), [capacity](#capacity), [borgbackup](#borgbackup), [copies of the library](#copies-of-the-library-for-non-prod) |
 | Verify | [Verify](#verify): a pod mounts upload and cache read-write and library and export read-only, a deleted file comes back from a snapshot, a file comes back from the off-site borg repository |
 | Rollback | Disable the NFS share (nothing mounts it any more) or destroy a non-prod dataset. A prod dataset is never destroyed by this procedure; the claims use `Retain`, so deleting Kubernetes objects leaves the data. No other rollback is documented |
-| State | 2026-11-21: datasets, clones and the NFS shares exist for `dev`, `qa` and `rebuild`, the ACL entry for `dev` and `qa`, and Verify 1 passed on `dev` and `qa` (NFSv4.1, `nconnect=4`, `sec=sys`). The `qa` snapshot task exists and the snapshot restore (Verify 2) is being checked. Not done yet: the `prod` shares, the borg restore (Verify 3) |
+| State | 2026-11-21: datasets, clones and the NFS shares exist for `dev`, `qa` and `rebuild`, the `prod` datasets and shares exist too, the ACL entry for `dev` and `qa`, and Verify 1 passed on `dev` and `qa` (NFSv4.1, `nconnect=4`, `sec=sys`). The `qa` snapshot task exists and the snapshot restore (Verify 2) is being checked. Not done yet: the borg restore (Verify 3), which needs the borgmatic container restarted first, and the ACL entry on the live library |
 | Last exercised | Not exercised yet. The values were derived from the repository, the Immich documentation and the [September 2026 TrueNAS audit](../audits/2026-09-observability-phase0-truenas-k8s-claude.md); anything marked *verify* has to be confirmed on `fiona` |
 
 ## Design in short
@@ -30,7 +30,7 @@ Why it is built this way is decided in [ADR 0018](../decisions/0018-media-source
   | `upload` | read-write | originals of phone uploads (`upload/`, `library/`, `profile/`), Immich's own database dumps (`backups/`) | yes | yes, `prod` only |
   | `cache` | read-write | thumbnails and encoded video (regenerable) | no | no |
   | `library` | **read-only** | the Lightroom Classic library (the folder `Pictures/orig`), `YEAR/MONTH/DAY-Title` | the owner's existing rules | already part of the `fiona` backup |
-  | `export` | **read-only** | JPEG renditions of edited RAWs, same folder layout, written by Lightroom Classic on the Mac and synced to the NAS by Syncthing | the owner's existing rules | already part of the `fiona` backup |
+  | `export` | **read-only** | JPEG renditions of edited RAWs, same folder layout, written by Lightroom Classic on the Mac and synced to the NAS by Syncthing | the owner's existing rules | no: the existing configuration excludes `Pictures/export` (regenerable) |
 
 - A read-only external library means Immich can neither delete nor rewrite an original: a delete in Immich comes back after the trash is emptied, and metadata edits are not possible (see [ADR 0018](../decisions/0018-media-source-of-truth.md#what-immich-does-with-a-library)). A writable mount would let Immich delete the original when the trash is emptied. So the library is read-only on three levels: the NFS share, the `ro` mount option and `nfs.readOnly` in the `PersistentVolume`.
 - Non-prod environments only ever see **copies** of the library (ZFS clones, see [below](#copies-of-the-library-for-non-prod)), never the live library, and no non-prod environment can reach `prod` data: every export lists only the worker nodes of one environment.
@@ -166,12 +166,21 @@ Quotas are set by hand on the datasets and are deliberately not listed here: a t
 
 ## borgbackup
 
-The `prod` upload dataset holds originals (it is the master for phone media, not a transit copy), so it must be in the on-site and the off-site backup. The cache datasets and everything non-prod (`fiona2`, the copies on `natascha1/gamma`) are not backed up: regenerable, or copies. The live library and its export are already part of the `fiona` backup.
+The `prod` upload dataset holds originals (it is the master for phone media, not a transit copy), so it must be in the on-site and the off-site backup. The cache datasets and everything non-prod (`fiona2`, the copies on `natascha1/gamma`) are not backed up: regenerable, or copies. The live library (`Pictures/orig`) is already part of the `fiona` backup; the rendition tree `Pictures/export` is not, because the existing exclude list names it (it is regenerable from Lightroom Classic).
 
-The audit of 2026-09-30 found `borgmatic` as a container on `fiona` with `/mnt/fiona1/data` and `/mnt/natascha1/data` mounted. `natascha1/data/srv/immich` is a child of `natascha1/data`, which the owner confirmed `borgmatic` backs up recursively (2026-11-18), so nothing has to be bind-mounted or added; `fiona2` and `natascha1/gamma` are not mounted, so the cache and the copies stay out. What is left to check, on `fiona` (the borgmatic configuration is not in this repository):
+`borgmatic` is a TrueNAS app (the container `ix-borgmatic-borgmatic-1`) with `/mnt/natascha1/data` and `/mnt/fiona1/data` bind-mounted read-only. Two configuration files in its `borgmatic.d` folder back up both trees, one to the on-site and one to the off-site repository, from a cron entry at 23:00 (`create prune`), with a shared exclude list (among others `**/cache/`, `**/tmp/` and `**/media/Pictures/export`). `natascha1/data/srv/immich` is a child dataset of `natascha1/data`, which the owner confirmed `borgmatic` backs up recursively (2026-11-18), so no source has to be added; `fiona2` and `natascha1/gamma` are not mounted, so the cache and the copies stay out.
 
-1. The `source_directories` of the on-site **and** the off-site configuration contain a path that includes `/mnt/natascha1/data/srv/immich/upload`, and no `exclude_patterns` entry (for example for `srv`) removes it.
-2. The container sees the files of the child dataset, not an empty directory: a bind mount of a dataset path only shows its child datasets if the mount is recursive. The restore check in [Verify](#verify) proves both points.
+> [!WARNING]
+> **A child dataset created after the container started is not backed up.** The bind mount of `/mnt/natascha1/data` carries the child datasets that were mounted when the container started, with the propagation `rprivate`, so a dataset created later shows up in the container as an **empty folder**, and `borgmatic` backs up that empty folder without an error. Found on 2026-11-21: the dataset `natascha1/data/srv/immich` was created on 2026-11-19, the container had started on 2026-11-18, and the canary file was missing from the archives. After creating **any** dataset below `natascha1/data` or `fiona1/data`, restart the app (TrueNAS UI: Apps, borgmatic, Restart, or `docker restart ix-borgmatic-borgmatic-1`) when no backup is running, and check that the container sees the files:
+>
+> ```sh
+> docker exec ix-borgmatic-borgmatic-1 ls /mnt/natascha1/data/srv/immich/upload
+> ```
+
+What is left to check, on `fiona` (the borgmatic configuration is not in this repository):
+
+1. The `source_directories` of the on-site **and** the off-site configuration contain a path that includes `/mnt/natascha1/data/srv/immich/upload`, and no entry of the exclude list removes it.
+2. The container sees the files of the child dataset, see the warning above. The restore check in [Verify](#verify) proves both points.
 3. Do not add `fiona2` or `natascha1/gamma` to the sources: that would pull in the cache and the copies.
 4. Backup order matters for Immich: back up the database first, the files second, so that the worst case is a file the database does not know, not the reverse ([Immich backup and restore](https://docs.immich.app/administration/backup-and-restore)). Immich's own database dumps are in `upload/backups/`, so they are included; the CloudNativePG dump to RustFS ([#2145](https://github.com/isejalabs/homelab/issues/2145)) should finish before the borg run starts (*verify* the schedules once both exist).
 
@@ -221,7 +230,7 @@ These are the acceptance criteria of [#2144](https://github.com/isejalabs/homela
    ```
 
    Expected: the `cp` finds the file in the snapshot and the content is `canary`.
-3. **Restore a file from the borg repositories.** Put a canary file next to Immich's folders in the `prod` upload folder, for example `/mnt/natascha1/data/srv/immich/upload/issue-2144-foo-backup-test`, and wait for the next backup run. `borgmatic` runs as the container `ix-borgmatic-borgmatic-1` on `fiona` (the name in the `NAMES` column of `docker ps`, so no container ID is needed; TrueNAS names an app container `ix-<app>-<service>-1`). Look at the repositories and the archives, then search for the canary in the newest archives of every configured repository, the on-site and the off-site one:
+3. **Restore a file from the borg repositories.** Put a canary file next to Immich's folders in the `prod` upload folder, for example `/mnt/natascha1/data/srv/immich/upload/issue-2144-foo-backup-test`, and check that the container sees it (`docker exec ix-borgmatic-borgmatic-1 ls /mnt/natascha1/data/srv/immich/upload`; if the folder is empty or missing, restart the app first, see [borgbackup](#borgbackup)). Then wait for the next backup run at 23:00, or start the on-site one by hand (about 15 minutes for the whole tree): `docker exec ix-borgmatic-borgmatic-1 borgmatic -c /etc/borgmatic.d/<on-site configuration file> create --stats -v 1`. `borgmatic` runs as the container `ix-borgmatic-borgmatic-1` on `fiona` (the name in the `NAMES` column of `docker ps`, so no container ID is needed; TrueNAS names an app container `ix-<app>-<service>-1`). Look at the repositories and the archives, then search for the canary in the newest archives of every configured repository, the on-site and the off-site one:
 
    ```sh
    docker exec ix-borgmatic-borgmatic-1 borgmatic repo-list
@@ -236,7 +245,7 @@ These are the acceptance criteria of [#2144](https://github.com/isejalabs/homela
    docker exec ix-borgmatic-borgmatic-1 rm -r /tmp/borg-restore
    ```
 
-   Expected: the canary is listed in both repositories and `identical` is printed, with the files of the child dataset visible, not an empty folder. If `cmp` cannot find the live file, the container has the data mounted under a different path; `borgmatic list` and the `source_directories` of its configuration show which. After the first real uploads, repeat the check once with a real asset, and remove the canary afterwards.
+   Expected: the canary is listed in both repositories (a repository that is unreachable shows up as an error in `/var/log/borgmatic.log` inside the container, in the folder `log` of the app's data) and `identical` is printed, with the files of the child dataset visible, not an empty folder. If `cmp` cannot find the live file, the container has the data mounted under a different path; `borgmatic list` and the `source_directories` of its configuration show which. After the first real uploads, repeat the check once with a real asset, and remove the canary afterwards.
 
 ## Monitoring
 
