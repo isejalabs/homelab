@@ -3,6 +3,26 @@ kind: Kustomization
 
 components:
   - ../../../../../components/envs/prod
+  - ../../../../../components/apps/flux-operator-sso
 
 resources:
   - ../../base
+
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-oidc-flux-operator-admin#prod
+    target:
+      kind: ExternalSecret
+      name: flux-operator-oidc
+  - patch: |-
+      - op: replace
+        path: /spec/values/web/config/authentication/oauth2/issuerURL
+        value: https://auth.iseja.net/realms/admin
+      - op: replace
+        path: /spec/values/web/config/baseURL
+        value: https://flux.prod.iseja.net
+    target:
+      kind: HelmRelease
+      name: flux-operator

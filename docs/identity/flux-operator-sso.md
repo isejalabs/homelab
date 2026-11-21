@@ -6,7 +6,7 @@ status: draft
 
 Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-21):** rolled out in `dev` and checked by the owner: a login as `bob-adm` through the realm `admin` works, and an account that is in `sec.idm.admins` but in no `sec.app.flux-operator.*` group is refused at the login. The clients of `qa` and `prod` are applied; the `qa` overlay is in review, the `prod` one follows once `qa` is checked.
+**Status (2026-11-21):** rolled out in `dev` and `qa` and checked by the owner: a login as `bob-adm` through the realm `admin` works in both, and in `dev` an account that is in `sec.idm.admins` but in no `sec.app.flux-operator.*` group is refused at the login. The `prod` overlay is in review.
 
 ## How it works
 
@@ -44,15 +44,15 @@ Not granted: `Secret`, `ConfigMap`, any other kind, `patch`/`create`/`update`, n
 
 ## Versions
 
-Flux Operator **0.62.1** (chart and app, pinned in [`ocirepository.yaml`](../../k8s/infra/flux-system/flux-operator/base/ocirepository.yaml)), checked live on 2026-11-08 in `dbg`, `dev`, `prod`, `qa` and `rebuild`; `poc` and `src` were unreachable and share the pin. The minimum is 0.40.0 (GO-2026-4351), so no upgrade is needed.
+Flux Operator **0.63.0** (chart and app, pinned in [`ocirepository.yaml`](../../k8s/infra/flux-system/flux-operator/base/ocirepository.yaml)), running in `dev`, `qa` and `prod` (checked 2026-11-21); the SSO was first built and checked on 0.62.1 and kept working on the update. The minimum is 0.40.0 (GO-2026-4351).
 
 ## Rollout state
 
 | env | Config | Applied | Verified |
 | --- | --- | --- | --- |
 | `dev` | yes | yes (2026-11-17) | login of the admin account, refusal of an admin-realm account without a role group, RBAC, Flux health (2026-11-21) |
-| `qa` | overlay in review | client and 1Password item (2026-11-21) | no |
-| `prod` | after `qa` | client and 1Password item (2026-11-21) | no |
+| `qa` | yes | yes (2026-11-21) | login of the admin account by the owner, RBAC, redirect to the realm login, Flux health (2026-11-21) |
+| `prod` | in review | client and 1Password item (2026-11-21) | no |
 
 Environments without a Keycloak (`dbg`, `head`, `poc`, `rebuild`, `src`) keep the UI as it is: no login, the identity of the operator's service account. That is a decision of the Web UI default, not of this change.
 
@@ -66,6 +66,6 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 ## Open points
 
-- Merge the `qa` overlay and check the login and the RBAC as in `dev`, then the `prod` overlay and the same checks.
+- Merge the `prod` overlay and check the login and the RBAC there as in `dev` and `qa`.
 - MFA behaviour of the realm `admin` is recorded after the first real login.
 - Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).

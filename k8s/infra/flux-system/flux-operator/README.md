@@ -37,7 +37,7 @@ The web UI is published through the `internal` Gateway under the subdomain `flux
 
 Hostname scheme: [`reference/environments.md`](../../../../docs/reference/environments.md#domain-and-naming).
 
-Without a login, the UI runs with the identity of the operator's service account. With Keycloak SSO ([`flux-operator-sso.md`](../../../../docs/identity/flux-operator-sso.md), in `dev` and `qa` through the component [`flux-operator-sso`](../../../components/apps/flux-operator-sso/README.md)) the login is required and Kubernetes RBAC decides what a user sees.
+Without a login, the UI runs with the identity of the operator's service account. With Keycloak SSO ([`flux-operator-sso.md`](../../../../docs/identity/flux-operator-sso.md), in `dev`, `qa` and `prod` through the component [`flux-operator-sso`](../../../components/apps/flux-operator-sso/README.md)) the login is required and Kubernetes RBAC decides what a user sees.
 
 ## Updates
 
