@@ -6,7 +6,7 @@ status: draft
 
 Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-17):** rolled out in `dev`. The client, the 1Password item and the UCS group exist, the operator runs with the OIDC config, the UI requires a login, and the owner logged in to the UI as `bob-adm` through the realm `admin`. Still open: the refused logins (no group, missing claim) and the MFA behaviour of the realm; `qa` and `prod` follow.
+**Status (2026-11-21):** rolled out in `dev` and checked by the owner: a login as `bob-adm` through the realm `admin` works, and an account that is in `sec.idm.admins` but in no `sec.app.flux-operator.*` group is refused at the login. `qa` and `prod` follow.
 
 ## How it works
 
@@ -50,11 +50,15 @@ Flux Operator **0.62.1** (chart and app, pinned in [`ocirepository.yaml`](../../
 
 | env | Config | Applied | Verified |
 | --- | --- | --- | --- |
-| `dev` | yes | yes (2026-11-17) | RBAC, redirect to the realm login, Flux health; browser login of the admin account confirmed by the owner |
+| `dev` | yes | yes (2026-11-17) | login of the admin account, refusal of an admin-realm account without a role group, RBAC, Flux health (2026-11-21) |
 | `qa` | no | no | no |
 | `prod` | no | no | no |
 
 Environments without a Keycloak (`dbg`, `head`, `poc`, `rebuild`, `src`) keep the UI as it is: no login, the identity of the operator's service account. That is a decision of the Web UI default, not of this change.
+
+## MFA
+
+The realm `admin` requires a second factor ([`keycloak-mfa.md`](keycloak-mfa.md)). At the UI login Keycloak offers the factors the account has configured, OTP and WebAuthn, and presents the one used last. The UI itself adds nothing: the second factor is entirely the realm's.
 
 ## Break-glass
 
@@ -62,6 +66,6 @@ The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use t
 
 ## Open points
 
-- Record the refused logins (no group, missing claim) and the MFA behaviour of the realm `admin` in `dev`, then roll out `qa` and `prod` (apply `keycloak-realm` from `main`).
+- Roll out `qa` and `prod` (the client in `keycloak-realm` from `main`, then the overlay).
 - MFA behaviour of the realm `admin` is recorded after the first real login.
 - Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
