@@ -16,6 +16,7 @@ These components can then be included in the `kustomization.yaml` files of indiv
 ```
 📁 components
 ├── 📁 apps                         # application-specific configuration
+│   ├── 📁 flux-operator-sso        # Keycloak login of the Flux Operator Web UI and its RBAC
 │   ├── 📁 kopiur                   # kopiur backup credential wiring (per-namespace secret)
 │   ├── 📁 oauth2-proxy             # OAuth2 Proxy login in front of a web UI without one
 │   └── 📁 storage                  # PVC provisioning for apps, with or without backup
@@ -36,7 +37,7 @@ These components can then be included in the `kustomization.yaml` files of indiv
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur SnapshotSchedules in environments without active backup
 ```
 
-Every subfolder of `apps/` and `transformers/` has its own README: [`apps/kopiur`](apps/kopiur/README.md), [`apps/oauth2-proxy`](apps/oauth2-proxy/README.md), [`apps/storage`](apps/storage/README.md) and the transformers below.
+Every subfolder of `apps/` and `transformers/` has its own README: [`apps/flux-operator-sso`](apps/flux-operator-sso/README.md), [`apps/kopiur`](apps/kopiur/README.md), [`apps/oauth2-proxy`](apps/oauth2-proxy/README.md), [`apps/storage`](apps/storage/README.md) and the transformers below.
 
 | Transformer | What it rewrites | Included in |
 | --- | --- | --- |
