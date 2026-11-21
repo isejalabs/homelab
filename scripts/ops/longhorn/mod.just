@@ -5,21 +5,21 @@ set quiet
 set script-interpreter := ['bash', '-euo', 'pipefail']
 set shell := ['bash', '-euo', 'pipefail', '-c']
 
+[arg('all_namespaces', long='all-namespaces', short='A', value='true')]
+[arg('environment', long='environment', short='e')]
+[arg('namespace', long='namespace', short='n')]
 [doc('List Longhorn volume snapshots (hourly/daily RecurringJob + manual), newest first, for one app or every app in scope (-n <ns>|-A required; app optional; -e/--environment optional, defaults to the current kubecontext). Hourly snapshots only go back ~24h.')]
-[arg('environment', short='e', long='environment')]
-[arg('namespace', short='n', long='namespace')]
-[arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 list app="" environment="" namespace="" all_namespaces="false":
     "{{ justfile_directory() }}/scripts/ops/longhorn/snapshot-list.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \
         {{ if namespace != "" { "-n" } else { "" } }} {{ namespace }} \
         {{ if all_namespaces == "true" { "-A" } else { "" } }}
 
-[doc('Trigger a manual Longhorn snapshot: one named app (PVC), or every Longhorn volume in scope with --all (-n <ns>|-A required; -e/--environment optional, defaults to the current kubecontext). Manual snapshots are never pruned automatically.')]
-[arg('environment', short='e', long='environment')]
-[arg('namespace', short='n', long='namespace')]
-[arg('all_namespaces', short='A', long='all-namespaces', value='true')]
 [arg('all', long='all', value='true')]
+[arg('all_namespaces', long='all-namespaces', short='A', value='true')]
+[arg('environment', long='environment', short='e')]
+[arg('namespace', long='namespace', short='n')]
+[doc('Trigger a manual Longhorn snapshot: one named app (PVC), or every Longhorn volume in scope with --all (-n <ns>|-A required; -e/--environment optional, defaults to the current kubecontext). Manual snapshots are never pruned automatically.')]
 create app="" environment="" namespace="" all_namespaces="false" all="false":
     "{{ justfile_directory() }}/scripts/ops/longhorn/snapshot-create.sh" {{ app }} \
         {{ if environment != "" { "-e" } else { "" } }} {{ environment }} \

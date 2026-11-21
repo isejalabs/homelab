@@ -2,7 +2,8 @@
 # Runs `kubectl kustomize` + kubeconform against every kustomize overlay under k8s/ (except the
 # non-standalone Components under k8s/components/), to catch a broken build or schema-invalid manifest
 # before Flux hits it for real. Also checks that every keycloak-realm and keycloak-automation Terragrunt unit's
-# `keycloak_url` matches the hostname its environment's Keycloak overlay serves.
+# `keycloak_url` matches the hostname its environment's Keycloak overlay serves, and that no kustomization.yaml
+# lists a remote (URL) resource.
 #
 # Usage: scripts/ci/kustomize-build-all.sh
 # Takes no arguments; run from the repo root (invoked by the kustomize-build CI workflow).
@@ -76,6 +77,7 @@ status=0
 # the unit's base/kustomization.yaml (and Flux's one silently wins), so it's banned in every flux/ks.yaml (see
 # AGENTS.md "Adding/changing a k8s app or infra component", #1896). Checked up front, not per overlay below,
 # since ks.yaml lives in flux/ rather than in a built overlay.
+# shellcheck disable=SC2044 # paths under k8s/ contain no whitespace
 for ks in $(find k8s -path '*/flux/ks.yaml'); do
     if grep -q '^  targetNamespace:' "$ks"; then
         log error "spec.targetNamespace is not allowed, set namespace: in base/kustomization.yaml instead" "file" "$ks"
@@ -84,6 +86,19 @@ for ks in $(find k8s -path '*/flux/ks.yaml'); do
 done
 
 check_keycloak_hostnames
+
+# A remote reference in a kustomization.yaml (an `https://` resource, a go-getter `git@`/`git::`/`github.com/...`
+# URL, a patch `path:` that is a URL) makes Flux's in-cluster `kustomize build` depend on the internet, so the unit
+# (and everything that dependsOn it) fails during an outage. Upstream files are vendored instead, see
+# docs/architecture/kustomize.md "Vendored upstream manifests" and scripts/ci/vendor-manifests.sh (#2370). Only
+# list entries and `path:` values are matched, a URL in a comment (the vendoring pattern) or inside a patch body
+# is not.
+while IFS= read -r kustomization; do
+    if grep -qE '^[[:space:]]*(-[[:space:]]+)?(path:[[:space:]]+)?["'"'"']?(https?://|git@|ssh://|git::|github\.com/|gitlab\.com/)' "$kustomization"; then
+        log error "remote resource is not allowed, vendor it with scripts/ci/vendor-manifests.sh instead" "file" "$kustomization"
+        status=1
+    fi
+done < "$list"
 
 # Builds and validates every overlay, tracking the worst exit status across all of them rather than bailing
 # on the first failure, so one bad overlay doesn't hide problems in the rest.

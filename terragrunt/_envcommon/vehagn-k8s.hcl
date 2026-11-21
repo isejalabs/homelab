@@ -65,6 +65,11 @@ locals {
   work_ram-medium       = 4096
   work_ram-big          = 6144
 
+  # Proxmox startup/shutdown of the VMs: a lower order starts first and stops last, so workers stop before control
+  # planes. down_delay is the shutdown timeout in seconds before Proxmox kills the VM (Talos drains the node first).
+  ctrl_startup = { order = 1, down_delay = 600 }
+  work_startup = { order = 2, down_delay = 600 }
+
   gateway_api_version = "v1.4.1" # renovate: github-releases=kubernetes-sigs/gateway-api
 
   # disks

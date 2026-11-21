@@ -17,3 +17,4 @@ extend-exclude = [
 # tool and acronym names that typos would "correct"
 flate = "flate" # home-operations/flate, the Flux validation tool (flate-test.yml)
 rto = "rto" # recovery time objective
+exportfs = "exportfs" # the nfs-utils command that lists the active NFS exports

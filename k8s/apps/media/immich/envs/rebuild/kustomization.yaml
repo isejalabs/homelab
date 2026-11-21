@@ -1,0 +1,41 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/rebuild
+
+resources:
+  - ../../base
+
+# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
+# ZFS-clone copies of the live Lightroom library, never the live one.
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/rebuild/upload
+    target:
+      kind: PersistentVolume
+      name: immich-upload
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/rebuild/cache
+    target:
+      kind: PersistentVolume
+      name: immich-cache
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/Pictures/orig
+    target:
+      kind: PersistentVolume
+      name: immich-library
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/rebuild/Pictures/export
+    target:
+      kind: PersistentVolume
+      name: immich-export
