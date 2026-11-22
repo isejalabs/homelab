@@ -49,3 +49,8 @@ spec:
     ucs-ca:
       secret:
         name: keycloak-ucs-ca
+  # the operator builds the pods from this CR: set the class here, a patch on a Deployment cannot reach them
+  unsupported:
+    podTemplate:
+      spec:
+        priorityClassName: homelab-high

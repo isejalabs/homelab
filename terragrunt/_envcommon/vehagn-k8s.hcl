@@ -50,7 +50,7 @@ locals {
   cilium_path           = "k8s/infra/kube-system/cilium"
   cpu_type              = "custom-x86-64-v2-AES-AVX"
   ctrl_cpu              = 2
-  ctrl_disk_size        = 6
+  ctrl_disk_size        = 10
   ctrl_ram              = 4096
   ctrl_datastore        = "local-enc" # block size of the zvol is fixed at creation, see #1615
   datastore             = "local-enc"
@@ -59,8 +59,8 @@ locals {
   vlan_id               = 108
   work_cpu              = 2
   work_disk_size-small  = 6
-  work_disk_size-medium = 12
-  work_disk_size-big    = 17
+  work_disk_size-medium = 24
+  work_disk_size-big    = 32
   work_ram-small        = 2048
   work_ram-medium       = 4096
   work_ram-big          = 6144

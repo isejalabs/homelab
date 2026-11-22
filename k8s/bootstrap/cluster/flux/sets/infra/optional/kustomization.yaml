@@ -4,6 +4,9 @@ kind: Kustomization
 
 namespace: flux-system
 
+components:
+  - ../../../../../../components/transformers/set-priority-class
+
 resources:
   - ../../../../../../infra/kopiur-system/kopiur/flux
   - ../../../../../../infra/kopiur-system/kopiur-repository/flux

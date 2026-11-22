@@ -69,11 +69,11 @@ Disposition of the filesystems named in #1847 (values of 2026-10-25):
 
 ### Kubernetes node root filesystem
 
-The `/` of a node (Checkmk reads it from the node-collector pod; it is the XFS partition on `sdb1`, evidently Talos' ephemeral partition) holds the containerd images, kubelet data, logs and, on control-plane nodes, etcd. Disk sizes: 6 GiB for control-plane nodes (`ctrl_disk_size`), 12 GiB or 17 GiB for workers. The kubelet defaults (no override in this repository or in the Talos module): image garbage collection starts at 85 % used and frees down to 80 %; hard eviction at `imagefs.available < 15 %` (85 % used) or `nodefs.available < 10 %` (90 % used).
+The `/` of a node (Checkmk reads it from the node-collector pod; it is the XFS partition on `sdb1`, evidently Talos' ephemeral partition) holds the containerd images, kubelet data, logs and, on control-plane nodes, etcd. Disk sizes: 10 GiB for control-plane nodes (`ctrl_disk_size`), 24 GiB or 32 GiB for workers (`work_disk_size-medium`/`-big`); until [#1908](https://github.com/isejalabs/homelab/issues/1908) is rolled out they are 6 GiB, 12 GiB and 17 GiB. The kubelet defaults (no override in this repository or in the Talos module): image garbage collection starts at 85 % used and frees down to 80 %; hard eviction at `imagefs.available < 15 %` (85 % used) or `nodefs.available < 10 %` (90 % used).
 
 Under the old levels `qa-ctrl-02 /` flapped around its WARN level of 77.4 %: 209 hard WARN alerts in 14 days (`dev-ctrl-03` 72, `prod-ctrl-03` 49), although the usage was steady at about 78 %. The node rule sets WARN 86 % and CRIT 91 %, one point above the GC trigger and the node-filesystem eviction threshold, with no size scaling, so a normal GC cycle does not alert; the 15 minute notification delay on the Kubernetes sites does the rest.
 
-The 6 GiB control-plane disks have little room: 78 % used is 0.9 GiB below the WARN level. Growing `ctrl_disk_size` is tracked in [#1909](https://github.com/isejalabs/homelab/issues/1909).
+The 6 GiB control-plane disks had little room: 78 % used is 0.9 GiB below the WARN level. `ctrl_disk_size` is raised to 10 GiB ([#1909](https://github.com/isejalabs/homelab/issues/1909), [#1908](https://github.com/isejalabs/homelab/issues/1908)); the steady state of about 4.6 GiB is then about 46 % once a node is rolled out.
 
 ## Polina
 
@@ -81,5 +81,5 @@ The datastore growth is not a retention problem. PBS prune (`keep-last 3`, daily
 
 ## Open points
 
-- Control-plane disk size (6 GiB): [#1909](https://github.com/isejalabs/homelab/issues/1909).
+- Control-plane disk size: 10 GiB decided, rollout to `qa` and `prod` tracked in [#1908](https://github.com/isejalabs/homelab/issues/1908).
 - `pve5` is excluded from the global filesystem rule (ZFS pools); the owner removes that exclusion.

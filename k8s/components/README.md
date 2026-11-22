@@ -17,8 +17,10 @@ These components can then be included in the `kustomization.yaml` files of indiv
 📁 components
 ├── 📁 apps                         # application-specific configuration
 │   ├── 📁 flux-operator-sso        # Keycloak login of the Flux Operator Web UI and its RBAC
+│   ├── 📁 immich-sso               # Keycloak login of Immich (OIDC settings and client secret)
 │   ├── 📁 kopiur                   # kopiur backup credential wiring (per-namespace secret)
 │   ├── 📁 oauth2-proxy             # OAuth2 Proxy login in front of a web UI without one
+│   ├── 📁 priority-high            # opt-in of an app for the homelab-high scheduling priority
 │   └── 📁 storage                  # PVC provisioning for apps, with or without backup
 ├── 📁 envs                         # environment-specific configuration
 │   ├── 📁 base                     # sourced and reused in the env-specific overlays
@@ -34,10 +36,11 @@ These components can then be included in the `kustomization.yaml` files of indiv
     ├── 📁 replace-path             # replace base path by environment-specific path in configuration files (flux)
     ├── 📁 reverse-zone-env         # wire each env's own PTR-zone name into powerdns + external-dns
     ├── 📁 set-flux-defaults        # set default values for flux configuration files
+    ├── 📁 set-priority-class       # give every unit of an infra set the homelab-high priority class
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur SnapshotSchedules in environments without active backup
 ```
 
-Every subfolder of `apps/` and `transformers/` has its own README: [`apps/flux-operator-sso`](apps/flux-operator-sso/README.md), [`apps/kopiur`](apps/kopiur/README.md), [`apps/oauth2-proxy`](apps/oauth2-proxy/README.md), [`apps/storage`](apps/storage/README.md) and the transformers below.
+Every subfolder of `apps/` and `transformers/` has its own README: [`apps/flux-operator-sso`](apps/flux-operator-sso/README.md), [`apps/immich-sso`](apps/immich-sso/README.md), [`apps/kopiur`](apps/kopiur/README.md), [`apps/oauth2-proxy`](apps/oauth2-proxy/README.md), [`apps/priority-high`](apps/priority-high/README.md), [`apps/storage`](apps/storage/README.md) and the transformers below.
 
 | Transformer | What it rewrites | Included in |
 | --- | --- | --- |
@@ -49,4 +52,5 @@ Every subfolder of `apps/` and `transformers/` has its own README: [`apps/flux-o
 | [`replace-path`](transformers/replace-path/README.md) | points every Flux `Kustomization` at `envs/<env>` instead of `base` | all 8 (via `envs/base`) |
 | [`reverse-zone-env`](transformers/reverse-zone-env/README.md) | each environment's own PTR-zone name into PowerDNS and external-dns | all 8, per environment |
 | [`set-flux-defaults`](transformers/set-flux-defaults/README.md) | the reconciliation interval of every Flux `Kustomization`/`HelmRelease` and the retry interval of every `Kustomization` | all 8 (via `envs/base`) |
+| [`set-priority-class`](transformers/set-priority-class/README.md) | `priorityClassName: homelab-high` on the pods of every infra unit (a `spec.patches` entry on each Flux `Kustomization`) | the Flux sets `infra/minimal`, `infra/optional` and `standing`, not an environment |
 | [`suspend-kopiur-schedule`](transformers/suspend-kopiur-schedule/README.md) | force-suspends every kopiur `SnapshotSchedule` | `dbg`, `head`, `poc`, `src`, per environment |

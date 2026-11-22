@@ -30,6 +30,8 @@ spec:
       wal_compression: "on"
       wal_keep_size: 64MB
       wal_level: replica
+  # the operator builds the pod from this CR
+  priorityClassName: homelab-high
   # provisional, from an idle dev measurement (~75Mi, 14m); revisit after the qa soak
   resources:
     limits:

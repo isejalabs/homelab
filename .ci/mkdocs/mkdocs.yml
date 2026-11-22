@@ -169,6 +169,7 @@ nav:
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
     - Flux Operator Web UI SSO: docs/identity/flux-operator-sso.md
+    - Immich SSO: docs/identity/immich-sso.md
     - Longhorn human SSO: docs/identity/longhorn-sso.md
     - Proxmox human SSO: docs/identity/proxmox-sso.md
     - OPNsense administrator login: docs/identity/opnsense-auth.md
@@ -200,8 +201,10 @@ nav:
   - Index: k8s/README.md
   - Shared components: k8s/components/README.md
   - Flux Operator SSO component: k8s/components/apps/flux-operator-sso/README.md
+  - Immich SSO component: k8s/components/apps/immich-sso/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
+  - Priority-high component: k8s/components/apps/priority-high/README.md
   - Storage component: k8s/components/apps/storage/README.md
   - Transformers:
     - add-labels: k8s/components/transformers/add-labels/README.md
@@ -212,6 +215,7 @@ nav:
     - replace-path: k8s/components/transformers/replace-path/README.md
     - reverse-zone-env: k8s/components/transformers/reverse-zone-env/README.md
     - set-flux-defaults: k8s/components/transformers/set-flux-defaults/README.md
+    - set-priority-class: k8s/components/transformers/set-priority-class/README.md
     - suspend-kopiur-schedule: k8s/components/transformers/suspend-kopiur-schedule/README.md
   - Infrastructure:
     - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md
@@ -225,6 +229,7 @@ nav:
     - Gateway: k8s/infra/gateway-api/gateway/README.md
     - Gateway API CRDs: k8s/infra/gateway-api/gateway-api-crds/README.md
     - infra-ns: k8s/infra/common/ns/README.md
+    - infra-priority-classes: k8s/infra/common/priority-classes/README.md
     - Keycloak operator: k8s/infra/keycloak/keycloak-operator/README.md
     - kopiur: k8s/infra/kopiur-system/kopiur/README.md
     - kopiur repository: k8s/infra/kopiur-system/kopiur-repository/README.md
@@ -260,6 +265,7 @@ nav:
       - Longhorn snapshots: scripts/ops/longhorn/README.md
       - Immich restore: scripts/ops/immich/README.md
       - Keycloak restore: scripts/ops/keycloak/README.md
+      - Kubernetes pods: scripts/ops/k8s/README.md
       - Proxmox: scripts/ops/proxmox/README.md
     - Tools: scripts/tools/README.md
     - Shared libraries: scripts/lib/README.md

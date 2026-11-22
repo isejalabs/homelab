@@ -20,10 +20,10 @@ spec:
       resources:
         limits:
           cpu: 100m
-          memory: 120Mi
+          memory: 200Mi
         requests:
           cpu: 30m
-          memory: 70Mi
+          memory: 200Mi
     nodeCollector:
       cadvisor:
         resources:
@@ -32,7 +32,7 @@ spec:
             memory: 50Mi
           requests:
             cpu: 15m
-            memory: 40Mi
+            memory: 50Mi
       containerMetricsCollector:
         resources:
           limits:
@@ -41,7 +41,7 @@ spec:
 
           requests:
             cpu: 15m
-            memory: 40Mi
+            memory: 50Mi
       machineSectionsCollector:
         resources:
           limits:
@@ -49,7 +49,7 @@ spec:
             memory: 40Mi
           requests:
             cpu: 30m
-            memory: 35Mi
+            memory: 40Mi
       # collect metrics also on control plane nodes
       tolerations:
         - effect: "NoSchedule"

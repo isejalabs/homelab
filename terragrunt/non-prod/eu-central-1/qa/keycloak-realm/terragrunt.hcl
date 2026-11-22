@@ -70,5 +70,21 @@ inputs = {
       client_id     = "flux-operator"
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "flux")}/oauth2/callback"]
     }
+
+    # Immich signs humans in natively (k8s/components/apps/immich-sso): realm iseja only, because Immich trusts one issuer.
+    # The redirect URIs are Immich's own: web login, linking an account in the settings, and the https forwarder to the
+    # mobile app's custom scheme (the module accepts https only; the Immich setting `mobileRedirectUri` points at it).
+    # The secret lands in keycloak-oidc-immich-iseja#<env>, read by an ExternalSecret. docs/identity/immich-sso.md
+    "immich-iseja" = {
+      realm     = "iseja"
+      client_id = "immich"
+      name      = "Immich"
+      pkce      = true
+      redirect_uris = [
+        "${format(include.envcommon.locals.app_url_format, "immich")}/api/oauth/mobile-redirect",
+        "${format(include.envcommon.locals.app_url_format, "immich")}/auth/login",
+        "${format(include.envcommon.locals.app_url_format, "immich")}/user-settings",
+      ]
+    }
   }
 }
