@@ -6,7 +6,7 @@ status: draft
 
 Immich signs its users in with OpenID Connect against the realm `iseja` of the identity provider ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 8). Tracking: [#1768](https://github.com/isejalabs/homelab/issues/1768) (parent), [#2440](https://github.com/isejalabs/homelab/issues/2440) (Keycloak client), [#2441](https://github.com/isejalabs/homelab/issues/2441) (Immich login), [#2442](https://github.com/isejalabs/homelab/issues/2442) (this page), [#2443](https://github.com/isejalabs/homelab/issues/2443) (`prod`). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-22):** the configuration is in review; nothing is applied yet. The decisions below were taken by the owner on 2026-11-22. `dev` and `qa` run Immich, `prod` does not yet ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
+**Status (2026-11-22):** the client is applied and the login is verified in `dev` (tested with `track-branch` before the merge); `qa` follows from `main` after the merge, `prod` with the promotion. The decisions below were taken by the owner on 2026-11-22. `dev` and `qa` run Immich, `prod` does not yet ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
 
 ## What Immich can and cannot do
 
@@ -29,7 +29,7 @@ Read in the source and documentation of the deployed version, Immich **v3.4.2** 
 
 1. **Realm `iseja` only.** Immich trusts one issuer, and the people who own photos are everyday accounts (`bob`, `alice`, ...). There is no `admin` realm client and no `*-adm` login for Immich.
 2. **Administration stays local.** The administrator of Immich is a local account with a generated password (1Password), and password login stays on. It is also the break-glass. SSO never changes the administrator flag: no role claim, no group `sec.app.immich.admin`. The `bob-adm` identity is not used in Immich.
-3. **`autoRegister` is off.** An administrator creates every Immich account (name, e-mail address as in the directory, **storage label** equal to the person's short name, ADR 0018 rule 4). The first SSO login links the account by e-mail. The allowlist therefore lives in Immich. No UCS group `sec.app.immich.*` is created: Immich could not read it, and an unused group would suggest a control that does not exist.
+3. **`autoRegister` is off.** An administrator creates every Immich account (name, e-mail address as in the directory, **storage label** equal to the person's short name, ADR 0018 rule 4). The first SSO login links the account by e-mail. The allowlist therefore lives in Immich. No UCS group `sec.app.immich.*` is created: Immich cannot read it, and an unused group would suggest a control that does not exist. With `autoRegister` on, every account of the realm would get an Immich account at its first login, because nothing in front of Immich limits who may sign in; a Keycloak-side gate (a per-client flow that denies accounts without a role from a UCS group) is possible with stock Keycloak but is not in the `keycloak-realm` module yet. The re-evaluation and the options are in a [comment on #1768](https://github.com/isejalabs/homelab/issues/1768#issuecomment-7082762625).
 4. **Machine and API credentials stay separate.** API keys (CLI, scripts) and the mobile app's session are Immich's own and independent of Keycloak.
 
 Consequences: the realm requires a second factor for every password login ([`keycloak-mfa.md`](keycloak-mfa.md)), so Immich's web login has it; the **local** accounts (administrator, the shared `household` owner of the external libraries) have only a password. A directory e-mail address that is wrong or changed makes the first link fail (it does not grant access to another account), a changed address after linking has no effect because the link is the `sub`.
@@ -45,7 +45,7 @@ Consequences: the realm requires a second factor for every password login ([`key
 
 ## Create an account for a person
 
-1. Sign in with the local administrator ([below](#administrator-and-break-glass)). *Administration > Users > Create user*: the **e-mail address of the directory account** (it is the link), a long generated password that is stored once and not used again, the name, and the **storage label** (the short name, for example `bob`).
+1. Sign in with the local administrator ([below](#administrator-and-break-glass)). *Administration > Users > Create user*: the **e-mail address of the directory account** (it is the link), a long random password that is not kept anywhere (the form requires one, the login does not use it; with password login on it stays a second way in, so nobody should know it), the name, the **storage label** (the short name, for example `bob`), and *Require password change on next login* unticked.
 2. The person opens the Immich URL and chooses *Sign in with Keycloak*: a first-time login links the account. In the mobile app, set the server URL and use the same button.
 3. Remove access: delete the Immich user. Removing the person from `sec.idm.users` stops new Keycloak logins, but a session that Immich already issued is not ended by Keycloak (backchannel logout is not set up).
 
@@ -60,12 +60,13 @@ Consequences: the realm requires a second factor for every password login ([`key
 
 | env | Client | Settings | Verified |
 | --- | --- | --- | --- |
-| `dev` | no | in review | no |
-| `qa` | no | in review | no |
+| `dev` | yes (2026-11-22) | on `main` with the merge | yes, browser login (2026-11-22): a pre-created account links and signs in, an account without an Immich user is refused |
+| `qa` | no (apply from `main` after the merge) | on `main` with the merge | no |
 | `prod` | no (with the promotion) | overlay prepared, unit not registered | no |
 
 ## Open points
 
-- Apply the clients (`dev` after the owner's go, `qa` from `main`), test the login in `dev` with `track-branch`, then merge.
-- Mobile app login: tested only if a phone is available.
+- Apply the client in `qa` from `main` after the merge, test the login there, test the break-glass once, then set the status of this page to `current`.
+- Mobile app login: not tested in `dev`; tested only if a phone is available.
+- Keycloak-side group gate and then `autoRegister` on: see the [comment on #1768](https://github.com/isejalabs/homelab/issues/1768#issuecomment-7082762625); not decided.
 - Backchannel logout and an `immich_role` mapper are possible later module extensions; not needed under the decisions above.
