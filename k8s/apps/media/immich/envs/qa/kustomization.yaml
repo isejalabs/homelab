@@ -4,6 +4,7 @@ kind: Kustomization
 
 components:
   - ../../../../../components/envs/qa
+  - ../../../../../components/apps/immich-sso
 
 resources:
   - ../../base
@@ -11,6 +12,26 @@ resources:
 # Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
 # ZFS-clone copies of the live Lightroom library, never the live one.
 patches:
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-oidc-immich-iseja#qa
+    target:
+      kind: ExternalSecret
+      name: immich-oidc
+  - patch: |-
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/accountManagementUrl
+        value: https://qa-auth.qa.iseja.net/realms/iseja/account
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/issuerUrl
+        value: https://qa-auth.qa.iseja.net/realms/iseja
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/mobileRedirectUri
+        value: https://qa-immich.qa.iseja.net/api/oauth/mobile-redirect
+    target:
+      kind: HelmRelease
+      name: immich
   - patch: |-
       - op: replace
         path: /spec/nfs/path

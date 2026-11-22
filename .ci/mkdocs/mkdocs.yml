@@ -169,6 +169,7 @@ nav:
     - Keycloak exposure: docs/identity/keycloak-exposure.md
     - Checkmk human SSO: docs/identity/checkmk-sso.md
     - Flux Operator Web UI SSO: docs/identity/flux-operator-sso.md
+    - Immich SSO: docs/identity/immich-sso.md
     - Longhorn human SSO: docs/identity/longhorn-sso.md
     - Proxmox human SSO: docs/identity/proxmox-sso.md
     - OPNsense administrator login: docs/identity/opnsense-auth.md
@@ -200,6 +201,7 @@ nav:
   - Index: k8s/README.md
   - Shared components: k8s/components/README.md
   - Flux Operator SSO component: k8s/components/apps/flux-operator-sso/README.md
+  - Immich SSO component: k8s/components/apps/immich-sso/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
   - Priority-high component: k8s/components/apps/priority-high/README.md

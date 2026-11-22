@@ -31,13 +31,13 @@ Through the `internal` Gateway, subdomain `immich`; the general scheme is in [`r
 | `dev` | [https://dev-immich.dev.iseja.net](https://dev-immich.dev.iseja.net) |
 | `qa` | [https://qa-immich.qa.iseja.net](https://qa-immich.qa.iseja.net) |
 
-## Interim authentication (temporary)
+## Authentication
 
-Immich has its own local accounts with a password (`passwordLogin` enabled in the settings). This is **temporary** until proper single sign-on exists ([#1768](https://github.com/isejalabs/homelab/issues/1768)), which replaces it as part of that work. Until then:
+In `dev` and `qa` (and in the `prod` overlay, which is not registered yet) people sign in with Keycloak, realm `iseja`; the settings, decisions and the account procedure are in [`immich-sso.md`](../../../../docs/identity/immich-sso.md) ([#1768](https://github.com/isejalabs/homelab/issues/1768)). The component [`immich-sso`](../../../components/apps/immich-sso/README.md) adds the OIDC settings and the client secret; `rebuild` has no Keycloak and keeps the **interim** local accounts with a password. In short:
 
-- The first visit to a fresh instance asks to register the administrator, and anyone who can reach the URL can do that. Register the admin right after the first start, before anyone else knows the address; the environments are reachable inside the LAN only.
-- Use a long generated password for every account and keep it in the password manager. There is no credential in Git, and the instance has no other login method.
-- Each person who uploads gets an account with a **storage label** (the user's `Storage Label`, set when the account is created, equal to the short name of the person, for example `bob`), which puts the uploads into their own folder under the upload dataset (ADR 0018, rule 4). The shared `household` account owns the external libraries and has no label. The storage template is already enabled in the settings ([Settings in git](#settings-in-git)), so every upload follows it from the first one.
+- **Local administrator**: registered at the first start of an instance, password in the password manager. `passwordLogin` stays enabled, so it is also the break-glass. The first visit to a fresh instance asks to register the administrator and anyone who can reach the URL can do that: do it right after the first start, the environments are reachable inside the LAN only.
+- **Everyone else** signs in with Keycloak. `autoRegister` is off: an administrator creates each account (the e-mail address of the directory account, a **storage label** equal to the short name of the person, for example `bob`, which puts the uploads into their own folder under the upload dataset, ADR 0018 rule 4), and the first SSO login links it. The shared `household` account owns the external libraries and has no label; it is a local account. The storage template is enabled in the settings ([Settings in git](#settings-in-git)), so every upload follows it from the first one.
+- API keys and the mobile app's session are Immich's own and do not depend on Keycloak.
 
 ## Updates
 
@@ -47,7 +47,7 @@ Immich has its own local accounts with a password (`passwordLogin` enabled in th
 
 ## Operations
 
-- **First start of an instance**: register the administrator ([Interim authentication](#interim-authentication-temporary)), create the accounts with their storage labels, then the external libraries (import paths `/external/library` and `/external/export`, owner `household`, see [ADR 0018](../../../../docs/decisions/0018-media-source-of-truth.md)). Check **Administration > Server stats / Jobs** afterwards that no job queue is stuck.
+- **First start of an instance**: register the administrator ([Authentication](#authentication)), create the accounts with their storage labels, then the external libraries (import paths `/external/library` and `/external/export`, owner `household`, see [ADR 0018](../../../../docs/decisions/0018-media-source-of-truth.md)). Check **Administration > Server stats / Jobs** afterwards that no job queue is stuck.
 - **Immich's own database dump** runs daily at 02:00 and keeps the last 14 in `backups/` on the upload dataset on `fiona`. It is explicit in the settings and must stay enabled; it is the second copy next to the dump of [`immich-db`](../immich-db/README.md) ([`immich-database.md`](../../../../docs/backup/immich-database.md)). Check it with the file list under `backups/` of the upload dataset (the newest file is from this night).
 - **Media storage**: TrueNAS settings, snapshots, borgbackup, restore checks: [`immich-media-storage.md`](../../../../docs/operations/immich-media-storage.md); the ACL entry that lets the mapped user read the library and export is under [users and permissions](../../../../docs/operations/immich-media-storage.md#users-and-permissions). Mount and permission check: [`test-nfs-immich-media.yaml`](../../../test/storage/test-nfs-immich-media.yaml), described under [Verify](../../../../docs/operations/immich-media-storage.md#verify).
 - **Backup of the volumes**: the NFS volumes are not backed up by kopiur (it snapshots CSI volumes, not NFS): protection is ZFS snapshots and the borgbackup of the `prod` upload dataset on `fiona`. The model cache is regenerable and has no backup either.
