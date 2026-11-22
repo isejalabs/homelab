@@ -81,8 +81,10 @@ spec:
             enabled: true
           watch:
             enabled: false
-        # Interim authentication until proper SSO (#1768): local accounts with a password. Registration of the first
-        # admin is open until it is done, so do it right after the first start (README, "Interim authentication").
+        # Local accounts with a password: the interim authentication where there is no Keycloak (rebuild) and, with SSO
+        # (components/apps/immich-sso), the administrator's login and the break-glass (docs/identity/immich-sso.md).
+        # Registration of the first admin is open until it is done, so do it right after the first start (README,
+        # "Authentication").
         passwordLogin:
           enabled: true
         # Enabled before the first upload: a later change needs the storage template migration job. The template is
