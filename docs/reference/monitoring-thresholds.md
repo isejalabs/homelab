@@ -73,7 +73,7 @@ The `/` of a node (Checkmk reads it from the node-collector pod; it is the XFS p
 
 Under the old levels `qa-ctrl-02 /` flapped around its WARN level of 77.4 %: 209 hard WARN alerts in 14 days (`dev-ctrl-03` 72, `prod-ctrl-03` 49), although the usage was steady at about 78 %. The node rule sets WARN 86 % and CRIT 91 %, one point above the GC trigger and the node-filesystem eviction threshold, with no size scaling, so a normal GC cycle does not alert; the 15 minute notification delay on the Kubernetes sites does the rest.
 
-The 6 GiB control-plane disks have little room: 78 % used is 0.9 GiB below the WARN level. Growing `ctrl_disk_size` is tracked in [#1909](https://github.com/isejalabs/homelab/issues/1909).
+The 6 GiB control-plane disks had little room: 78 % used is 0.9 GiB below the WARN level. `ctrl_disk_size` is raised to 10 GiB ([#1909](https://github.com/isejalabs/homelab/issues/1909), [#1908](https://github.com/isejalabs/homelab/issues/1908)); the steady state of about 4.6 GiB is then about 46 % once a node is rolled out.
 
 ## Polina
 
@@ -81,5 +81,5 @@ The datastore growth is not a retention problem. PBS prune (`keep-last 3`, daily
 
 ## Open points
 
-- Control-plane disk size (6 GiB): [#1909](https://github.com/isejalabs/homelab/issues/1909).
+- Control-plane disk size: 10 GiB decided, rollout to `qa` and `prod` tracked in [#1908](https://github.com/isejalabs/homelab/issues/1908).
 - `pve5` is excluded from the global filesystem rule (ZFS pools); the owner removes that exclusion.
