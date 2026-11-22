@@ -202,6 +202,7 @@ nav:
   - Flux Operator SSO component: k8s/components/apps/flux-operator-sso/README.md
   - Kopiur component: k8s/components/apps/kopiur/README.md
   - OAuth2 Proxy component: k8s/components/apps/oauth2-proxy/README.md
+  - Priority-high component: k8s/components/apps/priority-high/README.md
   - Storage component: k8s/components/apps/storage/README.md
   - Transformers:
     - add-labels: k8s/components/transformers/add-labels/README.md
