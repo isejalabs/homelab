@@ -15,7 +15,7 @@ Not a workload: the one unit that creates the cluster-wide scheduling priority t
 
 Every workload has priority 0 unless it says otherwise (Immich runs at -100, the system and Longhorn pods at a very high value). Under memory or disk pressure the scheduler and the kubelet pick the lowest priority first. `homelab-high` (value 100000, preempting) puts the infra units and the apps monitoring, DNS and identity depend on above every ordinary app and below `longhorn-critical` and the system classes.
 
-The class only exists here. Who gets it is decided elsewhere: the infra units by default through the [`set-priority-class`](../../../components/transformers/set-priority-class/README.md) component, which the infra sets include, and the apps by an explicit opt-in in their own unit.
+The class only exists here. Who gets it is decided elsewhere: the infra units by default through the [`set-priority-class`](../../../components/transformers/set-priority-class/README.md) component, which the infra sets include, and the apps by an explicit opt-in in their own unit through the [`priority-high`](../../../components/apps/priority-high/README.md) component.
 
 ## Where it is used
 
