@@ -4,6 +4,9 @@ kind: Kustomization
 
 namespace: flux-system
 
+components:
+  - ../../../../../components/transformers/set-priority-class
+
 # Units that only the standing (permanent) environments run: dev, qa, prod and rebuild. Deliberately not part of
 # ../kustomization.yaml (which head also includes via ../../sets) and not part of ../minimal (dbg, poc and src): only
 # the envs that name this set get these units. dbg, head, poc and src are on-demand and register in prod's instance

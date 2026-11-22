@@ -212,6 +212,7 @@ nav:
     - replace-path: k8s/components/transformers/replace-path/README.md
     - reverse-zone-env: k8s/components/transformers/reverse-zone-env/README.md
     - set-flux-defaults: k8s/components/transformers/set-flux-defaults/README.md
+    - set-priority-class: k8s/components/transformers/set-priority-class/README.md
     - suspend-kopiur-schedule: k8s/components/transformers/suspend-kopiur-schedule/README.md
   - Infrastructure:
     - 1Password Connect: k8s/infra/external-secrets/onepassword-connect/README.md
@@ -225,6 +226,7 @@ nav:
     - Gateway: k8s/infra/gateway-api/gateway/README.md
     - Gateway API CRDs: k8s/infra/gateway-api/gateway-api-crds/README.md
     - infra-ns: k8s/infra/common/ns/README.md
+    - infra-priority-classes: k8s/infra/common/priority-classes/README.md
     - Keycloak operator: k8s/infra/keycloak/keycloak-operator/README.md
     - kopiur: k8s/infra/kopiur-system/kopiur/README.md
     - kopiur repository: k8s/infra/kopiur-system/kopiur-repository/README.md
