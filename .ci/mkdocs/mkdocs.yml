@@ -259,6 +259,7 @@ nav:
       - Longhorn snapshots: scripts/ops/longhorn/README.md
       - Immich restore: scripts/ops/immich/README.md
       - Keycloak restore: scripts/ops/keycloak/README.md
+      - Kubernetes pods: scripts/ops/k8s/README.md
       - Proxmox: scripts/ops/proxmox/README.md
     - Tools: scripts/tools/README.md
     - Shared libraries: scripts/lib/README.md
