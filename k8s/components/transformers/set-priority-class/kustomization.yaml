@@ -1,0 +1,61 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+patches:
+  # Rides on the Flux Kustomization of each unit, so it works for every unit of a set without a line in the unit itself:
+  # the HelmRelease gets a post-renderer (the chart is not ours), plain manifests are patched directly. A unit whose
+  # pods bring their own system class carries the label below and is left alone; the patch would downgrade it.
+  # Replaces spec.patches wholesale: a unit that needs its own spec.patches cannot use this component.
+  - patch: |-
+      - op: add
+        path: /spec/patches
+        value:
+          - target:
+              kind: HelmRelease
+              group: helm.toolkit.fluxcd.io
+            patch: |-
+              - op: add
+                path: /spec/postRenderers
+                value:
+                  - kustomize:
+                      patches:
+                        - target:
+                            kind: Deployment
+                          patch: |-
+                            - op: add
+                              path: /spec/template/spec/priorityClassName
+                              value: homelab-high
+                        - target:
+                            kind: StatefulSet
+                          patch: |-
+                            - op: add
+                              path: /spec/template/spec/priorityClassName
+                              value: homelab-high
+                        - target:
+                            kind: DaemonSet
+                          patch: |-
+                            - op: add
+                              path: /spec/template/spec/priorityClassName
+                              value: homelab-high
+          - target:
+              kind: Deployment
+            patch: |-
+              - op: add
+                path: /spec/template/spec/priorityClassName
+                value: homelab-high
+          - target:
+              kind: StatefulSet
+            patch: |-
+              - op: add
+                path: /spec/template/spec/priorityClassName
+                value: homelab-high
+          - target:
+              kind: DaemonSet
+            patch: |-
+              - op: add
+                path: /spec/template/spec/priorityClassName
+                value: homelab-high
+    target:
+      kind: Kustomization
+      group: kustomize.toolkit.fluxcd.io
+      labelSelector: "!homelab.iseja.net/self-managed-priority"

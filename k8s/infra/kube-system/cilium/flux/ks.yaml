@@ -4,6 +4,9 @@ apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
   name: cilium
+  # its pods bring their own system priority class; set-priority-class must not downgrade them
+  labels:
+    homelab.iseja.net/self-managed-priority: "true"
 spec:
   interval: 1h
   path: ./k8s/infra/kube-system/cilium/base

@@ -34,6 +34,7 @@ These components can then be included in the `kustomization.yaml` files of indiv
     ├── 📁 replace-path             # replace base path by environment-specific path in configuration files (flux)
     ├── 📁 reverse-zone-env         # wire each env's own PTR-zone name into powerdns + external-dns
     ├── 📁 set-flux-defaults        # set default values for flux configuration files
+    ├── 📁 set-priority-class       # give every unit of an infra set the homelab-high priority class
     └── 📁 suspend-kopiur-schedule  # force-suspend kopiur SnapshotSchedules in environments without active backup
 ```
 
@@ -49,4 +50,5 @@ Every subfolder of `apps/` and `transformers/` has its own README: [`apps/flux-o
 | [`replace-path`](transformers/replace-path/README.md) | points every Flux `Kustomization` at `envs/<env>` instead of `base` | all 8 (via `envs/base`) |
 | [`reverse-zone-env`](transformers/reverse-zone-env/README.md) | each environment's own PTR-zone name into PowerDNS and external-dns | all 8, per environment |
 | [`set-flux-defaults`](transformers/set-flux-defaults/README.md) | the reconciliation interval of every Flux `Kustomization`/`HelmRelease` and the retry interval of every `Kustomization` | all 8 (via `envs/base`) |
+| [`set-priority-class`](transformers/set-priority-class/README.md) | `priorityClassName: homelab-high` on the pods of every infra unit (a `spec.patches` entry on each Flux `Kustomization`) | the Flux sets `infra/minimal`, `infra/optional` and `standing`, not an environment |
 | [`suspend-kopiur-schedule`](transformers/suspend-kopiur-schedule/README.md) | force-suspends every kopiur `SnapshotSchedule` | `dbg`, `head`, `poc`, `src`, per environment |
