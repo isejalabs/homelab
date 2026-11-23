@@ -41,7 +41,7 @@ Read-only, in the `immich` namespace of `qa` on 2026-11-23 between 07:00 and 08:
 
 The cause is the container limit, not the node and not the quota. A worker has 5.3 GiB allocatable and runs the server and the machine learning pod, so the limit cannot simply be raised far: the server needs a measured value and the worker size is a question for [#2148](https://github.com/isejalabs/homelab/issues/2148).
 
-The stop-gap was merged and applied on 2026-11-23 ([PR #2455](https://github.com/isejalabs/homelab/pull/2455)): the limit is 3 Gi and the probe timeout 5 s, the new server pod started with 0 restarts. Side effect: the memory limits on `qa-work-03`, where the server and the machine learning pod run together, now add up to 161 % of the node's allocatable memory (8.7 of 5.4 GiB), so placing the two on different workers is part of the test design below.
+The stop-gap was merged and applied on 2026-11-23 ([PR #2455](https://github.com/isejalabs/homelab/pull/2455)): the limit is 3 Gi and the probe timeout 5 s, the new server pod started with 0 restarts. Side effect: the memory limits on `qa-work-03`, where the server and the machine learning pod run together, now add up to 161 % of the node's allocatable memory (8.5 of 5.3 GiB), so placing the two on different workers is part of the test design below.
 
 ## What the `qa` test set shows
 
