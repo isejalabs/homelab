@@ -168,6 +168,20 @@ spec:
                 capabilities:
                   drop:
                     - ALL
+          # Keep the server off the worker that runs the machine learning pod: both have a limit of several GiB, and the
+          # two together exceed the 5.3 GiB a qa worker has allocatable (#2147). Only a preference, so that the server
+          # still starts next to the machine learning pod when no other worker has room.
+          pod:
+            affinity:
+              podAntiAffinity:
+                preferredDuringSchedulingIgnoredDuringExecution:
+                  - podAffinityTerm:
+                      labelSelector:
+                        matchLabels:
+                          app.kubernetes.io/instance: *name
+                          app.kubernetes.io/name: machine-learning
+                      topologyKey: kubernetes.io/hostname
+                    weight: 100
           # a second server pod during an upgrade would count against the namespace quota; a short outage is accepted
           strategy: Recreate
       # The chart mounts the upload dataset (immich.persistence.library above) at /data. On top of it: thumbnails and
