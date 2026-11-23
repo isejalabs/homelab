@@ -12,7 +12,7 @@ This is the same sequence as the [full cluster rebuild](backup/disaster-recovery
 
 ### Tools
 
-Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](../.mise.toml), [`terragrunt/.mise.toml`](../terragrunt/.mise.toml) and [`k8s/.mise.toml`](../k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them.
+Tool versions are pinned, never repeated in the docs: the root [`.mise.toml`](../.mise.toml), [`terragrunt/.mise.toml`](../terragrunt/.mise.toml) and [`k8s/.mise.toml`](../k8s/.mise.toml) are the source, and `mise install` in the repo root and in those two folders installs them (see [`operations/mise.md`](operations/mise.md) for the warnings it can print).
 
 | Tool | What it is for | Pinned in |
 | --- | --- | --- |
