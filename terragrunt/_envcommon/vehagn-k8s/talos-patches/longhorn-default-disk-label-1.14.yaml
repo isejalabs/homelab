@@ -1,0 +1,10 @@
+# Label of all workers of an environment whose Longhorn has create-default-disk-labeled-nodes on (qa, see #2147): with the
+# setting on, Longhorn creates the default disk (default-data-path) on a new node only if it carries this label. Without
+# it a replaced worker would silently get no disk. A node with existing disks is not changed by the label.
+# A node that should have another disk setup overrides the value in its own patch (bulk-worker-1.14.yaml).
+#
+# Talos 1.14+ variant: labels are on the KubeNodeConfig document (machine.nodeLabels is the older).
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+labels:
+  node.longhorn.io/create-default-disk: "true"

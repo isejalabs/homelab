@@ -34,6 +34,7 @@ locals {
   root_path   = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
+  bulk_disk_size      = include.envcommon.locals.work_disk_size-big
   cilium_path         = include.envcommon.locals.cilium_path
   cpu_type            = include.envcommon.locals.cpu_type
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
@@ -181,6 +182,28 @@ inputs = {
       startup       = local.work_startup
       vlan_id       = local.vlan_id
     }
+    # Temporary large worker for the bulk import of the size test (#2147), on pve6 which is normally powered off: the
+    # VM starts with the host (on_boot) and the node is NotReady while pve6 is off. The qa workloads must not depend on
+    # it, so it carries a soft taint and Longhorn must not place replicas on it (both in the node's patch).
+    # 4 vCPU and 8 GiB: pve6 has 8 threads and 32 GB and has to leave room for the VMs of a rebuild or src environment
+    # running at the same time; the CPU is what counts for the import, not the memory.
+    "${local.env}-work-04.${local.domain}" = {
+      host_node     = "pve6"
+      machine_type  = "worker"
+      ip            = "10.7.8.127"
+      vm_id         = 7008127
+      cpu           = 4
+      cpu_type      = local.cpu_type
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.bulk_disk_size
+      ram_dedicated = 8192
+      startup       = local.work_startup
+      vlan_id       = local.vlan_id
+      talos_config_patches = [
+        "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/bulk-worker-1.14.yaml",
+      ]
+    }
   }
 
   cilium_config = {
@@ -191,6 +214,10 @@ inputs = {
     {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
+    },
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/longhorn-default-disk-label-1.14.yaml"
+      machine_type = "worker"
     },
   ]
 
