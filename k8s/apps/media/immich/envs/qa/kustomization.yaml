@@ -37,6 +37,31 @@ patches:
     target:
       kind: HelmRelease
       name: immich
+  # Temporary (#2147): more memory for the server on the bulk-import worker qa-work-04 (7.2 GiB allocatable). With 3Gi its
+  # anonymous memory reached 2.6 GiB within an hour of the phone uploads and squeezed the page cache; the LimitRange
+  # ceiling and the quota move with it (limits 8448Mi now, 10496Mi with the server at 5Gi, 12Gi leaves headroom for a job).
+  # The other qa workers have 5.3 GiB allocatable, so the server only runs on qa-work-04 (the patch above). Revert with it.
+  - patch: |-
+      - op: replace
+        path: /spec/values/server/controllers/main/containers/main/resources/limits/memory
+        value: 5Gi
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/limits/0/max/memory
+        value: 5Gi
+    target:
+      kind: LimitRange
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 12Gi
+    target:
+      kind: ResourceQuota
+      name: immich
   - patch: |-
       - op: replace
         path: /spec/dataFrom/0/extract/key
