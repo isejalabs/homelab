@@ -46,7 +46,7 @@ spec:
             cronExpression: 0 02 * * *
             enabled: true
             keepLastAmount: 14
-        # Low on purpose: the server has 1.5 cores and the machine learning pod shares the node with other workloads
+        # Low on purpose: the server's CPU is limited and the machine learning pod shares the node with other workloads
         # (docs/architecture/workloads.md). The size test (#2147) raises them deliberately.
         job:
           backgroundTask:
@@ -156,9 +156,12 @@ spec:
               # The API and the job worker run in this one container, and so does `ffmpeg`. 2 Gi was hit at 0.9 GiB
               # idle plus one transcode plus the upload jobs (OOMKilled 15 times in 12 h, #2147); 3 Gi is the ceiling of
               # the LimitRange and a stop-gap, the final value comes from the size test.
+              # CPU: 1.5 cores throttled the container during the phone uploads of the size test (CPU pressure about 59 %,
+              # more than 20,000 throttled periods) while the 4 vCPU of the node were 22 % used (#2147). 3.5 is a ceiling,
+              # not a reservation (the request stays low); the other qa workers have 2 vCPU.
               resources:
                 limits:
-                  cpu: 1500m
+                  cpu: 3500m
                   memory: 3Gi
                 requests:
                   cpu: 250m
