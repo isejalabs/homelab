@@ -12,6 +12,31 @@ resources:
 # Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
 # ZFS-clone copies of the live Lightroom library, never the live one.
 patches:
+  # Temporary (#2147): the server runs on the bulk-import worker qa-work-04 on pve6 (terragrunt/non-prod/eu-central-1/qa),
+  # for the phone-upload test and the bulk import. Required, so that every measurement is on that node; the server stays
+  # Pending while pve6 is off. The toleration is for the soft taint of that node. Revert when the import is done, or keep
+  # it if the size test shows that the fourth worker stays.
+  - patch: |-
+      - op: add
+        path: /spec/values/server/controllers/main/pod/tolerations
+        value:
+          - effect: PreferNoSchedule
+            key: bulk-import
+            operator: Equal
+            value: "true"
+      - op: add
+        path: /spec/values/server/controllers/main/pod/affinity/nodeAffinity
+        value:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - qa-work-04.test.iseja.net
+    target:
+      kind: HelmRelease
+      name: immich
   - patch: |-
       - op: replace
         path: /spec/dataFrom/0/extract/key
