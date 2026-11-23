@@ -66,7 +66,7 @@ Immich must not starve other workloads, in `dev` with workers of 4 GiB (about 3.
 
 | | `qa` | `dev` |
 | --- | --- | --- |
-| Server | requests 250m, 768Mi; limits 1500m, 3Gi (2Gi was OOMKilled during transcodes and uploads, [#2147](https://github.com/isejalabs/homelab/issues/2147)) | requests 50m, 512Mi; limits 1 CPU, 1536Mi |
+| Server | requests 250m, 768Mi; limits 3500m, 3Gi (2Gi was OOMKilled during transcodes and uploads and 1500m throttled the phone uploads on a 4 vCPU node, [#2147](https://github.com/isejalabs/homelab/issues/2147)) | requests 50m, 512Mi; limits 1 CPU, 1536Mi |
 | Machine learning | requests 250m, 1Gi; limits 1500m, 3Gi | requests 50m, 512Mi; limits 1 CPU, 1536Mi |
 | Quota | requests 2 CPU, 4Gi; memory limits 9Gi | requests 1 CPU, 2560Mi; memory limits 6Gi |
 | Largest container | 3Gi | 1536Mi |
