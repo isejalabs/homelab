@@ -67,5 +67,5 @@ Consequences: the realm requires a second factor for every password login ([`key
 ## Open points
 
 - `prod`: register the client and apply it from `main` with the promotion, once Immich runs there ([#2443](https://github.com/isejalabs/homelab/issues/2443), blocked by [#2149](https://github.com/isejalabs/homelab/issues/2149)).
-- Keycloak-side group gate and then `autoRegister` on: see the [comment on #1768](https://github.com/isejalabs/homelab/issues/1768#issuecomment-7082762625); not decided.
+- Keycloak-side group gate and then `autoRegister` on: **decided against** (owner, 2026-11-23). Accounts stay pre-created and `autoRegister` stays off; the options that were weighed are in the [comment on #1768](https://github.com/isejalabs/homelab/issues/1768#issuecomment-7082762625).
 - Backchannel logout and an `immich_role` mapper are possible later module extensions; not needed under the decisions above.
