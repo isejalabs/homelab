@@ -140,6 +140,7 @@ nav:
   - Upgrade Kubernetes to the next minor: docs/operations/k8s-minor-upgrade.md
   - Roll out a Talos version: docs/operations/talos-upgrade.md
   - Automated dependency updates: docs/operations/update-handling.md
+  - Working with mise: docs/operations/mise.md
   - App storage variables: docs/operations/app-storage.md
   - Immich media storage on fiona: docs/operations/immich-media-storage.md
   - Project board statuses: docs/operations/project-board.md
