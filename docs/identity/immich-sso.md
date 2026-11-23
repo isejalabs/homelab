@@ -1,12 +1,12 @@
 ---
-status: draft
+status: current
 ---
 
 # Immich sign-in with Keycloak
 
 Immich signs its users in with OpenID Connect against the realm `iseja` of the identity provider ([ADR 0016](../decisions/0016-identity-and-web-sso.md), point 8). Tracking: [#1768](https://github.com/isejalabs/homelab/issues/1768) (parent), [#2440](https://github.com/isejalabs/homelab/issues/2440) (Keycloak client), [#2441](https://github.com/isejalabs/homelab/issues/2441) (Immich login), [#2442](https://github.com/isejalabs/homelab/issues/2442) (this page), [#2443](https://github.com/isejalabs/homelab/issues/2443) (`prod`). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
 
-**Status (2026-11-22):** the client is applied and the login is verified in `dev` (tested with `track-branch` before the merge); `qa` follows from `main` after the merge, `prod` with the promotion. The decisions below were taken by the owner on 2026-11-22. `dev` and `qa` run Immich, `prod` does not yet ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
+**Status (2026-11-22):** the client is applied and the login is verified in `dev` and `qa` (browser and mobile app, plus the local administrator); `prod` follows with the promotion. The decisions below were taken by the owner on 2026-11-22. `dev` and `qa` run Immich, `prod` does not yet ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
 
 ## What Immich can and cannot do
 
@@ -61,12 +61,11 @@ Consequences: the realm requires a second factor for every password login ([`key
 | env | Client | Settings | Verified |
 | --- | --- | --- | --- |
 | `dev` | yes (2026-11-22) | on `main` with the merge | yes, browser login (2026-11-22): a pre-created account links and signs in, an account without an Immich user is refused |
-| `qa` | no (apply from `main` after the merge) | on `main` with the merge | no |
+| `qa` | yes (2026-11-22, applied from `main`) | on `main` | yes (2026-11-22): browser login of a pre-created account, mobile app login, local administrator with password (break-glass) |
 | `prod` | no (with the promotion) | overlay prepared, unit not registered | no |
 
 ## Open points
 
-- Apply the client in `qa` from `main` after the merge, test the login there, test the break-glass once, then set the status of this page to `current`.
-- Mobile app login: not tested in `dev`; tested only if a phone is available.
+- `prod`: register the client and apply it from `main` with the promotion, once Immich runs there ([#2443](https://github.com/isejalabs/homelab/issues/2443), blocked by [#2149](https://github.com/isejalabs/homelab/issues/2149)).
 - Keycloak-side group gate and then `autoRegister` on: see the [comment on #1768](https://github.com/isejalabs/homelab/issues/1768#issuecomment-7082762625); not decided.
 - Backchannel logout and an `immich_role` mapper are possible later module extensions; not needed under the decisions above.
