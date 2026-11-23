@@ -145,10 +145,21 @@ spec:
               image:
                 repository: ghcr.io/immich-app/immich-server
                 tag: v3.4.2@sha256:fc880c1bf665b4aab1e74c15e56ab871225989cd546536e6b77e771869af06bd
+              # The chart's 1 s probe timeout is too short for a server that reclaims page cache at its memory limit
+              # (a timed-out liveness probe restarts the container): 5 s, same for all three probes.
+              probes:
+                liveness: &probe
+                  spec:
+                    timeoutSeconds: 5
+                readiness: *probe
+                startup: *probe
+              # The API and the job worker run in this one container, and so does `ffmpeg`. 2 Gi was hit at 0.9 GiB
+              # idle plus one transcode plus the upload jobs (OOMKilled 15 times in 12 h, #2147); 3 Gi is the ceiling of
+              # the LimitRange and a stop-gap, the final value comes from the size test.
               resources:
                 limits:
                   cpu: 1500m
-                  memory: 2Gi
+                  memory: 3Gi
                 requests:
                   cpu: 250m
                   memory: 768Mi
