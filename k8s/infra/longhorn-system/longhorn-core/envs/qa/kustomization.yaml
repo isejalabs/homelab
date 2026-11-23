@@ -10,6 +10,7 @@ resources:
 patches:
   - path: backup-target.yaml
   - path: csi-replicacount.yaml
+  - path: default-disk-labeled-nodes.yaml
   - path: minio-backup-secret.yaml
   - path: http-route-oauth2-proxy.yaml
     target:

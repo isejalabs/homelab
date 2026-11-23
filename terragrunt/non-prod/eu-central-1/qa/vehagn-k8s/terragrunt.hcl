@@ -184,7 +184,7 @@ inputs = {
     }
     # Temporary large worker for the bulk import of the size test (#2147), on pve6 which is normally powered off: the
     # VM starts with the host (on_boot) and the node is NotReady while pve6 is off. The qa workloads must not depend on
-    # it, so it carries a soft taint and Longhorn must not place replicas on it (docs/operations/immich-media-storage.md).
+    # it, so it carries a soft taint and Longhorn must not place replicas on it (both in the node's patch).
     # 4 vCPU and 8 GiB: pve6 has 8 threads and 32 GB and has to leave room for the VMs of a rebuild or src environment
     # running at the same time; the CPU is what counts for the import, not the memory.
     "${local.env}-work-04.${local.domain}" = {
@@ -201,7 +201,7 @@ inputs = {
       startup       = local.work_startup
       vlan_id       = local.vlan_id
       talos_config_patches = [
-        "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/bulk-worker-taint-1.14.yaml",
+        "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/bulk-worker-1.14.yaml",
       ]
     }
   }
@@ -214,6 +214,10 @@ inputs = {
     {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
+    },
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/longhorn-default-disk-label-1.14.yaml"
+      machine_type = "worker"
     },
   ]
 
