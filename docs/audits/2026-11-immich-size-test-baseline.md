@@ -41,6 +41,8 @@ Read-only, in the `immich` namespace of `qa` on 2026-11-23 between 07:00 and 08:
 
 The cause is the container limit, not the node and not the quota. A worker has 5.3 GiB allocatable and runs the server and the machine learning pod, so the limit cannot simply be raised far: the server needs a measured value and the worker size is a question for [#2148](https://github.com/isejalabs/homelab/issues/2148).
 
+The stop-gap was merged and applied on 2026-11-23 ([PR #2455](https://github.com/isejalabs/homelab/pull/2455)): the limit is 3 Gi and the probe timeout 5 s, the new server pod started with 0 restarts. Side effect: the memory limits on `qa-work-03`, where the server and the machine learning pod run together, now add up to 161 % of the node's allocatable memory (8.7 of 5.4 GiB), so placing the two on different workers is part of the test design below.
+
 ## What the `qa` test set shows
 
 n = 1,182 phone uploads (770 images, 412 videos, 7.8 GB). Extrapolation to 111,375 assets.
@@ -72,10 +74,14 @@ About 54,500 `.xmp` sidecars come on top (not assets). One year (2023) has 443 v
 1. **Subset:** a second external library whose import path is the year 2022 (8,400 assets, 170 GB) plus a few 4K videos from 2023 as a separate import path. Database state, no repository change; deleted afterwards.
 2. **Stages, one at a time:** scan and metadata, thumbnails, smart search and face detection, transcodes. Per stage: assets per minute, CPU and memory of the four workloads, `memory.peak` and `oom_kill`, cache growth, database size per 1,000 assets, Longhorn volume size, NFS load on `fiona`, load on the Proxmox host.
 3. **Concurrency** first as committed, then raised one stage at a time through the settings file (a git change; the web UI is locked).
-4. **Remote machine learning** for the bulk stage on the Mac (stock container, CPU only), the in-cluster pod as fallback; the same 2,000 assets both ways.
+4. **More compute from the Proxmox hosts first, the Mac second.** The owner wants to try the path through the cluster before the Mac is used (the Mac is only free at night):
+   - **Placement:** server and machine learning on different workers (now both on `qa-work-03`).
+   - **Temporary bulk worker on `pve6`:** a fourth `qa` worker, sized large, tainted and excluded from Longhorn replica scheduling so that the volumes do not depend on a host that is normally off. It exists for the bulk import only; if the sizing shows that Immich and the other workloads need four nodes permanently, it becomes a permanent node.
+   - **Parallel instances:** the documented split is one server container for the API and one for the job worker (`IMMICH_WORKERS_INCLUDE` and `IMMICH_WORKERS_EXCLUDE` set to `api`). More than one job-worker container and more than one machine learning replica behind one Service are not documented, so they are measured, not assumed.
+   - **Remote machine learning on the Mac** (stock container, CPU only, port 3003, no authentication) comes after this, for the night, the in-cluster pod as fallback; the same 2,000 assets both ways.
 5. **Extrapolation** from the rates per class and the class mix above.
 
-The test does not start while the owner is testing uploads by hand, and not before the server limit is raised (otherwise the first stage restarts the server again).
+The test does not start while the owner is testing uploads by hand. The server limit was raised to 3 Gi first (otherwise the first stage restarts the server again).
 
 ## Options researched
 
