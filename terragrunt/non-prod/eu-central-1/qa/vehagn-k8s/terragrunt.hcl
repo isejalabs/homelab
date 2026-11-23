@@ -185,18 +185,19 @@ inputs = {
     # Temporary large worker for the bulk import of the size test (#2147), on pve6 which is normally powered off: the
     # VM starts with the host (on_boot) and the node is NotReady while pve6 is off. The qa workloads must not depend on
     # it, so it carries a soft taint and Longhorn must not place replicas on it (docs/operations/immich-media-storage.md).
-    # 16 GiB at most, because a rebuild or src environment has to run on pve6 at the same time; the CPU is what counts.
+    # 4 vCPU and 8 GiB: pve6 has 8 threads and 32 GB and has to leave room for the VMs of a rebuild or src environment
+    # running at the same time; the CPU is what counts for the import, not the memory.
     "${local.env}-work-04.${local.domain}" = {
       host_node     = "pve6"
       machine_type  = "worker"
       ip            = "10.7.8.127"
       vm_id         = 7008127
-      cpu           = 8
+      cpu           = 4
       cpu_type      = local.cpu_type
       datastore     = local.datastore
       dns           = local.dns
       disk_size     = local.bulk_disk_size
-      ram_dedicated = 16384
+      ram_dedicated = 8192
       startup       = local.work_startup
       vlan_id       = local.vlan_id
       talos_config_patches = [
