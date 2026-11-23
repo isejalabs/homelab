@@ -1,0 +1,13 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: longhorn
+spec:
+  values:
+    defaultSettings:
+      # The scheduler counts the full size of every replica against the disk, but replicas are thin-provisioned and the
+      # qa workers have small disks (about 21 GB). At the default of 100 the three workers were out of schedulable space
+      # while about 60 % of the disks was free, so a new 5 Gi volume stayed degraded with one of two replicas. The free
+      # space check (storage-minimal-available-percentage) still guards the real usage.
+      storageOverProvisioningPercentage: 150

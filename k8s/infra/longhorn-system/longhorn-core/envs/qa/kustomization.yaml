@@ -12,6 +12,7 @@ patches:
   - path: csi-replicacount.yaml
   - path: default-disk-labeled-nodes.yaml
   - path: minio-backup-secret.yaml
+  - path: over-provisioning.yaml
   - path: http-route-oauth2-proxy.yaml
     target:
       kind: HTTPRoute
