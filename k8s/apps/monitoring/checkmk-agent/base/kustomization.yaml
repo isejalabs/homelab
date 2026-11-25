@@ -3,6 +3,9 @@ kind: Kustomization
 
 namespace: checkmk-kube-agent
 
+components:
+  - ../../../../components/apps/priority-high
+
 resources:
   - ns.yaml
   - helmrelease.yaml

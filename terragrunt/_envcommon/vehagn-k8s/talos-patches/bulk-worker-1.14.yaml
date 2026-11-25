@@ -1,0 +1,22 @@
+# Per-node patch of the bulk-import worker that is normally powered off (qa-work-04 on pve6, see #2147): a soft taint
+# and no Longhorn replicas on it.
+#
+# Soft taint on purpose: PreferNoSchedule lets the scheduler place a pod there only when nothing else fits, and it does not
+# stop DaemonSet pods (Longhorn, Cilium, CSI), which the node needs to join. A pod that should run on it (the Immich
+# server during the bulk import) tolerates the taint and selects the node.
+#
+# Longhorn: the unit's setting create-default-disk-labeled-nodes is on in qa (k8s/infra/longhorn-system/longhorn-core),
+# so a node gets its default disk only from its label. `config` takes the disk list from the annotation, whose disk has
+# allowScheduling false: the disk exists (volumes can be attached on the node) but no replica is placed on it. All other
+# workers carry the label `true` (longhorn-default-disk-label-1.14.yaml). Longhorn reads label and annotation once, when it
+# first registers the node.
+#
+# Talos 1.14+ variant: taints, labels and annotations are on the KubeNodeConfig document (machine.nodeTaints is the older).
+apiVersion: v1alpha1
+kind: KubeNodeConfig
+annotations:
+  node.longhorn.io/default-disks-config: '[{"path":"/var/mnt/longhorn","allowScheduling":false}]'
+labels:
+  node.longhorn.io/create-default-disk: config
+taints:
+  bulk-import: "true:PreferNoSchedule"

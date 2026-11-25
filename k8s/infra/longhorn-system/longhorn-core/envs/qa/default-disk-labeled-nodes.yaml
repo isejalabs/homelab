@@ -1,0 +1,12 @@
+---
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: longhorn
+spec:
+  values:
+    defaultSettings:
+      # A node gets its default disk only from the label node.longhorn.io/create-default-disk, which the Talos patches
+      # of the workers set (terragrunt/_envcommon/vehagn-k8s/talos-patches). The bulk-import worker on pve6 uses it to
+      # get its disk without replicas.
+      createDefaultDiskLabeledNodes: true

@@ -26,7 +26,7 @@ Immich keeps albums, people (faces), shares, users and the metadata of every ass
 | Copy | What | Where | Taken |
 | --- | --- | --- | --- |
 | Logical dump of this unit | `pg_dump --format=custom`, encrypted with [age](https://github.com/FiloSottile/age), the last 14 kept | bucket `<env>-immich-db` on `fiona` (RustFS) | daily 02:00 Europe/Berlin |
-| Immich's own dump | `pg_dumpall` output as `.sql.gz`, restorable from the Immich web UI | `UPLOAD_LOCATION/backups` on the upload dataset on `fiona`, which `fiona`'s own backups cover ([#2144](https://github.com/isejalabs/homelab/issues/2144)) | Immich job, default daily 02:00, keep 14 (default of the Immich release, set by the [Immich unit](https://github.com/isejalabs/homelab/issues/2146)) |
+| Immich's own dump | `pg_dumpall` output as `.sql.gz`, restorable from the Immich web UI | `UPLOAD_LOCATION/backups` on the upload dataset on `fiona`, which `fiona`'s own backups cover ([#2144](https://github.com/isejalabs/homelab/issues/2144)) | Immich job, daily 02:00, keep 14, set explicitly in the [settings of the Immich unit](../../k8s/apps/media/immich/README.md#settings-in-git) so that a changed default cannot turn it off |
 
 What a restore from a dump up to 24 h old loses: assets uploaded, albums changed and faces named since the dump. The files of those uploads are on `fiona`, but Immich does not know them; the recovery is to import them again. This is the accepted recovery point for `dev`, `qa` and `rebuild`. **`prod` has not decided it yet**: it is decided with the promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)), because phone uploads arrive all day and 24 h may be too long for a family archive.
 

@@ -42,6 +42,7 @@ The route is on the `internal` Gateway, so it is reachable from the LAN only. In
 - **Chart**: `spec.chart.spec.version` in [`base/helmrelease.yaml`](base/helmrelease.yaml). `prod` pins its own copy in [`envs/prod/helm-version.yaml`](envs/prod/helm-version.yaml), so a version PR for `prod` is separate and, being labeled `env:prod`, always waits for a manual merge: [Tracking a version separately per environment](../../../../docs/operations/update-handling.md#tracking-a-version-separately-per-environment).
 - Read Longhorn's upgrade notes before a minor bump (engine and volume versions); the pre-upgrade checker job is disabled here.
 - `prod`, `qa` and `rebuild` run two replicas of the CSI sidecars instead of one (`envs/<env>/csi-replicacount.yaml`).
+- `qa` creates a node's default disk only from the label `node.longhorn.io/create-default-disk` (`createDefaultDiskLabeledNodes`, `envs/qa/default-disk-labeled-nodes.yaml`): the Talos patches in [`terragrunt/_envcommon/vehagn-k8s/talos-patches`](../../../../terragrunt/_envcommon/vehagn-k8s/talos-patches) label every worker, and the temporary bulk-import worker `qa-work-04` on `pve6` gets a disk without replicas ([`node-lifecycle.md`](../../../../docs/operations/node-lifecycle.md#a-large-worker-on-a-host-that-is-normally-off-qa-work-04-on-pve6), [#2147](https://github.com/isejalabs/homelab/issues/2147)).
 
 ## Operations
 

@@ -169,7 +169,8 @@ The packages in the table below are `pinWatch` candidates: pinned in every envir
 
 Labeled `updateStrategy:manual` in [`automerge-disable.json5`](../../.github/renovate/automerge-disable.json5), excluded from automerge by both renovate and mergify:
 
-- Packages: `quay.io/cilium/charts/cilium`, `ghcr.io/cloudnative-pg/postgresql`, `ghcr.io/tensorchord/cloudnative-vectorchord`, `github.com/isejalabs/terraform-proxmox-talos`, `kubernetes/kubernetes`, `siderolabs/talos`.
+- Packages: `quay.io/cilium/charts/cilium`, `ghcr.io/cloudnative-pg/postgresql`, `ghcr.io/tensorchord/cloudnative-vectorchord`, `ghcr.io/immich-app/immich-server`, `ghcr.io/immich-app/immich-machine-learning`, `ghcr.io/immich-app/immich-charts/immich`, `github.com/isejalabs/terraform-proxmox-talos`, `kubernetes/kubernetes`, `siderolabs/talos`.
+- The two Immich images share one Renovate group (`immich`, [`pin-versions.json5`](../../.github/renovate/pin-versions.json5)): they must run the same version, so a release is one pull request. The image tags are set explicitly in the `HelmRelease` because the chart lags the application; `qa` is the gate for `prod` ([Immich unit](../../k8s/apps/media/immich/README.md#updates)).
 - Paths: `.github/**`, `terragrunt/**`, `tofu/**` — CI does not produce or review Terragrunt plans: [`terragrunt-validate.yml`](../../.github/workflows/terragrunt-validate.yml) formats and validates units without planning against remote state. A human must review the `plan` before merging (see the [CI guide](../architecture/ci.md)). This is also why these changes get exercised in `qa` before `prod` (see [`environments.md`](../architecture/environments.md#what-each-environment-is-for)): unlike a Kustomize/Flux change, which affects at most one app, a bad Terragrunt/Tofu apply is infrastructure-level and can take down the whole cluster (nodes, CNI, control plane).
 
 ## Pending

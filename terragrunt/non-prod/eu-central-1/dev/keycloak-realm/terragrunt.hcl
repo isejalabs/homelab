@@ -55,13 +55,36 @@ inputs = {
   # OIDC clients, one per application and realm; see docs/identity/keycloak-realms.md#oidc-clients. The Longhorn
   # dashboard has no login of its own: the oauth2-proxy of k8s/infra/longhorn-system/longhorn-auth logs in with this
   # client (realm admin, group sec.app.longhorn.admin). The generated secret lands in the 1Password item
-  # keycloak-oidc-longhorn-admin#dev, which an ExternalSecret hands to the proxy.
+  # keycloak-oidc-longhorn-admin#dev, which an ExternalSecret hands to the proxy. The Flux Operator Web UI has native OIDC
+  # (k8s/infra/flux-system/flux-operator): realm admin, group sec.app.flux-operator.admin, secret in the item
+  # keycloak-oidc-flux-operator-admin#dev, read by an ExternalSecret.
   oidc_clients = {
+    "flux-operator-admin" = {
+      realm         = "admin"
+      client_id     = "flux-operator"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "flux")}/oauth2/callback"]
+    }
     "longhorn-admin" = {
       realm         = "admin"
       client_id     = "longhorn"
       redirect_uris = ["${format(include.envcommon.locals.app_url_format, "longhorn")}/oauth2/callback"]
       pkce          = true
+    }
+
+    # Immich signs humans in natively (k8s/components/apps/immich-sso): realm iseja only, because Immich trusts one issuer.
+    # The redirect URIs are Immich's own: web login, linking an account in the settings, and the https forwarder to the
+    # mobile app's custom scheme (the module accepts https only; the Immich setting `mobileRedirectUri` points at it).
+    # The secret lands in keycloak-oidc-immich-iseja#<env>, read by an ExternalSecret. docs/identity/immich-sso.md
+    "immich-iseja" = {
+      realm     = "iseja"
+      client_id = "immich"
+      name      = "Immich"
+      pkce      = true
+      redirect_uris = [
+        "${format(include.envcommon.locals.app_url_format, "immich")}/api/oauth/mobile-redirect",
+        "${format(include.envcommon.locals.app_url_format, "immich")}/auth/login",
+        "${format(include.envcommon.locals.app_url_format, "immich")}/user-settings",
+      ]
     }
   }
 }

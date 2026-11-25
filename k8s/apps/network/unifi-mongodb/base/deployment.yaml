@@ -51,7 +51,7 @@ spec:
                   key: mongo_pass
             - name: MONGO_DBNAME
               value: unifidb
-          image: docker.io/mongo:8.0.38@sha256:d97fea17ccb8d004cd137be8dab54d70d0df11be69c9f422aefe4484c8414ab7
+          image: docker.io/mongo:8.0.38@sha256:479e85ced54ffb8a40dade1dcde2da2a9ae858515b9415e9cc54bfb8f0575d01
           # securityContext:
           #   allowPrivilegeEscalation: false
           #   readOnlyRootFilesystem: false

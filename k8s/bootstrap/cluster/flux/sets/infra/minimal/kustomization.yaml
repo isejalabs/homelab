@@ -4,9 +4,13 @@ kind: Kustomization
 
 namespace: flux-system
 
+components:
+  - ../../../../../../components/transformers/set-priority-class
+
 resources:
   - ../../../../../../infra/cert-manager/cert-manager/flux
   - ../../../../../../infra/common/ns/flux
+  - ../../../../../../infra/common/priority-classes/flux
   - ../../../../../../infra/csi-proxmox/proxmox-csi/flux
   - ../../../../../../infra/external-dns/external-dns/flux
   - ../../../../../../infra/external-secrets/external-secrets/flux

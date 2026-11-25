@@ -1,0 +1,48 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: flux-operator
+spec:
+  # the client secret never enters Git: External Secrets fills the Secret, the chart renders it into the web config
+  valuesFrom:
+    - kind: Secret
+      name: flux-operator-oidc
+      targetPath: web.config.authentication.oauth2.clientSecret
+      valuesKey: password
+  values:
+    web:
+      config:
+        authentication:
+          oauth2:
+            clientID: flux-operator
+            # a login needs a claim that names a flux-operator role group; the impersonated identity carries those groups
+            # only (never the other groups of the token, so a group like system:masters cannot be smuggled in) and the
+            # username only gets the prefix `oidc:` (so it cannot equal a ServiceAccount or a system: user)
+            impersonation:
+              groups: variables.groups
+              username: variables.username
+            issuerURL: https://auth.example.com/realms/admin
+            provider: OIDC
+            validations:
+              - expression: size(variables.groups) > 0
+                message: "the account is in no sec.app.flux-operator.* group"
+              - expression: variables.username != ''
+                message: the token has no preferred_username
+            variables:
+              # Keycloak may send the groups with a leading slash (full group path); the prefix filter drops everything else
+              - name: groups
+                expression: >-
+                  has(claims.groups) ? claims.groups.map(g, g.startsWith('/') ? g.substring(1) : g).filter(g,
+                  g.startsWith('sec.app.flux-operator.')) : []
+              - name: username
+                expression: >-
+                  has(claims.preferred_username) && claims.preferred_username != ''
+                  ? 'oidc:' + claims.preferred_username : ''
+          sessionDuration: 8h
+          type: OAuth2
+        baseURL: https://flux.example.com
+      # the user needs the action verbs only (see clusterrole.yaml); the operator performs the native patch/create itself
+      userActions:
+        access: FineGrained

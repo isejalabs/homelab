@@ -1,21 +1,36 @@
 name: "Docs mermaid check"
 on:
   pull_request:
-    paths:
-    - '**/*.md'
-    - docs/.mise.toml
-    - .github/workflows/docs-mermaid-check.yml
   push:
     branches:
     - main
-    paths:
-    - '**/*.md'
-    - docs/.mise.toml
-    - .github/workflows/docs-mermaid-check.yml
   workflow_dispatch:
 
 jobs:
+  changes:
+    permissions:
+      contents: read
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+    - uses: dorny/paths-filter@ceb8a2b8f2d89434be7ff52d3de7ec3738c5cc9d # v4.0.3
+      id: filter
+      with:
+        # see kustomize-build.yml: the default predicate-quantifier does not honor '!' exclusions
+        predicate-quantifier: 'some-with-excludes'
+        filters: |
+          relevant:
+          - "**/*.md"
+          - "docs/.mise.toml"
+          - ".github/workflows/docs-mermaid-check.yml"
+
   docs-mermaid-check:
+    needs: changes
+    # job-level if, not a workflow-level paths: trigger filter, so this job still reports a status (skipped
+    # counts as passing for required-status-checks purposes) instead of never running at all -- see #1511.
+    if: needs.changes.outputs.relevant == 'true' || github.event_name == 'workflow_dispatch'
     permissions:
       contents: read
     runs-on: ubuntu-latest

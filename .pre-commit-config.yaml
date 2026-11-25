@@ -98,3 +98,23 @@ repos:
     require_serial: true
     types: [text]
     verbose: true
+# Script lint (docs/architecture/ci.md#script-lint-advisory). Both hooks are in the manual stage: they run neither on
+# `git commit` nor in the required pre-commit check, only when asked for (`pre-commit run --hook-stage manual <id>
+# --all-files`) and in the advisory script-lint job of the pre-commit workflow.
+- repo: https://github.com/shellcheck-py/shellcheck-py
+  rev: v0.11.0.1
+  hooks:
+  - id: shellcheck
+    # not plain shell: init-mongo.sh is a template (`$$` escapes for the tool that renders it), .envrc is a direnv
+    # file without a shebang
+    exclude: ^(?:k8s/apps/network/unifi-mongodb/base/assets/init-mongo\.sh|.*/\.envrc)$
+    stages: [manual]
+- repo: local
+  hooks:
+  - id: just-fmt
+    name: just --fmt --check
+    description: Fails when a justfile or just module differs from the output of the pinned just's own formatter; fix with just --fmt --justfile <file>.
+    entry: sh -c 'rc=0; for f; do just --fmt --check --justfile "$f" || rc=1; done; exit "$rc"' --
+    language: system
+    files: (^|/)\.?justfile$|\.just$
+    stages: [manual]

@@ -127,6 +127,15 @@ inputs = {
       pkce = true
     }
 
+    # The Flux Operator Web UI signs in with this client (realm admin, group sec.app.flux-operator.admin); its overlay in
+    # k8s/infra/flux-system/flux-operator reads the secret from the item keycloak-oidc-flux-operator-admin#prod, see
+    # docs/identity/flux-operator-sso.md.
+    "flux-operator-admin" = {
+      realm         = "admin"
+      client_id     = "flux-operator"
+      redirect_uris = ["${format(include.envcommon.locals.app_url_format, "flux")}/oauth2/callback"]
+    }
+
     # Zigbee2MQTT has no login of its own; the unit zigbee2mqtt-auth puts an oauth2-proxy (realm admin, group
     # sec.app.zigbee2mqtt.admin) in front of it, see docs/identity/zigbee2mqtt-sso.md. Zigbee2MQTT runs in prod only,
     # hence no entry in the dev and qa units. The generated secret lands in the 1Password item

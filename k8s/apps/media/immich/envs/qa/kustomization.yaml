@@ -1,0 +1,112 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/qa
+  - ../../../../../components/apps/immich-sso
+
+resources:
+  - ../../base
+
+# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
+# ZFS-clone copies of the live Lightroom library, never the live one.
+patches:
+  # Temporary (#2147): the server runs on the bulk-import worker qa-work-04 on pve6 (terragrunt/non-prod/eu-central-1/qa),
+  # for the phone-upload test and the bulk import. Required, so that every measurement is on that node; the server stays
+  # Pending while pve6 is off. The toleration is for the soft taint of that node. Revert when the import is done, or keep
+  # it if the size test shows that the fourth worker stays.
+  - patch: |-
+      - op: add
+        path: /spec/values/server/controllers/main/pod/tolerations
+        value:
+          - effect: PreferNoSchedule
+            key: bulk-import
+            operator: Equal
+            value: "true"
+      - op: add
+        path: /spec/values/server/controllers/main/pod/affinity/nodeAffinity
+        value:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - qa-work-04.test.iseja.net
+    target:
+      kind: HelmRelease
+      name: immich
+  # Temporary (#2147): more memory for the server on the bulk-import worker qa-work-04 (7.2 GiB allocatable). With 3Gi its
+  # anonymous memory reached 2.6 GiB within an hour of the phone uploads and squeezed the page cache; the LimitRange
+  # ceiling and the quota move with it (limits 8448Mi now, 10496Mi with the server at 5Gi, 12Gi leaves headroom for a job).
+  # The other qa workers have 5.3 GiB allocatable, so the server only runs on qa-work-04 (the patch above). Revert with it.
+  - patch: |-
+      - op: replace
+        path: /spec/values/server/controllers/main/containers/main/resources/limits/memory
+        value: 5Gi
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/limits/0/max/memory
+        value: 5Gi
+    target:
+      kind: LimitRange
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 12Gi
+    target:
+      kind: ResourceQuota
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-oidc-immich-iseja#qa
+    target:
+      kind: ExternalSecret
+      name: immich-oidc
+  - patch: |-
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/accountManagementUrl
+        value: https://qa-auth.qa.iseja.net/realms/iseja/account
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/issuerUrl
+        value: https://qa-auth.qa.iseja.net/realms/iseja
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/mobileRedirectUri
+        value: https://qa-immich.qa.iseja.net/api/oauth/mobile-redirect
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/qa/upload
+    target:
+      kind: PersistentVolume
+      name: immich-upload
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/qa/cache
+    target:
+      kind: PersistentVolume
+      name: immich-cache
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/qa/Pictures/orig
+    target:
+      kind: PersistentVolume
+      name: immich-library
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/qa/Pictures/export
+    target:
+      kind: PersistentVolume
+      name: immich-export

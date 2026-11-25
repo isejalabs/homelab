@@ -1,0 +1,71 @@
+---
+status: draft
+---
+
+# Flux Operator Web UI SSO
+
+Browser sign-in to the Flux Operator Web UI through the identity provider of [ADR 0016](../decisions/0016-identity-and-web-sso.md). Tracking: [#1726](https://github.com/isejalabs/homelab/issues/1726); the first scenario (`bob-adm`, realm `admin`) is [#2233](https://github.com/isejalabs/homelab/issues/2233), the operator and read-only roles are [#2234](https://github.com/isejalabs/homelab/issues/2234). Rollout rules: [#2198](https://github.com/isejalabs/homelab/issues/2198).
+
+**Status (2026-11-21):** rolled out in `dev` and `qa` and checked by the owner: a login as `bob-adm` through the realm `admin` works in both, and in `dev` an account that is in `sec.idm.admins` but in no `sec.app.flux-operator.*` group is refused at the login. The `prod` overlay is in review.
+
+## How it works
+
+The Web UI of the operator (port 9080, published by the `HTTPRoute` of [`flux-operator`](../../k8s/infra/flux-system/flux-operator/README.md#access)) has native OIDC. After the login it **impersonates** the user against the Kubernetes API with the username and groups it extracted from the ID token, so Kubernetes RBAC is the authorization and the UI adds no rules of its own. No gateway filter or proxy is involved.
+
+| Part | Where it lives |
+| --- | --- |
+| Keycloak client `flux-operator` in the realm `admin` | Code: entry `flux-operator-admin` in `oidc_clients` of the unit [`dev/keycloak-realm`](../../terragrunt/non-prod/eu-central-1/dev/keycloak-realm/terragrunt.hcl) ([OIDC clients](keycloak-realms.md#oidc-clients)); redirect URI `https://<flux host>/oauth2/callback` |
+| Client secret | 1Password item `keycloak-oidc-flux-operator-admin#<env>` (field `password`), written by the `keycloak-realm` unit and delivered by an `ExternalSecret`, rendered by the chart into the web config; never in Git |
+| Web config (issuer, claim rules) | `HelmRelease` values `web.config` in the shared component [`flux-operator-sso`](../../k8s/components/apps/flux-operator-sso/README.md) (patch [`helmrelease.yaml`](../../k8s/components/apps/flux-operator-sso/helmrelease.yaml)), included by `envs/<env>` |
+| Authorization | `ClusterRoleBinding` of the group `sec.app.flux-operator.admin` to the custom `ClusterRole` [`flux-operator-web-admin`](../../k8s/components/apps/flux-operator-sso/clusterrole.yaml), see [Role](#role-of-the-admin-group) |
+| UCS group | `sec.app.flux-operator.admin`, member `bob-adm` ([`ucs-groups.md`](ucs-groups.md)); creation needs the owner's go |
+
+## Claim handling
+
+The operator's service account may impersonate **any** user and group, so a claim that is forwarded unfiltered would be an escalation (the class of GO-2026-4351, an empty claim granted access before 0.40.0). The config therefore does not use the defaults (`email`, `groups`):
+
+- **groups:** only the entries that start with `sec.app.flux-operator.` are impersonated, a leading `/` (Keycloak's full group path) is removed first. Other groups of the token, for example a `system:masters`, never reach the API server.
+- **username:** `oidc:` plus `preferred_username`, so it cannot equal a service account or a `system:` user and the audit log shows where the request came from. Keep the prefix in step with the Kubernetes API OIDC work ([#1766](https://github.com/isejalabs/homelab/issues/1766)).
+- **validations:** the login is refused when no `sec.app.flux-operator.*` group is left or the username is empty. A missing `groups` claim yields an empty list (`has()` guard), so it never grants anything and never errors into a default.
+
+## Role of the admin group
+
+The chart's predefined roles are not used. `flux-web-user` and `flux-web-admin` read `*/*`, which includes every `Secret` and `ConfigMap`, and `flux-web-admin` adds `patch` on Flux resources and workloads, job creation and pod deletion. The RBAC would then not protect secrets, and every member of the group (and any later Kubernetes API binding of it, [#1766](https://github.com/isejalabs/homelab/issues/1766)) would hold those natively. Decision, after the review of [PR #2241](https://github.com/isejalabs/homelab/pull/2241): the group `sec.app.flux-operator.admin` gets the custom role [`flux-operator-web-admin`](../../k8s/components/apps/flux-operator-sso/clusterrole.yaml), which grants:
+
+| Area | Verbs |
+| --- | --- |
+| Flux resources (all Flux API groups) | `get`, `list`, `watch` and the actions `reconcile`, `suspend`, `resume`, `download` |
+| `deployments`, `statefulsets`, `daemonsets`, `cronjobs`, `jobs` | `get`, `list`, `watch` and the action `restart` |
+| `replicasets`, `events` | `get`, `list`, `watch` |
+| `pods` | `get`, `list`, `watch`, `delete` (the delete is the pod action; the verb is native) |
+| `pods/log` | `get` |
+
+Not granted: `Secret`, `ConfigMap`, any other kind, `patch`/`create`/`update`, node and namespace listing (the dashboard gets the namespace list and the node summary from the operator itself, see the [least-privilege page](https://github.com/controlplaneio-fluxcd/flux-operator/blob/v0.62.1/docs/web/web-least-privilege-rbac.md)). The UI runs in `userActions.access: FineGrained`: it checks the action verb against the user and performs the native `patch`/`create` with the operator's own account (which is `cluster-admin` when the UI is embedded, as here). The group therefore needs no write verb for the Flux actions, so a Kubernetes API login of the same account cannot patch anything. Flux actions are still powerful (a `suspend` of the `Kustomization` of a unit stops its reconciliation); that is the purpose of the admin role and is intended. The roles of [#2234](https://github.com/isejalabs/homelab/issues/2234) are cut the same way.
+
+## Versions
+
+Flux Operator **0.63.0** (chart and app, pinned in [`ocirepository.yaml`](../../k8s/infra/flux-system/flux-operator/base/ocirepository.yaml)), running in `dev`, `qa` and `prod` (checked 2026-11-21); the SSO was first built and checked on 0.62.1 and kept working on the update. The minimum is 0.40.0 (GO-2026-4351).
+
+## Rollout state
+
+| env | Config | Applied | Verified |
+| --- | --- | --- | --- |
+| `dev` | yes | yes (2026-11-17) | login of the admin account, refusal of an admin-realm account without a role group, RBAC, Flux health (2026-11-21) |
+| `qa` | yes | yes (2026-11-21) | login of the admin account by the owner, RBAC, redirect to the realm login, Flux health (2026-11-21) |
+| `prod` | in review | client and 1Password item (2026-11-21) | no |
+
+Environments without a Keycloak (`dbg`, `head`, `poc`, `rebuild`, `src`) keep the UI as it is: no login, the identity of the operator's service account. That is a decision of the Web UI default, not of this change.
+
+## MFA
+
+The realm `admin` requires a second factor ([`keycloak-mfa.md`](keycloak-mfa.md)). At the UI login Keycloak offers the factors the account has configured, OTP and WebAuthn, and presents the one used last. The UI itself adds nothing: the second factor is entirely the realm's.
+
+## Break-glass
+
+The `kubectl` and `flux` CLI with the Talos-issued admin kubeconfig do not use the Web UI or Keycloak, and Flux reconciliation does not depend on the UI login: if Keycloak is down, only the browser login fails. To go back to the open UI, remove `valuesFrom` and `web.config` from the overlay (or `helm upgrade` by hand).
+
+## Open points
+
+- Merge the `prod` overlay and check the login and the RBAC there as in `dev` and `qa`.
+- MFA behaviour of the realm `admin` is recorded after the first real login.
+- Operator and read-only roles for the everyday accounts (`bob`, other users) and the question of a second realm: [#2234](https://github.com/isejalabs/homelab/issues/2234).
