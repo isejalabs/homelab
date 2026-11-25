@@ -10,7 +10,7 @@ See [`docs/architecture/workloads.md`](../docs/architecture/workloads.md) for a 
 │   ├── 📁 finances          # personal finance: actualbudget
 │   ├── 📁 home-automation   # smart home: zigbee2mqtt, zigbee2mqtt-auth
 │   ├── 📁 identity          # identity provider: keycloak
-│   ├── 📁 media             # photo archive: immich-db
+│   ├── 📁 media             # photo and video archive: immich, immich-db
 │   ├── 📁 monitoring        # monitoring: checkmk-agent, metrics-server
 │   └── 📁 network           # network management: unifi-controller, unifi-mongodb
 ├── 📁 bootstrap             # second bootstrap phase: helmfile, then the hand-off to Flux (see bootstrap/README.md)

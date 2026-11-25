@@ -6,6 +6,7 @@ kind: Kustomization
 namespace: powerdns
 
 components:
+  - ../../../../components/apps/priority-high
   - ../../../../components/apps/storage/pvc
 
 resources:

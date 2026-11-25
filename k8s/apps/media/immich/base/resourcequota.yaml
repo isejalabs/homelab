@@ -1,0 +1,19 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/core/resourcequota_v1.json
+# The namespace is shared with immich-db (database, Valkey, dump jobs), so this is the ceiling for the whole Immich
+# stack: what the pods may request and the most memory they may use. A heavy job (machine learning over a whole
+# library) can fill its own limits but not the cluster. CPU is capped per container in helmrelease.yaml, not here: the
+# database has no CPU limit, and a quota on limits would need one. The memory values are the sum of the container
+# limits in helmrelease.yaml and in immich-db plus headroom for a job; server and machine learning use the Recreate
+# strategy, so no extra pod counts during an upgrade. Patched per environment in envs/<env>/.
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: immich
+spec:
+  hard:
+    limits.memory: 9Gi
+    persistentvolumeclaims: "12"
+    pods: "20"
+    requests.cpu: "2"
+    requests.memory: 4Gi

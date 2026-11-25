@@ -1,0 +1,20 @@
+---
+# yaml-language-server: $schema=https://json.schemastore.org/kustomization
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: immich
+
+components:
+  # the machine learning model cache: a Longhorn volume, regenerable, so without backup (APP in flux/ks.yaml)
+  - ../../../../components/apps/storage/pvc-no-backup
+
+resources:
+  - helmrelease.yaml
+  - http-route.yaml
+  - limitrange.yaml
+  - ocirepository.yaml
+  - priorityclass.yaml
+  - pv.yaml
+  - pvc.yaml
+  - resourcequota.yaml

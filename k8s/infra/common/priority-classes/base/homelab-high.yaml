@@ -1,0 +1,13 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/scheduling.k8s.io/priorityclass_v1.json
+# Scheduling priority of the infra units and of the apps the homelab cannot do without (monitoring, DNS, identity).
+# Above the default of 0 that every other workload has and above Immich's -100, below longhorn-critical and the
+# system classes. It preempts: under memory or disk pressure these pods push out ordinary apps, not the other way
+# round. Set on the infra units by the set-priority-class component, on a short list of apps by opt-in.
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: homelab-high
+description: Infra units and the apps that monitoring, DNS and identity depend on
+preemptionPolicy: PreemptLowerPriority
+value: 100000

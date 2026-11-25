@@ -1,0 +1,37 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/helm.toolkit.fluxcd.io/helmrelease_v2.json
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: immich
+spec:
+  # the client secret never enters Git: External Secrets fills the Secret, Flux puts it into the settings file values
+  valuesFrom:
+    - kind: Secret
+      name: immich-oidc
+      targetPath: immich.configuration.oauth.clientSecret
+      valuesKey: password
+  values:
+    immich:
+      configuration:
+        # Native OIDC against the realm `iseja` (docs/identity/immich-sso.md). Immich has no group check and one issuer
+        # only: who may sign in is decided by `autoRegister: false` (an administrator creates the account, the first
+        # login links it by e-mail address), the local password login stays for the administrator and as break-glass.
+        # No role claim is mapped, so a login never changes the administrator flag.
+        oauth:
+          # the "account" link of Immich's user menu: Keycloak's account console, where the password and second factor of
+          # the account are managed
+          accountManagementUrl: https://auth.example.com/realms/iseja/account
+          autoLaunch: false
+          autoRegister: false
+          buttonText: Sign in with Keycloak
+          clientId: immich
+          enabled: true
+          issuerUrl: https://auth.example.com/realms/iseja
+          # the app's own redirect (app.immich:///oauth-callback) cannot be registered at Keycloak (https only), so the
+          # app sends this https forwarder instead, which Immich serves itself
+          mobileOverrideEnabled: true
+          mobileRedirectUri: https://immich.example.com/api/oauth/mobile-redirect
+          scope: openid email profile
+      # the settings file holds the client secret, so the chart renders it into a Secret instead of a ConfigMap
+      configurationKind: Secret

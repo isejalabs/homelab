@@ -1,0 +1,131 @@
+---
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+components:
+  - ../../../../../components/envs/dev
+  - ../../../../../components/apps/immich-sso
+
+resources:
+  - ../../base
+
+# Export paths on the NAS `fiona`, see docs/operations/immich-media-storage.md for the datasets behind them. The library and export are
+# ZFS-clone copies of the live Lightroom library, never the live one.
+patches:
+  - patch: |-
+      - op: replace
+        path: /spec/dataFrom/0/extract/key
+        value: keycloak-oidc-immich-iseja#dev
+    target:
+      kind: ExternalSecret
+      name: immich-oidc
+  - patch: |-
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/accountManagementUrl
+        value: https://dev-auth.dev.iseja.net/realms/iseja/account
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/issuerUrl
+        value: https://dev-auth.dev.iseja.net/realms/iseja
+      - op: replace
+        path: /spec/values/immich/configuration/oauth/mobileRedirectUri
+        value: https://dev-immich.dev.iseja.net/api/oauth/mobile-redirect
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/dev/upload
+    target:
+      kind: PersistentVolume
+      name: immich-upload
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/fiona2/gamma/srv/immich/dev/cache
+    target:
+      kind: PersistentVolume
+      name: immich-cache
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/dev/Pictures/orig
+    target:
+      kind: PersistentVolume
+      name: immich-library
+  - patch: |-
+      - op: replace
+        path: /spec/nfs/path
+        value: /mnt/natascha1/gamma/srv/immich-copy/dev/Pictures/export
+    target:
+      kind: PersistentVolume
+      name: immich-export
+  # `dev` has 4 GiB workers that are mostly full (docs/architecture/environments.md): a unit-test sized Immich for the web
+  # UI and at most 10 photos and videos, with one job of each kind at a time. Everything above the qa values is
+  # patched down here; phone uploads and bulk jobs belong in qa.
+  - patch: |-
+      apiVersion: helm.toolkit.fluxcd.io/v2
+      kind: HelmRelease
+      metadata:
+        name: immich
+      spec:
+        values:
+          immich:
+            configuration:
+              job:
+                backgroundTask:
+                  concurrency: 1
+                metadataExtraction:
+                  concurrency: 1
+                thumbnailGeneration:
+                  concurrency: 1
+          machine-learning:
+            controllers:
+              main:
+                containers:
+                  main:
+                    env:
+                      MACHINE_LEARNING_MODEL_TTL: "60"
+                      MACHINE_LEARNING_REQUEST_THREADS: "1"
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1536Mi
+                      requests:
+                        cpu: 50m
+                        memory: 512Mi
+          server:
+            controllers:
+              main:
+                containers:
+                  main:
+                    resources:
+                      limits:
+                        cpu: "1"
+                        memory: 1536Mi
+                      requests:
+                        cpu: 50m
+                        memory: 512Mi
+    target:
+      kind: HelmRelease
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/limits/0/max/memory
+        value: 1536Mi
+    target:
+      kind: LimitRange
+      name: immich
+  - patch: |-
+      - op: replace
+        path: /spec/hard/limits.memory
+        value: 6Gi
+      - op: replace
+        path: /spec/hard/requests.cpu
+        value: "1"
+      - op: replace
+        path: /spec/hard/requests.memory
+        value: 2560Mi
+    target:
+      kind: ResourceQuota
+      name: immich

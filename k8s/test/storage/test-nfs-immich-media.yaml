@@ -1,0 +1,55 @@
+---
+# Acceptance test for the Immich media volumes on `fiona` (docs/operations/immich-media-storage.md). Needs the
+# `immich` unit (k8s/apps/media/immich) applied in the cluster. Mounts the upload and cache volumes read-write and
+# the library and export volumes read-only, writes to each, and prints OK or FAIL per volume; read the result
+# with `kubectl logs test-nfs-immich-media -n immich`. The read-only mounts are deliberately not marked
+# `readOnly` here, so the check proves the PV and the NFS share, not this manifest. Delete the Pod and the
+# test files afterwards (the Pod removes its own files on every volume it could write to).
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-nfs-immich-media
+  namespace: immich
+spec:
+  containers:
+    - name: test
+      command:
+        - sh
+        - -c
+        - |
+          for v in upload cache; do
+            if echo test > /mnt/$v/.nfs-test && rm /mnt/$v/.nfs-test; then echo "OK   $v: writable"; else echo "FAIL $v: not writable"; fi
+          done
+          for v in library export; do
+            if touch /mnt/$v/.nfs-test 2>/dev/null; then rm -f /mnt/$v/.nfs-test; echo "FAIL $v: writable"; else echo "OK   $v: read-only"; fi
+            ls /mnt/$v >/dev/null && echo "OK   $v: readable" || echo "FAIL $v: not readable"
+          done
+          mount | grep ' /mnt/'
+          sleep 3600
+      image: busybox@sha256:a46257e06c82ad85242d0d38077d0a52d9896389ca60a1a59d3463db586e5fa4
+      securityContext:
+        runAsGroup: 20002
+        runAsUser: 10004
+      volumeMounts:
+        - name: upload
+          mountPath: /mnt/upload
+        - name: cache
+          mountPath: /mnt/cache
+        - name: library
+          mountPath: /mnt/library
+        - name: export
+          mountPath: /mnt/export
+  restartPolicy: Never
+  volumes:
+    - name: upload
+      persistentVolumeClaim:
+        claimName: immich-upload
+    - name: cache
+      persistentVolumeClaim:
+        claimName: immich-cache
+    - name: library
+      persistentVolumeClaim:
+        claimName: immich-library
+    - name: export
+      persistentVolumeClaim:
+        claimName: immich-export

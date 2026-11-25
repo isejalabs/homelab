@@ -24,7 +24,7 @@ include "envcommon" {
 # environment at a time (e.g., qa -> stage -> prod).
 terraform {
   # using hard-coded URL instead of envcommon variable, so renovate can deal with it
-  source = "git::https://github.com/isejalabs/terraform-proxmox-talos.git?ref=v7.6.0"
+  source = "git::https://github.com/isejalabs/terraform-proxmox-talos.git?ref=v7.7.0"
 }
 
 locals {
@@ -34,12 +34,14 @@ locals {
   root_path   = "${dirname(find_in_parent_folders("root.hcl"))}"
 
   # Reuse the common variables from the envcommon configuration
+  bulk_disk_size      = include.envcommon.locals.work_disk_size-big
   cilium_path         = include.envcommon.locals.cilium_path
   cpu_type            = include.envcommon.locals.cpu_type
   ctrl_cpu            = include.envcommon.locals.ctrl_cpu
   ctrl_datastore      = include.envcommon.locals.ctrl_datastore
   ctrl_disk_size      = include.envcommon.locals.ctrl_disk_size
   ctrl_ram            = include.envcommon.locals.ctrl_ram
+  ctrl_startup        = include.envcommon.locals.ctrl_startup
   datastore           = include.envcommon.locals.datastore
   dns                 = include.envcommon.locals.dns
   domain              = include.envcommon.locals.domain
@@ -48,6 +50,7 @@ locals {
   work_cpu            = include.envcommon.locals.work_cpu
   work_disk_size      = include.envcommon.locals.work_disk_size-medium
   work_ram            = include.envcommon.locals.work_ram-big
+  work_startup        = include.envcommon.locals.work_startup
 
   # Set some values specific to this environment
   storage_vmid = 9812
@@ -106,6 +109,7 @@ inputs = {
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
+    #   startup       = local.ctrl_startup
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
@@ -119,6 +123,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.ctrl_disk_size
       ram_dedicated = local.ctrl_ram
+      startup       = local.ctrl_startup
       vlan_id       = local.vlan_id
     }
     # "${local.env}-ctrl-03.${local.domain}" = {
@@ -131,6 +136,7 @@ inputs = {
     #   dns           = local.dns
     #   disk_size     = local.ctrl_disk_size
     #   ram_dedicated = local.ctrl_ram
+    #   startup       = local.ctrl_startup
     #   vlan_id       = local.vlan_id
     #   # update        = true
     # }
@@ -145,6 +151,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
     }
     "${local.env}-work-02.${local.domain}" = {
@@ -158,6 +165,7 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
     }
     "${local.env}-work-03.${local.domain}" = {
@@ -171,7 +179,30 @@ inputs = {
       dns           = local.dns
       disk_size     = local.work_disk_size
       ram_dedicated = local.work_ram
+      startup       = local.work_startup
       vlan_id       = local.vlan_id
+    }
+    # Temporary large worker for the bulk import of the size test (#2147), on pve6 which is normally powered off: the
+    # VM starts with the host (on_boot) and the node is NotReady while pve6 is off. The qa workloads must not depend on
+    # it, so it carries a soft taint and Longhorn must not place replicas on it (both in the node's patch).
+    # 4 vCPU and 8 GiB: pve6 has 8 threads and 32 GB and has to leave room for the VMs of a rebuild or src environment
+    # running at the same time; the CPU is what counts for the import, not the memory.
+    "${local.env}-work-04.${local.domain}" = {
+      host_node     = "pve6"
+      machine_type  = "worker"
+      ip            = "10.7.8.127"
+      vm_id         = 7008127
+      cpu           = 4
+      cpu_type      = local.cpu_type
+      datastore     = local.datastore
+      dns           = local.dns
+      disk_size     = local.bulk_disk_size
+      ram_dedicated = 8192
+      startup       = local.work_startup
+      vlan_id       = local.vlan_id
+      talos_config_patches = [
+        "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/bulk-worker-1.14.yaml",
+      ]
     }
   }
 
@@ -183,6 +214,10 @@ inputs = {
     {
       path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/leader-election-1.14.yaml"
       machine_type = "controlplane"
+    },
+    {
+      path         = "${local.root_path}/_envcommon/vehagn-k8s/talos-patches/longhorn-default-disk-label-1.14.yaml"
+      machine_type = "worker"
     },
   ]
 

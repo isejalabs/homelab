@@ -1,0 +1,54 @@
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+# Opt-in for an app: sets the priority class homelab-high (infra/common/priority-classes) on the pods of the unit. The
+# infra units get the same through the set-priority-class transformer on their Flux set; an app opts in here because a
+# short, explicit list of apps is meant to win under pressure and a forgotten app safely stays at the default.
+patches:
+  # the chart is not ours: a post-renderer on the rendered objects. Replaces spec.postRenderers wholesale.
+  - patch: |-
+      - op: add
+        path: /spec/postRenderers
+        value:
+          - kustomize:
+              patches:
+                - target:
+                    kind: Deployment
+                  patch: |-
+                    - op: add
+                      path: /spec/template/spec/priorityClassName
+                      value: homelab-high
+                - target:
+                    kind: StatefulSet
+                  patch: |-
+                    - op: add
+                      path: /spec/template/spec/priorityClassName
+                      value: homelab-high
+                - target:
+                    kind: DaemonSet
+                  patch: |-
+                    - op: add
+                      path: /spec/template/spec/priorityClassName
+                      value: homelab-high
+    target:
+      kind: HelmRelease
+      group: helm.toolkit.fluxcd.io
+  # plain workloads in the unit
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/priorityClassName
+        value: homelab-high
+    target:
+      kind: Deployment
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/priorityClassName
+        value: homelab-high
+    target:
+      kind: StatefulSet
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/priorityClassName
+        value: homelab-high
+    target:
+      kind: DaemonSet

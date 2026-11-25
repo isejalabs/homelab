@@ -15,12 +15,15 @@ mod bootstrap "k8s/bootstrap"
 # App backup/restore maintenance recipes
 mod backup "scripts/ops/backup.just"
 
+# Kubernetes pod/job helper recipes
+mod k8s "scripts/ops/k8s/mod.just"
+
 # Proxmox VM snapshot/rollback recipes (#1296)
 mod proxmox "scripts/ops/proxmox/mod.just"
 
 [private]
 logstep stage msg:
-    just log debug "Running step... {{msg}}" "stage" "{{ stage }}"
+    just log debug "Running step... {{ msg }}" "stage" "{{ stage }}"
 
 [private]
 log lvl msg *args:

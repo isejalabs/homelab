@@ -3,6 +3,9 @@ kind: Kustomization
 
 namespace: unbound
 
+components:
+  - ../../../../components/apps/priority-high
+
 resources:
   - ns.yaml
   - deployment.yaml
