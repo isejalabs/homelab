@@ -116,8 +116,8 @@ Zigbee2MQTT runs in `prod` only and `prod` applies run from `main`, so the rollo
 
 | Step | State |
 | --- | --- |
-| 1. Keycloak client `zigbee2mqtt` in `prod` | in a pull request of its own ([#2255](https://github.com/isejalabs/homelab/pull/2255)); applied from `main` on the owner's go, one `keycloak-realm` apply at a time |
-| 2. 1Password item `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`, 32 random bytes), UCS group `sec.app.zigbee2mqtt.admin` with `bob-adm` | by hand, the group with the owner's go; after the group sync clear the Keycloak user cache of `bob-adm` ([`longhorn-sso.md`](longhorn-sso.md#rollout): a new membership is not seen by a cached user) |
+| 1. Keycloak client `zigbee2mqtt` in `prod` | done 2026-11-25: [#2255](https://github.com/isejalabs/homelab/pull/2255) merged and `keycloak-realm` applied from `main` (3 added, a second plan shows no changes) |
+| 2. 1Password item `oauth2-proxy-zigbee2mqtt#prod` (field `cookie-secret`, 32 random bytes), UCS group `sec.app.zigbee2mqtt.admin` with `bob-adm` | done: group created on the master on 2026-11-25; on 2026-11-26 the item created, the Keycloak group sync run and the user cache of realm `admin` cleared (Keycloak shows the group with one member; a new membership is not seen by a cached user, see [`longhorn-sso.md`](longhorn-sso.md#rollout)) |
 | 3. Unit, policy and route switch | manifests written, build for all 8 environments; merging them activates the login in `prod`, so they merge only after steps 1 and 2 |
 | 4. Live test in `prod` | open: no page load without a session (302), websocket handshake without a session refused, `bob-adm` reaches the frontend and the device list updates live, direct access to the pod from another pod times out, kubelet probes stay green, break-glass port-forward works with the policy applied |
 
