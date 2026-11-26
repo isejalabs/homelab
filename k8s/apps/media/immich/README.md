@@ -96,7 +96,19 @@ kubectl --context admin@dev-homelab -n immich describe pod <pod>
 
 # check that the Flux Kustomization is ready
 flux --context admin@dev-homelab get ks immich
+
+# memories (on this day) missing after a bulk import: reset the memory job's marker (see below), then start the job again
+kubectl --context admin@qa-homelab -n immich exec immich-db-1 -c postgres -- \
+  psql -d immich -At -c "select value from system_metadata where key = 'memories-state'"
+kubectl --context admin@qa-homelab -n immich exec immich-db-1 -c postgres -- \
+  psql -d immich -At -c "delete from system_metadata where key = 'memories-state' returning value"
 ```
+
+### Memories after a bulk import
+
+Immich only creates "on this day" memories from assets of earlier years. The nightly job generates them up to three days ahead and records the last day it handled in the `memories-state` row of `system_metadata` (`lastOnThisDayDate`), also when it created nothing; every later run, a manual one included, skips the days up to that marker ([`memory.service.ts` of v3.4.2](https://github.com/immich-app/immich/blob/v3.4.2/server/src/services/memory.service.ts)). A run while an import is still going therefore leaves those days without memories although the assets arrive later.
+
+To repair this, wait until the import has finished, delete the row (the commands above), then start the memory generation job in the web UI or wait for the nightly run. Without the marker it handles the days from two days ago to three days ahead (UTC); older days are not filled in. Deleting the row makes the job handle those days again, so a day which already has memories gets them a second time: delete the row only when the memories are missing, or remove the duplicates afterwards.
 
 ## Media volumes
 
