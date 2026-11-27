@@ -15,7 +15,7 @@ spec:
         spec:
           containers:
             - name: upload
-              image: public.ecr.aws/aws-cli/aws-cli:2.42.1@sha256:b0102d2269f87d8531d931c1a59e248101ace586886e6c077058d94c1c37b846
+              image: public.ecr.aws/aws-cli/aws-cli:2.42.4@sha256:4a1a668837d5f97ced202e03827da1bc0b48cda946be89909cd7a02023f62921
               command:
                 - /bin/sh
                 - -ec
@@ -150,7 +150,7 @@ spec:
                   mountPath: /dump
             - name: fetch-age
               # the aws-cli image is already pulled for the upload step and has curl and python3, but no tar and no age
-              image: public.ecr.aws/aws-cli/aws-cli:2.42.1@sha256:b0102d2269f87d8531d931c1a59e248101ace586886e6c077058d94c1c37b846
+              image: public.ecr.aws/aws-cli/aws-cli:2.42.4@sha256:4a1a668837d5f97ced202e03827da1bc0b48cda946be89909cd7a02023f62921
               command:
                 - /bin/sh
                 - -ec
