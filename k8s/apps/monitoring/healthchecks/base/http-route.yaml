@@ -1,0 +1,27 @@
+---
+# yaml-language-server: $schema=https://k8s-schemas.home-operations.com/gateway.networking.k8s.io/httproute_v1.json
+# Everything goes through the login proxy, the ping endpoint included (the proxy lets /ping/ pass without a login, see
+# kustomization.yaml). A route straight to the application would let a client send the REMOTE_USER_HEADER itself.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: healthchecks
+spec:
+  hostnames:
+    - healthchecks.example.com
+  parentRefs:
+    - kind: Gateway
+      name: internal
+      namespace: gateway-api
+      group: gateway.networking.k8s.io
+  rules:
+    - matches:
+        - path:
+            type: PathPrefix
+            value: /
+      backendRefs:
+        - kind: Service
+          name: oauth2-proxy
+          group: ""
+          port: 80
+          weight: 1

@@ -17,6 +17,7 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 | <img src="../assets/icons/actual-budget.png" width="20" height="20" alt=""> [`actualbudget`](../../k8s/apps/finances/actualbudget/) | `finances` | [Actual Budget](https://github.com/actualbudget/actual) — personal finance/budgeting app | optional |
 | <img src="../assets/icons/adguard-home.svg" width="20" height="20" alt=""> [`adguard`](../../k8s/apps/dns/adguard/) | `dns` | [AdGuard Home](https://github.com/AdguardTeam/AdGuardHome) — LAN DNS filtering/ad-blocking (see [`network.md`](network.md#dns-adguard--unbound)) | optional |
 | <img src="../assets/icons/checkmk.svg" width="20" height="20" alt=""> [`checkmk-agent`](../../k8s/apps/monitoring/checkmk-agent/) | `monitoring` | [Checkmk](https://checkmk.com/) Kubernetes monitoring agent (cluster + node collectors) | minimal |
+| 💓 [`healthchecks`](../../k8s/apps/monitoring/healthchecks/) | `monitoring` | [Healthchecks](https://healthchecks.io/) self-hosted heartbeat monitor (SQLite on a volume, login through an OAuth2 Proxy against Keycloak, `/ping/` open) — [#2275](https://github.com/isejalabs/homelab/issues/2275) | none ⁵ |
 | 🖼️ [`immich`](../../k8s/apps/media/immich/) | `media` | [Immich](https://immich.app/) photo and video archive: server and machine learning from the official chart ([#2146](https://github.com/isejalabs/homelab/issues/2146)), isolated by quota, limits and a low `PriorityClass`, with its media on static NFS volumes on `fiona` ([`immich-media-storage.md`](../operations/immich-media-storage.md)) | `qa-soaking` ³ |
 | 🖼️ [`immich-db`](../../k8s/apps/media/immich-db/) | `media` | Database and cache of [Immich](https://immich.app/) ([#413](https://github.com/isejalabs/homelab/issues/413)): a [CloudNativePG](https://cloudnative-pg.io/) cluster with VectorChord (1 instance, no WAL archiving; daily encrypted `pg_dump` to RustFS, see [`immich-database.md`](../backup/immich-database.md)) and Valkey without persistence | `qa-soaking` ³ |
 | <img src="../assets/icons/keycloak.svg" width="20" height="20" alt=""> [`keycloak`](../../k8s/apps/identity/keycloak/) | `identity` | [Keycloak](https://www.keycloak.org/) identity provider (single replica) with its [CloudNativePG](https://cloudnative-pg.io/) database (1 instance, no WAL archiving; daily `pg_dump` to RustFS, see [`keycloak-backup-restore.md`](../identity/keycloak-backup-restore.md)) — [#1826](https://github.com/isejalabs/homelab/issues/1826) | `standing` ¹ |
@@ -34,6 +35,8 @@ Every environment gets the **minimal** apps (marked `minimal` below); only `head
 ² `zigbee2mqtt` is registered in `prod` only, because there is a single physical coordinator; `zigbee2mqtt-auth` follows it.
 
 ³ `immich` and `immich-db` are registered in `dev`, `qa` and `rebuild` only, see [`sets/qa-soaking`](../../k8s/bootstrap/cluster/flux/sets/qa-soaking/kustomization.yaml); `prod` follows with the Immich promotion ([#2149](https://github.com/isejalabs/homelab/issues/2149)).
+
+⁵ `healthchecks` is registered per environment in `k8s/bootstrap/cluster/flux/envs/<env>/kustomization.yaml`, in `dev` only for now; `qa` and `prod` follow.
 
 ## Infra (`k8s/infra/`)
 
