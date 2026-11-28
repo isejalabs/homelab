@@ -105,7 +105,7 @@ spec:
             - name: dump
               # overwritten with the Cluster's spec.imageName by the replacement in kustomization.yaml; this copy only
               # satisfies the schema and keeps Renovate's bump of cluster.yaml and of this line in one PR
-              image: ghcr.io/cloudnative-pg/postgresql:18.7-system-trixie@sha256:13f5dc1b42c5d96233724be976740df031136ca013f98a56a2877a62b362b453
+              image: ghcr.io/cloudnative-pg/postgresql:19.0-system-trixie@sha256:04aba475dfd2ee7ad4a8ad22e77a3b5597cba7f48437ba014e9730e87d00ae4b
               command:
                 - /bin/sh
                 - -ec
